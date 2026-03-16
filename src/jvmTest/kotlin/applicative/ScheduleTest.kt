@@ -4,11 +4,14 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import java.io.IOException
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ScheduleTest {
@@ -164,6 +167,155 @@ class ScheduleTest {
         val orDecision = either.decide(0, err)
         assertIs<Schedule.Decision.Continue>(orDecision)
         assertEquals(100.milliseconds, orDecision.delay, "or uses min delay")
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Integration: composing multiple policies
+    // ════════════════════════════════════════════════════════════════════════
+
+    // ════════════════════════════════════════════════════════════════════════
+    // jittered
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `jittered adds random spread to delays`() {
+        // Seeded random for deterministic test
+        val seeded = Random(42)
+        val schedule = Schedule.spaced<Throwable>(100.milliseconds).jittered(0.5, seeded)
+        val err = RuntimeException("test")
+
+        // All decisions should be Continue with delay in [50ms, 150ms]
+        repeat(20) { attempt ->
+            val decision = schedule.decide(attempt, err)
+            assertIs<Schedule.Decision.Continue>(decision)
+            assertTrue(decision.delay >= 50.milliseconds, "delay ${decision.delay} should be >= 50ms")
+            assertTrue(decision.delay <= 150.milliseconds, "delay ${decision.delay} should be <= 150ms")
+        }
+    }
+
+    @Test
+    fun `jittered preserves Done decisions`() {
+        val schedule = Schedule.recurs<Throwable>(1).jittered()
+        val err = RuntimeException("test")
+
+        // attempt 0 → Continue (within recurs limit)
+        assertIs<Schedule.Decision.Continue>(schedule.decide(0, err))
+        // attempt 1 → Done (recurs exhausted)
+        assertIs<Schedule.Decision.Done>(schedule.decide(1, err))
+    }
+
+    @Test
+    fun `jittered factor must be in valid range`() {
+        assertFailsWith<IllegalArgumentException> {
+            Schedule.spaced<Throwable>(100.milliseconds).jittered(factor = -0.1)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            Schedule.spaced<Throwable>(100.milliseconds).jittered(factor = 1.1)
+        }
+    }
+
+    @Test
+    fun `jittered with factor zero produces exact delays`() {
+        val schedule = Schedule.spaced<Throwable>(100.milliseconds).jittered(factor = 0.0)
+        val err = RuntimeException("test")
+
+        repeat(5) { attempt ->
+            val decision = schedule.decide(attempt, err)
+            assertIs<Schedule.Decision.Continue>(decision)
+            assertEquals(100.milliseconds, decision.delay, "factor=0 should produce exact delay")
+        }
+    }
+
+    @Test
+    fun `jittered composes with exponential for production retry`() = runTest {
+        val seeded = Random(123)
+        val policy = Schedule.recurs<Throwable>(3) and
+            Schedule.exponential<Throwable>(100.milliseconds).jittered(0.5, seeded)
+
+        var attempts = 0
+        val result = runCatching {
+            Async {
+                Computation<String> {
+                    attempts++
+                    throw RuntimeException("fail #$attempts")
+                }.retry(policy)
+            }
+        }
+        assertTrue(result.isFailure)
+        assertEquals(4, attempts, "recurs(3) limits to 4 total attempts")
+        // Virtual time should be > 0 (jittered delays applied)
+        assertTrue(currentTime > 0, "jittered delays should produce non-zero wait")
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // fibonacci
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `fibonacci produces correct delay sequence`() {
+        val schedule = Schedule.fibonacci<Throwable>(50.milliseconds)
+        val err = RuntimeException("test")
+
+        // Fibonacci: 50, 50, 100, 150, 250, 400, 650
+        val expected = listOf(50L, 50L, 100L, 150L, 250L, 400L, 650L)
+        expected.forEachIndexed { attempt, expectedMs ->
+            val decision = schedule.decide(attempt, err)
+            assertIs<Schedule.Decision.Continue>(decision)
+            assertEquals(expectedMs.milliseconds, decision.delay, "attempt $attempt")
+        }
+    }
+
+    @Test
+    fun `fibonacci respects max cap`() {
+        val schedule = Schedule.fibonacci<Throwable>(50.milliseconds, max = 200.milliseconds)
+        val err = RuntimeException("test")
+
+        // 50, 50, 100, 150, 200(capped), 200(capped)...
+        val expected = listOf(50L, 50L, 100L, 150L, 200L, 200L)
+        expected.forEachIndexed { attempt, expectedMs ->
+            val decision = schedule.decide(attempt, err)
+            assertIs<Schedule.Decision.Continue>(decision)
+            assertEquals(expectedMs.milliseconds, decision.delay, "attempt $attempt")
+        }
+    }
+
+    @Test
+    fun `fibonacci with recurs produces correct virtual time`() = runTest {
+        var attempts = 0
+        val policy = Schedule.recurs<Throwable>(4) and
+            Schedule.fibonacci(50.milliseconds)
+
+        val result = runCatching {
+            Async {
+                Computation<String> {
+                    attempts++
+                    throw RuntimeException("fail")
+                }.retry(policy)
+            }
+        }
+        assertTrue(result.isFailure)
+        assertEquals(5, attempts) // 1 initial + 4 retries
+        // Delays: 50 + 50 + 100 + 150 = 350ms
+        assertEquals(350L, currentTime, "fibonacci delays: 50+50+100+150 = 350ms")
+    }
+
+    @Test
+    fun `fibonacci composes with doWhile and jittered`() {
+        val seeded = Random(99)
+        val policy = Schedule.fibonacci<Throwable>(100.milliseconds, max = 1.seconds) and
+            Schedule.doWhile<Throwable> { it is IOException }
+
+        val jittered = policy.jittered(0.3, seeded)
+
+        // IOException → Continue with jittered fibonacci delay
+        val ioDecision = jittered.decide(0, IOException("net"))
+        assertIs<Schedule.Decision.Continue>(ioDecision)
+        assertTrue(ioDecision.delay >= 70.milliseconds, "jittered delay should be >= 70ms (100 * 0.7)")
+        assertTrue(ioDecision.delay <= 130.milliseconds, "jittered delay should be <= 130ms (100 * 1.3)")
+
+        // Non-IOException → Done (doWhile stops)
+        val iseDecision = jittered.decide(0, IllegalStateException("bad"))
+        assertIs<Schedule.Decision.Done>(iseDecision)
     }
 
     // ════════════════════════════════════════════════════════════════════════

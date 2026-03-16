@@ -1,5 +1,6 @@
 package applicative
 
+import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.ZERO
 
@@ -52,6 +53,30 @@ class Schedule<A>(
         fun <A> doWhile(predicate: (A) -> Boolean): Schedule<A> = Schedule { _, a ->
             if (predicate(a)) Decision.Continue(ZERO) else Decision.Done
         }
+
+        /**
+         * Fibonacci backoff starting from [base], capped at [max].
+         *
+         * Produces delays: base, base, 2*base, 3*base, 5*base, 8*base, ...
+         *
+         * Fibonacci backoff ramps up more gently than exponential, making it
+         * suitable for services that recover gradually.
+         */
+        fun <A> fibonacci(
+            base: Duration,
+            max: Duration = Duration.INFINITE,
+        ): Schedule<A> {
+            return Schedule { attempt, _ ->
+                var a = base
+                var b = base
+                repeat(attempt) {
+                    val next = a + b
+                    a = b
+                    b = next
+                }
+                Decision.Continue(minOf(a, max))
+            }
+        }
     }
 
     /**
@@ -64,6 +89,34 @@ class Schedule<A>(
         if (d1 is Decision.Continue && d2 is Decision.Continue)
             Decision.Continue(maxOf(d1.delay, d2.delay))
         else Decision.Done
+    }
+
+    /**
+     * Adds random jitter to delays, spreading retry storms across time.
+     *
+     * Each delay is multiplied by a random factor in the range
+     * `[1 - factor, 1 + factor]`. The default [factor] of `0.5` gives ±50% spread.
+     *
+     * Essential for production retry policies to prevent thundering herd:
+     * ```
+     * Schedule.exponential<Throwable>(100.milliseconds).jittered()
+     * // Delays: ~100ms, ~200ms, ~400ms... each ±50% random
+     * ```
+     *
+     * @param factor jitter spread factor in `[0.0, 1.0]`. Default `0.5`.
+     * @param random random source, injectable for testing.
+     */
+    fun jittered(factor: Double = 0.5, random: Random = Random): Schedule<A> {
+        require(factor in 0.0..1.0) { "jitter factor must be in [0.0, 1.0], was $factor" }
+        return Schedule { attempt, a ->
+            when (val d = this@Schedule.decide(attempt, a)) {
+                is Decision.Continue -> {
+                    val jitter = 1.0 - factor + random.nextDouble() * factor * 2.0
+                    Decision.Continue(d.delay * jitter)
+                }
+                is Decision.Done -> Decision.Done
+            }
+        }
     }
 
     /**
