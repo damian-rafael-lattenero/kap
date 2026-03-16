@@ -1169,6 +1169,106 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> zipV(
     }
 }
 
+fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, X, R> zipV(
+    fa: suspend () -> Either<Nel<E>, A>,
+    fb: suspend () -> Either<Nel<E>, B>,
+    fc: suspend () -> Either<Nel<E>, C>,
+    fd: suspend () -> Either<Nel<E>, D>,
+    ff: suspend () -> Either<Nel<E>, F>,
+    fg: suspend () -> Either<Nel<E>, G>,
+    fh: suspend () -> Either<Nel<E>, H>,
+    fi: suspend () -> Either<Nel<E>, I>,
+    fj: suspend () -> Either<Nel<E>, J>,
+    fk: suspend () -> Either<Nel<E>, K>,
+    fl: suspend () -> Either<Nel<E>, L>,
+    fm: suspend () -> Either<Nel<E>, M>,
+    fn: suspend () -> Either<Nel<E>, N>,
+    fO: suspend () -> Either<Nel<E>, O>,
+    fp: suspend () -> Either<Nel<E>, P>,
+    fq: suspend () -> Either<Nel<E>, Q>,
+    fs: suspend () -> Either<Nel<E>, S>,
+    ft: suspend () -> Either<Nel<E>, T>,
+    fu: suspend () -> Either<Nel<E>, U>,
+    fv: suspend () -> Either<Nel<E>, V>,
+    fw: suspend () -> Either<Nel<E>, W>,
+    fx: suspend () -> Either<Nel<E>, X>,
+    combine: (A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, X) -> R,
+): Computation<Either<Nel<E>, R>> = Computation {
+    val da = async { fa() }
+    val db = async { fb() }
+    val dc = async { fc() }
+    val dd = async { fd() }
+    val df = async { ff() }
+    val dg = async { fg() }
+    val dh = async { fh() }
+    val di = async { fi() }
+    val dj = async { fj() }
+    val dk = async { fk() }
+    val dl = async { fl() }
+    val dm = async { fm() }
+    val dn = async { fn() }
+    val dO = async { fO() }
+    val dp = async { fp() }
+    val dq = async { fq() }
+    val ds = async { fs() }
+    val dt = async { ft() }
+    val du = async { fu() }
+    val dv = async { fv() }
+    val dw = async { fw() }
+    val dx = async { fx() }
+    val ea = da.await()
+    val eb = db.await()
+    val ec = dc.await()
+    val ed = dd.await()
+    val ef = df.await()
+    val eg = dg.await()
+    val eh = dh.await()
+    val ei = di.await()
+    val ej = dj.await()
+    val ek = dk.await()
+    val el = dl.await()
+    val em = dm.await()
+    val en = dn.await()
+    val eO = dO.await()
+    val ep = dp.await()
+    val eq = dq.await()
+    val es = ds.await()
+    val et = dt.await()
+    val eu = du.await()
+    val ev = dv.await()
+    val ew = dw.await()
+    val ex = dx.await()
+    if (ea is Either.Right && eb is Either.Right && ec is Either.Right && ed is Either.Right && ef is Either.Right && eg is Either.Right && eh is Either.Right && ei is Either.Right && ej is Either.Right && ek is Either.Right && el is Either.Right && em is Either.Right && en is Either.Right && eO is Either.Right && ep is Either.Right && eq is Either.Right && es is Either.Right && et is Either.Right && eu is Either.Right && ev is Either.Right && ew is Either.Right && ex is Either.Right)
+        Either.Right(combine(ea.value, eb.value, ec.value, ed.value, ef.value, eg.value, eh.value, ei.value, ej.value, ek.value, el.value, em.value, en.value, eO.value, ep.value, eq.value, es.value, et.value, eu.value, ev.value, ew.value, ex.value))
+    else {
+        val errors = buildList {
+            if (ea is Either.Left) add(ea.value)
+            if (eb is Either.Left) add(eb.value)
+            if (ec is Either.Left) add(ec.value)
+            if (ed is Either.Left) add(ed.value)
+            if (ef is Either.Left) add(ef.value)
+            if (eg is Either.Left) add(eg.value)
+            if (eh is Either.Left) add(eh.value)
+            if (ei is Either.Left) add(ei.value)
+            if (ej is Either.Left) add(ej.value)
+            if (ek is Either.Left) add(ek.value)
+            if (el is Either.Left) add(el.value)
+            if (em is Either.Left) add(em.value)
+            if (en is Either.Left) add(en.value)
+            if (eO is Either.Left) add(eO.value)
+            if (ep is Either.Left) add(ep.value)
+            if (eq is Either.Left) add(eq.value)
+            if (es is Either.Left) add(es.value)
+            if (et is Either.Left) add(et.value)
+            if (eu is Either.Left) add(eu.value)
+            if (ev is Either.Left) add(ev.value)
+            if (ew is Either.Left) add(ew.value)
+            if (ex is Either.Left) add(ex.value)
+        }
+        Either.Left(errors.reduce { acc, nel -> acc + nel })
+    }
+}
+
 // ── liftV: curried validated lift ────────────────────────────────────────
 
 fun <E, P1, P2, R> liftV2(f: (P1, P2) -> R): Computation<Either<Nel<E>, (P1) -> (P2) -> R>> =
