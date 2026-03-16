@@ -84,4 +84,29 @@ class ComputationBuilderTest {
         }
         assertEquals(42, result)
     }
+
+    @Test
+    fun `bind lambda shorthand — executes suspend block directly`() = runTest {
+        val result = Async {
+            computation {
+                val x = bind { 10 }
+                val y = bind { x * 2 }  // depends on x
+                val z = bind { y + 5 }  // depends on y
+                z
+            }
+        }
+        assertEquals(25, result)
+    }
+
+    @Test
+    fun `bind lambda shorthand — value-dependent chain`() = runTest {
+        val result = Async {
+            computation {
+                val user = bind { "Alice" }
+                val greeting = bind { "Hello, $user!" }  // depends on user
+                greeting
+            }
+        }
+        assertEquals("Hello, Alice!", result)
+    }
 }

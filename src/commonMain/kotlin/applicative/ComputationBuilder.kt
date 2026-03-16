@@ -12,8 +12,8 @@ import kotlinx.coroutines.CoroutineScope
  * ```
  * val result = Async {
  *     computation {
- *         val user = Computation { fetchUser(id) }.bind()
- *         val cart = Computation { fetchCart(user.cartId) }.bind()
+ *         val user = bind { fetchUser(id) }
+ *         val cart = bind { fetchCart(user.cartId) }
  *         Dashboard(user, cart)
  *     }
  * }
@@ -27,6 +27,20 @@ class ComputationScope @PublishedApi internal constructor(
      * Equivalent to chaining with [flatMap], but with imperative syntax.
      */
     suspend fun <A> Computation<A>.bind(): A = with(this@bind) { scope.execute() }
+
+    /**
+     * Executes a suspend block as a [Computation] and returns the result.
+     * Shorthand for `Computation { block() }.bind()`.
+     *
+     * ```
+     * computation {
+     *     val user = bind { fetchUser(id) }    // clean
+     *     val cart = bind { fetchCart(user.id) } // value-dependent
+     *     Dashboard(user, cart)
+     * }
+     * ```
+     */
+    suspend fun <A> bind(block: suspend () -> A): A = block()
 }
 
 /**
