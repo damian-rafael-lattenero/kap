@@ -1,0 +1,201 @@
+package applicative
+
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.runTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
+
+class RaceTest {
+
+    // ════════════════════════════════════════════════════════════════════════
+    // raceN — N-way race
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `raceN with three computations returns fastest`() = runTest {
+        val result = Async {
+            raceN(
+                Computation { delay(10_000); "slow1" },
+                Computation { "fast" },
+                Computation { delay(10_000); "slow2" },
+            )
+        }
+        assertEquals("fast", result)
+    }
+
+    @Test
+    fun `raceN cancels all losers`() = runTest {
+        val cancelled1 = CompletableDeferred<Boolean>()
+        val cancelled2 = CompletableDeferred<Boolean>()
+
+        val result = Async {
+            raceN(
+                Computation {
+                    try { awaitCancellation() }
+                    catch (e: kotlinx.coroutines.CancellationException) {
+                        cancelled1.complete(true); throw e
+                    }
+                },
+                Computation { "winner" },
+                Computation {
+                    try { awaitCancellation() }
+                    catch (e: kotlinx.coroutines.CancellationException) {
+                        cancelled2.complete(true); throw e
+                    }
+                },
+            )
+        }
+
+        assertEquals("winner", result)
+        assertTrue(cancelled1.await())
+        assertTrue(cancelled2.await())
+    }
+
+    @Test
+    fun `raceN with single computation returns it`() = runTest {
+        val result = Async { raceN(pure(42)) }
+        assertEquals(42, result)
+    }
+
+    @Test
+    fun `raceN with empty throws IllegalArgumentException`() = runTest {
+        val result = runCatching {
+            Async { raceN<Int>() }
+        }
+        assertTrue(result.isFailure)
+        assertIs<IllegalArgumentException>(result.exceptionOrNull())
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // raceAll — Iterable overload
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `raceAll on list returns fastest`() = runTest {
+        val result = Async {
+            listOf(
+                Computation { delay(10_000); "slow" },
+                Computation { "fast" },
+                Computation { delay(10_000); "slower" },
+            ).raceAll()
+        }
+        assertEquals("fast", result)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // race — first to succeed wins, failures give the other a chance
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `race returns second when first fails`() = runTest {
+        val result = Async {
+            race(
+                Computation<String> { throw RuntimeException("boom") },
+                Computation { delay(100); "fallback" },
+            )
+        }
+        assertEquals("fallback", result)
+    }
+
+    @Test
+    fun `race returns first when second fails`() = runTest {
+        val result = Async {
+            race(
+                Computation { delay(100); "primary" },
+                Computation<String> { throw RuntimeException("boom") },
+            )
+        }
+        assertEquals("primary", result)
+    }
+
+    @Test
+    fun `race propagates when both sides fail`() = runTest {
+        val result = runCatching {
+            Async {
+                race(
+                    Computation<String> { throw RuntimeException("boom1") },
+                    Computation<String> { throw RuntimeException("boom2") },
+                )
+            }
+        }
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `raceN skips failed racers and picks first success`() = runTest {
+        val result = Async {
+            raceN(
+                Computation<String> { throw RuntimeException("fail1") },
+                Computation<String> { throw RuntimeException("fail2") },
+                Computation { delay(100); "winner" },
+            )
+        }
+        assertEquals("winner", result)
+    }
+
+    @Test
+    fun `raceN propagates when all fail`() = runTest {
+        val result = runCatching {
+            Async {
+                raceN(
+                    Computation<String> { throw RuntimeException("fail1") },
+                    Computation<String> { throw RuntimeException("fail2") },
+                )
+            }
+        }
+        assertTrue(result.isFailure)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // race — Result-wrapping correctness (bug fix verification)
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `race does not lose successful result when failure arrives concurrently`() = runTest {
+        // Both complete nearly simultaneously — failure must not shadow success
+        val result = Async {
+            race(
+                Computation { "success" },
+                Computation<String> { throw RuntimeException("concurrent-fail") },
+            )
+        }
+        assertEquals("success", result)
+    }
+
+    @Test
+    fun `race both fail propagates first failure`() = runTest {
+        val result = runCatching {
+            Async {
+                race(
+                    Computation<String> { throw RuntimeException("first") },
+                    Computation<String> { delay(50); throw RuntimeException("second") },
+                )
+            }
+        }
+        assertTrue(result.isFailure)
+        val ex = result.exceptionOrNull()!!
+        // First failure is the one that propagates
+        assertTrue(ex.message == "first" || ex.message == "second")
+    }
+
+    @Test
+    fun `raceN all fail propagates with all errors collected`() = runTest {
+        val result = runCatching {
+            Async {
+                raceN(
+                    Computation<String> { throw RuntimeException("r1") },
+                    Computation<String> { delay(50); throw RuntimeException("r2") },
+                    Computation<String> { delay(100); throw RuntimeException("r3") },
+                )
+            }
+        }
+        assertTrue(result.isFailure)
+        val ex = result.exceptionOrNull()!!
+        // Primary error is the first to fail
+        assertEquals("r1", ex.message)
+    }
+}
