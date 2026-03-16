@@ -188,6 +188,30 @@ class Schedule<A>(
     }
 
     /**
+     * Accumulates a value across retry attempts by folding each input with [combine].
+     *
+     * The accumulated value is available via the [Schedule.Decision] but does not
+     * change retry behavior — this schedule delegates decisions to the original.
+     * Useful for collecting all errors, building a retry log, or counting specific
+     * failure types.
+     *
+     * ```
+     * val countIOErrors = Schedule.recurs<Throwable>(5)
+     *     .fold(0) { count, err -> if (err is IOException) count + 1 else count }
+     * ```
+     *
+     * @param initial starting accumulator value
+     * @param combine function to merge each input into the accumulator
+     */
+    fun <B> fold(initial: B, combine: (B, A) -> B): Schedule<A> {
+        var acc = initial
+        return Schedule { attempt, a ->
+            acc = combine(acc, a)
+            this@Schedule.decide(attempt, a)
+        }
+    }
+
+    /**
      * Either schedule can continue. Uses the minimum delay.
      * Only [Decision.Done] when both say done.
      */

@@ -97,3 +97,87 @@ fun <A> Either<A, A>.merge(): A = when (this) {
     is Either.Left -> value
     is Either.Right -> value
 }
+
+// ── guards & recovery ─────────────────────────────────────────────────
+
+/**
+ * Validates the [Right] value against a [predicate].
+ * If the predicate fails, returns [Left] with the result of [error].
+ *
+ * ```
+ * right(18).ensure({ "too young" }) { it >= 21 } // Left("too young")
+ * right(25).ensure({ "too young" }) { it >= 21 } // Right(25)
+ * ```
+ */
+inline fun <E, A> Either<E, A>.ensure(error: () -> E, predicate: (A) -> Boolean): Either<E, A> =
+    when (this) {
+        is Either.Left -> this
+        is Either.Right -> if (predicate(value)) this else Either.Left(error())
+    }
+
+/**
+ * Like [ensure] but with predicate first — matches the `filter` convention.
+ *
+ * ```
+ * right(18).filterOrElse({ it >= 21 }) { "too young" } // Left("too young")
+ * ```
+ */
+inline fun <E, A> Either<E, A>.filterOrElse(predicate: (A) -> Boolean, default: () -> E): Either<E, A> =
+    ensure(default, predicate)
+
+/**
+ * Recovers from a [Left] by applying [handler] to produce a success value.
+ * More ergonomic than [fold] when you only need the error case.
+ *
+ * ```
+ * left("oops").getOrHandle { it.uppercase() } // "OOPS"
+ * right(42).getOrHandle { -1 }                // 42
+ * ```
+ */
+inline fun <E, A> Either<E, A>.getOrHandle(handler: (E) -> A): A = when (this) {
+    is Either.Left -> handler(value)
+    is Either.Right -> value
+}
+
+/**
+ * Recovers from a [Left] by producing a new [Either].
+ * Analogous to [Computation.recoverWith].
+ *
+ * ```
+ * left("primary").handleErrorWith { right("fallback") } // Right("fallback")
+ * ```
+ */
+inline fun <E, A> Either<E, A>.handleErrorWith(handler: (E) -> Either<E, A>): Either<E, A> =
+    when (this) {
+        is Either.Left -> handler(value)
+        is Either.Right -> this
+    }
+
+// ── zip: combine two Eithers ─────────────────────────────────────────
+
+/**
+ * Combines two [Either] values with [combine] if both are [Right].
+ * Short-circuits on the first [Left].
+ *
+ * ```
+ * right(1).zip(right("a")) { n, s -> "$n$s" } // Right("1a")
+ * left("e1").zip(right("a")) { n, s -> "$n$s" } // Left("e1")
+ * ```
+ */
+inline fun <E, A, B, C> Either<E, A>.zip(other: Either<E, B>, crossinline combine: (A, B) -> C): Either<E, C> =
+    flatMap { a -> other.map { b -> combine(a, b) } }
+
+// ── bridge to validated ───────────────────────────────────────────────
+
+/**
+ * Lifts a single-error [Either] into the [Nel]-based validated world.
+ *
+ * ```
+ * left("bad").toValidatedNel()  // Left(Nel("bad"))
+ * right(42).toValidatedNel()    // Right(42)
+ * ```
+ */
+fun <E, A> Either<E, A>.toValidatedNel(): Either<Nel<E>, A> = when (this) {
+    is Either.Left -> Either.Left(value.nel())
+    is Either.Right -> this
+}

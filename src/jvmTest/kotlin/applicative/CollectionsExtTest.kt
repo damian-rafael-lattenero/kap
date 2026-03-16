@@ -205,13 +205,13 @@ class CollectionsExtTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 9. parMap runs elements in parallel - timing proof
+    // 9. traverse runs elements in parallel - timing proof
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `parMap runs elements in parallel - timing proof`() = runTest {
+    fun `traverse runs elements in parallel - timing proof`() = runTest {
         val result = Async {
-            listOf(1, 2, 3, 4, 5).parMap { i ->
+            listOf(1, 2, 3, 4, 5).traverse { i ->
                 Computation { delay(30); "v$i" }
             }
         }
@@ -222,13 +222,13 @@ class CollectionsExtTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 10. parMap with concurrency limit - timing proof
+    // 10. traverse with concurrency limit - timing proof
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `parMap with concurrency limit - timing proof`() = runTest {
+    fun `traverse with concurrency limit - timing proof`() = runTest {
         val result = Async {
-            (1..9).toList().parMap(3) { i ->
+            (1..9).toList().traverse(3) { i ->
                 Computation { delay(30); "v$i" }
             }
         }
@@ -237,30 +237,6 @@ class CollectionsExtTest {
         // 9 elements, concurrency=3, 30ms each: 3 batches x 30ms = 90ms
         assertEquals(90, currentTime,
             "Expected 90ms (3 batches of 3 at 30ms each). Got ${currentTime}ms")
-    }
-
-    // ════════════════════════════════════════════════════════════════════════
-    // 11. parMap produces same results as traverse
-    // ════════════════════════════════════════════════════════════════════════
-
-    @Test
-    fun `parMap produces same results as traverse`() = runTest {
-        val items = listOf("alpha", "beta", "gamma", "delta")
-        val mapper: (String) -> Computation<String> = { s ->
-            Computation { delay(20); s.uppercase() }
-        }
-
-        val traverseResult = Async { items.traverse(mapper) }
-        val traverseTime = currentTime
-
-        val parMapResult = Async { items.parMap(mapper) }
-        val parMapTime = currentTime - traverseTime
-
-        assertEquals(traverseResult, parMapResult,
-            "parMap and traverse should produce identical results")
-        assertEquals(traverseTime, parMapTime,
-            "parMap and traverse should have the same timing")
-        assertEquals(listOf("ALPHA", "BETA", "GAMMA", "DELTA"), traverseResult)
     }
 
     // ════════════════════════════════════════════════════════════════════════

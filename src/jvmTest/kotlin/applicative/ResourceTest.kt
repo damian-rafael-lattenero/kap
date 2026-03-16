@@ -253,4 +253,54 @@ class ResourceTest {
         assertTrue(result.isFailure)
         assertTrue(releases.contains("release:conn"), "Resource must be released on computation failure")
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Resource.defer
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `defer lazily constructs resource`() = runTest {
+        var constructed = false
+        val resource = Resource.defer {
+            constructed = true
+            Resource({ "conn" }, { })
+        }
+        // Not constructed until used
+        assertEquals(false, constructed)
+
+        val result = resource.use { it }
+        assertEquals(true, constructed)
+        assertEquals("conn", result)
+    }
+
+    @Test
+    fun `defer selects resource conditionally`() = runTest {
+        val events = CopyOnWriteArrayList<String>()
+        fun makeResource(useRedis: Boolean): Resource<String> = Resource.defer {
+            if (useRedis)
+                Resource({ events.add("acquire:redis"); "redis" }, { events.add("release:redis") })
+            else
+                Resource({ events.add("acquire:mem"); "mem" }, { events.add("release:mem") })
+        }
+
+        val result = makeResource(useRedis = true).use { it }
+        assertEquals("redis", result)
+        assertTrue(events.contains("acquire:redis"))
+        assertTrue(events.contains("release:redis"))
+    }
+
+    @Test
+    fun `defer releases on failure`() = runTest {
+        val events = CopyOnWriteArrayList<String>()
+        val resource = Resource.defer {
+            Resource({ events.add("acquire"); "conn" }, { events.add("release") })
+        }
+
+        val result = runCatching {
+            resource.use { throw RuntimeException("boom") }
+        }
+
+        assertTrue(result.isFailure)
+        assertTrue(events.contains("release"), "Deferred resource must release on failure")
+    }
 }
