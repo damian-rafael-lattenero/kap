@@ -226,4 +226,108 @@ class EitherTest {
     fun `merge extracts value from Left`() {
         assertEquals("err", left("err").merge())
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ensure
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `ensure passes when predicate holds`() {
+        assertEquals(right(25), right(25).ensure({ "too young" }) { it >= 21 })
+    }
+
+    @Test
+    fun `ensure fails when predicate does not hold`() {
+        assertEquals(left("too young"), right(18).ensure({ "too young" }) { it >= 21 })
+    }
+
+    @Test
+    fun `ensure is identity on Left`() {
+        val l: Either<String, Int> = left("already bad")
+        assertEquals(l, l.ensure({ "too young" }) { it >= 21 })
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // filterOrElse
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `filterOrElse passes when predicate holds`() {
+        assertEquals(right(25), right(25).filterOrElse({ it >= 21 }) { "too young" })
+    }
+
+    @Test
+    fun `filterOrElse fails when predicate does not hold`() {
+        assertEquals(left("too young"), right(18).filterOrElse({ it >= 21 }) { "too young" })
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // getOrHandle
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `getOrHandle returns value on Right`() {
+        assertEquals(42, right(42).getOrHandle { -1 })
+    }
+
+    @Test
+    fun `getOrHandle applies handler on Left`() {
+        assertEquals(3, left("err").getOrHandle { it.length })
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // handleErrorWith
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `handleErrorWith recovers from Left`() {
+        assertEquals(right("fallback"), left("oops").handleErrorWith { right("fallback") })
+    }
+
+    @Test
+    fun `handleErrorWith chains Left to Left`() {
+        assertEquals(left("mapped"), left("oops").handleErrorWith { left("mapped") })
+    }
+
+    @Test
+    fun `handleErrorWith is identity on Right`() {
+        assertEquals(right(42), right(42).handleErrorWith { right(-1) })
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // zip
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `zip combines two Rights`() {
+        assertEquals(right("1a"), right(1).zip(right("a")) { n, s -> "$n$s" })
+    }
+
+    @Test
+    fun `zip short-circuits on first Left`() {
+        val result: Either<String, String> = left("e1").zip(right("a")) { n, s -> "$n$s" }
+        assertEquals(left("e1"), result)
+    }
+
+    @Test
+    fun `zip short-circuits on second Left`() {
+        val result: Either<String, String> = right(1).zip(left("e2")) { n, s -> "$n$s" }
+        assertEquals(left("e2"), result)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // toValidatedNel
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `toValidatedNel wraps Left in Nel`() {
+        val result = left("err").toValidatedNel()
+        assertIs<Either.Left<Nel<String>>>(result)
+        assertEquals(Nel.of("err"), result.value)
+    }
+
+    @Test
+    fun `toValidatedNel preserves Right`() {
+        assertEquals(right(42), right(42).toValidatedNel())
+    }
 }

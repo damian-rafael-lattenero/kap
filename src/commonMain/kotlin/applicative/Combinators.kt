@@ -234,6 +234,60 @@ fun <A> Computation<A>.retryOrElse(
     throw IllegalStateException("unreachable")
 }
 
+// ── retry with result metadata ───────────────────────────────────────────
+
+/**
+ * Metadata about a successful retry execution.
+ *
+ * @param value the successful result
+ * @param attempts number of retry attempts (0 = succeeded on first try)
+ * @param totalDelay cumulative delay spent waiting between retries
+ */
+data class RetryResult<out A>(
+    val value: A,
+    val attempts: Int,
+    val totalDelay: Duration,
+)
+
+/**
+ * Like [retry] with a [Schedule], but returns a [RetryResult] containing
+ * the successful value along with retry metadata (attempt count and total delay).
+ *
+ * Useful for telemetry, logging, and understanding retry behavior:
+ *
+ * ```
+ * val (user, attempts, totalDelay) = Async {
+ *     Computation { fetchUser() }
+ *         .retryWithResult(Schedule.recurs<Throwable>(3) and Schedule.exponential(100.milliseconds))
+ * }
+ * logger.info("Fetched user after $attempts retries (${totalDelay} delay)")
+ * ```
+ */
+fun <A> Computation<A>.retryWithResult(
+    schedule: Schedule<Throwable>,
+): Computation<RetryResult<A>> = Computation {
+    var attempt = 0
+    var totalDelay = Duration.ZERO
+    while (true) {
+        try {
+            val value = with(this@retryWithResult) { execute() }
+            return@Computation RetryResult(value, attempt, totalDelay)
+        } catch (e: Throwable) {
+            if (e is CancellationException) throw e
+            when (val decision = schedule.decide(attempt, e)) {
+                is Schedule.Decision.Continue -> {
+                    totalDelay += decision.delay
+                    if (decision.delay > Duration.ZERO) delay(decision.delay)
+                    attempt++
+                }
+                is Schedule.Decision.Done -> throw e
+            }
+        }
+    }
+    @Suppress("UNREACHABLE_CODE")
+    throw IllegalStateException("unreachable")
+}
+
 // ── backoff strategies ───────────────────────────────────────────────────
 
 /** Doubles the delay on each retry. */

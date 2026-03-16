@@ -4,10 +4,10 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-484%20passing-brightgreen.svg)](#empirical-data)
+[![Tests](https://img.shields.io/badge/Tests-517%20passing-brightgreen.svg)](#empirical-data)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
-[![Lines](https://img.shields.io/badge/Hand--written-2.3k%20lines-informational.svg)](#)
+[![Lines](https://img.shields.io/badge/Hand--written-2.5k%20lines-informational.svg)](#)
 
 > **Declarative parallel orchestration for Kotlin coroutines. Zero overhead.**
 >
@@ -89,7 +89,7 @@ suspend fun main() {
 }
 ```
 
-**One dependency:** `kotlinx-coroutines-core`. ~2,300 hand-written lines + codegen. All platforms (JVM, JS, Native).
+**One dependency:** `kotlinx-coroutines-core`. ~2,500 hand-written lines + codegen. All platforms (JVM, JS, Native).
 
 ---
 
@@ -600,7 +600,7 @@ Functor, applicative, and monad laws verified with random inputs:
 
 Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLawsTest.kt)
 
-**484 tests across 27 suites. All passing.**
+**517 tests across 30 suites. All passing.**
 
 ---
 
@@ -613,7 +613,7 @@ Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLaw
 | **Value dependencies** | Manual sequencing | Sequential blocks | `flatMap` |
 | **Error accumulation** | Not possible in parallel | `zipOrAccumulate` max 9 | `zipV` up to 22 |
 | **Arg order safety** | None — positional | Named args in lambda | Compile-time via currying |
-| **Code size** | stdlib | ~15k lines (Core) | **~2,300 lines** + codegen |
+| **Code size** | stdlib | ~15k lines (Core) | **~2,500 lines** + codegen |
 | **Dependencies** | stdlib | Arrow Core + modules | `kotlinx-coroutines-core` only |
 | **JMH overhead** | 0.001ms | 0.008–0.023ms | **0.001–0.002ms** |
 
@@ -630,7 +630,7 @@ Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLaw
 | `either { ... }` | `flatMapV { }` | Short-circuit on error |
 | `Resource({ }, { })` | `Resource({ }, { })` | Identical API |
 | `Schedule.recurs(n)` | `Schedule.recurs(n)` | Identical API |
-| `parMap(concurrency) { }` | `traverse(concurrency) { }` | `parMap` also available as alias |
+| `parMap(concurrency) { }` | `traverse(concurrency) { }` | Standard FP naming |
 
 ---
 
@@ -691,7 +691,7 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `map` / `pure` / `unit` | Transform / wrap value | — |
 | `Computation.failed(error)` | Immediately failing computation | — |
 | `Computation.defer { }` | Lazy computation construction | — |
-| `.memoize()` | Cache result, execute once | — |
+| `.memoize()` | Cache result, execute once (thread-safe via `Mutex`) | — |
 | `.on(context)` / `.named(name)` | Dispatcher / coroutine name | — |
 | `.void()` / `.tap { }` | Discard result / side-effect | — |
 | `.attempt()` | Catch to `Either<Throwable, A>` | — |
@@ -704,7 +704,10 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `zip` (2-22 arity) / `mapN` (2-22) | Combine computations | Parallel |
 | `traverse(f)` / `traverse(n, f)` | Map + parallel execution | Parallel (bounded) |
 | `sequence()` / `sequence(n)` | Execute collection | Parallel (bounded) |
-| `parMap(f)` / `parMap(n, f)` | Alias for traverse | Parallel (bounded) |
+
+> **Why no `parZip` / `parMap`?** This is a conscious design decision. This library's identity is rooted in applicative functor composition — `lift + ap` chains, `zip/mapN` combinators, and `traverse/sequence` for collections. These are the standard functional vocabulary (Haskell, Scala). `parZip` and `parMap` are Arrow/Cats naming that implies "parallel" as a special mode — but in this library, **all composition is parallel by default**. There is no sequential variant to contrast against, so the `par` prefix is misleading.
+>
+> **Equivalents:** `parZip(f1, f2) { a, b -> }` → `mapN(f1, f2) { a, b -> }` (tuple-style) or `lift2(::Result).ap { f1 }.ap { f2 }` (flat chain with phase visibility). `parMap { }` → `traverse { }`. Both run in parallel — it's the only mode.
 | `race` / `raceN` / `raceAll` | First to succeed | Competitive |
 | `raceEither(fa, fb)` | First to succeed, different types | Competitive |
 
@@ -717,9 +720,11 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `timeoutRace(d, fallback)` | Parallel timeout (fallback starts immediately) |
 | `retry(n, delay, backoff, shouldRetry, onRetry)` | Configurable retry |
 | `retry(schedule)` / `retryOrElse(schedule, fallback)` | Schedule-based retry |
+| `retryWithResult(schedule)` | Retry returning `RetryResult(value, attempts, totalDelay)` |
 | `Schedule.recurs` / `.spaced` / `.exponential` / `.fibonacci` / `.linear` / `.forever` | Backoff strategies |
 | `Schedule.doWhile` / `.jittered` / `.withMaxDuration` | Filters and limits |
 | `s1 and s2` / `s1 or s2` | Schedule composition |
+| `schedule.fold(init) { acc, a -> }` | Accumulate values across retries |
 
 ### Validation (Error Accumulation)
 
@@ -741,6 +746,7 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `guarantee` / `guaranteeCase` | Finalizers with optional `ExitCase` |
 | `Resource(acquire, release)` | Composable resource monad |
 | `Resource.zip(r1..r22, f)` | Combine up to 22 resources |
+| `Resource.defer { }` | Lazy/conditional resource construction |
 | `resource.use` / `resource.useWithTimeout` / `resource.useComputation` | Terminal operations |
 
 ### Interop & Observability
@@ -749,7 +755,11 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 |---|---|
 | `Deferred.toComputation()` / `Computation.toDeferred(scope)` | Deferred bridge |
 | `Flow.firstAsComputation()` / `(suspend () -> A).toComputation()` | Flow/lambda bridge |
+| `Computation.toFlow()` / `Flow.collectAsComputation()` | Flow ↔ Computation |
+| `Flow.mapComputation(concurrency) { }` / `Flow.filterComputation { }` | Flow + Computation pipeline |
 | `Result.toEither()` / `Either.toResult()` / `Result.toValidated()` | Kotlin Result bridge |
+| `Either.ensure` / `.filterOrElse` / `.getOrHandle` / `.handleErrorWith` | Either combinators |
+| `Either.zip(other) { }` / `.toValidatedNel()` | Either composition & bridge |
 | `traced(name, tracer)` / `traced(name, onStart, onSuccess, onError)` | Observability hooks |
 | `delayed(d, value)` / `catching { }` / `apOrNull` | Utilities |
 
@@ -770,7 +780,7 @@ Arrow interop module: [`/arrow-interop`](arrow-interop/) — optional bridges fo
 ## Building
 
 ```bash
-./gradlew jvmTest              # 484 tests
+./gradlew jvmTest              # 517 tests
 ./gradlew :arrow-interop:test  # Arrow interop tests
 ./gradlew :benchmarks:jmh      # JMH benchmarks
 ./gradlew dokkaHtml             # API docs

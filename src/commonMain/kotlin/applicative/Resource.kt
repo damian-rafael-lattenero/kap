@@ -47,6 +47,20 @@ class Resource<out A> @PublishedApi internal constructor(
             }
         }
 
+        /**
+         * Lazily constructs a [Resource] by deferring [block] evaluation
+         * until use-time. Useful for conditional resource selection:
+         *
+         * ```
+         * val infra = Resource.defer {
+         *     if (config.useRedis) redisResource else inMemoryResource
+         * }
+         * ```
+         */
+        fun <A> defer(block: () -> Resource<A>): Resource<A> = Resource { use ->
+            block().bind(use)
+        }
+
         // zip 2-22: see ResourceZip.kt (auto-generated via ./gradlew generateResourceZip)
     }
 

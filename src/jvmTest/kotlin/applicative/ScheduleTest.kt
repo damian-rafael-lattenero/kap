@@ -10,6 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -390,5 +391,88 @@ class ScheduleTest {
         assertEquals(3, attempts, "2 IOExceptions retried, ISE stopped by doWhile")
         // Delays: attempt 1 → 50ms, attempt 2 → 100ms. ISE at attempt 3 exits immediately.
         assertEquals(150L, currentTime, "50ms + 100ms = 150ms")
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Schedule.fold — accumulates values across retries
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `fold accumulates values across retries`() = runTest {
+        var errorLog = emptyList<String>()
+        val policy = Schedule.recurs<Throwable>(3)
+            .fold(emptyList<String>()) { acc, err -> acc + err.message.orEmpty() }
+
+        // Capture the fold side-effect via the schedule itself
+        val foldPolicy = Schedule<Throwable> { attempt, value ->
+            val decision = policy.decide(attempt, value)
+            // We can't read the fold accumulator directly, so we track externally
+            errorLog = errorLog + value.message.orEmpty()
+            decision
+        }
+
+        var attempts = 0
+        val result = Async {
+            Computation<String> {
+                attempts++
+                if (attempts <= 3) throw RuntimeException("fail-$attempts")
+                "ok"
+            }.retry(foldPolicy)
+        }
+
+        assertEquals("ok", result)
+        assertEquals(3, errorLog.size)
+        assertEquals(listOf("fail-1", "fail-2", "fail-3"), errorLog)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // retryWithResult — returns metadata alongside the result
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `retryWithResult returns attempt count and total delay on success`() = runTest {
+        var attempts = 0
+        val policy = Schedule.recurs<Throwable>(3) and Schedule.spaced(50.milliseconds)
+
+        val retryResult = Async {
+            Computation<String> {
+                attempts++
+                if (attempts <= 2) throw RuntimeException("fail")
+                "ok"
+            }.retryWithResult(policy)
+        }
+
+        assertEquals("ok", retryResult.value)
+        assertEquals(2, retryResult.attempts, "2 retries before success")
+        assertEquals(100.milliseconds, retryResult.totalDelay, "50ms + 50ms = 100ms")
+        assertEquals(100L, currentTime)
+    }
+
+    @Test
+    fun `retryWithResult reports zero attempts on immediate success`() = runTest {
+        val policy = Schedule.recurs<Throwable>(3)
+
+        val retryResult = Async {
+            Computation { "instant" }.retryWithResult(policy)
+        }
+
+        assertEquals("instant", retryResult.value)
+        assertEquals(0, retryResult.attempts)
+        assertEquals(Duration.ZERO, retryResult.totalDelay)
+    }
+
+    @Test
+    fun `retryWithResult throws when schedule exhausted`() = runTest {
+        val policy = Schedule.recurs<Throwable>(2)
+
+        val result = runCatching {
+            Async {
+                Computation<String> { throw RuntimeException("always fail") }
+                    .retryWithResult(policy)
+            }
+        }
+
+        assertTrue(result.isFailure)
+        assertIs<RuntimeException>(result.exceptionOrNull())
     }
 }

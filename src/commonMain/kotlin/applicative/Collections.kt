@@ -74,17 +74,10 @@ fun <A> Iterable<Computation<A>>.sequence(concurrency: Int): Computation<List<A>
     map { c -> async { semaphore.withPermit { with(c) { execute() } } } }.awaitAll()
 }
 
-// ── parMap: alias for traverse (more discoverable name) ────────────────
-
-/**
- * Alias for [traverse] — applies [f] to each element in parallel, collecting results in order.
- *
- * Uses the name familiar to Arrow/Cats users.
- */
-fun <A, B> Iterable<A>.parMap(f: (A) -> Computation<B>): Computation<List<B>> = traverse(f)
-
-/**
- * Alias for [traverse] with bounded concurrency.
- */
-fun <A, B> Iterable<A>.parMap(concurrency: Int, f: (A) -> Computation<B>): Computation<List<B>> =
-    traverse(concurrency, f)
+// ── Why no parMap? ──────────────────────────────────────────────────────
+// parMap is intentionally not provided. This library uses `traverse` and
+// `sequence` — the standard functional vocabulary. `parMap` is Arrow/Cats
+// naming that implies "parallel map" as a special operation, but in this
+// library ALL collection operations are parallel by default. The name
+// `traverse` makes the Haskell heritage explicit and avoids suggesting
+// that a non-`par` variant exists. Use `traverse(f)` or `traverse(n, f)`.
