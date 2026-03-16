@@ -156,6 +156,91 @@ class Resource<out A> @PublishedApi internal constructor(
                     rg.bind { g -> rh.bind { h ->
                         use(f(a, b, c, d, e, ff, g, h)) } } } } } } } }
         }
+
+        /** Combines nine resources. */
+        fun <A, B, C, D, E, F, G, H, I, J> zip(
+            ra: Resource<A>,
+            rb: Resource<B>,
+            rc: Resource<C>,
+            rd: Resource<D>,
+            re: Resource<E>,
+            rf: Resource<F>,
+            rg: Resource<G>,
+            rh: Resource<H>,
+            ri: Resource<I>,
+            f: (A, B, C, D, E, F, G, H, I) -> J,
+        ): Resource<J> = Resource { use ->
+            ra.bind { a -> rb.bind { b -> rc.bind { c ->
+                rd.bind { d -> re.bind { e -> rf.bind { ff ->
+                    rg.bind { g -> rh.bind { h -> ri.bind { i ->
+                        use(f(a, b, c, d, e, ff, g, h, i)) } } } } } } } } }
+        }
+
+        /** Combines ten resources. */
+        fun <A, B, C, D, E, F, G, H, I, J, K> zip(
+            ra: Resource<A>,
+            rb: Resource<B>,
+            rc: Resource<C>,
+            rd: Resource<D>,
+            re: Resource<E>,
+            rf: Resource<F>,
+            rg: Resource<G>,
+            rh: Resource<H>,
+            ri: Resource<I>,
+            rj: Resource<J>,
+            f: (A, B, C, D, E, F, G, H, I, J) -> K,
+        ): Resource<K> = Resource { use ->
+            ra.bind { a -> rb.bind { b -> rc.bind { c ->
+                rd.bind { d -> re.bind { e -> rf.bind { ff ->
+                    rg.bind { g -> rh.bind { h -> ri.bind { i ->
+                        rj.bind { j ->
+                            use(f(a, b, c, d, e, ff, g, h, i, j)) } } } } } } } } } }
+        }
+
+        /** Combines eleven resources. */
+        fun <A, B, C, D, E, F, G, H, I, J, K, L> zip(
+            ra: Resource<A>,
+            rb: Resource<B>,
+            rc: Resource<C>,
+            rd: Resource<D>,
+            re: Resource<E>,
+            rf: Resource<F>,
+            rg: Resource<G>,
+            rh: Resource<H>,
+            ri: Resource<I>,
+            rj: Resource<J>,
+            rk: Resource<K>,
+            f: (A, B, C, D, E, F, G, H, I, J, K) -> L,
+        ): Resource<L> = Resource { use ->
+            ra.bind { a -> rb.bind { b -> rc.bind { c ->
+                rd.bind { d -> re.bind { e -> rf.bind { ff ->
+                    rg.bind { g -> rh.bind { h -> ri.bind { i ->
+                        rj.bind { j -> rk.bind { k ->
+                            use(f(a, b, c, d, e, ff, g, h, i, j, k)) } } } } } } } } } } }
+        }
+
+        /** Combines twelve resources. */
+        fun <A, B, C, D, E, F, G, H, I, J, K, L, M> zip(
+            ra: Resource<A>,
+            rb: Resource<B>,
+            rc: Resource<C>,
+            rd: Resource<D>,
+            re: Resource<E>,
+            rf: Resource<F>,
+            rg: Resource<G>,
+            rh: Resource<H>,
+            ri: Resource<I>,
+            rj: Resource<J>,
+            rk: Resource<K>,
+            rl: Resource<L>,
+            f: (A, B, C, D, E, F, G, H, I, J, K, L) -> M,
+        ): Resource<M> = Resource { use ->
+            ra.bind { a -> rb.bind { b -> rc.bind { c ->
+                rd.bind { d -> re.bind { e -> rf.bind { ff ->
+                    rg.bind { g -> rh.bind { h -> ri.bind { i ->
+                        rj.bind { j -> rk.bind { k -> rl.bind { l ->
+                            use(f(a, b, c, d, e, ff, g, h, i, j, k, l)) } } } } } } } } } } } }
+        }
     }
 
     /** Transforms the resource value. Release still applies to the original. */

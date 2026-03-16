@@ -43,6 +43,43 @@ annotation class AsyncDsl
  */
 fun interface Computation<out A> {
     suspend fun CoroutineScope.execute(): A
+
+    companion object {
+        /**
+         * Creates a [Computation] that immediately throws [error] when executed.
+         *
+         * Useful for lifting a known failure into the computation graph
+         * without wrapping in a lambda:
+         *
+         * ```
+         * val fail: Computation<Nothing> = Computation.failed(IllegalStateException("boom"))
+         * ```
+         */
+        fun failed(error: Throwable): Computation<Nothing> = Computation { throw error }
+
+        /**
+         * Lazily constructs a [Computation] by deferring [block] evaluation
+         * until execution time.
+         *
+         * Useful for recursive or self-referential composition where
+         * eagerly building the computation graph would cause a stack overflow:
+         *
+         * ```
+         * fun retryForever(c: Computation<Int>): Computation<Int> =
+         *     Computation.defer {
+         *         c.attempt().flatMap { either ->
+         *             when (either) {
+         *                 is Either.Right -> pure(either.value)
+         *                 is Either.Left  -> retryForever(c)
+         *             }
+         *         }
+         *     }
+         * ```
+         */
+        fun <A> defer(block: () -> Computation<A>): Computation<A> = Computation {
+            with(block()) { execute() }
+        }
+    }
 }
 
 /**

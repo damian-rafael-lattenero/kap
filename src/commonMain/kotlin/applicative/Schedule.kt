@@ -57,6 +57,22 @@ class Schedule<A>(
         }
 
         /**
+         * Linear backoff starting from [base], capped at [max].
+         *
+         * Produces delays: base, 2*base, 3*base, 4*base, ...
+         *
+         * Linear backoff grows steadily, making it a good middle ground
+         * between fixed spacing and exponential growth.
+         */
+        fun <A> linear(
+            base: Duration,
+            max: Duration = Duration.INFINITE,
+        ): Schedule<A> = Schedule { attempt, _ ->
+            val delay = minOf(base * (attempt + 1), max)
+            Decision.Continue(delay)
+        }
+
+        /**
          * Fibonacci backoff starting from [base], capped at [max].
          *
          * Produces delays: base, base, 2*base, 3*base, 5*base, 8*base, ...
