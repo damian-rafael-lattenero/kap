@@ -119,19 +119,24 @@ class ContextTest {
     @Test
     fun `Async with context cancels siblings on failure`() = runTest {
         val siblingCancelled = CompletableDeferred<Boolean>()
+        val siblingStarted = CompletableDeferred<Unit>()
 
         val result = runCatching {
-            Async(Dispatchers.Default) {
+            Async(CoroutineName("test-cancel")) {
                 lift2 { a: String, b: String -> "$a|$b" }
                     .ap {
                         try {
+                            siblingStarted.complete(Unit)
                             kotlinx.coroutines.awaitCancellation()
                         } catch (e: kotlinx.coroutines.CancellationException) {
                             siblingCancelled.complete(true)
                             throw e
                         }
                     }
-                    .ap { throw RuntimeException("fast-fail") }
+                    .ap {
+                        siblingStarted.await()
+                        throw RuntimeException("fast-fail")
+                    }
             }
         }
 

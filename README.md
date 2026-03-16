@@ -50,16 +50,16 @@ That's it. `.ap` = parallel. `.followedBy` = barrier. Your code reads top-to-bot
 
 ```kotlin
 // This:
-lift3(::Result)
-    .ap { fetchA() }         // ┐ parallel
-    .ap { fetchB() }         // ┘
-    .followedBy { validate() }  // waits for A and B
-    .ap { fetchC() }         // starts after validate
+lift4(::Page)
+    .ap { fetchA() }             // ┐ parallel
+    .ap { fetchB() }             // ┘
+    .followedBy { validate() }   // waits for A and B
+    .ap { fetchC() }             // starts after validate
 
 // Means exactly this execution:
 //  t=0   ──── fetchA() ────┐
 //  t=0   ──── fetchB() ────┤
-//             validate() ──┘──── fetchC() ───→ Result
+//             validate() ──┘──── fetchC() ───→ Page
 ```
 
 ---
@@ -93,6 +93,92 @@ suspend fun main() {
 
 ---
 
+## Before / After
+
+### Scenario: 5-Phase Checkout (11 service calls)
+
+**Before — Raw Coroutines (30+ lines, invisible phases):**
+
+```kotlin
+val checkout = coroutineScope {
+    val dUser      = async { fetchUser(userId) }
+    val dCart       = async { fetchCart(userId) }
+    val dPromos    = async { fetchPromos(userId) }
+    val dInventory = async { fetchInventory(userId) }
+    val user       = dUser.await()         // ─┐
+    val cart        = dCart.await()          //  │ 4 shuttle variables
+    val promos     = dPromos.await()        //  │ just to bridge
+    val inventory  = dInventory.await()     // ─┘ async → await
+
+    val stock = validateStock(inventory)    // barrier — invisible
+
+    val dShipping  = async { calcShipping(cart) }
+    val dTax       = async { calcTax(cart) }
+    val dDiscounts = async { calcDiscounts(promos) }
+    val shipping   = dShipping.await()
+    val tax        = dTax.await()
+    val discounts  = dDiscounts.await()
+
+    val payment = reservePayment(user, cart)  // barrier — also invisible
+
+    val dConfirmation = async { generateConfirmation(payment) }
+    val dEmail        = async { sendReceiptEmail(user) }
+
+    CheckoutResult(user, cart, promos, inventory, stock,
+                   shipping, tax, discounts, payment,
+                   dConfirmation.await(), dEmail.await())
+}
+// Move one await() above its async → silently serialized. Compiler won't warn.
+```
+
+**After — This Library (12 lines, visible phases):**
+
+```kotlin
+val checkout = Async {
+    lift11(::CheckoutResult)
+        .ap { fetchUser(userId) }          // ┐ phase 1
+        .ap { fetchCart(userId) }           // │
+        .ap { fetchPromos(userId) }        // │
+        .ap { fetchInventory(userId) }     // ┘
+        .followedBy { validateStock() }    // barrier
+        .ap { calcShipping() }            // ┐ phase 3
+        .ap { calcTax() }                 // │
+        .ap { calcDiscounts() }           // ┘
+        .followedBy { reservePayment() }  // barrier
+        .ap { generateConfirmation() }    // ┐ phase 5
+        .ap { sendReceiptEmail() }        // ┘
+}
+// Same wall-clock time. Phases visible. Swap = compiler error.
+```
+
+### Scenario: Parallel Validation with Error Accumulation
+
+**Before — Raw Coroutines (impossible):**
+
+```kotlin
+// Can't do parallel error accumulation with structured concurrency.
+// First failure cancels all siblings. You only get ONE error.
+coroutineScope {
+    val a = async { validateName(input) }    // if this throws...
+    val b = async { validateEmail(input) }   // ...this gets cancelled
+    // You never see email's error.
+}
+```
+
+**After — This Library:**
+
+```kotlin
+val result = Async {
+    zipV(
+        { validateName(input) },
+        { validateEmail(input) },
+    ) { name, email -> UserData(name, email) }
+}
+// Both errors collected. Left(Nel(NameError, EmailError))
+```
+
+---
+
 ## Hero Examples
 
 ### 1. Parallel Validation — Collect *Every* Error
@@ -114,8 +200,8 @@ val result = Async {
         { validateTaxId(input.taxId) },      // │
         { validateTerms(input.terms) },      // │
         { validateCaptcha(input.captcha) },  // ┘
-    ) { nm, em, ph, pw, bd, co, ci, zc, ad, tx, tm, cp ->
-        UserRegistration(nm, em, ph, pw, bd, co, ci, zc, ad, tx, tm, cp)
+    ) { name, email, phone, pass, birth, country, city, zip, addr, tax, terms, captcha ->
+        UserRegistration(name, email, phone, pass, birth, country, city, zip, addr, tax, terms, captcha)
     }
 }
 // 7 of 12 fail? → Left(Nel(NameTooShort, InvalidEmail, ..., CaptchaExpired))
@@ -125,48 +211,7 @@ val result = Async {
 
 **43.6 ms** (vs 173.9ms sequential) — JMH verified.
 
-### 2. Phased Validation with Short-Circuit
-
-Phase 1 runs validators in parallel. Phase 2 only executes if phase 1 passes:
-
-```kotlin
-val result = Async {
-    zipV(
-        { validateName(input.name) },
-        { validateEmail(input.email) },
-        { validateAge(input.age) },
-    ) { name, email, age -> IdentityInfo(name, email, age) }
-    .flatMapV { identity ->
-        zipV(
-            { checkUsernameAvailable(identity.email) },
-            { checkNotBlacklisted(identity) },
-        ) { username, cleared -> Registration(identity, username, cleared) }
-    }
-}
-// Phase 1 fails → errors returned immediately, phase 2 never runs (saves network calls)
-```
-
-### 3. Value-Dependent Phases with `flatMap`
-
-When a later phase *needs* the result of an earlier one:
-
-```kotlin
-val dashboard = Async {
-    lift4(::UserContext)
-        .ap { fetchProfile(userId) }       // ┐ phase 1: parallel
-        .ap { fetchPreferences(userId) }   // │
-        .ap { fetchLoyaltyTier(userId) }   // │
-        .ap { fetchRecentOrders(userId) }  // ┘
-    .flatMap { ctx ->                      // ── barrier: phase 2 NEEDS ctx
-        lift3(::PersonalizedDashboard)
-            .ap { fetchRecommendations(ctx.profile) }   // ┐ phase 2: parallel
-            .ap { fetchPromotions(ctx.loyalty) }         // │ uses data from phase 1
-            .ap { fetchTrending(ctx.preferences) }       // ┘
-    }
-}
-```
-
-### 4. Production Resilience Stack
+### 2. Production Resilience Stack
 
 Each parallel branch handles its own resilience — all run concurrently:
 
@@ -191,41 +236,7 @@ Computation { fetchUser() }
     .traced("fetchUser", tracer)
 ```
 
-### 5. Composable Retry Policies with `Schedule`
-
-Build retry policies from composable, reusable pieces:
-
-```kotlin
-// Exponential backoff, max 5 retries, only on IOExceptions
-val policy = Schedule.recurs<Throwable>(5) and
-    Schedule.exponential(100.milliseconds, max = 10.seconds) and
-    Schedule.doWhile { it is IOException }
-
-Computation { fetchUser() }.retry(policy)
-
-// Add jitter to prevent thundering herd:
-val withJitter = Schedule.exponential<Throwable>(100.milliseconds)
-    .jittered()                               // ±50% random spread
-    .withMaxDuration(30.seconds)              // hard time limit
-
-// Fibonacci backoff: base, base, 2*base, 3*base, 5*base, 8*base...
-val fibonacci = Schedule.fibonacci<Throwable>(100.milliseconds)
-
-// Linear backoff: 100ms, 200ms, 300ms, 400ms...
-val linear = Schedule.linear<Throwable>(100.milliseconds)
-
-// Infinite retries with backoff (common for consumer loops):
-val forever = Schedule.forever<Throwable>()
-    .and(Schedule.exponential(100.milliseconds, max = 30.seconds))
-
-// Retry with fallback — never throws:
-Computation { fetchUser() }
-    .retryOrElse(policy) { err -> User.cached() }
-```
-
-`and` = both must agree to continue (max delay). `or` = either can continue (min delay).
-
-### 6. Resource Safety with `bracket` and `Resource`
+### 3. Resource Safety with `bracket` and `Resource`
 
 Acquire resources, use them in parallel, guarantee release even on failure:
 
@@ -288,21 +299,7 @@ val result = Async {
 // Released in reverse order, even on failure. NonCancellable.
 ```
 
-### 7. Bounded Parallel Collection Processing
-
-Process collections with controlled concurrency:
-
-```kotlin
-val users = Async {
-    userIds.traverse(concurrency = 5) { id ->
-        Computation { fetchUser(id) }
-    }
-}
-// Processes all userIds, max 5 in-flight at once.
-// 9 items @ 30ms each, concurrency=3 → 90ms (not 270ms). Virtual-time verified.
-```
-
-### 8. Racing: First to Succeed Wins
+### 4. Racing: First to Succeed Wins
 
 ```kotlin
 val fastest = Async {
@@ -328,7 +325,76 @@ val result: Either<CachedUser, FreshUser> = Async {
 // Left(cachedUser) if cache wins, Right(freshUser) if DB wins.
 ```
 
-### 9. `attempt` — Catch to Either Without Breaking the Chain
+### 5. Value-Dependent Phases with `flatMap`
+
+When a later phase *needs* the result of an earlier one:
+
+```kotlin
+val dashboard = Async {
+    lift4(::UserContext)
+        .ap { fetchProfile(userId) }       // ┐ phase 1: parallel
+        .ap { fetchPreferences(userId) }   // │
+        .ap { fetchLoyaltyTier(userId) }   // │
+        .ap { fetchRecentOrders(userId) }  // ┘
+    .flatMap { ctx ->                      // ── barrier: phase 2 NEEDS ctx
+        lift3(::PersonalizedDashboard)
+            .ap { fetchRecommendations(ctx.profile) }   // ┐ phase 2: parallel
+            .ap { fetchPromotions(ctx.loyalty) }         // │ uses data from phase 1
+            .ap { fetchTrending(ctx.preferences) }       // ┘
+    }
+}
+```
+
+<details>
+<summary><b>More Examples</b> — Schedule, traverse, attempt, phased validation</summary>
+
+#### Composable Retry Policies with `Schedule`
+
+Build retry policies from composable, reusable pieces:
+
+```kotlin
+// Exponential backoff, max 5 retries, only on IOExceptions
+val policy = Schedule.recurs<Throwable>(5) and
+    Schedule.exponential(100.milliseconds, max = 10.seconds) and
+    Schedule.doWhile { it is IOException }
+
+Computation { fetchUser() }.retry(policy)
+
+// Add jitter to prevent thundering herd:
+val withJitter = Schedule.exponential<Throwable>(100.milliseconds)
+    .jittered()                               // ±50% random spread
+    .withMaxDuration(30.seconds)              // hard time limit
+
+// Fibonacci backoff: base, base, 2*base, 3*base, 5*base, 8*base...
+val fibonacci = Schedule.fibonacci<Throwable>(100.milliseconds)
+
+// Linear backoff: 100ms, 200ms, 300ms, 400ms...
+val linear = Schedule.linear<Throwable>(100.milliseconds)
+
+// Infinite retries with backoff (common for consumer loops):
+val forever = Schedule.forever<Throwable>()
+    .and(Schedule.exponential(100.milliseconds, max = 30.seconds))
+
+// Retry with fallback — never throws:
+Computation { fetchUser() }
+    .retryOrElse(policy) { err -> User.cached() }
+```
+
+`and` = both must agree to continue (max delay). `or` = either can continue (min delay).
+
+#### Bounded Parallel Collection Processing
+
+```kotlin
+val users = Async {
+    userIds.traverse(concurrency = 5) { id ->
+        Computation { fetchUser(id) }
+    }
+}
+// Processes all userIds, max 5 in-flight at once.
+// 9 items @ 30ms each, concurrency=3 → 90ms (not 270ms). Virtual-time verified.
+```
+
+#### `attempt` — Catch to Either Without Breaking the Chain
 
 ```kotlin
 val result: Either<Throwable, User> = Async {
@@ -336,17 +402,30 @@ val result: Either<Throwable, User> = Async {
 }
 // Right(User(...)) on success, Left(exception) on failure
 // CancellationException is NEVER caught — structured concurrency always propagates
-
-// Combine with flatMap for conditional logic:
-Computation { riskyCall() }
-    .attempt()
-    .flatMap { either ->
-        when (either) {
-            is Either.Right -> pure(either.value)
-            is Either.Left -> Computation { fallbackCall() }
-        }
-    }
 ```
+
+#### Phased Validation with Short-Circuit
+
+Phase 1 runs validators in parallel. Phase 2 only executes if phase 1 passes:
+
+```kotlin
+val result = Async {
+    zipV(
+        { validateName(input.name) },
+        { validateEmail(input.email) },
+        { validateAge(input.age) },
+    ) { name, email, age -> IdentityInfo(name, email, age) }
+    .flatMapV { identity ->
+        zipV(
+            { checkUsernameAvailable(identity.email) },
+            { checkNotBlacklisted(identity) },
+        ) { username, cleared -> Registration(identity, username, cleared) }
+    }
+}
+// Phase 1 fails → errors returned immediately, phase 2 never runs (saves network calls)
+```
+
+</details>
 
 ---
 
@@ -362,92 +441,6 @@ Computation { riskyCall() }
 | Resource cleanup in parallel | Manual try/finally spaghetti | `bracket` / `Resource` — guaranteed |
 | First-to-succeed racing | Complex `select` clauses | `raceN(...)` — losers auto-cancelled |
 | Transaction commit/rollback | Manual ExitCase tracking | `bracketCase` — automatic |
-
----
-
-## Before / After
-
-### Scenario: 5-Phase Checkout
-
-**Before — Raw Coroutines (30+ lines, invisible phases):**
-
-```kotlin
-val checkout = coroutineScope {
-    val dUser      = async { fetchUser(userId) }
-    val dCart       = async { fetchCart(userId) }
-    val dPromos    = async { fetchPromos(userId) }
-    val dInventory = async { fetchInventory(userId) }
-    val user       = dUser.await()         // ─┐
-    val cart        = dCart.await()          //  │ 4 shuttle variables
-    val promos     = dPromos.await()        //  │ just to bridge
-    val inventory  = dInventory.await()     // ─┘ async → await
-
-    val stock = validateStock(inventory)    // barrier — invisible
-
-    val dShipping  = async { calcShipping(cart) }
-    val dTax       = async { calcTax(cart) }
-    val dDiscounts = async { calcDiscounts(promos) }
-    val shipping   = dShipping.await()
-    val tax        = dTax.await()
-    val discounts  = dDiscounts.await()
-
-    val payment = reservePayment(user, cart)  // barrier — also invisible
-
-    val dConfirmation = async { generateConfirmation(payment) }
-    val dEmail        = async { sendReceiptEmail(user) }
-
-    CheckoutResult(user, cart, promos, inventory, stock,
-                   shipping, tax, discounts, payment,
-                   dConfirmation.await(), dEmail.await())
-}
-// Move one await() above its async → silently serialized. Compiler won't warn.
-```
-
-**After — This Library (12 lines, visible phases):**
-
-```kotlin
-val checkout = Async {
-    lift11(::CheckoutResult)
-        .ap { fetchUser(userId) }          // ┐ phase 1
-        .ap { fetchCart(userId) }           // │
-        .ap { fetchPromos(userId) }        // │
-        .ap { fetchInventory(userId) }     // ┘
-        .followedBy { validateStock() }    // barrier
-        .ap { calcShipping() }            // ┐ phase 3
-        .ap { calcTax() }                 // │
-        .ap { calcDiscounts() }           // ┘
-        .followedBy { reservePayment() }  // barrier
-        .ap { generateConfirmation() }    // ┐ phase 5
-        .ap { sendReceiptEmail() }        // ┘
-}
-// Same wall-clock time. Phases visible. Swap = compiler error.
-```
-
-### Scenario: Parallel Validation
-
-**Before — Raw Coroutines (impossible):**
-
-```kotlin
-// Can't do parallel error accumulation with structured concurrency.
-// First failure cancels all siblings. You only get ONE error.
-coroutineScope {
-    val a = async { validateName(input) }    // if this throws...
-    val b = async { validateEmail(input) }   // ...this gets cancelled
-    // You never see email's error.
-}
-```
-
-**After — This Library:**
-
-```kotlin
-val result = Async {
-    zipV(
-        { validateName(input) },
-        { validateEmail(input) },
-    ) { name, email -> UserData(name, email) }
-}
-// Both errors collected. Left(Nel(NameError, EmailError))
-```
 
 ---
 
@@ -712,7 +705,7 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `traverse(f)` / `traverse(n, f)` | Map + parallel execution | Parallel (bounded) |
 | `sequence()` / `sequence(n)` | Execute collection | Parallel (bounded) |
 | `parMap(f)` / `parMap(n, f)` | Alias for traverse | Parallel (bounded) |
-| `race` / `raceN` / `race3` / `race4` / `raceAll` | First to succeed | Competitive |
+| `race` / `raceN` / `raceAll` | First to succeed | Competitive |
 | `raceEither(fa, fb)` | First to succeed, different types | Competitive |
 
 ### Error Handling, Retry & Schedule
