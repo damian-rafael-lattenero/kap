@@ -101,11 +101,19 @@ infix fun <A> Computation<A>.fallback(other: Computation<A>): Computation<A> =
  * @param maxAttempts total attempts (including the first)
  * @param delay initial delay between retries
  * @param backoff transforms the delay for each subsequent retry (e.g. [exponential])
+ * @param shouldRetry predicate to decide whether to retry a given exception.
+ *        Defaults to `{ true }` (retry all non-cancellation exceptions).
+ *        If `false`, the exception is rethrown immediately.
+ * @param onRetry callback invoked before each retry with the attempt number (1-based),
+ *        the exception, and the delay before the next attempt.
+ *        Useful for logging and metrics.
  */
 fun <A> Computation<A>.retry(
     maxAttempts: Int,
     delay: Duration = Duration.ZERO,
     backoff: (Duration) -> Duration = { it },
+    shouldRetry: (Throwable) -> Boolean = { true },
+    onRetry: suspend (attempt: Int, error: Throwable, nextDelay: Duration) -> Unit = { _, _, _ -> },
 ): Computation<A> {
     require(maxAttempts >= 1) { "maxAttempts must be >= 1, was $maxAttempts" }
     return Computation {
@@ -116,8 +124,10 @@ fun <A> Computation<A>.retry(
                 return@Computation with(this@retry) { execute() }
             } catch (e: Throwable) {
                 if (e is CancellationException) throw e
+                if (!shouldRetry(e)) throw e
                 lastException = e
                 if (attempt < maxAttempts - 1) {
+                    onRetry(attempt + 1, e, currentDelay)
                     delay(currentDelay)
                     currentDelay = backoff(currentDelay)
                 }
@@ -125,6 +135,28 @@ fun <A> Computation<A>.retry(
         }
         throw lastException!!
     }
+}
+
+// ── timeoutRace: parallel timeout with eager fallback ───────────────────
+
+/**
+ * Races this computation against a [fallback] that starts immediately.
+ * If this computation does not complete within [duration], the fallback
+ * result is used. Unlike [timeout] with a fallback computation, the
+ * fallback runs **from the start** in parallel — so total time is
+ * `max(min(this, duration), fallback)` instead of `duration + fallback`.
+ *
+ * ```
+ * Computation { fetchFromSlowService() }
+ *     .timeoutRace(200.milliseconds, Computation { fetchFromCache() })
+ * ```
+ */
+fun <A> Computation<A>.timeoutRace(duration: Duration, fallback: Computation<A>): Computation<A> = Computation {
+    val primary = this@timeoutRace
+    with(race(
+        primary.timeout(duration),
+        fallback,
+    )) { execute() }
 }
 
 // ── backoff strategies ───────────────────────────────────────────────────

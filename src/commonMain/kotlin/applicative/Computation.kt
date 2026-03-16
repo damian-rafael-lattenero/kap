@@ -1,6 +1,7 @@
 package applicative
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -307,6 +308,28 @@ fun <A> Computation<A>.on(context: CoroutineContext): Computation<A> = Computati
  * ```
  */
 val context: Computation<CoroutineContext> = Computation { coroutineContext }
+
+// ── unit: convenience for pure(Unit) ────────────────────────────────────
+
+/** A [Computation] that immediately returns [Unit]. */
+val unit: Computation<Unit> = pure(Unit)
+
+// ── named: CoroutineName for debugger/logging ───────────────────────────
+
+/**
+ * Assigns a [CoroutineName] to this computation, making it visible in
+ * coroutine debugger, thread dumps, and logging frameworks.
+ *
+ * ```
+ * lift3(::Dashboard)
+ *     .ap { fetchUser().named("fetchUser") }
+ *     .ap { fetchCart().named("fetchCart") }
+ *     .ap { fetchPromos().named("fetchPromos") }
+ * ```
+ */
+fun <A> Computation<A>.named(name: String): Computation<A> = Computation {
+    withContext(CoroutineName(name)) { with(this@named) { execute() } }
+}
 
 // ── DSL entry point ─────────────────────────────────────────────────────
 

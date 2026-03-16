@@ -7,6 +7,10 @@ package applicative
  * Extends [AbstractList] for zero-allocation `List` compliance — `size` and
  * `get` are computed on the fly from [head] and [tail] without creating a
  * backing list.
+ *
+ * **Note on equality:** [equals] and [hashCode] are inherited from [AbstractList],
+ * which compares element-by-element. Two `Nel` instances with the same elements
+ * in the same order are equal regardless of how they were constructed.
  */
 class Nel<out A>(val head: A, val tail: List<A> = emptyList()) : AbstractList<A>() {
 

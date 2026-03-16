@@ -247,6 +247,37 @@ inline fun <E, A, B> Computation<Either<Nel<E>, A>>.flatMapV(
     }
 }
 
+// ── recoverV: bridge exceptions into validated error channel ─────────
+
+/**
+ * Catches non-cancellation exceptions thrown during a validated computation
+ * and converts them into validation errors via [f].
+ *
+ * Without this, an exception inside a [zipV] branch would cancel siblings
+ * and bypass error accumulation. With [recoverV], the exception becomes
+ * a normal [Either.Left] that participates in accumulation.
+ *
+ * [CancellationException] is never caught — structured concurrency
+ * cancellation always propagates.
+ *
+ * ```
+ * zipV(
+ *     { validateName(input).recoverV { FormError.Unexpected(it.message) } },
+ *     { externalCheck(input).recoverV { FormError.ServiceDown(it) } },
+ * ) { name, check -> Registration(name, check) }
+ * ```
+ */
+fun <E, A> Computation<Either<Nel<E>, A>>.recoverV(
+    f: (Throwable) -> E,
+): Computation<Either<Nel<E>, A>> = Computation {
+    try {
+        with(this@recoverV) { execute() }
+    } catch (e: Throwable) {
+        if (e is CancellationException) throw e
+        Either.Left(f(e).nel())
+    }
+}
+
 // ── unwrap ───────────────────────────────────────────────────────────────
 
 /**

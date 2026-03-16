@@ -25,6 +25,98 @@ fun <A, B, C> Computation<A>.zip(fb: Computation<B>, f: (A, B) -> C): Computatio
     f(da.await(), db.await())
 }
 
+// ── zipN: parallel combination (3-5 arity) ─────────────────────────────
+
+/**
+ * Runs 3 computations in parallel, combining results with [f].
+ */
+fun <A, B, C, D> zip(
+    fa: Computation<A>,
+    fb: Computation<B>,
+    fc: Computation<C>,
+    f: (A, B, C) -> D,
+): Computation<D> = Computation {
+    val da = async { with(fa) { execute() } }
+    val db = async { with(fb) { execute() } }
+    val dc = async { with(fc) { execute() } }
+    f(da.await(), db.await(), dc.await())
+}
+
+/**
+ * Runs 4 computations in parallel, combining results with [f].
+ */
+fun <A, B, C, D, E> zip(
+    fa: Computation<A>,
+    fb: Computation<B>,
+    fc: Computation<C>,
+    fd: Computation<D>,
+    f: (A, B, C, D) -> E,
+): Computation<E> = Computation {
+    val da = async { with(fa) { execute() } }
+    val db = async { with(fb) { execute() } }
+    val dc = async { with(fc) { execute() } }
+    val dd = async { with(fd) { execute() } }
+    f(da.await(), db.await(), dc.await(), dd.await())
+}
+
+/**
+ * Runs 5 computations in parallel, combining results with [f].
+ */
+fun <A, B, C, D, E, F> zip(
+    fa: Computation<A>,
+    fb: Computation<B>,
+    fc: Computation<C>,
+    fd: Computation<D>,
+    fe: Computation<E>,
+    f: (A, B, C, D, E) -> F,
+): Computation<F> = Computation {
+    val da = async { with(fa) { execute() } }
+    val db = async { with(fb) { execute() } }
+    val dc = async { with(fc) { execute() } }
+    val dd = async { with(fd) { execute() } }
+    val de = async { with(fe) { execute() } }
+    f(da.await(), db.await(), dc.await(), dd.await(), de.await())
+}
+
+// ── mapN: top-level parallel combination (2-5 arity) ───────────────────
+
+/**
+ * Runs 2 computations in parallel, combining results with [f].
+ * Equivalent to `fa.zip(fb, f)`.
+ */
+fun <A, B, C> mapN(
+    fa: Computation<A>,
+    fb: Computation<B>,
+    f: (A, B) -> C,
+): Computation<C> = fa.zip(fb, f)
+
+/** Runs 3 computations in parallel, combining results with [f]. */
+fun <A, B, C, D> mapN(
+    fa: Computation<A>,
+    fb: Computation<B>,
+    fc: Computation<C>,
+    f: (A, B, C) -> D,
+): Computation<D> = zip(fa, fb, fc, f)
+
+/** Runs 4 computations in parallel, combining results with [f]. */
+fun <A, B, C, D, E> mapN(
+    fa: Computation<A>,
+    fb: Computation<B>,
+    fc: Computation<C>,
+    fd: Computation<D>,
+    f: (A, B, C, D) -> E,
+): Computation<E> = zip(fa, fb, fc, fd, f)
+
+/** Runs 5 computations in parallel, combining results with [f]. */
+fun <A, B, C, D, E, F> mapN(
+    fa: Computation<A>,
+    fb: Computation<B>,
+    fc: Computation<C>,
+    fd: Computation<D>,
+    fe: Computation<E>,
+    f: (A, B, C, D, E) -> F,
+): Computation<F> = zip(fa, fb, fc, fd, fe, f)
+
 // ── traverse / sequence: parallel collection operations ─────────────────
 
 /**
@@ -71,3 +163,18 @@ fun <A> Iterable<Computation<A>>.sequence(concurrency: Int): Computation<List<A>
     val semaphore = Semaphore(concurrency)
     map { c -> async { semaphore.withPermit { with(c) { execute() } } } }.awaitAll()
 }
+
+// ── parMap: alias for traverse (more discoverable name) ────────────────
+
+/**
+ * Alias for [traverse] — applies [f] to each element in parallel, collecting results in order.
+ *
+ * Uses the name familiar to Arrow/Cats users.
+ */
+fun <A, B> Iterable<A>.parMap(f: (A) -> Computation<B>): Computation<List<B>> = traverse(f)
+
+/**
+ * Alias for [traverse] with bounded concurrency.
+ */
+fun <A, B> Iterable<A>.parMap(concurrency: Int, f: (A) -> Computation<B>): Computation<List<B>> =
+    traverse(concurrency, f)

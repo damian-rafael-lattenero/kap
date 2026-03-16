@@ -19,6 +19,9 @@ import kotlinx.coroutines.supervisorScope
  * Uses [Result]-wrapping internally so that a successful completion is never
  * lost due to a concurrent failure arriving at `select` first.
  *
+ * The winner is tracked explicitly via `select` clause pairing to avoid
+ * race conditions between `select` completion and `isCompleted` checks.
+ *
  * ```
  * race(
  *     fa = Computation { fetchFromPrimary() },
@@ -32,13 +35,13 @@ fun <A> race(fa: Computation<A>, fb: Computation<A>): Computation<A> = Computati
         val da = async { runCatching { with(fa) { execute() } } }
         val db = async { runCatching { with(fb) { execute() } } }
         try {
-            val first = select<Result<A>> {
-                da.onAwait { it }
-                db.onAwait { it }
+            val (first, other) = select<Pair<Result<A>, Deferred<Result<A>>>> {
+                da.onAwait { it to db }
+                db.onAwait { it to da }
             }
             first.getOrNull()?.let { return@supervisorScope it }
             // First to complete failed — wait for the other
-            val second = if (da.isCompleted) db.await() else da.await()
+            val second = other.await()
             second.getOrElse { secondError ->
                 val firstError = first.exceptionOrNull()!!
                 firstError.addSuppressed(secondError)
@@ -61,8 +64,8 @@ fun <A> race(fa: Computation<A>, fb: Computation<A>): Computation<A> = Computati
  * Only when **all** fail does the last exception propagate (prior failures
  * are added as suppressed exceptions).
  *
- * Uses [Result]-wrapping internally so that `select` never loses a successful
- * completion due to a concurrent failure.
+ * Each `select` round explicitly tracks which deferred completed, avoiding
+ * race conditions between completion detection and list mutation.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 fun <A> raceN(vararg computations: Computation<A>): Computation<A> {
@@ -73,18 +76,18 @@ fun <A> raceN(vararg computations: Computation<A>): Computation<A> {
             val deferreds: List<Deferred<Result<A>>> =
                 computations.map { c -> async { runCatching { with(c) { execute() } } } }
             try {
-                val pending = deferreds.toMutableList()
+                val pending = deferreds.toMutableSet()
                 val errors = mutableListOf<Throwable>()
                 while (pending.isNotEmpty()) {
-                    val result = select<Result<A>> {
-                        pending.forEach { d -> d.onAwait { it } }
+                    val (result, winner) = select<Pair<Result<A>, Deferred<Result<A>>>> {
+                        pending.forEach { d -> d.onAwait { it to d } }
                     }
                     result.getOrNull()?.let { return@supervisorScope it }
                     // This racer failed — collect error and continue
                     val error = result.exceptionOrNull()!!
                     if (error is CancellationException) throw error
                     errors.add(error)
-                    pending.removeAll { it.isCompleted }
+                    pending.remove(winner)
                 }
                 // All failed — throw first with others as suppressed
                 val primary = errors.first()

@@ -1,5 +1,6 @@
 package applicative
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -126,4 +127,27 @@ fun <A> delayed(duration: Duration, value: A): Computation<A> = Computation {
 fun <A> delayed(duration: Duration, block: suspend () -> A): Computation<A> = Computation {
     kotlinx.coroutines.delay(duration)
     block()
+}
+
+// ── catching: exception-safe computation builder ────────────────────────
+
+/**
+ * Creates a [Computation] that catches non-cancellation exceptions and wraps
+ * the outcome in a [Result].
+ *
+ * Unlike [kotlin.runCatching], this **never catches [CancellationException]** —
+ * structured concurrency cancellation always propagates.
+ *
+ * ```
+ * val safe: Computation<Result<User>> = catching { fetchUser() }
+ * ```
+ */
+fun <A> catching(block: suspend CoroutineScope.() -> A): Computation<Result<A>> = Computation {
+    try {
+        Result.success(block())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        Result.failure(e)
+    }
 }
