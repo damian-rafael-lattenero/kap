@@ -108,6 +108,8 @@ signing {
     sign(publishing.publications)
 }
 
+// ── Code generation tasks ────────────────────────────────────────────────
+
 tasks.register("generateCurry") {
     description = "Regenerates src/commonMain/kotlin/applicative/internal/curry.kt"
     group = "codegen"
@@ -160,5 +162,169 @@ tasks.register("generateCurry") {
         outputFile.writeText("$header\n$body\n")
         println("Generated ${outputFile.path} (arities 2..$maxArity)")
     }
+}
+
+tasks.register("generateLift") {
+    description = "Regenerates src/commonMain/kotlin/applicative/Lift.kt"
+    group = "codegen"
+
+    val maxArity = 22
+    val outputFile = file("src/commonMain/kotlin/applicative/Lift.kt")
+    outputs.file(outputFile)
+
+    doLast {
+        fun generateLift(n: Int): String {
+            val typeParams = (1..n).joinToString(", ") { "P$it" }
+            val paramType = (1..n).joinToString(", ") { "P$it" }
+            val curriedType = (1..n).joinToString(" -> ") { "(P$it)" } + " -> R"
+            return "fun <$typeParams, R> lift$n(f: ($paramType) -> R): Computation<$curriedType> = pure(f.curried())"
+        }
+
+        val header = buildString {
+            appendLine("// ┌──────────────────────────────────────────────────────────────────────┐")
+            appendLine("// │  AUTO-GENERATED — do not edit by hand.                               │")
+            appendLine("// │  Run: ./gradlew generateLift                                         │")
+            appendLine("// └──────────────────────────────────────────────────────────────────────┘")
+            appendLine("package applicative")
+            appendLine()
+            appendLine("import applicative.internal.curried")
+            appendLine()
+            appendLine("// ── lift: pure . curry ──────────────────────────────────────────────────")
+            appendLine()
+            appendLine("/**")
+            appendLine(" * Curries [f] and wraps it as a pure [Computation], ready for [ap] chains.")
+            appendLine(" *")
+            appendLine(" * ```")
+            appendLine(" * lift2 { a: String, b: Int -> \"\$a=\$b\" }")
+            appendLine(" *     .ap { fetchName() }")
+            appendLine(" *     .ap { fetchAge() }")
+            appendLine(" * ```")
+            appendLine(" *")
+            appendLine(" * Overloads [lift2] through [lift22] cover arities 2-22.")
+            appendLine(" */")
+        }
+
+        val body = (2..maxArity).joinToString("\n\n") { generateLift(it) }
+        outputFile.writeText("$header\n$body\n")
+        println("Generated ${outputFile.path} (arities 2..$maxArity)")
+    }
+}
+
+tasks.register("generateValidatedOverloads") {
+    description = "Regenerates src/commonMain/kotlin/applicative/ValidatedOverloads.kt (zipV + liftV arities 2-22)"
+    group = "codegen"
+
+    val maxArity = 22
+    val outputFile = file("src/commonMain/kotlin/applicative/ValidatedOverloads.kt")
+    outputs.file(outputFile)
+
+    doLast {
+        // Type parameter letters: A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W
+        // (skips E which is the error type, and R which is the result type)
+        val letters = listOf("A","B","C","D","F","G","H","I","J","K","L","M","N","O","P","Q","S","T","U","V","W")
+        // Variable suffixes: lowercase, except 'O' uses uppercase to avoid 'do'/'eo' keyword clash
+        val varSuffixes = letters.map { if (it == "O") "O" else it.lowercase() }
+
+        fun generateZipV(n: Int): String {
+            val types = letters.take(n)
+            val lowerVars = varSuffixes.take(n)
+
+            // Function parameters: fa, fb, fc, ...
+            val params = types.mapIndexed { i, t ->
+                "    f${lowerVars[i]}: suspend () -> Either<Nel<E>, $t>"
+            }.joinToString(",\n")
+
+            // Combine parameter: combine: (A, B, C, ...) -> R
+            val combineParams = types.joinToString(", ")
+
+            // Async launches: val da = async { fa() }
+            val asyncLaunches = lowerVars.joinToString("\n    ") { v ->
+                "val d$v = async { f$v() }"
+            }
+
+            // Awaits: val ea = da.await()
+            val awaits = lowerVars.joinToString("\n    ") { v ->
+                "val e$v = d$v.await()"
+            }
+
+            // Right check: ea is Either.Right && eb is Either.Right && ...
+            val rightCheck = lowerVars.joinToString(" && ") { v ->
+                "e$v is Either.Right"
+            }
+
+            // Combine values: ea.value, eb.value, ...
+            val combineValues = lowerVars.joinToString(", ") { v ->
+                "e$v.value"
+            }
+
+            // Error accumulation: if (ea is Either.Left) add(ea.value)
+            val errorChecks = lowerVars.joinToString("\n            ") { v ->
+                "if (e$v is Either.Left) add(e$v.value)"
+            }
+
+            // Type params for the function signature
+            val typeParamsList = "E, ${types.joinToString(", ")}, R"
+
+            return """fun <$typeParamsList> zipV(
+$params,
+    combine: ($combineParams) -> R,
+): Computation<Either<Nel<E>, R>> = Computation {
+    $asyncLaunches
+    $awaits
+    if ($rightCheck)
+        Either.Right(combine($combineValues))
+    else {
+        val errors = buildList {
+            $errorChecks
+        }
+        Either.Left(errors.reduce { acc, nel -> acc + nel })
+    }
+}"""
+        }
+
+        fun generateLiftV(n: Int): String {
+            val typeParams = (1..n).joinToString(", ") { "P$it" }
+            val paramType = (1..n).joinToString(", ") { "P$it" }
+            val curriedType = (1..n).joinToString(" -> ") { "(P$it)" } + " -> R"
+            return "fun <E, $typeParams, R> liftV$n(f: ($paramType) -> R): Computation<Either<Nel<E>, $curriedType>> =\n    pure(Either.Right(f.curried()))"
+        }
+
+        val header = buildString {
+            appendLine("// ┌──────────────────────────────────────────────────────────────────────┐")
+            appendLine("// │  AUTO-GENERATED — do not edit by hand.                               │")
+            appendLine("// │  Run: ./gradlew generateValidatedOverloads                           │")
+            appendLine("// └──────────────────────────────────────────────────────────────────────┘")
+            appendLine("package applicative")
+            appendLine()
+            appendLine("import kotlinx.coroutines.async")
+            appendLine("import applicative.internal.curried")
+        }
+
+        // zipV goes up to arity 21 (limited by 21 available type-param letters: A-W skipping E,R)
+        val maxZipVArity = minOf(maxArity, letters.size)
+        val zipVBody = (2..maxZipVArity).joinToString("\n\n") { generateZipV(it) }
+        val liftVBody = (2..maxArity).joinToString("\n\n") { generateLiftV(it) }
+
+        val content = buildString {
+            append(header)
+            appendLine()
+            appendLine("// ── zipV: parallel validation with full type inference ───────────────────")
+            appendLine()
+            appendLine(zipVBody)
+            appendLine()
+            appendLine("// ── liftV: curried validated lift ────────────────────────────────────────")
+            appendLine()
+            appendLine(liftVBody)
+        }
+
+        outputFile.writeText(content)
+        println("Generated ${outputFile.path} (arities 2..$maxArity)")
+    }
+}
+
+tasks.register("generateAll") {
+    dependsOn("generateCurry", "generateLift", "generateValidatedOverloads")
+    description = "Regenerates all codegen files (curry, lift, validated overloads)"
+    group = "codegen"
 }
 

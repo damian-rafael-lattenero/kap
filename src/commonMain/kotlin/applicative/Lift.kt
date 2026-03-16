@@ -1,3 +1,7 @@
+// ┌──────────────────────────────────────────────────────────────────────┐
+// │  AUTO-GENERATED — do not edit by hand.                               │
+// │  Run: ./gradlew generateLift                                         │
+// └──────────────────────────────────────────────────────────────────────┘
 package applicative
 
 import applicative.internal.curried
@@ -15,6 +19,7 @@ import applicative.internal.curried
  *
  * Overloads [lift2] through [lift22] cover arities 2-22.
  */
+
 fun <P1, P2, R> lift2(f: (P1, P2) -> R): Computation<(P1) -> (P2) -> R> = pure(f.curried())
 
 fun <P1, P2, P3, R> lift3(f: (P1, P2, P3) -> R): Computation<(P1) -> (P2) -> (P3) -> R> = pure(f.curried())

@@ -159,6 +159,43 @@ fun <A> Computation<A>.timeoutRace(duration: Duration, fallback: Computation<A>)
     )) { execute() }
 }
 
+// ── retry with Schedule ──────────────────────────────────────────────────
+
+/**
+ * Retries this computation according to the given [schedule].
+ *
+ * ```
+ * val policy = Schedule.recurs<Throwable>(3) and Schedule.exponential(100.milliseconds)
+ * Computation { fetchUser() }.retry(policy)
+ * ```
+ *
+ * @param schedule composable retry policy
+ * @param onRetry optional callback before each retry
+ */
+fun <A> Computation<A>.retry(
+    schedule: Schedule<Throwable>,
+    onRetry: suspend (attempt: Int, error: Throwable, nextDelay: Duration) -> Unit = { _, _, _ -> },
+): Computation<A> = Computation {
+    var attempt = 0
+    while (true) {
+        try {
+            return@Computation with(this@retry) { execute() }
+        } catch (e: Throwable) {
+            if (e is CancellationException) throw e
+            when (val decision = schedule.decide(attempt, e)) {
+                is Schedule.Decision.Continue -> {
+                    onRetry(attempt + 1, e, decision.delay)
+                    if (decision.delay > Duration.ZERO) delay(decision.delay)
+                    attempt++
+                }
+                is Schedule.Decision.Done -> throw e
+            }
+        }
+    }
+    @Suppress("UNREACHABLE_CODE")
+    throw IllegalStateException("unreachable")
+}
+
 // ── backoff strategies ───────────────────────────────────────────────────
 
 /** Doubles the delay on each retry. */

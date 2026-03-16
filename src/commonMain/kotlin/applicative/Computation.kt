@@ -1,5 +1,6 @@
 package applicative
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -329,6 +330,90 @@ val unit: Computation<Unit> = pure(Unit)
  */
 fun <A> Computation<A>.named(name: String): Computation<A> = Computation {
     withContext(CoroutineName(name)) { with(this@named) { execute() } }
+}
+
+// ── void: discard the result ─────────────────────────────────────────────
+
+/**
+ * Discards the result of this computation, returning [Unit].
+ *
+ * ```
+ * Computation { sendEmail() }.void()  // Computation<Unit>
+ * ```
+ */
+fun <A> Computation<A>.void(): Computation<Unit> = map { }
+
+// ── attempt: catch to Either ────────────────────────────────────────────
+
+/**
+ * Catches non-cancellation exceptions and wraps the outcome in [Either].
+ *
+ * [CancellationException] is never caught — structured concurrency
+ * cancellation always propagates.
+ *
+ * ```
+ * val result: Either<Throwable, User> = Async {
+ *     Computation { fetchUser() }.attempt()
+ * }
+ * ```
+ */
+fun <A> Computation<A>.attempt(): Computation<Either<Throwable, A>> = Computation {
+    try {
+        Either.Right(with(this@attempt) { execute() })
+    } catch (e: Throwable) {
+        if (e is CancellationException) throw e
+        Either.Left(e)
+    }
+}
+
+// ── tap: side-effect without changing value ──────────────────────────────
+
+/**
+ * Executes a side-effect [f] with the result, then returns the original value unchanged.
+ *
+ * ```
+ * Computation { fetchUser() }
+ *     .tap { user -> logger.info("fetched $user") }
+ * ```
+ */
+inline fun <A> Computation<A>.tap(crossinline f: suspend (A) -> Unit): Computation<A> = Computation {
+    val a = with(this@tap) { execute() }
+    f(a)
+    a
+}
+
+// ── zipLeft / zipRight: parallel, keep one side ─────────────────────────
+
+/**
+ * Runs this computation and [other] in parallel, returning only this result.
+ * Both must succeed; if either fails, the other is cancelled.
+ *
+ * ```
+ * Computation { fetchUser() }
+ *     .zipLeft(Computation { logAccess() })  // returns User, logAccess runs in parallel
+ * ```
+ */
+fun <A, B> Computation<A>.zipLeft(other: Computation<B>): Computation<A> = Computation {
+    val da = async { with(this@zipLeft) { execute() } }
+    val db = async { with(other) { execute() } }
+    db.await()
+    da.await()
+}
+
+/**
+ * Runs this computation and [other] in parallel, returning only [other]'s result.
+ * Both must succeed; if either fails, the other is cancelled.
+ *
+ * ```
+ * Computation { logAccess() }
+ *     .zipRight(Computation { fetchUser() })  // returns User
+ * ```
+ */
+fun <A, B> Computation<A>.zipRight(other: Computation<B>): Computation<B> = Computation {
+    val da = async { with(this@zipRight) { execute() } }
+    val db = async { with(other) { execute() } }
+    da.await()
+    db.await()
 }
 
 // ── DSL entry point ─────────────────────────────────────────────────────
