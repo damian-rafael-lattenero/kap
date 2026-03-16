@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-611%20passing-brightgreen.svg)](#empirical-data)
+[![Tests](https://img.shields.io/badge/Tests-613%20passing-brightgreen.svg)](#empirical-data)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
 [![Lines](https://img.shields.io/badge/Hand--written-2.5k%20lines-informational.svg)](#)
@@ -447,9 +447,9 @@ When later steps depend on earlier results, use `computation` for imperative mon
 ```kotlin
 val result = Async {
     computation {
-        val user = Computation { fetchUser(userId) }.bind()
-        val cart = Computation { fetchCart(user.cartId) }.bind()
-        val recs = Computation { fetchRecommendations(user.preferences) }.bind()
+        val user = bind { fetchUser(userId) }
+        val cart = bind { fetchCart(user.cartId) }           // needs user
+        val recs = bind { fetchRecommendations(user.prefs) } // needs user
         Dashboard(user, cart, recs)
     }
 }
@@ -673,7 +673,7 @@ Unlike most Kotlin libraries, every algebraic law is **property-based tested** w
 
 Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLawsTest.kt)
 
-**611 tests across 38 suites. All passing.**
+**613 tests across 38 suites. All passing.**
 
 ---
 
@@ -863,7 +863,7 @@ Arrow interop module: [`/arrow-interop`](arrow-interop/) — optional bridges fo
 ## Building
 
 ```bash
-./gradlew jvmTest              # 611 tests
+./gradlew jvmTest              # 613 tests
 ./gradlew :arrow-interop:test  # Arrow interop tests
 ./gradlew :benchmarks:jmh      # JMH benchmarks
 ./gradlew dokkaHtml             # API docs
