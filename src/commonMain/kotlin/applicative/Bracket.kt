@@ -111,3 +111,42 @@ fun <A> Computation<A>.guaranteeCase(finalizer: suspend (ExitCase) -> Unit): Com
         throw e
     }
 }
+
+// ── bracketCase: resource-safe computation with outcome ─────────────────
+
+/**
+ * Like [bracket] but [release] receives the [ExitCase] so it can react
+ * differently to success, failure, or cancellation.
+ *
+ * ```
+ * bracketCase(
+ *     acquire = { openConnection() },
+ *     use = { conn -> Computation { conn.query("SELECT ...") } },
+ *     release = { conn, case ->
+ *         when (case) {
+ *             is ExitCase.Completed -> conn.commit()
+ *             else -> conn.rollback()
+ *         }
+ *         conn.close()
+ *     },
+ * )
+ * ```
+ */
+fun <R, A> bracketCase(
+    acquire: suspend () -> R,
+    use: (R) -> Computation<A>,
+    release: suspend (R, ExitCase) -> Unit,
+): Computation<A> = Computation {
+    val resource = acquire()
+    try {
+        val result = with(use(resource)) { execute() }
+        withContext(NonCancellable) { release(resource, ExitCase.Completed(result)) }
+        result
+    } catch (e: CancellationException) {
+        withContext(NonCancellable) { release(resource, ExitCase.Cancelled) }
+        throw e
+    } catch (e: Throwable) {
+        withContext(NonCancellable) { release(resource, ExitCase.Failed(e)) }
+        throw e
+    }
+}

@@ -57,6 +57,21 @@ class Schedule<A>(
         }
 
         /**
+         * Retry forever with no delay. Combine with other schedules for
+         * backoff or time limits:
+         *
+         * ```
+         * // Infinite retries with exponential backoff, capped at 30 seconds total
+         * Schedule.forever<Throwable>()
+         *     .and(Schedule.exponential(100.milliseconds))
+         *     .withMaxDuration(30.seconds)
+         * ```
+         */
+        fun <A> forever(): Schedule<A> = Schedule { _, _ ->
+            Decision.Continue(ZERO)
+        }
+
+        /**
          * Linear backoff starting from [base], capped at [max].
          *
          * Produces delays: base, 2*base, 3*base, 4*base, ...

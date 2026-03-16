@@ -202,3 +202,71 @@ fun <A> raceN(vararg computations: Computation<A>): Computation<A> {
  */
 fun <A> Iterable<Computation<A>>.raceAll(): Computation<A> =
     raceN(*toList().toTypedArray())
+
+// ── raceEither: race with heterogeneous types ───────────────────────────
+
+/**
+ * Runs [fa] and [fb] concurrently with **different result types**; the first
+ * to succeed wins.
+ *
+ * Returns [Either.Left] if [fa] wins, [Either.Right] if [fb] wins.
+ * The loser is cancelled. If both fail, the first error propagates with
+ * the second as a suppressed exception.
+ *
+ * ```
+ * val result: Either<CachedData, FreshData> = Async {
+ *     raceEither(
+ *         fa = Computation { fetchFromCache() },   // fast
+ *         fb = Computation { fetchFromNetwork() },  // slow but fresh
+ *     )
+ * }
+ * ```
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+fun <A, B> raceEither(fa: Computation<A>, fb: Computation<B>): Computation<Either<A, B>> = Computation {
+    supervisorScope {
+        val da = async { runCatching { with(fa) { execute() } } }
+        val db = async { runCatching { with(fb) { execute() } } }
+        try {
+            val (firstIsA, firstResult, other) = select<Triple<Boolean, Result<*>, Deferred<*>>> {
+                da.onAwait { Triple(true, it, db) }
+                db.onAwait { Triple(false, it, da) }
+            }
+            if (firstIsA) {
+                firstResult.getOrNull()?.let {
+                    @Suppress("UNCHECKED_CAST")
+                    return@supervisorScope Either.Left(it as A)
+                }
+            } else {
+                firstResult.getOrNull()?.let {
+                    @Suppress("UNCHECKED_CAST")
+                    return@supervisorScope Either.Right(it as B)
+                }
+            }
+            // First failed — wait for the other
+            @Suppress("UNCHECKED_CAST")
+            val secondResult = (other as Deferred<Result<*>>).await()
+            if (!firstIsA) {
+                secondResult.getOrNull()?.let {
+                    @Suppress("UNCHECKED_CAST")
+                    return@supervisorScope Either.Left(it as A)
+                }
+            } else {
+                secondResult.getOrNull()?.let {
+                    @Suppress("UNCHECKED_CAST")
+                    return@supervisorScope Either.Right(it as B)
+                }
+            }
+            // Both failed
+            val firstError = firstResult.exceptionOrNull()!!
+            val secondError = secondResult.exceptionOrNull()!!
+            firstError.addSuppressed(secondError)
+            throw firstError
+        } catch (e: CancellationException) {
+            throw e
+        } finally {
+            da.cancel()
+            db.cancel()
+        }
+    }
+}

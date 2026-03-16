@@ -219,10 +219,10 @@ tasks.register("generateValidatedOverloads") {
     outputs.file(outputFile)
 
     doLast {
-        // Type parameter letters: A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W
-        // (skips E which is the error type, and R which is the result type)
-        val letters = listOf("A","B","C","D","F","G","H","I","J","K","L","M","N","O","P","Q","S","T","U","V","W")
-        // Variable suffixes: lowercase, except 'O' uses uppercase to avoid 'do'/'eo' keyword clash
+        // Type parameter letters: A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, X
+        // (skips E which is the error type, and R which is the result type — 22 letters total)
+        val letters = listOf("A","B","C","D","F","G","H","I","J","K","L","M","N","O","P","Q","S","T","U","V","W","X")
+        // Variable suffixes: lowercase, except 'O' uses uppercase to avoid 'do' keyword clash
         val varSuffixes = letters.map { if (it == "O") "O" else it.lowercase() }
 
         fun generateZipV(n: Int): String {
@@ -322,9 +322,152 @@ $params,
     }
 }
 
+tasks.register("generateZipMapN") {
+    description = "Regenerates src/commonMain/kotlin/applicative/ZipOverloads.kt (zip + mapN arities 3-22)"
+    group = "codegen"
+
+    val maxArity = 22
+    val outputFile = file("src/commonMain/kotlin/applicative/ZipOverloads.kt")
+    outputs.file(outputFile)
+
+    doLast {
+        // Type parameter letters: A-W skipping R (22 letters)
+        val typeLetters = listOf("A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","S","T","U","V","W")
+
+        fun generateZip(n: Int): String {
+            val types = typeLetters.take(n)
+            val typeParams = types.joinToString(", ") + ", R"
+            val params = (1..n).joinToString(",\n") { i ->
+                "    c$i: Computation<${types[i - 1]}>"
+            }
+            val asyncLaunches = (1..n).joinToString("\n    ") { i ->
+                "val d$i = async { with(c$i) { execute() } }"
+            }
+            val awaits = (1..n).joinToString(", ") { "d$it.await()" }
+            val combineTypes = types.joinToString(", ")
+
+            return """/** Runs $n computations in parallel, combining results with [combine]. */
+fun <$typeParams> zip(
+$params,
+    combine: ($combineTypes) -> R,
+): Computation<R> = Computation {
+    $asyncLaunches
+    combine($awaits)
+}"""
+        }
+
+        fun generateMapN(n: Int): String {
+            val types = typeLetters.take(n)
+            val typeParams = types.joinToString(", ") + ", R"
+            val params = (1..n).joinToString(",\n") { i ->
+                "    c$i: Computation<${types[i - 1]}>"
+            }
+            val combineTypes = types.joinToString(", ")
+
+            // Arity 2 delegates to instance method; 3+ delegates to top-level zip
+            val delegation = if (n == 2) "c1.zip(c2, combine)" else {
+                val zipArgs = (1..n).joinToString(", ") { "c$it" }
+                "zip($zipArgs, combine)"
+            }
+
+            return """/** Runs $n computations in parallel, combining results with [combine]. Alias for [zip]. */
+fun <$typeParams> mapN(
+$params,
+    combine: ($combineTypes) -> R,
+): Computation<R> = $delegation"""
+        }
+
+        val header = buildString {
+            appendLine("// ┌──────────────────────────────────────────────────────────────────────┐")
+            appendLine("// │  AUTO-GENERATED — do not edit by hand.                               │")
+            appendLine("// │  Run: ./gradlew generateZipMapN                                      │")
+            appendLine("// └──────────────────────────────────────────────────────────────────────┘")
+            appendLine("package applicative")
+            appendLine()
+            appendLine("import kotlinx.coroutines.async")
+        }
+
+        val zipBody = (3..maxArity).joinToString("\n\n") { generateZip(it) }
+        val mapNBody = (2..maxArity).joinToString("\n\n") { generateMapN(it) }
+
+        val content = buildString {
+            append(header)
+            appendLine()
+            appendLine("// ── zip: parallel combination (3-$maxArity arity) ──────────────────────────────")
+            appendLine()
+            appendLine(zipBody)
+            appendLine()
+            appendLine("// ── mapN: alias for zip (2-$maxArity arity) ────────────────────────────────────")
+            appendLine()
+            appendLine(mapNBody)
+        }
+
+        outputFile.writeText(content)
+        println("Generated ${outputFile.path} (zip 3..$maxArity, mapN 2..$maxArity)")
+    }
+}
+
+tasks.register("generateResourceZip") {
+    description = "Regenerates src/commonMain/kotlin/applicative/ResourceZip.kt (Resource.zip arities 2-22)"
+    group = "codegen"
+
+    val maxArity = 22
+    val outputFile = file("src/commonMain/kotlin/applicative/ResourceZip.kt")
+    outputs.file(outputFile)
+
+    doLast {
+        val typeLetters = listOf("A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","S","T","U","V","W")
+
+        fun generateResourceZip(n: Int): String {
+            val types = typeLetters.take(n)
+            val typeParams = types.joinToString(", ") + ", R"
+            val params = (1..n).joinToString(",\n") { i ->
+                "    r$i: Resource<${types[i - 1]}>"
+            }
+            val combineTypes = types.joinToString(", ")
+
+            // Build nested bind chain: r1.bind { v1 -> r2.bind { v2 -> ... use(combine(v1, v2, ...)) } }
+            val opens = (1..n).joinToString(" ") { i -> "r$i.bind { v$i ->" }
+            val closesBraces = " }".repeat(n)
+            val combineArgs = (1..n).joinToString(", ") { "v$it" }
+
+            return """/** Combines $n resources. Release runs in reverse order, even on failure. */
+fun <$typeParams> Resource.Companion.zip(
+$params,
+    combine: ($combineTypes) -> R,
+): Resource<R> = Resource { use ->
+    $opens
+        use(combine($combineArgs))
+    $closesBraces
+}"""
+        }
+
+        val header = buildString {
+            appendLine("// ┌──────────────────────────────────────────────────────────────────────┐")
+            appendLine("// │  AUTO-GENERATED — do not edit by hand.                               │")
+            appendLine("// │  Run: ./gradlew generateResourceZip                                  │")
+            appendLine("// └──────────────────────────────────────────────────────────────────────┘")
+            appendLine("package applicative")
+        }
+
+        val body = (2..maxArity).joinToString("\n\n") { generateResourceZip(it) }
+
+        val content = buildString {
+            append(header)
+            appendLine()
+            appendLine("// ── Resource.zip: composable resource combination (2-$maxArity arity) ────────")
+            appendLine()
+            appendLine(body)
+        }
+
+        outputFile.writeText(content)
+        println("Generated ${outputFile.path} (arities 2..$maxArity)")
+    }
+}
+
 tasks.register("generateAll") {
-    dependsOn("generateCurry", "generateLift", "generateValidatedOverloads")
-    description = "Regenerates all codegen files (curry, lift, validated overloads)"
+    dependsOn("generateCurry", "generateLift", "generateValidatedOverloads", "generateZipMapN", "generateResourceZip")
+    description = "Regenerates all codegen files (curry, lift, validated overloads, zip/mapN, resource zip)"
     group = "codegen"
 }
 
