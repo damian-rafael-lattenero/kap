@@ -8,6 +8,7 @@ package applicative
  * not as a general-purpose Either library.
  */
 sealed interface Either<out E, out A> {
+    companion object {}
     data class Left<out E>(val value: E) : Either<E, Nothing>
     data class Right<out A>(val value: A) : Either<Nothing, A>
 }
@@ -180,4 +181,54 @@ inline fun <E, A, B, C> Either<E, A>.zip(other: Either<E, B>, crossinline combin
 fun <E, A> Either<E, A>.toValidatedNel(): Either<NonEmptyList<E>, A> = when (this) {
     is Either.Left -> Either.Left(value.toNonEmptyList())
     is Either.Right -> this
+}
+
+// ── aliases & taps ──────────────────────────────────────────────────
+
+/** Alias for [getOrNull]. Arrow naming compatibility. */
+fun <E, A> Either<E, A>.orNull(): A? = getOrNull()
+
+/** Executes [f] on the [Left] value, returns this unchanged. Alias for [onLeft]. */
+inline fun <E, A> Either<E, A>.tapLeft(f: (E) -> Unit): Either<E, A> = onLeft(f)
+
+// ── recover ─────────────────────────────────────────────────────────
+
+/**
+ * Recovers from [Left] by mapping the error to a success value.
+ * Unlike [getOrHandle] which extracts the value, this returns an [Either] for continued chaining.
+ */
+inline fun <E, A> Either<E, A>.recover(f: (E) -> A): Either<Nothing, A> = when (this) {
+    is Either.Left -> Either.Right(f(value))
+    is Either.Right -> @Suppress("UNCHECKED_CAST") (this as Either<Nothing, A>)
+}
+
+// ── sequence & traverse ─────────────────────────────────────────────
+
+/**
+ * Sequences a list of [Either] values, short-circuiting on the first [Left].
+ * Returns [Right] with all values if all are [Right].
+ */
+fun <E, A> Iterable<Either<E, A>>.sequence(): Either<E, List<A>> {
+    val results = mutableListOf<A>()
+    for (either in this) {
+        when (either) {
+            is Either.Left -> return either
+            is Either.Right -> results.add(either.value)
+        }
+    }
+    return Either.Right(results)
+}
+
+/**
+ * Applies [f] to each element and sequences the results, short-circuiting on the first [Left].
+ */
+inline fun <E, A, B> Iterable<A>.traverseEither(f: (A) -> Either<E, B>): Either<E, List<B>> {
+    val results = mutableListOf<B>()
+    for (a in this) {
+        when (val either = f(a)) {
+            is Either.Left -> return either
+            is Either.Right -> results.add(either.value)
+        }
+    }
+    return Either.Right(results)
 }

@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-565%20passing-brightgreen.svg)](#empirical-data)
+[![Tests](https://img.shields.io/badge/Tests-611%20passing-brightgreen.svg)](#empirical-data)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
 [![Lines](https://img.shields.io/badge/Hand--written-2.5k%20lines-informational.svg)](#)
@@ -12,6 +12,8 @@
 > **Declarative parallel orchestration for Kotlin coroutines. Zero overhead.**
 >
 > Write your dependency graph as a flat chain — the library turns it into an optimal execution plan automatically. Swap two lines and the **compiler rejects it**.
+>
+> **Why not just `coroutineScope { async {} }`?** Because with 11 service calls across 5 phases, raw coroutines give you 30+ lines of shuttle variables with invisible phase boundaries. This library gives you 12 lines where the code shape *is* the execution plan — and the compiler enforces parameter order.
 
 ```kotlin
 // 11 service calls. 5 phases. One flat chain. Zero overhead vs raw coroutines.
@@ -304,9 +306,9 @@ val infra = Resource.zip(
 val result = Async {
     infra.useComputation { (db, cache, http) ->
         lift3(::DashboardData)
-            .ap { Computation { db.query("SELECT ...") } }
-            .ap { Computation { cache.get("user:prefs") } }
-            .ap { Computation { http.get("/recommendations") } }
+            .ap { db.query("SELECT ...") }
+            .ap { cache.get("user:prefs") }
+            .ap { http.get("/recommendations") }
     }
 }
 // Released in reverse order, even on failure. NonCancellable.
@@ -436,6 +438,52 @@ val result = Async {
     }
 }
 // Phase 1 fails → errors returned immediately, phase 2 never runs (saves network calls)
+```
+
+#### Imperative Sequential with `computation { }`
+
+When later steps depend on earlier results, use `computation` for imperative monadic syntax:
+
+```kotlin
+val result = Async {
+    computation {
+        val user = Computation { fetchUser(userId) }.bind()
+        val cart = Computation { fetchCart(user.cartId) }.bind()
+        val recs = Computation { fetchRecommendations(user.preferences) }.bind()
+        Dashboard(user, cart, recs)
+    }
+}
+// Sequential execution with value dependencies — sugar over flatMap chains.
+// For parallel branches, use lift+ap instead.
+```
+
+#### Short-Circuit Validated Builder
+
+Combine parallel validation with sequential phases using `validated`:
+
+```kotlin
+val result = Async {
+    validated { // short-circuits on first Left
+        val identity = Async {
+            zipV(
+                { validateName(input.name) },
+                { validateEmail(input.email) },
+                { validateAge(input.age) },
+            ) { name, email, age -> Identity(name, email, age) }
+        }.bind() // unwraps Right, short-circuits on Left
+
+        val cleared = Async {
+            zipV(
+                { checkNotBlacklisted(identity) },
+                { checkUsernameAvailable(identity.email) },
+            ) { a, b -> Clearance(a, b) }
+        }.bind()
+
+        Registration(identity, cleared)
+    }
+}
+// Phase 1 (parallel) → bind → Phase 2 (parallel) → bind → result
+// Any phase Left? → short-circuit, skip remaining phases
 ```
 
 </details>
@@ -605,18 +653,27 @@ Every concurrency property verified with `runTest` + `currentTime` — determini
 | Mass cancellation (1 fail, 9 siblings) | — | — | All 9 cancelled |
 | `timeoutRace` vs `timeout`+fallback | **50ms** vs 150ms | — | **3x faster** |
 
-### Algebraic Laws (property-based via Kotest)
+### Algebraic Laws — Mathematically Verified
 
-Functor, applicative, and monad laws verified with random inputs:
+Unlike most Kotlin libraries, every algebraic law is **property-based tested** with random inputs via Kotest. This means refactoring with these combinators is provably safe — the laws guarantee substitutability.
 
-- **Identity:** `map id == id`, `pure id <*> v == v`
-- **Composition:** `map (g . f) == map g . map f`
-- **Homomorphism:** `pure f <*> pure x == pure (f x)`
-- **Associativity:** `(m >>= f) >>= g == m >>= (a -> f a >>= g)`
+**`Computation` satisfies Functor, Applicative, and Monad laws:**
+
+| Law | Property | What it guarantees |
+|---|---|---|
+| Functor Identity | `fa.map { it } == fa` | `map` with identity is a no-op |
+| Functor Composition | `fa.map(g).map(f) == fa.map { f(g(it)) }` | Fusing two maps is safe |
+| Applicative Identity | `pure(id) ap fa == fa` | Lifting identity does nothing |
+| Applicative Homomorphism | `pure(f) ap pure(x) == pure(f(x))` | Pure values compose purely |
+| Monad Associativity | `(m >>= f) >>= g == m >>= { f(it) >>= g }` | FlatMap chains are associative |
+
+**`Validated` (apV/zipV) satisfies Applicative laws** (but intentionally NOT Monad — error accumulation requires applicative semantics).
+
+**`NonEmptyList` satisfies Functor and Monad laws** — identity, composition, and associativity all verified.
 
 Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLawsTest.kt)
 
-**565 tests across 34 suites. All passing.**
+**611 tests across 38 suites. All passing.**
 
 ---
 
@@ -643,7 +700,7 @@ Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLaw
 | `parZip(f1, f2, ...) { a, b, ... -> }` | `lift2(::Result).ap { f1 }.ap { f2 }` | Flat chain, N up to 22 |
 | Nested `parZip` for phases | `.followedBy { }` | Visible barriers |
 | `zipOrAccumulate(f1, ...) { }` | `zipV(f1, ...) { }` | Same API, up to 22 |
-| `either { ... }` | `flatMapV { }` | Short-circuit on error |
+| `either { ... }` | `validated { }` / `flatMapV { }` | Short-circuit on error with `bind()` |
 | `Resource({ }, { })` | `Resource({ }, { })` | Identical API |
 | `Schedule.recurs(n)` | `Schedule.recurs(n)` | Identical API |
 | `parMap(concurrency) { }` | `traverse(concurrency) { }` | Standard FP naming |
@@ -714,6 +771,7 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `.on(context)` / `.named(name)` | Dispatcher / coroutine name | — |
 | `.void()` / `.tap { }` | Discard result / side-effect | — |
 | `.attempt()` | Catch to `Either<Throwable, A>` | — |
+| `computation { }` | Imperative builder with `.bind()` — sequential monadic DSL | Sequential |
 | `.zipLeft` / `.zipRight` | Parallel, keep one result | Parallel |
 
 ### Collections
@@ -724,11 +782,10 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `traverse(f)` / `traverse(n, f)` | Map + parallel execution | Parallel (bounded) |
 | `sequence()` / `sequence(n)` | Execute collection | Parallel (bounded) |
 
-> **Why no `parZip` / `parMap`?** This is a conscious design decision. This library's identity is rooted in applicative functor composition — `lift + ap` chains, `zip/mapN` combinators, and `traverse/sequence` for collections. These are the standard functional vocabulary (Haskell, Scala). `parZip` and `parMap` are Arrow/Cats naming that implies "parallel" as a special mode — but in this library, **all composition is parallel by default**. There is no sequential variant to contrast against, so the `par` prefix is misleading.
->
-> **Equivalents:** `parZip(f1, f2) { a, b -> }` → `mapN(f1, f2) { a, b -> }` (tuple-style) or `lift2(::Result).ap { f1 }.ap { f2 }` (flat chain with phase visibility). `parMap { }` → `traverse { }`. Both run in parallel — it's the only mode.
 | `race` / `raceN` / `raceAll` | First to succeed | Competitive |
 | `raceEither(fa, fb)` | First to succeed, different types | Competitive |
+
+> **Design choice — no `parZip` / `parMap`:** All composition is parallel by default. The `par` prefix (Arrow/Cats naming) implies parallelism is a special mode — here it's the only mode. **Equivalents:** `parZip(f1, f2) { }` → `mapN(f1, f2) { }` or `lift2(::R).ap{f1}.ap{f2}`. `parMap { }` → `traverse { }`.
 
 ### Error Handling, Retry & Schedule
 
@@ -741,7 +798,8 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `retry(schedule)` / `retryOrElse(schedule, fallback)` | Schedule-based retry |
 | `retryWithResult(schedule)` | Retry returning `RetryResult(value, attempts, totalDelay)` |
 | `Schedule.recurs` / `.spaced` / `.exponential` / `.fibonacci` / `.linear` / `.forever` | Backoff strategies |
-| `Schedule.doWhile` / `.jittered` / `.withMaxDuration` | Filters and limits |
+| `Schedule.doWhile` / `.doUntil` / `.jittered` / `.withMaxDuration` | Filters and limits |
+| `schedule.collect()` / `schedule.zipWith(other, f)` | Accumulate inputs / custom delay merge |
 | `s1 and s2` / `s1 or s2` | Schedule composition |
 | `schedule.fold(init) { acc, a -> }` | Accumulate values across retries |
 | `CircuitBreaker(maxFailures, resetTimeout)` | Protect downstream from cascading failures |
@@ -754,6 +812,7 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `zipV` (2-22 args) | Parallel validation, all errors accumulated |
 | `liftV2`..`liftV22` + `apV` | Curried parallel validation |
 | `followedByV` / `thenValueV` / `flatMapV` | Phase barriers / sequential short-circuit |
+| `validated { }` | Short-circuit builder with `.bind()` — sequential validation DSL |
 | `valid` / `invalid` / `catching` / `validate` | Entry points |
 | `recoverV` / `mapV` / `mapError` / `orThrow` | Transforms |
 | `traverseV` / `sequenceV` | Collection operations with accumulation |
@@ -779,8 +838,11 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `Computation.toFlow()` / `Flow.collectAsComputation()` | Flow ↔ Computation |
 | `Flow.mapComputation(concurrency) { }` / `Flow.filterComputation { }` | Flow + Computation pipeline |
 | `Result.toEither()` / `Either.toResult()` / `Result.toValidated()` | Kotlin Result bridge |
+| `Either.catch { }` / `Either.catchNonFatal { }` | Exception-safe Either construction |
 | `Either.ensure` / `.filterOrElse` / `.getOrHandle` / `.handleErrorWith` | Either combinators |
+| `Either.recover` / `.orNull` / `.tapLeft` | Recovery and inspection |
 | `Either.zip(other) { }` / `.toValidatedNel()` | Either composition & bridge |
+| `Iterable.traverseEither(f)` / `Iterable<Either>.sequence()` | Collection operations |
 | `traced(name, tracer)` / `traced(name, onStart, onSuccess, onError)` | Observability hooks |
 | `delayed(d, value)` / `catching { }` / `apOrNull` | Utilities |
 
@@ -801,7 +863,7 @@ Arrow interop module: [`/arrow-interop`](arrow-interop/) — optional bridges fo
 ## Building
 
 ```bash
-./gradlew jvmTest              # 549 tests
+./gradlew jvmTest              # 611 tests
 ./gradlew :arrow-interop:test  # Arrow interop tests
 ./gradlew :benchmarks:jmh      # JMH benchmarks
 ./gradlew dokkaHtml             # API docs

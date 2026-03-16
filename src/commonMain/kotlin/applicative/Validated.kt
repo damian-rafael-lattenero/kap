@@ -332,4 +332,78 @@ fun <E, F, A> Computation<Either<NonEmptyList<E>, A>>.mapError(f: (E) -> F): Com
         }
     }
 
+// ── validated { } builder: short-circuit DSL ────────────────────────────
+
+/**
+ * Internal exception for short-circuit control flow in [validated].
+ * Never leaks outside the builder — [fillInStackTrace] is a no-op for performance.
+ */
+@PublishedApi
+internal class ValidatedShortCircuit(val errors: NonEmptyList<*>) : Exception() {
+    override fun fillInStackTrace(): Throwable = this
+}
+
+/**
+ * Scope for the [validated] builder, providing [bind] for short-circuit
+ * sequential validation.
+ *
+ * Use [bind] to unwrap [Either.Right] values or short-circuit on [Either.Left]:
+ *
+ * ```
+ * val result = Async {
+ *     validated<String> {
+ *         val name = validateName(input).bind()
+ *         val email = validateEmail(input).bind()
+ *         UserData(name, email)
+ *     }
+ * }
+ * ```
+ */
+class ValidatedScope<E> @PublishedApi internal constructor() {
+    /**
+     * Unwraps an [Either] — returns the [Right][Either.Right] value or
+     * short-circuits the [validated] block with the [Left][Either.Left] errors.
+     */
+    fun <A> Either<NonEmptyList<E>, A>.bind(): A = when (this) {
+        is Either.Right -> value
+        is Either.Left -> throw ValidatedShortCircuit(value)
+    }
+}
+
+/**
+ * Short-circuit builder for validated computations.
+ *
+ * Provides [ValidatedScope.bind] to unwrap [Either.Right] values or
+ * short-circuit on [Either.Left]. Useful for sequential validation
+ * where later steps depend on earlier results.
+ *
+ * For parallel validation (accumulating **all** errors), use [zipV] or [apV] instead.
+ *
+ * ```
+ * val result = Async {
+ *     validated<String> {
+ *         val identity = Async {
+ *             zipV(
+ *                 { validateName(input) },
+ *                 { validateEmail(input) },
+ *             ) { name, email -> Identity(name, email) }
+ *         }.bind()
+ *         val cleared = Async { checkNotBlocked(identity) }.bind()
+ *         Registration(identity, cleared)
+ *     }
+ * }
+ * ```
+ *
+ * [CancellationException] always propagates — never caught by this builder.
+ */
+@Suppress("UNCHECKED_CAST")
+fun <E, A> validated(block: suspend ValidatedScope<E>.() -> A): Computation<Either<NonEmptyList<E>, A>> =
+    Computation {
+        try {
+            Either.Right(ValidatedScope<E>().block())
+        } catch (e: ValidatedShortCircuit) {
+            Either.Left(e.errors as NonEmptyList<E>)
+        }
+    }
+
 // ── zipV + liftV: see ValidatedOverloads.kt (auto-generated) ─────────────

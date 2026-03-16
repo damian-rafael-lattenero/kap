@@ -56,6 +56,17 @@ class Schedule<A>(
             if (predicate(a)) Decision.Continue(ZERO) else Decision.Done
         }
 
+        /** Continue until the predicate holds. Complement of [doWhile]. */
+        fun <A> doUntil(predicate: (A) -> Boolean): Schedule<A> = Schedule { _, a ->
+            if (predicate(a)) Decision.Done else Decision.Continue(ZERO)
+        }
+
+        /** Synonym for [doWhile] — Arrow naming compatibility. */
+        fun <A> whileInput(predicate: (A) -> Boolean): Schedule<A> = doWhile(predicate)
+
+        /** Synonym for [doUntil] — Arrow naming compatibility. */
+        fun <A> untilInput(predicate: (A) -> Boolean): Schedule<A> = doUntil(predicate)
+
         /**
          * Retry forever with no delay. Combine with other schedules for
          * backoff or time limits:
@@ -110,6 +121,18 @@ class Schedule<A>(
                 Decision.Continue(minOf(a, max))
             }
         }
+    }
+
+    /** Accumulates all retry inputs into a list. Specialization of [fold]. */
+    fun collect(): Schedule<A> = fold<List<A>>(emptyList()) { acc, a -> acc + a }
+
+    /** Combines two schedules with a custom delay merge. Both must agree to continue. */
+    fun zipWith(other: Schedule<A>, f: (Duration, Duration) -> Duration): Schedule<A> = Schedule { attempt, a ->
+        val d1 = this@Schedule.decide(attempt, a)
+        val d2 = other.decide(attempt, a)
+        if (d1 is Decision.Continue && d2 is Decision.Continue)
+            Decision.Continue(f(d1.delay, d2.delay))
+        else Decision.Done
     }
 
     /**
