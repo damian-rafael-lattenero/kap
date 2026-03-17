@@ -520,7 +520,7 @@ fun <A> Computation<A>.memoizeOnSuccess(): Computation<A> =
 
 private class MemoizedOnSuccess<A>(private val original: Computation<A>) : Computation<A> {
     private val lock = kotlinx.coroutines.sync.Mutex()
-    @Volatile private var cached: Any? = UNSET
+    @kotlin.concurrent.Volatile private var cached: Any? = UNSET
 
     override suspend fun CoroutineScope.execute(): A {
         @Suppress("UNCHECKED_CAST")

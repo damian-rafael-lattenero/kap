@@ -336,12 +336,10 @@ fun <E, F, A> Computation<Either<NonEmptyList<E>, A>>.mapError(f: (E) -> F): Com
 
 /**
  * Internal exception for short-circuit control flow in [validated].
- * Never leaks outside the builder — [fillInStackTrace] is a no-op for performance.
+ * Never leaks outside the builder.
  */
 @PublishedApi
-internal class ValidatedShortCircuit(val errors: NonEmptyList<*>) : Exception() {
-    override fun fillInStackTrace(): Throwable = this
-}
+internal class ValidatedShortCircuit(val errors: NonEmptyList<*>) : Exception()
 
 /**
  * Scope for the [validated] builder, providing [bind] for short-circuit
@@ -359,7 +357,9 @@ internal class ValidatedShortCircuit(val errors: NonEmptyList<*>) : Exception() 
  * }
  * ```
  */
-class ValidatedScope<E> @PublishedApi internal constructor() {
+class ValidatedScope<E> @PublishedApi internal constructor(
+    @PublishedApi internal val scope: kotlinx.coroutines.CoroutineScope,
+) {
     /**
      * Unwraps an [Either] — returns the [Right][Either.Right] value or
      * short-circuits the [validated] block with the [Left][Either.Left] errors.
@@ -368,6 +368,36 @@ class ValidatedScope<E> @PublishedApi internal constructor() {
         is Either.Right -> value
         is Either.Left -> throw ValidatedShortCircuit(value)
     }
+
+    /**
+     * Executes a validated [Computation] and unwraps the result — returns the
+     * [Right][Either.Right] value or short-circuits with the [Left][Either.Left] errors.
+     *
+     * Eliminates the need for nested [Async] blocks inside [validated]:
+     *
+     * ```
+     * // Before:
+     * validated<String> {
+     *     val identity = Async {
+     *         zipV(
+     *             { validateName(input) },
+     *             { validateEmail(input) },
+     *         ) { name, email -> Identity(name, email) }
+     *     }.bind()
+     * }
+     *
+     * // After:
+     * validated<String> {
+     *     val identity = zipV(
+     *         { validateName(input) },
+     *         { validateEmail(input) },
+     *     ) { name, email -> Identity(name, email) }
+     *         .bindV()
+     * }
+     * ```
+     */
+    suspend fun <A> Computation<Either<NonEmptyList<E>, A>>.bindV(): A =
+        with(this@bindV) { scope.execute() }.bind()
 }
 
 /**
@@ -382,13 +412,18 @@ class ValidatedScope<E> @PublishedApi internal constructor() {
  * ```
  * val result = Async {
  *     validated<String> {
- *         val identity = Async {
- *             zipV(
- *                 { validateName(input) },
- *                 { validateEmail(input) },
- *             ) { name, email -> Identity(name, email) }
- *         }.bind()
- *         val cleared = Async { checkNotBlocked(identity) }.bind()
+ *         val identity = zipV(
+ *             { validateName(input) },
+ *             { validateEmail(input) },
+ *         ) { name, email -> Identity(name, email) }
+ *             .bindV()  // executes + unwraps — no nested Async needed
+ *
+ *         val cleared = zipV(
+ *             { checkNotBlocked(identity) },
+ *             { checkUsernameAvailable(identity.email) },
+ *         ) { a, b -> Clearance(a, b) }
+ *             .bindV()
+ *
  *         Registration(identity, cleared)
  *     }
  * }
@@ -400,7 +435,7 @@ class ValidatedScope<E> @PublishedApi internal constructor() {
 fun <E, A> validated(block: suspend ValidatedScope<E>.() -> A): Computation<Either<NonEmptyList<E>, A>> =
     Computation {
         try {
-            Either.Right(ValidatedScope<E>().block())
+            Either.Right(ValidatedScope<E>(this).block())
         } catch (e: ValidatedShortCircuit) {
             Either.Left(e.errors as NonEmptyList<E>)
         }
