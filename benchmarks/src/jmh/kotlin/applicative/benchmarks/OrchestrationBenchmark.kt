@@ -371,4 +371,150 @@ open class OrchestrationBenchmark {
             "errors:${errors.flatMap { it.value }}"
         }
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Group 5: liftA — Haskell-style applicative lifting (parZip equivalent)
+    //
+    // Compares liftA3/liftA5 vs lift+ap vs Arrow parZip.
+    // These accept suspend lambdas directly — no Computation wrapping.
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Benchmark
+    fun liftA3_overhead_arity3(): String = runBlocking {
+        Async {
+            liftA3(
+                { compute(1) },
+                { compute(2) },
+                { compute(3) },
+            ) { a, b, c -> "$a|$b|$c" }
+        }
+    }
+
+    @Benchmark
+    fun liftA5_overhead_arity5(): String = runBlocking {
+        Async {
+            liftA5(
+                { compute(1) },
+                { compute(2) },
+                { compute(3) },
+                { compute(4) },
+                { compute(5) },
+            ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }
+        }
+    }
+
+    @Benchmark
+    fun liftA5_latency_arity5(): String = runBlocking {
+        Async {
+            liftA5(
+                { networkCall("user", 50) },
+                { networkCall("cart", 50) },
+                { networkCall("prefs", 50) },
+                { networkCall("recs", 50) },
+                { networkCall("promos", 50) },
+            ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Group 6: Resilience stack composition
+    //
+    // Measures the overhead of retry + timeout + recover chains.
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Benchmark
+    fun resilience_retry_succeed_first(): String = runBlocking {
+        Async {
+            Computation { networkCall("service", 30) }
+                .retry(Schedule.recurs<Throwable>(3) and Schedule.spaced(kotlin.time.Duration.parse("10ms")))
+                .recover { "fallback" }
+        }
+    }
+
+    @Benchmark
+    fun resilience_timeout_with_default(): String = runBlocking {
+        Async {
+            Computation { networkCall("slow", 200) }
+                .timeout(kotlin.time.Duration.parse("100ms"), default = "cached")
+        }
+    }
+
+    @Benchmark
+    fun resilience_race_two(): String = runBlocking {
+        Async {
+            race(
+                Computation { networkCall("primary", 100) },
+                Computation { networkCall("replica", 50) },
+            )
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Group 7: Traverse with bounded concurrency
+    //
+    // 20 items @ 30ms each, concurrency=5 → ~120ms (4 batches)
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Benchmark
+    fun traverse_unbounded_20(): String = runBlocking {
+        Async {
+            (1..20).toList().traverse { i ->
+                Computation { networkCall("item-$i", 30) }
+            }.map { it.joinToString("|") }
+        }
+    }
+
+    @Benchmark
+    fun traverse_bounded_20_concurrency5(): String = runBlocking {
+        Async {
+            (1..20).toList().traverse(concurrency = 5) { i ->
+                Computation { networkCall("item-$i", 30) }
+            }.map { it.joinToString("|") }
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Group 8: High-arity overhead (lift15)
+    //
+    // Measures curried chain overhead at high arities.
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Benchmark
+    fun liftAp_overhead_arity15(): String = runBlocking {
+        Async {
+            lift15 { a: String, b: String, c: String, d: String, e: String,
+                     f: String, g: String, h: String, i: String, j: String,
+                     k: String, l: String, m: String, n: String, o: String ->
+                listOf(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o).joinToString("|")
+            }
+                .ap { compute(1) }.ap { compute(2) }.ap { compute(3) }
+                .ap { compute(4) }.ap { compute(5) }.ap { compute(6) }
+                .ap { compute(7) }.ap { compute(8) }.ap { compute(9) }
+                .ap { compute(10) }.ap { compute(11) }.ap { compute(12) }
+                .ap { compute(13) }.ap { compute(14) }.ap { compute(15) }
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Group 9: Memoize — cache hit vs miss
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Benchmark
+    fun memoize_cold_miss(): String = runBlocking {
+        // Each iteration creates a fresh memoized computation — always a miss
+        val m = Computation { compute(1) }.memoize()
+        Async { m }
+    }
+
+    @Benchmark
+    fun memoize_warm_hit(): String = runBlocking {
+        // Pre-warm, then measure cache hit
+        Async { memoizedForBenchmark }
+    }
+
+    private val memoizedForBenchmark: Computation<String> = run {
+        val m = Computation { compute(1) }.memoize()
+        runBlocking { Async { m } } // warm the cache
+        m
+    }
 }

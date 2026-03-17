@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-636%20passing-brightgreen.svg)](#empirical-data)
+[![Tests](https://img.shields.io/badge/Tests-778%20passing-brightgreen.svg)](#empirical-data)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
@@ -93,6 +93,37 @@ suspend fun main() {
 ```
 
 **One dependency:** `kotlinx-coroutines-core`. ~2,500 hand-written lines + codegen. All platforms (JVM, JS, Native).
+
+### Choose Your Style
+
+Three ways to compose parallel operations — pick what fits:
+
+```kotlin
+// Style 1: lift + ap — compile-time parameter order safety via curried types (recommended for 6+ args)
+lift3(::Dashboard)
+    .ap { fetchUser() }
+    .ap { fetchCart() }
+    .ap { fetchPromos() }
+
+// Style 2: liftA — Haskell-named, parZip-like ergonomics (great for 2-5 args)
+liftA3(
+    { fetchUser() },
+    { fetchCart() },
+    { fetchPromos() },
+) { user, cart, promos -> Dashboard(user, cart, promos) }
+
+// Style 3: mapN / zip — takes pre-built Computations (familiar to Arrow users)
+mapN(
+    Computation { fetchUser() },
+    Computation { fetchCart() },
+    Computation { fetchPromos() },
+) { user, cart, promos -> Dashboard(user, cart, promos) }
+
+// Bonus: product — returns Pair/Triple (Haskell: (,) <$> fa <*> fb)
+val (user, cart) = Async { product({ fetchUser() }, { fetchCart() }) }
+```
+
+All styles are parallel by default. `lift+ap` gives stronger type safety; `liftA`/`mapN` give simpler syntax.
 
 ---
 
@@ -673,7 +704,7 @@ Unlike most Kotlin libraries, every algebraic law is **property-based tested** w
 
 Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLawsTest.kt)
 
-**636 tests across 40 suites. All passing.**
+**778 tests across 43 suites. All passing.**
 
 ---
 
@@ -697,7 +728,7 @@ Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLaw
 
 | Arrow | This Library | Notes |
 |---|---|---|
-| `parZip(f1, f2, ...) { a, b, ... -> }` | `lift2(::Result).ap { f1 }.ap { f2 }` | Flat chain, N up to 22 |
+| `parZip(f1, f2, ...) { a, b, ... -> }` | `liftA3(f1, f2, f3) { }` or `lift3(::R).ap{f1}.ap{f2}.ap{f3}` | liftA for 2-5, lift+ap for 6-22 |
 | Nested `parZip` for phases | `.followedBy { }` | Visible barriers |
 | `zipOrAccumulate(f1, ...) { }` | `zipV(f1, ...) { }` | Same API, up to 22 |
 | `either { ... }` | `validated { }` / `flatMapV { }` | Short-circuit on error with `bind()` |
@@ -757,7 +788,9 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 
 | Combinator | Semantics | Parallelism |
 |---|---|---|
-| `lift2`..`lift22` + `.ap` | N-way fan-out | Parallel |
+| `lift2`..`lift22` + `.ap` | N-way fan-out (curried, type-safe ordering) | Parallel |
+| `liftA2`..`liftA5` | Haskell-style applicative lifting (parZip-like) | Parallel |
+| `product(fa, fb)` / `product(fa, fb, fc)` | Parallel into Pair/Triple | Parallel |
 | `.followedBy` | True phase barrier | Sequential (gates) |
 | `.thenValue` | Sequential value fill, no barrier | Sequential (no gate) |
 | `.flatMap` | Monadic bind (value-dependent) | Sequential |
@@ -866,7 +899,7 @@ Arrow interop module: [`/arrow-interop`](arrow-interop/) — optional bridges fo
 ## Building
 
 ```bash
-./gradlew jvmTest              # 636 tests
+./gradlew jvmTest              # 778 tests
 ./gradlew :arrow-interop:test  # Arrow interop tests
 ./gradlew :benchmarks:jmh      # JMH benchmarks
 ./gradlew dokkaHtml             # API docs
