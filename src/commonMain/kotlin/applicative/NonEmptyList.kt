@@ -92,3 +92,65 @@ operator fun <A> NonEmptyList<A>.plus(element: @UnsafeVariance A): NonEmptyList<
 
 /** Wraps a single value into a [NonEmptyList]. */
 fun <A> A.toNonEmptyList(): NonEmptyList<A> = NonEmptyList(this)
+
+// ── traverse / sequence ──────────────────────────────────────────────────
+
+/**
+ * Applies [f] to each element, producing a [Computation] per element,
+ * then runs all computations in parallel and collects results into a [NonEmptyList].
+ *
+ * The non-empty guarantee is preserved: since the input is non-empty and [f]
+ * produces exactly one computation per element, the output is also non-empty.
+ *
+ * ```
+ * val users: NonEmptyList<UserId> = NonEmptyList.of(1, 2, 3)
+ * val profiles: NonEmptyList<Profile> = Async {
+ *     users.traverse { id -> Computation { fetchProfile(id) } }
+ * }
+ * ```
+ */
+fun <A, B> NonEmptyList<A>.traverse(f: (A) -> Computation<B>): Computation<NonEmptyList<B>> =
+    (this as List<A>).traverse(f).map { list -> NonEmptyList(list[0], list.subList(1, list.size)) }
+
+/**
+ * Like [traverse] but limits the number of concurrent computations.
+ */
+fun <A, B> NonEmptyList<A>.traverse(concurrency: Int, f: (A) -> Computation<B>): Computation<NonEmptyList<B>> =
+    (this as List<A>).traverse(concurrency, f).map { list -> NonEmptyList(list[0], list.subList(1, list.size)) }
+
+/**
+ * Runs all computations in the [NonEmptyList] in parallel, collecting results
+ * into a new [NonEmptyList].
+ */
+fun <A> NonEmptyList<Computation<A>>.sequence(): Computation<NonEmptyList<A>> =
+    traverse { it }
+
+/**
+ * Like [sequence] but limits the number of concurrent computations.
+ */
+fun <A> NonEmptyList<Computation<A>>.sequence(concurrency: Int): Computation<NonEmptyList<A>> =
+    traverse(concurrency) { it }
+
+/**
+ * Applies [f] to each element producing a validated computation,
+ * runs all in parallel, and accumulates errors from all branches.
+ *
+ * Preserves the [NonEmptyList] guarantee on both the success and error sides.
+ */
+fun <E, A, B> NonEmptyList<A>.traverseV(
+    f: (A) -> Computation<Either<NonEmptyList<E>, B>>,
+): Computation<Either<NonEmptyList<E>, NonEmptyList<B>>> =
+    (this as List<A>).traverseV(f).map { either ->
+        either.map { list -> NonEmptyList(list[0], list.subList(1, list.size)) }
+    }
+
+/**
+ * Like [traverseV] but limits the number of concurrent computations.
+ */
+fun <E, A, B> NonEmptyList<A>.traverseV(
+    concurrency: Int,
+    f: (A) -> Computation<Either<NonEmptyList<E>, B>>,
+): Computation<Either<NonEmptyList<E>, NonEmptyList<B>>> =
+    (this as List<A>).traverseV(concurrency, f).map { either ->
+        either.map { list -> NonEmptyList(list[0], list.subList(1, list.size)) }
+    }

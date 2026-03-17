@@ -330,6 +330,78 @@ fun <A, B : Any> Computation<A>.ensureNotNull(
     extract(a) ?: throw error()
 }
 
+// ── alternative / firstSuccessOf ─────────────────────────────────────────
+
+/**
+ * Tries this computation; if it fails (non-cancellation), tries [other] instead.
+ *
+ * Unlike [race] which runs both concurrently, [orElse] is **sequential** —
+ * the fallback only starts if the primary fails. This is useful when the
+ * fallback is expensive and should only run as a last resort.
+ *
+ * [CancellationException] always propagates — never falls through to [other].
+ *
+ * ```
+ * val user = Async {
+ *     Computation { fetchFromPrimary() }
+ *         .orElse(Computation { fetchFromReplica() })
+ *         .orElse(Computation { User.cached() })
+ * }
+ * ```
+ */
+infix fun <A> Computation<A>.orElse(other: Computation<A>): Computation<A> = Computation {
+    try {
+        with(this@orElse) { execute() }
+    } catch (e: Throwable) {
+        if (e is CancellationException) throw e
+        with(other) { execute() }
+    }
+}
+
+/**
+ * Tries each computation sequentially; returns the first to succeed.
+ * If all fail, throws the last exception with prior failures as suppressed.
+ *
+ * Unlike [raceN] which runs all concurrently, [firstSuccessOf] is **sequential** —
+ * each fallback only starts after the previous one fails.
+ *
+ * [CancellationException] always propagates — never falls through to the next.
+ *
+ * ```
+ * val data = Async {
+ *     firstSuccessOf(
+ *         Computation { fetchFromPrimary() },
+ *         Computation { fetchFromSecondary() },
+ *         Computation { fetchFromCache() },
+ *     )
+ * }
+ * ```
+ */
+fun <A> firstSuccessOf(vararg computations: Computation<A>): Computation<A> {
+    require(computations.isNotEmpty()) { "firstSuccessOf requires at least one computation" }
+    if (computations.size == 1) return computations[0]
+    return Computation {
+        val errors = mutableListOf<Throwable>()
+        for (c in computations) {
+            try {
+                return@Computation with(c) { execute() }
+            } catch (e: Throwable) {
+                if (e is CancellationException) throw e
+                errors.add(e)
+            }
+        }
+        val primary = errors.last()
+        errors.dropLast(1).forEach { primary.addSuppressed(it) }
+        throw primary
+    }
+}
+
+/**
+ * Tries each computation in this collection sequentially; returns the first to succeed.
+ */
+fun <A> Iterable<Computation<A>>.firstSuccess(): Computation<A> =
+    firstSuccessOf(*toList().toTypedArray())
+
 // ── backoff strategies ───────────────────────────────────────────────────
 
 /** Doubles the delay on each retry. */

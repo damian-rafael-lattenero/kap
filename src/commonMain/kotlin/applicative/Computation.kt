@@ -96,9 +96,18 @@ class PhaseBarrier<out A>(
     @PublishedApi internal val signal: CompletableDeferred<Unit>,
 ) : Computation<A> {
     override suspend fun CoroutineScope.execute(): A {
-        val result = with(inner) { execute() }
-        signal.complete(Unit)
-        return result
+        try {
+            val result = with(inner) { execute() }
+            signal.complete(Unit)
+            return result
+        } catch (e: Throwable) {
+            // Complete the signal even on failure so gated ap/apV calls don't hang.
+            // They will observe the failure through structured concurrency (parent scope
+            // cancellation), but the signal must fire to prevent deadlock if the exception
+            // is caught by recover/attempt inside the chain.
+            signal.complete(Unit)
+            throw e
+        }
     }
 }
 
@@ -545,6 +554,37 @@ private class MemoizedOnSuccess<A>(private val original: Computation<A>) : Compu
         private val UNSET = Any()
     }
 }
+
+// ── await: execute a Computation from any suspend context ────────────────
+
+/**
+ * Executes this [Computation] from any suspend context, creating a
+ * [coroutineScope] for structured concurrency.
+ *
+ * This is the ergonomic bridge for using combinators like [timeout],
+ * [retry], and [recover] inside `.ap` lambdas without the verbose
+ * `with(computation) { execute() }` pattern:
+ *
+ * ```
+ * // Before (verbose):
+ * lift3(::Dashboard)
+ *     .ap {
+ *         with(Computation { fetchUser() }
+ *             .timeout(200.milliseconds, User.cached())) { execute() }
+ *     }
+ *     .ap { fetchCart() }
+ *
+ * // After (clean):
+ * lift3(::Dashboard)
+ *     .ap { Computation { fetchUser() }.timeout(200.milliseconds, User.cached()).await() }
+ *     .ap { fetchCart() }
+ * ```
+ *
+ * **Note:** Creates a [coroutineScope] internally, which correctly maintains
+ * structured concurrency guarantees. For top-level execution, use [Async] instead.
+ */
+suspend fun <A> Computation<A>.await(): A =
+    coroutineScope { with(this@await) { execute() } }
 
 // ── DSL entry point ─────────────────────────────────────────────────────
 
