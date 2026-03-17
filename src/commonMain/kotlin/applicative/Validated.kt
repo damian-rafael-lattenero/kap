@@ -337,9 +337,13 @@ fun <E, F, A> Computation<Either<NonEmptyList<E>, A>>.mapError(f: (E) -> F): Com
 /**
  * Internal exception for short-circuit control flow in [validated].
  * Never leaks outside the builder.
+ *
+ * Extends [ControlFlowException] which, on JVM, overrides [fillInStackTrace]
+ * as a no-op — avoiding the cost of capturing a full stack trace for what is
+ * purely a control-flow mechanism.
  */
 @PublishedApi
-internal class ValidatedShortCircuit(val errors: NonEmptyList<*>) : Exception()
+internal class ValidatedShortCircuit(val errors: NonEmptyList<*>) : ControlFlowException()
 
 /**
  * Scope for the [validated] builder, providing [bind] for short-circuit

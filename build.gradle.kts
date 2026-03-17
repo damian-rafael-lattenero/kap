@@ -15,6 +15,13 @@ repositories {
 kotlin {
     jvmToolchain(21)
 
+    // Suppress beta warning for expect/actual classes (KT-61573) — used for
+    // ControlFlowException (JVM fillInStackTrace no-op for control-flow exceptions)
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     jvm {
         testRuns["test"].executionTask.configure {
             useJUnitPlatform()
