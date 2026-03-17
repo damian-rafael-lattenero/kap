@@ -182,8 +182,13 @@ class Schedule<A>(
      * If the next delay would push the total past [maxDuration], the schedule
      * returns [Decision.Done] instead of overshooting.
      *
-     * **Note:** This creates a stateful schedule — each instance tracks its own
-     * start time. Create a new instance for each retry invocation if reuse is needed.
+     * **Statefulness warning:** This creates a stateful schedule — each instance
+     * tracks its own start time. If you reuse the same instance across multiple
+     * [Computation.retry] calls, the timer carries over from the first invocation.
+     * Use the `retry(scheduleFactory)` overload to get a fresh schedule each time:
+     * ```
+     * comp.retry { Schedule.exponential<Throwable>(100.ms).withMaxDuration(5.seconds) }
+     * ```
      *
      * ```
      * val policy = Schedule.exponential<Throwable>(100.milliseconds)

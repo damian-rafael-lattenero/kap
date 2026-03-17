@@ -771,6 +771,9 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `.on(context)` / `.named(name)` | Dispatcher / coroutine name | — |
 | `.void()` / `.tap { }` | Discard result / side-effect | — |
 | `.attempt()` | Catch to `Either<Throwable, A>` | — |
+| `.await()` | Execute a `Computation` from any suspend context | — |
+| `.orElse(other)` | Sequential fallback on failure (CancellationException always propagates) | Sequential |
+| `firstSuccessOf(c1, c2, ...)` | Try each sequentially, return first success | Sequential |
 | `computation { }` | Imperative builder with `.bind()` — sequential monadic DSL | Sequential |
 | `.zipLeft` / `.zipRight` | Parallel, keep one result | Parallel |
 
@@ -795,7 +798,7 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `timeout(d)` / `timeout(d, default)` / `timeout(d, comp)` | Time-bounded |
 | `timeoutRace(d, fallback)` | Parallel timeout (fallback starts immediately) |
 | `retry(n, delay, backoff, shouldRetry, onRetry)` | Configurable retry |
-| `retry(schedule)` / `retryOrElse(schedule, fallback)` | Schedule-based retry |
+| `retry(schedule)` / `retry(scheduleFactory)` / `retryOrElse(schedule, fallback)` | Schedule-based retry (factory overload for stateful schedules) |
 | `retryWithResult(schedule)` | Retry returning `RetryResult(value, attempts, totalDelay)` |
 | `Schedule.recurs` / `.spaced` / `.exponential` / `.fibonacci` / `.linear` / `.forever` | Backoff strategies |
 | `Schedule.doWhile` / `.doUntil` / `.jittered` / `.withMaxDuration` | Filters and limits |
@@ -869,6 +872,10 @@ Arrow interop module: [`/arrow-interop`](arrow-interop/) — optional bridges fo
 ./gradlew dokkaHtml             # API docs
 ./gradlew generateAll           # regenerate all overloads (arities 2-22)
 ```
+
+> **Native targets (iOS, macOS, Linux):** `./gradlew build` compiles all Kotlin/Native targets.
+> Apple targets (iOS, macOS) require Xcode and its command-line tools (`xcode-select --install`).
+> If you only need JVM/JS, use `./gradlew jvmTest` or `./gradlew jsTest` instead.
 
 See [PUBLISHING.md](PUBLISHING.md) for Maven Central publishing instructions.
 

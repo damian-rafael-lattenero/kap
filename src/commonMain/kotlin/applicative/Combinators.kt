@@ -196,6 +196,26 @@ fun <A> Computation<A>.retry(
     throw IllegalStateException("unreachable")
 }
 
+/**
+ * Retries this computation using a fresh [Schedule] from [scheduleFactory] each time.
+ *
+ * Stateful schedules (e.g., those using [Schedule.withMaxDuration] or [Schedule.fold])
+ * capture mutable state. If you reuse the same instance across multiple retries, the
+ * state leaks. This overload creates a fresh schedule per invocation:
+ *
+ * ```
+ * val policyFactory = {
+ *     Schedule.exponential<Throwable>(100.milliseconds)
+ *         .withMaxDuration(5.seconds)
+ * }
+ * comp.retry(policyFactory)  // fresh timer each time
+ * ```
+ */
+fun <A> Computation<A>.retry(
+    scheduleFactory: () -> Schedule<Throwable>,
+    onRetry: suspend (attempt: Int, error: Throwable, nextDelay: Duration) -> Unit = { _, _, _ -> },
+): Computation<A> = retry(scheduleFactory(), onRetry)
+
 // ── retryOrElse: fallback instead of throw on exhaustion ────────────
 
 /**

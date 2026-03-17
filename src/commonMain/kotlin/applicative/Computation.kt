@@ -471,6 +471,10 @@ fun <A, B> Computation<A>.zipRight(other: Computation<B>): Computation<B> = Comp
  * Thread-safe: if multiple coroutines execute concurrently, only the first runs
  * the original computation — others suspend until the result is available.
  *
+ * **Cancellation safety:** If the first caller is cancelled before completing,
+ * the lock is released so the next caller retries the original computation.
+ * CancellationException never poisons the cache.
+ *
  * ```
  * val expensive = Computation { fetchExpensiveData() }.memoize()
  *
@@ -481,25 +485,46 @@ fun <A, B> Computation<A>.zipRight(other: Computation<B>): Computation<B> = Comp
  * }
  * ```
  */
-fun <A> Computation<A>.memoize(): Computation<A> {
-    val original = this
-    val deferred = CompletableDeferred<A>()
-    val started = kotlinx.coroutines.sync.Mutex()
-    return Computation {
-        if (started.tryLock()) {
-            // First caller: execute and complete the deferred
-            try {
-                val value = with(original) { execute() }
-                deferred.complete(value)
-                value
-            } catch (e: Throwable) {
-                deferred.completeExceptionally(e)
-                throw e
-            }
-        } else {
-            // Subsequent callers: await the result
-            deferred.await()
+fun <A> Computation<A>.memoize(): Computation<A> =
+    Memoized(this)
+
+private class Memoized<A>(private val original: Computation<A>) : Computation<A> {
+    private val lock = kotlinx.coroutines.sync.Mutex()
+    @kotlin.concurrent.Volatile private var cached: Any? = UNSET
+    @kotlin.concurrent.Volatile private var cachedError: Throwable? = null
+
+    override suspend fun CoroutineScope.execute(): A {
+        // Fast path: already cached (success or failure)
+        @Suppress("UNCHECKED_CAST")
+        val c = cached
+        if (c !== UNSET) return c as A
+        cachedError?.let { throw it }
+
+        lock.lock()
+        try {
+            // Re-check after acquiring lock
+            @Suppress("UNCHECKED_CAST")
+            val c2 = cached
+            if (c2 !== UNSET) return c2 as A
+            cachedError?.let { throw it }
+
+            val value = with(original) { execute() }
+            cached = value
+            return value
+        } catch (e: CancellationException) {
+            // Cancellation NEVER poisons the cache — next caller retries.
+            throw e
+        } catch (e: Throwable) {
+            // Non-cancellation failures ARE cached (memoize caches everything).
+            cachedError = e
+            throw e
+        } finally {
+            lock.unlock()
         }
+    }
+
+    companion object {
+        private val UNSET = Any()
     }
 }
 

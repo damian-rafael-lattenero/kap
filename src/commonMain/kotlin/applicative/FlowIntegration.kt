@@ -67,9 +67,11 @@ fun <A, B> Flow<A>.mapComputation(
         channelFlow {
             val semaphore = Semaphore(concurrency)
             source.collect { a ->
-                semaphore.withPermit {
-                    val result = coroutineScope { with(transform(a)) { execute() } }
-                    send(result)
+                launch {
+                    semaphore.withPermit {
+                        val result = coroutineScope { with(transform(a)) { execute() } }
+                        send(result)
+                    }
                 }
             }
         }
