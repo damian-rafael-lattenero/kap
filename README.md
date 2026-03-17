@@ -4,7 +4,8 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-613%20passing-brightgreen.svg)](#empirical-data)
+[![Tests](https://img.shields.io/badge/Tests-636%20passing-brightgreen.svg)](#empirical-data)
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
 [![Lines](https://img.shields.io/badge/Hand--written-2.5k%20lines-informational.svg)](#)
@@ -459,31 +460,30 @@ val result = Async {
 
 #### Short-Circuit Validated Builder
 
-Combine parallel validation with sequential phases using `validated`:
+Combine parallel validation with sequential phases using `validated` + `bindV`:
 
 ```kotlin
 val result = Async {
     validated { // short-circuits on first Left
-        val identity = Async {
-            zipV(
-                { validateName(input.name) },
-                { validateEmail(input.email) },
-                { validateAge(input.age) },
-            ) { name, email, age -> Identity(name, email, age) }
-        }.bind() // unwraps Right, short-circuits on Left
+        val identity = zipV(
+            { validateName(input.name) },
+            { validateEmail(input.email) },
+            { validateAge(input.age) },
+        ) { name, email, age -> Identity(name, email, age) }
+            .bindV() // executes + unwraps Right, short-circuits on Left
 
-        val cleared = Async {
-            zipV(
-                { checkNotBlacklisted(identity) },
-                { checkUsernameAvailable(identity.email) },
-            ) { a, b -> Clearance(a, b) }
-        }.bind()
+        val cleared = zipV(
+            { checkNotBlacklisted(identity) },
+            { checkUsernameAvailable(identity.email) },
+        ) { a, b -> Clearance(a, b) }
+            .bindV()
 
         Registration(identity, cleared)
     }
 }
-// Phase 1 (parallel) → bind → Phase 2 (parallel) → bind → result
+// Phase 1 (parallel) → bindV → Phase 2 (parallel) → bindV → result
 // Any phase Left? → short-circuit, skip remaining phases
+// No nested Async {} needed — bindV executes the Computation directly
 ```
 
 </details>
@@ -673,7 +673,7 @@ Unlike most Kotlin libraries, every algebraic law is **property-based tested** w
 
 Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLawsTest.kt)
 
-**613 tests across 38 suites. All passing.**
+**636 tests across 40 suites. All passing.**
 
 ---
 
@@ -812,7 +812,7 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `zipV` (2-22 args) | Parallel validation, all errors accumulated |
 | `liftV2`..`liftV22` + `apV` | Curried parallel validation |
 | `followedByV` / `thenValueV` / `flatMapV` | Phase barriers / sequential short-circuit |
-| `validated { }` | Short-circuit builder with `.bind()` — sequential validation DSL |
+| `validated { }` | Short-circuit builder with `.bind()` / `.bindV()` — sequential validation DSL |
 | `valid` / `invalid` / `catching` / `validate` | Entry points |
 | `recoverV` / `mapV` / `mapError` / `orThrow` | Transforms |
 | `traverseV` / `sequenceV` | Collection operations with accumulation |
@@ -863,7 +863,7 @@ Arrow interop module: [`/arrow-interop`](arrow-interop/) — optional bridges fo
 ## Building
 
 ```bash
-./gradlew jvmTest              # 613 tests
+./gradlew jvmTest              # 636 tests
 ./gradlew :arrow-interop:test  # Arrow interop tests
 ./gradlew :benchmarks:jmh      # JMH benchmarks
 ./gradlew dokkaHtml             # API docs
