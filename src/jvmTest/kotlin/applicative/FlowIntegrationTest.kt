@@ -220,6 +220,29 @@ class FlowIntegrationTest {
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
+    fun `mapComputationOrdered cancels pending on intermediate failure`() = runTest {
+        val completed = java.util.concurrent.atomic.AtomicInteger(0)
+        val result = runCatching {
+            flowOf(1, 2, 3, 4, 5)
+                .mapComputationOrdered(concurrency = 5) { n ->
+                    Computation<Int> {
+                        if (n == 3) {
+                            delay(10.milliseconds)
+                            throw RuntimeException("boom at 3")
+                        }
+                        delay(50.milliseconds)
+                        completed.incrementAndGet()
+                        n * 10
+                    }
+                }
+                .toList()
+        }
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("boom at 3") == true)
+    }
+
+    @Test
     fun `filterComputation filters based on computation predicate`() = runTest {
         val result = flowOf(1, 2, 3, 4, 5)
             .filterComputation { n ->

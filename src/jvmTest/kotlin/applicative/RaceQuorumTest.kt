@@ -57,6 +57,23 @@ class RaceQuorumTest {
         }
 
         assertEquals(3, result.size)
+        assertTrue(result.containsAll(listOf("A", "B", "C")))
+        assertEquals(50, currentTime, "required==size must wait for slowest (equivalent to sequence)")
+    }
+
+    @Test
+    fun `quorum with required equals size and one failure throws`() = runTest {
+        val error = assertFailsWith<RuntimeException> {
+            val r: List<String> = Async {
+                raceQuorum(
+                    required = 3,
+                    Computation { delay(10); "A" },
+                    Computation<String> { delay(20); throw RuntimeException("fail") },
+                    Computation { delay(30); "C" },
+                )
+            }
+        }
+        assertTrue(error.message == "fail")
     }
 
     @Test

@@ -9,6 +9,7 @@ import arrow.fx.coroutines.parZip
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
@@ -1172,5 +1173,51 @@ open class OrchestrationBenchmark {
                 Computation { compute(3) },
             )
         }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Group 33: Flow integration benchmarks
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Benchmark
+    fun flow_mapComputation_sequential_10(): List<String> = runBlocking {
+        kotlinx.coroutines.flow.flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+            .mapComputation { n -> Computation { networkCall("item-$n", 30) } }
+            .toList()
+    }
+
+    @Benchmark
+    fun flow_mapComputation_concurrent5_10(): List<String> = runBlocking {
+        kotlinx.coroutines.flow.flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+            .mapComputation(concurrency = 5) { n -> Computation { networkCall("item-$n", 30) } }
+            .toList()
+    }
+
+    @Benchmark
+    fun flow_mapComputationOrdered_concurrent5_10(): List<String> = runBlocking {
+        kotlinx.coroutines.flow.flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+            .mapComputationOrdered(concurrency = 5) { n -> Computation { networkCall("item-$n", 30) } }
+            .toList()
+    }
+
+    @Benchmark
+    fun flow_mapComputation_overhead_10(): List<String> = runBlocking {
+        kotlinx.coroutines.flow.flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+            .mapComputation(concurrency = 5) { n -> Computation { compute(n) } }
+            .toList()
+    }
+
+    @Benchmark
+    fun flow_mapComputationOrdered_overhead_10(): List<String> = runBlocking {
+        kotlinx.coroutines.flow.flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+            .mapComputationOrdered(concurrency = 5) { n -> Computation { compute(n) } }
+            .toList()
+    }
+
+    @Benchmark
+    fun flow_filterComputation_10(): List<Int> = runBlocking {
+        kotlinx.coroutines.flow.flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+            .filterComputation { n -> Computation { n % 2 == 0 } }
+            .toList()
     }
 }

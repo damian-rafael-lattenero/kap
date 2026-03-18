@@ -4,6 +4,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.atomic.AtomicInteger
@@ -134,6 +135,49 @@ class HighContentionMemoizeTest {
 
         assertEquals(1, executionCount.get())
         assertTrue(results.all { it == null }, "All callers should get null")
+    }
+
+    @Test
+    fun `memoize survives cancellation of first caller — second caller executes successfully`() = runTest {
+        val executionCount = AtomicInteger(0)
+        val comp = Computation {
+            executionCount.incrementAndGet()
+            delay(100)
+            "result"
+        }.memoize()
+
+        // First caller: cancel before the memoized computation completes
+        val job = launch { Async.invoke<String> { comp } }
+        delay(10) // Let it start but not finish
+        job.cancel()
+        delay(10) // Let cancellation propagate
+
+        // First execution was cancelled — Mutex should be released, cache not poisoned
+        assertEquals(1, executionCount.get(), "First execution started")
+
+        // Second caller should be able to execute successfully
+        val result = withTimeout(5.seconds) { Async.invoke<String> { comp } }
+        assertEquals("result", result)
+        assertEquals(2, executionCount.get(), "Should have re-executed after cancellation")
+    }
+
+    @Test
+    fun `memoizeOnSuccess survives cancellation of first caller`() = runTest {
+        val executionCount = AtomicInteger(0)
+        val comp = Computation {
+            executionCount.incrementAndGet()
+            delay(100)
+            "result"
+        }.memoizeOnSuccess()
+
+        val job = launch { Async.invoke<String> { comp } }
+        delay(10)
+        job.cancel()
+        delay(10)
+
+        val result = withTimeout(5.seconds) { Async.invoke<String> { comp } }
+        assertEquals("result", result)
+        assertTrue(executionCount.get() >= 2, "Should have re-executed after cancellation")
     }
 
     @Test

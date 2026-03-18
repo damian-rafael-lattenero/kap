@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-938%20passing-brightgreen.svg)](#empirical-data)
+[![Tests](https://img.shields.io/badge/Tests-946%20passing-brightgreen.svg)](#empirical-data)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
@@ -749,7 +749,7 @@ lift4(::R) .ap{A} .ap{B} .thenValue{C} .ap{D}
 
 All claims backed by **32 JMH benchmark groups** (2 forks × 5 measurement iterations each) and deterministic virtual-time proofs. No flaky timing assertions — `runTest` + `currentTime` gives provably correct results.
 
-> **Environment:** JDK 21.0.9 (Amazon Corretto), OpenJDK 64-Bit Server VM, macOS. JMH 1.36 with Compiler Blackholes.
+> **Environment:** JDK 21.0.9 (Amazon Corretto), OpenJDK 64-Bit Server VM, macOS. JMH 1.37 with Compiler Blackholes.
 
 ### JMH Benchmarks (`./gradlew :benchmarks:jmh`)
 
@@ -937,7 +937,7 @@ Unlike most Kotlin libraries, every algebraic law is **property-based tested** w
 
 Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLawsTest.kt)
 
-**938 tests across 57 suites. All passing.**
+**946 tests across 57 suites. All passing.**
 
 ---
 
@@ -1199,6 +1199,7 @@ Full working examples in [`/examples`](examples/):
 - **[ecommerce-checkout](examples/ecommerce-checkout/)** — 11 services, 5 phases
 - **[dashboard-aggregator](examples/dashboard-aggregator/)** — 14-service BFF
 - **[validated-registration](examples/validated-registration/)** — multi-scenario parallel validation with error accumulation
+- **[ktor-integration](examples/ktor-integration/)** — Ktor HTTP server with multi-phase aggregation, parallel validation, and resilience stack
 
 Arrow interop module: [`/arrow-interop`](arrow-interop/) — optional bridges for `Either`, `NonEmptyList`, `parZip`.
 

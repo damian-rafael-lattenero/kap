@@ -132,6 +132,67 @@ class ApplicativeLawsTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
+    // APPLICATIVE LAWS WITH REAL EFFECTS (delay + side effects)
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `applicative identity with effectful computation`() = runTest {
+        val id: (Int) -> Int = { it }
+
+        checkAll(Arb.int()) { x ->
+            val effectful = Computation { kotlinx.coroutines.delay(1); x }
+            val result = Async { pure(id) ap effectful }
+            assertEquals(x, result)
+        }
+    }
+
+    @Test
+    fun `applicative composition with concurrent effectful computations`() = runTest {
+        val u: Computation<(String) -> String> = Computation {
+            kotlinx.coroutines.delay(1); { s: String -> "[$s]" }
+        }
+        val v: Computation<(Int) -> String> = Computation {
+            kotlinx.coroutines.delay(1); { n: Int -> "v=$n" }
+        }
+
+        val compose: ((String) -> String) -> ((Int) -> String) -> (Int) -> String =
+            { f -> { g -> { a -> f(g(a)) } } }
+
+        checkAll(Arb.int()) { x ->
+            val effectful = Computation { kotlinx.coroutines.delay(1); x }
+            val left = Async { pure(compose) ap u ap v ap effectful }
+            val right = Async { u ap (v ap effectful) }
+            assertEquals(left, right)
+        }
+    }
+
+    @Test
+    fun `monad associativity with effectful computations`() = runTest {
+        val f: (Int) -> Computation<Int> = { n -> Computation { kotlinx.coroutines.delay(1); n + 1 } }
+        val g: (Int) -> Computation<String> = { n -> Computation { kotlinx.coroutines.delay(1); "v=$n" } }
+
+        checkAll(Arb.int()) { x ->
+            val m = Computation { kotlinx.coroutines.delay(1); x }
+            val left = Async { m.flatMap(f).flatMap(g) }
+            val right = Async { m.flatMap { a -> f(a).flatMap(g) } }
+            assertEquals(left, right)
+        }
+    }
+
+    @Test
+    fun `functor composition with effectful computation`() = runTest {
+        val f: (Int) -> Int = { it + 1 }
+        val g: (Int) -> String = { "v=$it" }
+
+        checkAll(Arb.int()) { x ->
+            val effectful = Computation { kotlinx.coroutines.delay(1); x }
+            val composed = Async { effectful.map { g(f(it)) } }
+            val chained = Async { effectful.map(f).map(g) }
+            assertEquals(composed, chained)
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
     // LIFT + AP CONSISTENCY
     // ════════════════════════════════════════════════════════════════════════
 

@@ -410,6 +410,10 @@ fun <A> firstSuccessOf(vararg computations: Computation<A>): Computation<A> {
                 errors.add(e)
             }
         }
+        // Note: suppressed exceptions are attached to the *last* error (most recent failure),
+        // unlike raceN which attaches them to the *first* error. Rationale: in a sequential
+        // fallback chain, the last failure is the most relevant (closest to the caller's intent),
+        // whereas in a concurrent race, the first failure triggered the cascade.
         val primary = errors.last()
         errors.dropLast(1).forEach { primary.addSuppressed(it) }
         throw primary
