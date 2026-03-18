@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -145,5 +146,68 @@ class PhaseBarrierEdgeCaseTest {
 
         assertTrue(b1Idx < p2Start, "Barrier 1 must complete before Phase 2: $executionLog")
         assertTrue(b2Idx < p3Start, "Barrier 2 must complete before Phase 3: $executionLog")
+    }
+
+    @Test
+    fun `followedBy signal fires on failure - gated ap does not hang`() = runTest {
+        val result = runCatching {
+            Async {
+                lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
+                    .ap { delay(10); "A" }
+                    .followedBy { throw RuntimeException("barrier-fail") }
+                    .ap { delay(10); "C" }  // must not hang
+            }
+        }
+
+        assertTrue(result.isFailure, "Should propagate barrier failure")
+        assertEquals("barrier-fail", result.exceptionOrNull()!!.message)
+        // If the signal didn't fire, this test would hang forever (timeout)
+    }
+
+    @Test
+    fun `followedBy failure with recover allows continuation`() = runTest {
+        val result = Async {
+            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
+                .ap { delay(10); "A" }
+                .followedBy { delay(10); "B" }
+                .ap { delay(10); "C" }
+        }
+
+        assertEquals("A|B|C", result)
+        // 10(A) + 10(B barrier) + 10(C) = 30ms
+        assertEquals(30, currentTime)
+    }
+
+    @Test
+    fun `three consecutive barriers gate correctly with virtual time`() = runTest {
+        val result = Async {
+            lift6 { a: String, b: String, c: String, d: String, e: String, f: String ->
+                "$a|$b|$c|$d|$e|$f"
+            }
+                .ap { delay(20); "A" }           // t=0..20
+                .followedBy { delay(10); "B" }   // t=20..30 (barrier 1)
+                .ap { delay(20); "C" }           // t=30..50
+                .followedBy { delay(10); "D" }   // t=50..60 (barrier 2)
+                .ap { delay(20); "E" }           // t=60..80
+                .followedBy { delay(10); "F" }   // t=80..90 (barrier 3)
+        }
+
+        assertEquals("A|B|C|D|E|F", result)
+        // 20 + 10 + 20 + 10 + 20 + 10 = 90ms
+        assertEquals(90, currentTime,
+            "Three barriers should produce 90ms: 20+10+20+10+20+10. Got ${currentTime}ms")
+    }
+
+    @Test
+    fun `apV after failed followedByV does not hang`() = runTest {
+        val result = Async {
+            liftV3<String, String, String, String, String> { a, b, c -> "$a|$b|$c" }
+                .apV { delay(10); Either.Right("A") }
+                .followedByV { delay(10); Either.Left(NonEmptyList("barrier-err")) }
+                .apV { delay(10); Either.Right("C") }
+        }
+
+        assertIs<Either.Left<NonEmptyList<String>>>(result)
+        assertEquals("barrier-err", result.value.head)
     }
 }

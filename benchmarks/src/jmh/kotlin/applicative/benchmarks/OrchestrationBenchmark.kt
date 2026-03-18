@@ -1100,10 +1100,76 @@ open class OrchestrationBenchmark {
         data class R(val a: Result<String>, val b: String, val c: String)
         val result = Async {
             lift3(::R)
-                .ap { Computation<String> { throw RuntimeException("down") }.settled() }
+                .ap(Computation<String> { throw RuntimeException("down") }.settled())
                 .ap { networkCall("b", 50) }
                 .ap { networkCall("c", 50) }
         }
         "${result.a.isFailure}|${result.b}|${result.c}"
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Group 31: traverseSettled vs raw supervisorScope comparison
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Benchmark
+    fun traverseSettled_vs_raw_settled_10(): List<Result<String>> = runBlocking {
+        Async {
+            (1..10).toList().traverseSettled { i ->
+                Computation { networkCall("item-$i", 30) }
+            }
+        }
+    }
+
+    @Benchmark
+    fun raw_supervisorScope_settled_10(): List<Result<String>> = runBlocking {
+        kotlinx.coroutines.supervisorScope {
+            (1..10).map { i ->
+                async { runCatching { networkCall("item-$i", 30) } }
+            }.map { it.await() }
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Group 32: raceQuorum benchmarks
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Benchmark
+    fun raceQuorum_2_of_5_latency(): List<String> = runBlocking {
+        Async {
+            raceQuorum(
+                required = 2,
+                Computation { networkCall("replica-1", 50) },
+                Computation { networkCall("replica-2", 30) },
+                Computation { networkCall("replica-3", 100) },
+                Computation { networkCall("replica-4", 40) },
+                Computation { networkCall("replica-5", 80) },
+            )
+        }
+    }
+
+    @Benchmark
+    fun raceQuorum_3_of_5_latency(): List<String> = runBlocking {
+        Async {
+            raceQuorum(
+                required = 3,
+                Computation { networkCall("replica-1", 50) },
+                Computation { networkCall("replica-2", 30) },
+                Computation { networkCall("replica-3", 100) },
+                Computation { networkCall("replica-4", 40) },
+                Computation { networkCall("replica-5", 80) },
+            )
+        }
+    }
+
+    @Benchmark
+    fun raceQuorum_2_of_3_overhead(): List<String> = runBlocking {
+        Async {
+            raceQuorum(
+                required = 2,
+                Computation { compute(1) },
+                Computation { compute(2) },
+                Computation { compute(3) },
+            )
+        }
     }
 }

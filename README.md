@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-909%20passing-brightgreen.svg)](#empirical-data)
+[![Tests](https://img.shields.io/badge/Tests-923%20passing-brightgreen.svg)](#empirical-data)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
@@ -383,6 +383,21 @@ val result: Either<CachedUser, FreshUser> = Async {
 // Left(cachedUser) if cache wins, Right(freshUser) if DB wins.
 ```
 
+Quorum race — need N-of-M successes (distributed consensus, hedged requests):
+
+```kotlin
+val quorum = Async {
+    raceQuorum(
+        required = 2,  // need 2 of 3 to agree
+        Computation { fetchFromReplicaA() },
+        Computation { fetchFromReplicaB() },
+        Computation { fetchFromReplicaC() },
+    )
+}
+// Returns the 2 fastest successes. Third replica cancelled.
+// If 2+ fail → throws (quorum impossible).
+```
+
 ### 5. Partial Failure Tolerance with `settled` and `traverseSettled`
 
 Sometimes you want ALL results — both successes and failures — without cancelling siblings:
@@ -568,6 +583,7 @@ val result = Async {
 | Retry + backoff + jitter | 20+ lines of boilerplate | `Schedule` composition — 3 lines |
 | Resource cleanup in parallel | Manual try/finally spaghetti | `bracket` / `Resource` — guaranteed |
 | First-to-succeed racing | Complex `select` clauses | `raceN(...)` — losers auto-cancelled |
+| N-of-M quorum consensus | Manual select + counter | `raceQuorum(n, ...)` — one line |
 | Transaction commit/rollback | Manual ExitCase tracking | `bracketCase` — automatic |
 | Cascading failures to downstream | Manual circuit breaker impl | `CircuitBreaker` — 3 states, composable |
 | Null/predicate guards in chains | `if` checks + early returns | `.ensure` / `.ensureNotNull` — declarative |
@@ -878,6 +894,7 @@ Tests whether the curried function chain degrades at high arities.
 | **Flat multi-phase code** | No | No | **Yes** |
 | **Compile-time arg order safety** | No | No | **Yes** |
 | **Parallel error accumulation** | No | Yes (max 9) | **Yes (max 22)** |
+| **Quorum race (N-of-M)** | Manual | No | **Yes** (`raceQuorum`) |
 
 > The performance story is simple: **this library matches raw coroutines exactly.** The value proposition is not speed — it's safety, readability, and composability at zero cost.
 
@@ -918,7 +935,7 @@ Unlike most Kotlin libraries, every algebraic law is **property-based tested** w
 
 Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLawsTest.kt)
 
-**909 tests across 59 suites. All passing.**
+**923 tests across 61 suites. All passing.**
 
 ---
 
@@ -1103,6 +1120,7 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `sequenceSettled()` / `sequenceSettled(n)` | Collect ALL results from collection | Parallel (bounded) |
 
 | `race` / `raceN` / `raceAll` | First to succeed | Competitive |
+| `raceQuorum(required, c1, c2, ...)` | N-of-M quorum race (hedged/consensus) | Competitive |
 | `raceEither(fa, fb)` | First to succeed, different types | Competitive |
 
 > **Design choice — no `parZip` / `parMap`:** All composition is parallel by default. The `par` prefix (Arrow/Cats naming) implies parallelism is a special mode — here it's the only mode. **Equivalents:** `parZip(f1, f2) { }` → `mapN(f1, f2) { }` or `lift2(::R).ap{f1}.ap{f2}`. `parMap { }` → `traverse { }`.
