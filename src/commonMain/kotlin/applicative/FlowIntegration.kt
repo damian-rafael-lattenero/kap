@@ -1,5 +1,8 @@
 package applicative
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -52,8 +55,7 @@ fun <A> Flow<A>.collectAsComputation(): Computation<List<A>> = Computation {
  *
  * **Ordering caveat:** when [concurrency] > 1, results are emitted in
  * *completion order*, not in the original upstream order. If you need ordered
- * output, either use `concurrency = 1` or collect into a list and sort
- * after the fact.
+ * output, use [mapComputationOrdered] instead.
  *
  * ```
  * userIdsFlow
@@ -79,6 +81,72 @@ fun <A, B> Flow<A>.mapComputation(
                         send(result)
                     }
                 }
+            }
+        }
+    }
+}
+
+// ── Flow.mapComputationOrdered ─────────────────────────────────────────
+
+/**
+ * Like [mapComputation] but **preserves upstream emission order** even when
+ * [concurrency] > 1.
+ *
+ * Computations run in parallel (bounded by [concurrency]), but results are
+ * buffered and re-emitted in the same order as the original upstream elements.
+ * This is useful when downstream relies on positional correspondence with the
+ * source (e.g., zipping results back with input).
+ *
+ * When [concurrency] is 1, behaves identically to sequential [mapComputation].
+ *
+ * ```
+ * flowOf("a", "b", "c")
+ *     .mapComputationOrdered(concurrency = 3) { s ->
+ *         Computation { delay(Random.nextLong(50)); s.uppercase() }
+ *     }
+ *     .toList() // always ["A", "B", "C"] regardless of completion order
+ * ```
+ *
+ * **Trade-off vs [mapComputation]:** ordered emission may hold completed results
+ * in memory while waiting for slower earlier elements. If order does not matter,
+ * prefer [mapComputation] for lower memory pressure and earlier downstream delivery.
+ */
+fun <A, B> Flow<A>.mapComputationOrdered(
+    concurrency: Int = 1,
+    transform: (A) -> Computation<B>,
+): Flow<B> {
+    require(concurrency >= 1) { "concurrency must be >= 1, was $concurrency" }
+    return if (concurrency == 1) {
+        map { a -> coroutineScope { with(transform(a)) { execute() } } }
+    } else {
+        val source = this
+        channelFlow {
+            val semaphore = Semaphore(concurrency)
+            val deferreds = Channel<Deferred<B>>(Channel.UNLIMITED)
+
+            // Producer: enqueue a deferred per element in upstream order,
+            // then launch the computation concurrently.
+            launch {
+                source.collect { a ->
+                    val deferred = CompletableDeferred<B>()
+                    deferreds.send(deferred)
+                    launch {
+                        semaphore.withPermit {
+                            try {
+                                val result = coroutineScope { with(transform(a)) { execute() } }
+                                deferred.complete(result)
+                            } catch (e: Throwable) {
+                                deferred.completeExceptionally(e)
+                            }
+                        }
+                    }
+                }
+                deferreds.close()
+            }
+
+            // Consumer: await each deferred in order and emit.
+            for (deferred in deferreds) {
+                send(deferred.await())
             }
         }
     }

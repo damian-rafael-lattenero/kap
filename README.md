@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-930%20passing-brightgreen.svg)](#empirical-data)
+[![Tests](https://img.shields.io/badge/Tests-938%20passing-brightgreen.svg)](#empirical-data)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
@@ -937,7 +937,7 @@ Unlike most Kotlin libraries, every algebraic law is **property-based tested** w
 
 Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLawsTest.kt)
 
-**930 tests across 57 suites. All passing.**
+**938 tests across 57 suites. All passing.**
 
 ---
 
@@ -1179,7 +1179,8 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `Deferred.toComputation()` / `Computation.toDeferred(scope)` | Deferred bridge |
 | `Flow.firstAsComputation()` / `(suspend () -> A).toComputation()` | Flow/lambda bridge |
 | `Computation.toFlow()` / `Flow.collectAsComputation()` | Flow ↔ Computation |
-| `Flow.mapComputation(concurrency) { }` / `Flow.filterComputation { }` | Flow + Computation pipeline |
+| `Flow.mapComputation(concurrency) { }` / `Flow.filterComputation { }` | Flow + Computation pipeline (completion order) |
+| `Flow.mapComputationOrdered(concurrency) { }` | Flow + Computation pipeline (upstream order preserved) |
 | `Result.toEither()` / `Either.toResult()` / `Result.toValidated()` | Kotlin Result bridge |
 | `Either.catch { }` / `Either.catchNonFatal { }` | Exception-safe Either construction |
 | `Either.ensure` / `.filterOrElse` / `.getOrHandle` / `.handleErrorWith` | Either combinators |
