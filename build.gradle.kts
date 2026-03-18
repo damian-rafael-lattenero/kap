@@ -35,9 +35,15 @@ kotlin {
 
     // Apple targets require Xcode — auto-skip when not installed so that
     // ./gradlew build works out of the box on any machine.
+    // Check both xcode-select AND xcrun xcodebuild to handle partially-installed toolchains.
     val xcodeAvailable = try {
-        val proc = ProcessBuilder("xcode-select", "-p").start()
-        proc.waitFor() == 0
+        val selectProc = ProcessBuilder("xcode-select", "-p").start()
+        val selectOk = selectProc.waitFor() == 0
+        if (!selectOk) false
+        else {
+            val xcrunProc = ProcessBuilder("xcrun", "xcodebuild", "-version").start()
+            xcrunProc.waitFor() == 0
+        }
     } catch (_: Exception) { false }
 
     if (xcodeAvailable) {

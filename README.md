@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-840%20passing-brightgreen.svg)](#empirical-data)
+[![Tests](https://img.shields.io/badge/Tests-881%20passing-brightgreen.svg)](#empirical-data)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
@@ -245,7 +245,7 @@ val result = Async {
 // Scales to 22 validators. Full type inference.
 ```
 
-**46.6 ms** (vs 186.0ms sequential) — JMH verified.
+**43.9 ms** (vs 186.0ms sequential) — JMH verified.
 
 ### 2. Production Resilience Stack
 
@@ -575,6 +575,73 @@ This means you can safely nest this library inside any coroutine hierarchy witho
 
 ---
 
+## Error Handling Decision Tree
+
+Which combinator should you use? Follow the arrows:
+
+```
+Exception occurred?
+├─ Need a default value? ──────────────→ .recover { default }
+├─ Need another Computation? ──────────→ .recoverWith { comp } (or .fallback(comp))
+├─ Want Either<Throwable, A>? ─────────→ .attempt()
+├─ Want sequential fallback chain? ────→ .orElse(other) or firstSuccessOf(c1, c2, c3)
+├─ In validated context? ──────────────→ .recoverV { errorValue }
+├─ Want kotlin.Result? ────────────────→ catching { block }
+└─ Want retry then fallback? ──────────→ .retryOrElse(schedule) { fallbackValue }
+
+Need a guard (not an exception)?
+├─ Boolean predicate? ─────────────────→ .ensure(error) { pred }
+├─ Null extraction? ───────────────────→ .ensureNotNull(error) { extract }
+├─ Validated predicate? ───────────────→ .ensureV(error) { pred }
+└─ Validated multi-error? ─────────────→ .ensureVAll(errors) { pred }
+```
+
+**Rule of thumb:** Use `recover`/`fallback` for simple cases, `retry` for transient failures, `attempt` when you want to branch on success/failure, and the `V` variants when you're in the validated error-accumulation world.
+
+---
+
+## Production Integration
+
+### Context Propagation (MDC, OpenTelemetry, Tracing)
+
+The `Async(context)` overload propagates a `CoroutineContext` into all parallel branches — use it for MDC, tracing spans, or dispatcher control:
+
+```kotlin
+import kotlinx.coroutines.slf4j.MDCContext
+
+// MDC context automatically available in every parallel branch:
+val result = Async(MDCContext()) {
+    lift3(::Dashboard)
+        .ap { fetchUser() }      // MDC propagated
+        .ap { fetchCart() }      // MDC propagated
+        .ap { fetchPromos() }    // MDC propagated
+}
+```
+
+For per-branch dispatcher control:
+
+```kotlin
+val result = Async {
+    lift3(::Dashboard)
+        .ap { fetchUser().on(Dispatchers.IO) }           // IO thread pool
+        .ap { computeRecs().on(Dispatchers.Default) }    // CPU thread pool
+        .ap { fetchConfig().on(Dispatchers.IO) }         // IO thread pool
+}
+```
+
+For OpenTelemetry span propagation, wrap the tracer context:
+
+```kotlin
+val result = Async(tracer.asContextElement()) {
+    lift3(::Dashboard)
+        .ap { fetchUser().traced("fetchUser", otelTracer) }
+        .ap { fetchCart().traced("fetchCart", otelTracer) }
+        .ap { fetchPromos().traced("fetchPromos", otelTracer) }
+}
+```
+
+---
+
 ## Type Safety via Currying
 
 With raw coroutines, you pass 15 variables to a constructor by position. Hope you got the order right.
@@ -650,7 +717,7 @@ The simplest test: five independent network calls that each take 50ms. Sequentia
 |---|---|---|---|
 | Sequential baseline | 281.6 | 1x | — |
 | Raw coroutines (`async/await`) | 56.9 | **4.9x** | — |
-| Arrow (`parZip`) | 56.3 | **5.0x** | −0.6ms |
+| Arrow (`parZip`) | 53.9 | **5.2x** | — |
 | **This library** (`lift+ap`) | **56.8** | **5.0x** | **−0.1ms** |
 | **This library** (`liftA5`) | **56.3** | **5.0x** | **−0.6ms** |
 
@@ -665,7 +732,7 @@ Isolates pure framework cost by running trivial `compute()` functions with no de
 | Raw coroutines | 0.001ms | — | 0.001ms | — |
 | **This library** (`lift+ap`) | **0.001ms** | — | **0.002ms** | **0.003ms** |
 | **This library** (`liftA`) | **0.001ms** | **0.001ms** | — | — |
-| Arrow (`parZip`) | 0.007ms | — | 0.019ms | — |
+| Arrow (`parZip`) | 0.008ms | — | 0.022ms | — |
 
 > **Verdict:** The library's overhead is **indistinguishable from raw coroutines** — both measure ~1μs at arity 3. Arrow's `parZip` is 7–10x higher in pure overhead, though still negligible for real I/O workloads. At arity 15, the curried chain adds only 3μs total — invisible when your network calls take 50–500ms. The `liftA` style matches `lift+ap` exactly: no overhead penalty for the ergonomic syntax.
 
@@ -677,7 +744,7 @@ A realistic BFF scenario: Phase 1 fans out 4 calls in parallel, a validation bar
 |---|---|---|---|
 | Sequential baseline | 468.3 | Yes | 1x |
 | Raw coroutines (nested blocks) | 206.6 | No — 4 async/await groups | **2.3x** |
-| Arrow (nested `parZip`) | 207.6 | No — 4 nested `parZip` blocks | **2.3x** |
+| Arrow (nested `parZip`) | 195.7 | No — 4 nested `parZip` blocks | **2.4x** |
 | **This library** (`lift+ap+followedBy`) | **206.8** | **Yes — single flat chain** | **2.3x** |
 
 > **Verdict:** Identical wall-clock time across all three parallel approaches (~207ms vs 468ms sequential). The crucial difference: **raw coroutines and Arrow require nested blocks per phase** — the code shape doesn't reveal the execution plan. This library keeps a single flat chain where `.followedBy` visually marks each barrier. Same performance, radically better readability.
@@ -690,8 +757,8 @@ Four validators run in parallel with error accumulation. Raw coroutines **cannot
 |---|---|---|---|---|
 | Sequential | 186.0 | Yes | No | 1x |
 | Raw coroutines | N/A | **No** (cancels siblings) | Yes | — |
-| Arrow (`zipOrAccumulate`) | 46.8 | Yes | Yes | **4.0x** |
-| **This library** (`zipV`) | **46.6** | **Yes** | **Yes** | **4.0x** |
+| Arrow (`zipOrAccumulate`) | 43.9 | Yes | Yes | **4.2x** |
+| **This library** (`zipV`) | **43.9** | **Yes** | **Yes** | **4.2x** |
 
 > **Verdict:** Both this library and Arrow deliver ~4x speedup over sequential validation while collecting every error. The 0.2ms difference is within the margin of error. Raw coroutines cannot even compete here — they'd need `supervisorScope` + manual `Result` wrapping to avoid cancellation, adding significant complexity. This library and Arrow both solve it elegantly, but this library scales to **22 validators** (vs Arrow's 9-arg limit on `zipOrAccumulate`).
 
@@ -749,17 +816,17 @@ Tests whether the curried function chain degrades at high arities.
 | Category | Benchmark | ms/op | Notes |
 |---|---|---|---|
 | **Bracket** | `bracket_overhead` | ≈ 10⁻⁴ | Resource safety adds zero measurable cost |
-| **Bracket** | `bracket_latency_with_parallel` | 57.0 | Parallel inside bracket — no penalty |
+| **Bracket** | `bracket_latency_with_parallel` | 54.0 | Parallel inside bracket — no penalty |
 | **BracketCase** | `bracketCase_overhead` | ≈ 10⁻⁴ | Outcome-aware release, same zero cost |
 | **CircuitBreaker** | `circuitBreaker_closed_overhead` | ≈ 10⁻⁴ | Mutex check on happy path is free |
-| **CircuitBreaker** | `circuitBreaker_halfOpen_probe` | 3.0 | State transition probe cost |
+| **CircuitBreaker** | `circuitBreaker_halfOpen_probe` | 2.8 | State transition probe cost |
 | **computation{}** | `builder_overhead` | ≈ 10⁻⁴ | Imperative DSL adds no measurable cost |
-| **computation{}** | `builder_latency` | 169.3 | Sequential 3-step chain — expected |
-| **flatMap** | `chain_3_overhead` | ≈ 10⁻⁴ | Monadic bind is zero-cost |
+| **computation{}** | `builder_latency` | 160.8 | Sequential 3-step chain — expected |
+| **flatMap** | `chain_3_latency` | 161.5 | Sequential 3-step chain — expected |
 | **orElse** | `chain_3_overhead` | 0.001 | Sequential fallback mechanism |
 | **orElse** | `chain_3_latency` | 40.8 | 2 failures + 1 success fallback |
 | **firstSuccessOf** | `5_third_wins` | 0.002 | Try 3 of 5, overhead only |
-| **firstSuccessOf** | `5_latency` | 40.9 | 2 failures @ 10ms + success @ 30ms |
+| **firstSuccessOf** | `5_latency` | 36.4 | 2 failures @ 10ms + success @ 30ms |
 | **timeoutRace** | `parallel_fallback` | 37.1 | Fallback starts immediately — **2.5x faster** than sequential timeout |
 | **timeout** | `sequential_fallback` | 92.8 | Wait for timeout, then start fallback |
 | **raceEither** | `latency` | 36.6 | Heterogeneous race — same speed as homogeneous |
@@ -773,11 +840,11 @@ Tests whether the curried function chain degrades at high arities.
 
 | Dimension | Raw Coroutines | Arrow | This Library |
 |---|---|---|---|
-| **Framework overhead** (arity 3) | 0.001ms | 0.007ms | **0.001ms** |
-| **Framework overhead** (arity 9) | 0.001ms | 0.019ms | **0.002ms** |
-| **Simple parallel** (5 × 50ms) | 56.9ms | 56.3ms | **56.3ms** |
-| **Multi-phase** (9 calls, 4 phases) | 206.6ms | 207.6ms | **206.8ms** |
-| **Validation** (4 × 40ms) | N/A | 46.8ms | **46.6ms** |
+| **Framework overhead** (arity 3) | 0.001ms | 0.008ms | **0.001ms** |
+| **Framework overhead** (arity 9) | 0.001ms | 0.022ms | **0.002ms** |
+| **Simple parallel** (5 × 50ms) | 56.9ms | 53.9ms | **56.3ms** |
+| **Multi-phase** (9 calls, 4 phases) | 206.6ms | 195.7ms | **206.8ms** |
+| **Validation** (4 × 40ms) | N/A | 43.9ms | **43.9ms** |
 | **Max arity** | ∞ (manual) | 9 (`parZip`) | **22** (`lift+ap`) / **9** (`liftA`) |
 | **Flat multi-phase code** | No | No | **Yes** |
 | **Compile-time arg order safety** | No | No | **Yes** |
@@ -822,7 +889,7 @@ Unlike most Kotlin libraries, every algebraic law is **property-based tested** w
 
 Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLawsTest.kt)
 
-**840 tests across 50 suites. All passing.**
+**881 tests across 55 suites. All passing.**
 
 ---
 
@@ -837,7 +904,7 @@ Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLaw
 | **Arg order safety** | None — positional | Named args in lambda | Compile-time via currying |
 | **Code size** | stdlib | ~15k lines (Core) | **~2,500 lines** + codegen |
 | **Dependencies** | stdlib | Arrow Core + modules | `kotlinx-coroutines-core` only |
-| **JMH overhead** | 0.001ms | 0.007–0.019ms | **0.001–0.002ms** |
+| **JMH overhead** | 0.001ms | 0.008–0.022ms | **0.001–0.002ms** |
 
 > Side-by-side comparison: [`ThreeWayComparisonTest.kt`](src/jvmTest/kotlin/applicative/ThreeWayComparisonTest.kt)
 > JMH benchmarks: [`OrchestrationBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/OrchestrationBenchmark.kt)
@@ -1078,7 +1145,7 @@ Full working examples in [`/examples`](examples/):
 
 - **[ecommerce-checkout](examples/ecommerce-checkout/)** — 11 services, 5 phases
 - **[dashboard-aggregator](examples/dashboard-aggregator/)** — 14-service BFF
-- **[validated-registration](examples/validated-registration/)** — 12-field parallel validation
+- **[validated-registration](examples/validated-registration/)** — multi-scenario parallel validation with error accumulation
 
 Arrow interop module: [`/arrow-interop`](arrow-interop/) — optional bridges for `Either`, `NonEmptyList`, `parZip`.
 

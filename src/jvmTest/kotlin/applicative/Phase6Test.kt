@@ -1,5 +1,6 @@
 package applicative
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
@@ -8,6 +9,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
+
+@OptIn(ExperimentalCoroutinesApi::class)
 
 /**
  * Tests for Phase 6 improvements:
