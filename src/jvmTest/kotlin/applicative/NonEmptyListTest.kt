@@ -1,10 +1,16 @@
 package applicative
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.currentTime
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 
 class NonEmptyListTest {
 
@@ -320,5 +326,136 @@ class NonEmptyListTest {
         val result = NonEmptyList.fromList(listOf(3, 1, 2))!!
         assertEquals(3, result.head)
         assertEquals(listOf(1, 2), result.tail)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // traverseSettled / sequenceSettled
+    // ════════════════════════════════════════════════════════════════════════
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `traverseSettled collects ALL results including failures`() = runTest {
+        val nel = NonEmptyList.of(1, 2, 3, 4, 5)
+        val results = Async {
+            nel.traverseSettled { i ->
+                Computation {
+                    if (i % 2 == 0) throw RuntimeException("fail-$i")
+                    "ok-$i"
+                }
+            }
+        }
+
+        assertIs<NonEmptyList<Result<String>>>(results)
+        assertEquals(5, results.size)
+        assertTrue(results[0].isSuccess)
+        assertEquals("ok-1", results[0].getOrThrow())
+        assertTrue(results[1].isFailure)
+        assertEquals("fail-2", results[1].exceptionOrNull()!!.message)
+        assertTrue(results[2].isSuccess)
+        assertTrue(results[3].isFailure)
+        assertTrue(results[4].isSuccess)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `traverseSettled runs in parallel — proven by virtual time`() = runTest {
+        val results = Async {
+            NonEmptyList.of(1, 2, 3, 4, 5).traverseSettled { i ->
+                Computation {
+                    delay(50.milliseconds)
+                    "done-$i"
+                }
+            }
+        }
+
+        assertEquals(50L, currentTime, "5 parallel tasks @ 50ms should complete in 50ms")
+        assertTrue(results.all { it.isSuccess })
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `traverseSettled does NOT cancel siblings on failure`() = runTest {
+        val completed = mutableListOf<Int>()
+
+        val results = Async {
+            NonEmptyList.of(1, 2, 3).traverseSettled { i ->
+                Computation {
+                    delay(if (i == 1) 10.milliseconds else 50.milliseconds)
+                    if (i == 1) throw RuntimeException("fast-fail")
+                    synchronized(completed) { completed.add(i) }
+                    "ok-$i"
+                }
+            }
+        }
+
+        assertEquals(3, results.size)
+        assertTrue(results[0].isFailure)
+        assertEquals(2, results.count { it.isSuccess })
+        assertEquals(listOf(2, 3), completed.sorted())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `traverseSettled bounded respects concurrency limit`() = runTest {
+        val results = Async {
+            NonEmptyList.of(1, 2, 3, 4, 5, 6).traverseSettled(2) { i ->
+                Computation {
+                    delay(30.milliseconds)
+                    "ok-$i"
+                }
+            }
+        }
+
+        // 6 items / 2 concurrency = 3 batches × 30ms = 90ms
+        assertEquals(90L, currentTime)
+        assertTrue(results.all { it.isSuccess })
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `traverseSettled on single element`() = runTest {
+        val results = Async {
+            NonEmptyList(42).traverseSettled { i ->
+                Computation { i * 2 }
+            }
+        }
+
+        assertEquals(1, results.size)
+        assertEquals(84, results.head.getOrThrow())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `sequenceSettled collects all results from pre-built computations`() = runTest {
+        val computations = NonEmptyList.of(
+            Computation { "a" },
+            Computation<String> { throw RuntimeException("boom") },
+            Computation { "c" },
+        )
+
+        val results = Async { computations.sequenceSettled() }
+
+        assertIs<NonEmptyList<Result<String>>>(results)
+        assertEquals(3, results.size)
+        assertTrue(results[0].isSuccess)
+        assertTrue(results[1].isFailure)
+        assertTrue(results[2].isSuccess)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `sequenceSettled bounded respects concurrency`() = runTest {
+        val computations = NonEmptyList.of(
+            Computation { delay(25.milliseconds); "a" },
+            Computation { delay(25.milliseconds); "b" },
+            Computation { delay(25.milliseconds); "c" },
+            Computation { delay(25.milliseconds); "d" },
+        )
+
+        val results = Async { computations.sequenceSettled(2) }
+
+        // 4 items / 2 concurrency = 2 batches × 25ms = 50ms
+        assertEquals(50L, currentTime)
+        assertTrue(results.all { it.isSuccess })
     }
 }
