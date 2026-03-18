@@ -1048,4 +1048,62 @@ open class OrchestrationBenchmark {
             is Either.Left -> "fail:${result.value.head}"
         }
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Group 29: traverseSettled — collect ALL results without cancellation
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Benchmark
+    fun traverseSettled_10_all_pass(): List<Result<String>> = runBlocking {
+        Async {
+            (1..10).toList().traverseSettled { i ->
+                Computation { networkCall("item-$i", 30) }
+            }
+        }
+    }
+
+    @Benchmark
+    fun traverseSettled_10_half_fail(): List<Result<String>> = runBlocking {
+        Async {
+            (1..10).toList().traverseSettled { i ->
+                Computation {
+                    delay(30)
+                    if (i % 2 == 0) throw RuntimeException("fail-$i")
+                    "ok-$i"
+                }
+            }
+        }
+    }
+
+    @Benchmark
+    fun traverseSettled_bounded_20_concurrency5(): List<Result<String>> = runBlocking {
+        Async {
+            (1..20).toList().traverseSettled(5) { i ->
+                Computation { networkCall("item-$i", 30) }
+            }
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Group 30: settled() — partial failure tolerance in ap chains
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Benchmark
+    fun settled_success_overhead(): Result<String> = runBlocking {
+        Async {
+            Computation { compute(1) }.settled()
+        }
+    }
+
+    @Benchmark
+    fun settled_failure_no_cancel(): String = runBlocking {
+        data class R(val a: Result<String>, val b: String, val c: String)
+        val result = Async {
+            lift3(::R)
+                .ap { Computation<String> { throw RuntimeException("down") }.settled() }
+                .ap { networkCall("b", 50) }
+                .ap { networkCall("c", 50) }
+        }
+        "${result.a.isFailure}|${result.b}|${result.c}"
+    }
 }

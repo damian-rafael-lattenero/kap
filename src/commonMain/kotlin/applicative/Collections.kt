@@ -2,6 +2,7 @@ package applicative
 
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
@@ -105,6 +106,62 @@ fun Iterable<Computation<Unit>>.sequence_(): Computation<Unit> =
  */
 fun Iterable<Computation<Unit>>.sequence_(concurrency: Int): Computation<Unit> =
     sequence(concurrency).map { }
+
+// ── traverseSettled / sequenceSettled: collect ALL results (no cancellation) ──
+
+/**
+ * Applies [f] to each element in parallel, collecting ALL results — both successes
+ * and failures — without cancelling siblings on failure.
+ *
+ * Unlike [traverse] which cancels all siblings when any computation fails (standard
+ * structured concurrency), [traverseSettled] runs every computation to completion
+ * and returns a [List] of [Result] values.
+ *
+ * This is useful when you need to know ALL outcomes, not just the first failure:
+ *
+ * ```
+ * val results: List<Result<User>> = Async {
+ *     userIds.traverseSettled { id -> Computation { fetchUser(id) } }
+ * }
+ * val successes = results.filter { it.isSuccess }.map { it.getOrThrow() }
+ * val failures = results.filter { it.isFailure }.map { it.exceptionOrNull()!! }
+ * ```
+ *
+ * **Concurrency warning:** launches one coroutine per element with no upper bound.
+ * For bounded concurrency, use the overload with a `concurrency` parameter.
+ */
+fun <A, B> Iterable<A>.traverseSettled(f: (A) -> Computation<B>): Computation<List<Result<B>>> = Computation {
+    kotlinx.coroutines.supervisorScope {
+        map { a -> async { runCatching { with(f(a)) { execute() } } } }.awaitAll()
+    }
+}
+
+/**
+ * Like [traverseSettled] but limits the number of concurrent computations.
+ *
+ * @param concurrency maximum number of computations running simultaneously
+ */
+fun <A, B> Iterable<A>.traverseSettled(concurrency: Int, f: (A) -> Computation<B>): Computation<List<Result<B>>> = Computation {
+    val semaphore = Semaphore(concurrency)
+    kotlinx.coroutines.supervisorScope {
+        map { a -> async { semaphore.withPermit { runCatching { with(f(a)) { execute() } } } } }.awaitAll()
+    }
+}
+
+/**
+ * Executes all computations in parallel, collecting ALL results without cancellation.
+ *
+ * Returns a list of [Result] values — every computation runs to completion
+ * regardless of whether siblings fail.
+ */
+fun <A> Iterable<Computation<A>>.sequenceSettled(): Computation<List<Result<A>>> =
+    traverseSettled { it }
+
+/**
+ * Like [sequenceSettled] but limits the number of concurrent computations.
+ */
+fun <A> Iterable<Computation<A>>.sequenceSettled(concurrency: Int): Computation<List<Result<A>>> =
+    traverseSettled(concurrency) { it }
 
 // ── Why no parMap? ──────────────────────────────────────────────────────
 // parMap is intentionally not provided. This library uses `traverse` and

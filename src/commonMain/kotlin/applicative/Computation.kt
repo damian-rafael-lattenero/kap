@@ -625,6 +625,37 @@ private class MemoizedOnSuccess<A>(private val original: Computation<A>) : Compu
 suspend fun <A> Computation<A>.await(): A =
     coroutineScope { with(this@await) { execute() } }
 
+// ── settled: capture result without cancelling siblings ──────────────────
+
+/**
+ * Wraps this computation's outcome in [Result], catching all non-cancellation
+ * exceptions without propagating them to siblings in an [ap] chain.
+ *
+ * Unlike [attempt] which wraps in [Either], [settled] uses Kotlin's built-in
+ * [Result] type — ideal when you want partial-failure tolerance in a parallel chain:
+ *
+ * ```
+ * lift3 { user: Result<User>, cart: Cart, config: Config ->
+ *     val u = user.getOrDefault(User.anonymous())
+ *     Dashboard(u, cart, config)
+ * }
+ *     .ap { fetchUser().settled() }  // won't cancel siblings on failure
+ *     .ap { fetchCart() }
+ *     .ap { fetchConfig() }
+ * ```
+ *
+ * [CancellationException] is never caught — structured concurrency cancellation
+ * always propagates.
+ */
+fun <A> Computation<A>.settled(): Computation<Result<A>> = Computation {
+    try {
+        Result.success(with(this@settled) { execute() })
+    } catch (e: Throwable) {
+        if (e is CancellationException) throw e
+        Result.failure(e)
+    }
+}
+
 // ── DSL entry point ─────────────────────────────────────────────────────
 
 /**
