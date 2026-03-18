@@ -172,7 +172,107 @@ fun <A, B, C> product(
     fc: suspend () -> C,
 ): Computation<Triple<A, B, C>> = liftA3(fa, fb, fc, ::Triple)
 
+/**
+ * Runs six suspend lambdas in parallel and combines their results.
+ */
+fun <A, B, C, D, E, F, R> liftA6(
+    fa: suspend () -> A,
+    fb: suspend () -> B,
+    fc: suspend () -> C,
+    fd: suspend () -> D,
+    fe: suspend () -> E,
+    ff: suspend () -> F,
+    combine: (A, B, C, D, E, F) -> R,
+): Computation<R> = Computation {
+    val da = async { fa() }
+    val db = async { fb() }
+    val dc = async { fc() }
+    val dd = async { fd() }
+    val de = async { fe() }
+    val df = async { ff() }
+    combine(da.await(), db.await(), dc.await(), dd.await(), de.await(), df.await())
+}
+
+/**
+ * Runs seven suspend lambdas in parallel and combines their results.
+ */
+fun <A, B, C, D, E, F, G, R> liftA7(
+    fa: suspend () -> A,
+    fb: suspend () -> B,
+    fc: suspend () -> C,
+    fd: suspend () -> D,
+    fe: suspend () -> E,
+    ff: suspend () -> F,
+    fg: suspend () -> G,
+    combine: (A, B, C, D, E, F, G) -> R,
+): Computation<R> = Computation {
+    val da = async { fa() }
+    val db = async { fb() }
+    val dc = async { fc() }
+    val dd = async { fd() }
+    val de = async { fe() }
+    val df = async { ff() }
+    val dg = async { fg() }
+    combine(da.await(), db.await(), dc.await(), dd.await(), de.await(), df.await(), dg.await())
+}
+
+/**
+ * Runs eight suspend lambdas in parallel and combines their results.
+ */
+fun <A, B, C, D, E, F, G, H, R> liftA8(
+    fa: suspend () -> A,
+    fb: suspend () -> B,
+    fc: suspend () -> C,
+    fd: suspend () -> D,
+    fe: suspend () -> E,
+    ff: suspend () -> F,
+    fg: suspend () -> G,
+    fh: suspend () -> H,
+    combine: (A, B, C, D, E, F, G, H) -> R,
+): Computation<R> = Computation {
+    val da = async { fa() }
+    val db = async { fb() }
+    val dc = async { fc() }
+    val dd = async { fd() }
+    val de = async { fe() }
+    val df = async { ff() }
+    val dg = async { fg() }
+    val dh = async { fh() }
+    combine(da.await(), db.await(), dc.await(), dd.await(), de.await(), df.await(), dg.await(), dh.await())
+}
+
+/**
+ * Runs nine suspend lambdas in parallel and combines their results.
+ *
+ * This is the maximum arity for `liftA` — it covers the most common
+ * orchestration scenarios (Arrow's `parZip` also caps at 9). For higher
+ * arities, use `lift+ap` (up to 22) or `traverse` for dynamic collections.
+ */
+fun <A, B, C, D, E, F, G, H, I, R> liftA9(
+    fa: suspend () -> A,
+    fb: suspend () -> B,
+    fc: suspend () -> C,
+    fd: suspend () -> D,
+    fe: suspend () -> E,
+    ff: suspend () -> F,
+    fg: suspend () -> G,
+    fh: suspend () -> H,
+    fi: suspend () -> I,
+    combine: (A, B, C, D, E, F, G, H, I) -> R,
+): Computation<R> = Computation {
+    val da = async { fa() }
+    val db = async { fb() }
+    val dc = async { fc() }
+    val dd = async { fd() }
+    val de = async { fe() }
+    val df = async { ff() }
+    val dg = async { fg() }
+    val dh = async { fh() }
+    val di = async { fi() }
+    combine(da.await(), db.await(), dc.await(), dd.await(), de.await(), df.await(), dg.await(), dh.await(), di.await())
+}
+
 // ── sequence as liftA: lift a function over N computations ──────────────
 //
-// For arities > 5 or dynamic collections, use traverse/sequence.
-// For arities 6-22, use lift+ap or mapN (auto-generated).
+// For arities > 9 or dynamic collections, use traverse/sequence.
+// For arities 10-22, use lift+ap or mapN (auto-generated).

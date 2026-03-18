@@ -74,6 +74,38 @@ fun <A> Iterable<Computation<A>>.sequence(concurrency: Int): Computation<List<A>
     map { c -> async { semaphore.withPermit { with(c) { execute() } } } }.awaitAll()
 }
 
+// ── traverse_ / sequence_: fire-and-forget (discard results) ──────────
+
+/**
+ * Like [traverse] but discards results. Useful for side-effects (logging,
+ * metrics, notifications) where you need parallelism but don't need the output.
+ *
+ * ```
+ * userIds.traverse_ { id -> Computation { notifyUser(id) } }
+ * ```
+ */
+fun <A> Iterable<A>.traverse_(f: (A) -> Computation<Unit>): Computation<Unit> =
+    traverse(f).map { }
+
+/**
+ * Like [traverse_] but limits the number of concurrent computations.
+ */
+fun <A> Iterable<A>.traverse_(concurrency: Int, f: (A) -> Computation<Unit>): Computation<Unit> =
+    traverse(concurrency, f).map { }
+
+/**
+ * Like [sequence] but discards results. Executes all computations for
+ * their side-effects only.
+ */
+fun Iterable<Computation<Unit>>.sequence_(): Computation<Unit> =
+    sequence().map { }
+
+/**
+ * Like [sequence_] but limits the number of concurrent computations.
+ */
+fun Iterable<Computation<Unit>>.sequence_(concurrency: Int): Computation<Unit> =
+    sequence(concurrency).map { }
+
 // ── Why no parMap? ──────────────────────────────────────────────────────
 // parMap is intentionally not provided. This library uses `traverse` and
 // `sequence` — the standard functional vocabulary. `parMap` is Arrow/Cats

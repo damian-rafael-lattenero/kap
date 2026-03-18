@@ -157,3 +157,19 @@ fun <E, A, B> NonEmptyList<A>.traverseV(
 
 /** Convenience alias — shorter than [NonEmptyList] in validated signatures. */
 typealias Nel<A> = NonEmptyList<A>
+
+/**
+ * Convenience alias for validated computation results.
+ *
+ * Reduces the verbosity of `Computation<Either<NonEmptyList<E>, A>>` in
+ * function signatures and variable declarations:
+ *
+ * ```
+ * // Before:
+ * fun validateName(input: String): Computation<Either<NonEmptyList<RegError>, ValidName>>
+ *
+ * // After:
+ * fun validateName(input: String): Validated<RegError, ValidName>
+ * ```
+ */
+typealias Validated<E, A> = Computation<Either<NonEmptyList<E>, A>>

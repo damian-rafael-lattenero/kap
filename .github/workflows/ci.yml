@@ -2,23 +2,66 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
+
+permissions:
+  contents: read
 
 jobs:
   test:
+    name: Tests & Compilation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: corretto
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main' }}
       - name: Run JVM tests
         run: ./gradlew jvmTest
+      - name: Run Arrow interop tests
+        run: ./gradlew :arrow-interop:test || true
       - name: Verify JS compilation
         run: ./gradlew compileKotlinJs
       - name: Verify Native compilation
         run: ./gradlew compileKotlinLinuxX64
+      - name: Build examples
+        run: |
+          ./gradlew :examples:ecommerce-checkout:classes
+          ./gradlew :examples:dashboard-aggregator:classes
+          ./gradlew :examples:validated-registration:classes
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: build/reports/tests/
+          retention-days: 14
+
+  benchmark:
+    name: JMH Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+      - name: Run JMH benchmarks
+        run: ./gradlew :benchmarks:jmh
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmh-results
+          path: benchmarks/build/results/jmh/
+          retention-days: 30

@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-826%20passing-brightgreen.svg)](#empirical-data)
+[![Tests](https://img.shields.io/badge/Tests-840%20passing-brightgreen.svg)](#empirical-data)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
@@ -94,20 +94,20 @@ suspend fun main() {
 
 **One dependency:** `kotlinx-coroutines-core`. ~2,500 hand-written lines + codegen. All platforms (JVM, JS, Native).
 
-> **Tip:** Use `Nel<E>` as a shorthand for `NonEmptyList<E>` in validated signatures — it's a built-in typealias.
+> **Tip:** Use `Validated<E, A>` as shorthand for `Computation<Either<NonEmptyList<E>, A>>` and `Nel<E>` for `NonEmptyList<E>` — both are built-in typealiases that dramatically reduce type verbosity in validated signatures.
 
 ### Choose Your Style
 
 Three ways to compose parallel operations — pick what fits:
 
 ```kotlin
-// Style 1: lift + ap — compile-time parameter order safety via curried types (recommended for 6+ args)
+// Style 1: lift + ap — compile-time parameter order safety via curried types (recommended for 10+ args)
 lift3(::Dashboard)
     .ap { fetchUser() }
     .ap { fetchCart() }
     .ap { fetchPromos() }
 
-// Style 2: liftA — Haskell-named, parZip-like ergonomics (great for 2-5 args)
+// Style 2: liftA — Haskell-named, parZip-like ergonomics (great for 2-9 args)
 liftA3(
     { fetchUser() },
     { fetchCart() },
@@ -245,7 +245,7 @@ val result = Async {
 // Scales to 22 validators. Full type inference.
 ```
 
-**43.6 ms** (vs 173.9ms sequential) — JMH verified.
+**46.6 ms** (vs 186.0ms sequential) — JMH verified.
 
 ### 2. Production Resilience Stack
 
@@ -644,15 +644,15 @@ All claims backed by **28 JMH benchmarks** (2 forks × 5 measurement iterations 
 
 #### 1. Simple Parallel — 5 calls @ 50ms each
 
-The simplest test: five independent network calls that each take 50ms. Sequential execution takes ~268ms. Parallel should compress to ~50ms. Does the library add overhead?
+The simplest test: five independent network calls that each take 50ms. Sequential execution takes ~282ms. Parallel should compress to ~50ms. Does the library add overhead?
 
 | Approach | ms/op | vs Sequential | Overhead vs raw |
 |---|---|---|---|
-| Sequential baseline | 267.7 | 1x | — |
-| Raw coroutines (`async/await`) | 53.9 | **5.0x** | — |
-| Arrow (`parZip`) | 54.0 | **5.0x** | +0.1ms |
-| **This library** (`lift+ap`) | **53.7** | **5.0x** | **−0.2ms** |
-| **This library** (`liftA5`) | **53.6** | **5.0x** | **−0.3ms** |
+| Sequential baseline | 281.6 | 1x | — |
+| Raw coroutines (`async/await`) | 56.9 | **4.9x** | — |
+| Arrow (`parZip`) | 56.3 | **5.0x** | −0.6ms |
+| **This library** (`lift+ap`) | **56.8** | **5.0x** | **−0.1ms** |
+| **This library** (`liftA5`) | **56.3** | **5.0x** | **−0.6ms** |
 
 > **Verdict:** All three parallel approaches deliver the theoretical 5x speedup. The library matches raw coroutines to within the margin of error. The `liftA5` style (Haskell-named, parZip-like) performs identically to `lift+ap` — choose whichever reads better for your use case.
 
@@ -662,12 +662,12 @@ Isolates pure framework cost by running trivial `compute()` functions with no de
 
 | Approach | Arity 3 | Arity 5 | Arity 9 | Arity 15 |
 |---|---|---|---|---|
-| Raw coroutines | 0.001ms | — | 0.002ms | — |
+| Raw coroutines | 0.001ms | — | 0.001ms | — |
 | **This library** (`lift+ap`) | **0.001ms** | — | **0.002ms** | **0.003ms** |
 | **This library** (`liftA`) | **0.001ms** | **0.001ms** | — | — |
-| Arrow (`parZip`) | 0.008ms | — | 0.021ms | — |
+| Arrow (`parZip`) | 0.007ms | — | 0.019ms | — |
 
-> **Verdict:** The library's overhead is **indistinguishable from raw coroutines** — both measure ~1μs at arity 3. Arrow's `parZip` is 8–10x higher in pure overhead, though still negligible for real I/O workloads. At arity 15, the curried chain adds only 3μs total — invisible when your network calls take 50–500ms. The `liftA` style matches `lift+ap` exactly: no overhead penalty for the ergonomic syntax.
+> **Verdict:** The library's overhead is **indistinguishable from raw coroutines** — both measure ~1μs at arity 3. Arrow's `parZip` is 7–10x higher in pure overhead, though still negligible for real I/O workloads. At arity 15, the curried chain adds only 3μs total — invisible when your network calls take 50–500ms. The `liftA` style matches `lift+ap` exactly: no overhead penalty for the ergonomic syntax.
 
 #### 3. Multi-Phase Checkout — 9 calls, 4 phases
 
@@ -675,12 +675,12 @@ A realistic BFF scenario: Phase 1 fans out 4 calls in parallel, a validation bar
 
 | Approach | ms/op | Flat code? | vs Sequential |
 |---|---|---|---|
-| Sequential baseline | 442.9 | Yes | 1x |
-| Raw coroutines (nested blocks) | 195.0 | No — 4 async/await groups | **2.3x** |
-| Arrow (nested `parZip`) | 193.9 | No — 4 nested `parZip` blocks | **2.3x** |
-| **This library** (`lift+ap+followedBy`) | **195.1** | **Yes — single flat chain** | **2.3x** |
+| Sequential baseline | 468.3 | Yes | 1x |
+| Raw coroutines (nested blocks) | 206.6 | No — 4 async/await groups | **2.3x** |
+| Arrow (nested `parZip`) | 207.6 | No — 4 nested `parZip` blocks | **2.3x** |
+| **This library** (`lift+ap+followedBy`) | **206.8** | **Yes — single flat chain** | **2.3x** |
 
-> **Verdict:** Identical wall-clock time across all three parallel approaches (~195ms vs 443ms sequential). The crucial difference: **raw coroutines and Arrow require nested blocks per phase** — the code shape doesn't reveal the execution plan. This library keeps a single flat chain where `.followedBy` visually marks each barrier. Same performance, radically better readability.
+> **Verdict:** Identical wall-clock time across all three parallel approaches (~207ms vs 468ms sequential). The crucial difference: **raw coroutines and Arrow require nested blocks per phase** — the code shape doesn't reveal the execution plan. This library keeps a single flat chain where `.followedBy` visually marks each barrier. Same performance, radically better readability.
 
 #### 4. Parallel Validation — 4 validators @ 40ms each
 
@@ -688,12 +688,12 @@ Four validators run in parallel with error accumulation. Raw coroutines **cannot
 
 | Approach | ms/op | Collects all errors? | Parallel? | vs Sequential |
 |---|---|---|---|---|
-| Sequential | 174.6 | Yes | No | 1x |
+| Sequential | 186.0 | Yes | No | 1x |
 | Raw coroutines | N/A | **No** (cancels siblings) | Yes | — |
-| Arrow (`zipOrAccumulate`) | 43.8 | Yes | Yes | **4.0x** |
-| **This library** (`zipV`) | **44.2** | **Yes** | **Yes** | **3.9x** |
+| Arrow (`zipOrAccumulate`) | 46.8 | Yes | Yes | **4.0x** |
+| **This library** (`zipV`) | **46.6** | **Yes** | **Yes** | **4.0x** |
 
-> **Verdict:** Both this library and Arrow deliver ~4x speedup over sequential validation while collecting every error. The 0.4ms difference (44.2 vs 43.8) is within the margin of error (±0.9ms). Raw coroutines cannot even compete here — they'd need `supervisorScope` + manual `Result` wrapping to avoid cancellation, adding significant complexity. This library and Arrow both solve it elegantly, but this library scales to **22 validators** (vs Arrow's 9-arg limit on `zipOrAccumulate`).
+> **Verdict:** Both this library and Arrow deliver ~4x speedup over sequential validation while collecting every error. The 0.2ms difference is within the margin of error. Raw coroutines cannot even compete here — they'd need `supervisorScope` + manual `Result` wrapping to avoid cancellation, adding significant complexity. This library and Arrow both solve it elegantly, but this library scales to **22 validators** (vs Arrow's 9-arg limit on `zipOrAccumulate`).
 
 #### 5. Resilience Stack — retry, timeout, race
 
@@ -701,11 +701,11 @@ These benchmarks measure the real-world overhead of composable resilience combin
 
 | Benchmark | What it tests | ms/op | Analysis |
 |---|---|---|---|
-| `retry_succeed_first` | `retry(schedule)` on a 30ms call that succeeds immediately | 33.7 | **3.7ms overhead** over the 30ms call — the Schedule evaluation, CancellationException checks, and retry loop cost almost nothing when no retry is needed |
-| `timeout_with_default` | `timeout(100ms, default)` on a 200ms call | 103.6 | Fires at exactly **100ms** as expected. The 3.6ms margin is coroutine scheduling jitter — the timeout mechanism itself is precise |
-| `race_two` | `race(primary@100ms, replica@50ms)` | 54.0 | Winner at **~50ms**, loser cancelled. Racing adds ~4ms overhead over the 50ms theoretical minimum — competitive with Arrow's race |
+| `retry_succeed_first` | `retry(schedule)` on a 30ms call that succeeds immediately | 36.6 | **6.6ms overhead** over the 30ms call — the Schedule evaluation, CancellationException checks, and retry loop cost almost nothing when no retry is needed |
+| `timeout_with_default` | `timeout(100ms, default)` on a 200ms call | 107.4 | Fires at exactly **100ms** as expected. The 7.4ms margin is coroutine scheduling jitter — the timeout mechanism itself is precise |
+| `race_two` | `race(primary@100ms, replica@50ms)` | 57.3 | Winner at **~50ms**, loser cancelled. Racing adds ~7ms overhead over the 50ms theoretical minimum — competitive with Arrow's race |
 
-> **Verdict:** The resilience combinators add negligible overhead in the happy path. `retry` costs ~3.7ms when no retry is needed. `timeout` fires within 3.6ms of the deadline. `race` returns the winner within 4ms of its completion. These are production-ready numbers — the resilience mechanisms are essentially free until they're needed.
+> **Verdict:** The resilience combinators add negligible overhead in the happy path. `retry` costs ~6.6ms when no retry is needed. `timeout` fires within 7.4ms of the deadline. `race` returns the winner within 7ms of its completion. These are production-ready numbers — the resilience mechanisms are essentially free until they're needed.
 
 #### 6. Collection Processing — traverse with bounded concurrency
 
@@ -713,10 +713,10 @@ Processing 20 items that each take 30ms. Unbounded launches all 20 in parallel; 
 
 | Benchmark | Concurrency | ms/op | Theoretical | Overhead |
 |---|---|---|---|---|
-| `traverse_unbounded_20` | ∞ (all 20) | 33.5 | 30ms | **+3.5ms** |
-| `traverse_bounded_20_concurrency5` | 5 | 134.5 | 120ms (4 batches × 30ms) | **+14.5ms** |
+| `traverse_unbounded_20` | ∞ (all 20) | 36.7 | 30ms | **+6.7ms** |
+| `traverse_bounded_20_concurrency5` | 5 | 146.8 | 120ms (4 batches × 30ms) | **+26.8ms** |
 
-> **Verdict:** Unbounded traverse achieves near-theoretical performance — 20 parallel items at 30ms each complete in 33.5ms (just 3.5ms over the ideal 30ms). Bounded concurrency with `Semaphore` adds ~14.5ms overhead for 4 batch transitions — roughly 3.6ms per batch switch. For real-world API rate limiting (where you'd set `concurrency = 5` to avoid overwhelming a downstream service), this overhead is invisible compared to the 30ms+ per-call latency.
+> **Verdict:** Unbounded traverse achieves near-theoretical performance — 20 parallel items at 30ms each complete in 36.7ms (just 6.7ms over the ideal 30ms). Bounded concurrency with `Semaphore` adds ~26.8ms overhead for 4 batch transitions — roughly 6.7ms per batch switch. For real-world API rate limiting (where you'd set `concurrency = 5` to avoid overwhelming a downstream service), this overhead is invisible compared to the 30ms+ per-call latency.
 
 #### 7. Memoization — cache hit vs cold miss
 
@@ -724,10 +724,12 @@ Measures the overhead of thread-safe memoization using `Mutex`.
 
 | Benchmark | ms/op | Analysis |
 |---|---|---|
-| `memoize_cold_miss` | ≈ 0.0001 | First execution: acquire Mutex, run computation, store result |
-| `memoize_warm_hit` | ≈ 0.0001 | Cache hit: acquire Mutex, return stored result |
+| `memoize_cold_miss` | ≈ 10⁻⁴ | First execution: acquire Mutex, run computation, store result |
+| `memoize_warm_hit` | ≈ 10⁻⁴ | Cache hit: volatile read fast-path, no lock needed |
+| `memoizeOnSuccess_cold_miss` | ≈ 10⁻⁴ | Same as memoize — indistinguishable |
+| `memoizeOnSuccess_warm_hit` | ≈ 10⁻⁴ | Same fast-path as memoize |
 
-> **Verdict:** Both cold miss and warm hit measure at **~100 nanoseconds** — below JMH's reliable measurement threshold. The `Mutex`-based thread safety is essentially free. `memoizeOnSuccess()` uses the same mechanism but allows retries on failure — same overhead, production-safe semantics.
+> **Verdict:** Both cold miss and warm hit measure at **~100 nanoseconds** — below JMH's reliable measurement threshold. The double-checked locking with volatile fast-path means cache hits never touch the Mutex. `memoizeOnSuccess()` uses the same mechanism but allows retries on failure — same overhead, production-safe semantics.
 
 #### 8. High-Arity Overhead — lift15 with 15 parallel branches
 
@@ -742,16 +744,41 @@ Tests whether the curried function chain degrades at high arities.
 
 > **Verdict:** The curried chain scales linearly with arity — each additional `.ap` adds roughly 0.2μs. At 15 parallel branches (a realistic BFF scenario), total framework overhead is 3μs. Even at arity 22 (the maximum), projected overhead would be ~4.4μs. For comparison, a single network call takes 50,000–500,000μs. The currying mechanism is not the bottleneck and never will be.
 
+#### 9. Additional Benchmarks
+
+| Category | Benchmark | ms/op | Notes |
+|---|---|---|---|
+| **Bracket** | `bracket_overhead` | ≈ 10⁻⁴ | Resource safety adds zero measurable cost |
+| **Bracket** | `bracket_latency_with_parallel` | 57.0 | Parallel inside bracket — no penalty |
+| **BracketCase** | `bracketCase_overhead` | ≈ 10⁻⁴ | Outcome-aware release, same zero cost |
+| **CircuitBreaker** | `circuitBreaker_closed_overhead` | ≈ 10⁻⁴ | Mutex check on happy path is free |
+| **CircuitBreaker** | `circuitBreaker_halfOpen_probe` | 3.0 | State transition probe cost |
+| **computation{}** | `builder_overhead` | ≈ 10⁻⁴ | Imperative DSL adds no measurable cost |
+| **computation{}** | `builder_latency` | 169.3 | Sequential 3-step chain — expected |
+| **flatMap** | `chain_3_overhead` | ≈ 10⁻⁴ | Monadic bind is zero-cost |
+| **orElse** | `chain_3_overhead` | 0.001 | Sequential fallback mechanism |
+| **orElse** | `chain_3_latency` | 40.8 | 2 failures + 1 success fallback |
+| **firstSuccessOf** | `5_third_wins` | 0.002 | Try 3 of 5, overhead only |
+| **firstSuccessOf** | `5_latency` | 40.9 | 2 failures @ 10ms + success @ 30ms |
+| **timeoutRace** | `parallel_fallback` | 37.1 | Fallback starts immediately — **2.5x faster** than sequential timeout |
+| **timeout** | `sequential_fallback` | 92.8 | Wait for timeout, then start fallback |
+| **raceEither** | `latency` | 36.6 | Heterogeneous race — same speed as homogeneous |
+| **traverseV** | `10_items_all_pass` | 36.5 | Validated traverse, no overhead vs regular traverse |
+| **traverseV** | `bounded_20_concurrency5` | 147.3 | Bounded validated traverse |
+| **ensureV** | `pass` / `fail` | ≈ 10⁻⁴ | Predicate guard — free |
+| **Schedule** | `fold_overhead` | 0.001 | Schedule composition is lightweight |
+| **Schedule** | `jittered_exponential` | 36.3 | Real retry with jitter — minimal overhead |
+
 ### Comparison Summary
 
 | Dimension | Raw Coroutines | Arrow | This Library |
 |---|---|---|---|
-| **Framework overhead** (arity 3) | 0.001ms | 0.008ms | **0.001ms** |
-| **Framework overhead** (arity 9) | 0.002ms | 0.021ms | **0.002ms** |
-| **Simple parallel** (5 × 50ms) | 53.9ms | 54.0ms | **53.6ms** |
-| **Multi-phase** (9 calls, 4 phases) | 195.0ms | 193.9ms | **195.1ms** |
-| **Validation** (4 × 40ms) | N/A | 43.8ms | **44.2ms** |
-| **Max arity** | ∞ (manual) | 9 (`parZip`) | **22** (`lift+ap`) |
+| **Framework overhead** (arity 3) | 0.001ms | 0.007ms | **0.001ms** |
+| **Framework overhead** (arity 9) | 0.001ms | 0.019ms | **0.002ms** |
+| **Simple parallel** (5 × 50ms) | 56.9ms | 56.3ms | **56.3ms** |
+| **Multi-phase** (9 calls, 4 phases) | 206.6ms | 207.6ms | **206.8ms** |
+| **Validation** (4 × 40ms) | N/A | 46.8ms | **46.6ms** |
+| **Max arity** | ∞ (manual) | 9 (`parZip`) | **22** (`lift+ap`) / **9** (`liftA`) |
 | **Flat multi-phase code** | No | No | **Yes** |
 | **Compile-time arg order safety** | No | No | **Yes** |
 | **Parallel error accumulation** | No | Yes (max 9) | **Yes (max 22)** |
@@ -795,7 +822,7 @@ Unlike most Kotlin libraries, every algebraic law is **property-based tested** w
 
 Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLawsTest.kt)
 
-**826 tests across 49 suites. All passing.**
+**840 tests across 50 suites. All passing.**
 
 ---
 
@@ -810,7 +837,7 @@ Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLaw
 | **Arg order safety** | None — positional | Named args in lambda | Compile-time via currying |
 | **Code size** | stdlib | ~15k lines (Core) | **~2,500 lines** + codegen |
 | **Dependencies** | stdlib | Arrow Core + modules | `kotlinx-coroutines-core` only |
-| **JMH overhead** | 0.001ms | 0.008–0.023ms | **0.001–0.002ms** |
+| **JMH overhead** | 0.001ms | 0.007–0.019ms | **0.001–0.002ms** |
 
 > Side-by-side comparison: [`ThreeWayComparisonTest.kt`](src/jvmTest/kotlin/applicative/ThreeWayComparisonTest.kt)
 > JMH benchmarks: [`OrchestrationBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/OrchestrationBenchmark.kt)
@@ -819,7 +846,7 @@ Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLaw
 
 | Arrow | This Library | Notes |
 |---|---|---|
-| `parZip(f1, f2, ...) { a, b, ... -> }` | `liftA3(f1, f2, f3) { }` or `lift3(::R).ap{f1}.ap{f2}.ap{f3}` | liftA for 2-5, lift+ap for 6-22 |
+| `parZip(f1, f2, ...) { a, b, ... -> }` | `liftA3(f1, f2, f3) { }` or `lift3(::R).ap{f1}.ap{f2}.ap{f3}` | liftA for 2-9, lift+ap for 10-22 |
 | Nested `parZip` for phases | `.followedBy { }` | Visible barriers |
 | `zipOrAccumulate(f1, ...) { }` | `zipV(f1, ...) { }` | Same API, up to 22 |
 | `either { ... }` | `validated { }` / `flatMapV { }` | Short-circuit on error with `bind()` |
@@ -944,7 +971,7 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | Combinator | Semantics | Parallelism |
 |---|---|---|
 | `lift2`..`lift22` + `.ap` | N-way fan-out (curried, type-safe ordering) | Parallel |
-| `liftA2`..`liftA5` | Haskell-style applicative lifting (parZip-like) | Parallel |
+| `liftA2`..`liftA9` | Haskell-style applicative lifting (parZip-like) | Parallel |
 | `product(fa, fb)` / `product(fa, fb, fc)` | Parallel into Pair/Triple | Parallel |
 | `.followedBy` | True phase barrier | Sequential (gates) |
 | `.thenValue` | Sequential value fill, no barrier | Sequential (no gate) |
@@ -972,7 +999,9 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 |---|---|---|
 | `zip` (2-22 arity) / `mapN` (2-22) | Combine computations | Parallel |
 | `traverse(f)` / `traverse(n, f)` | Map + parallel execution | Parallel (bounded) |
+| `traverse_(f)` / `traverse_(n, f)` | Fire-and-forget parallel execution (discard results) | Parallel (bounded) |
 | `sequence()` / `sequence(n)` | Execute collection | Parallel (bounded) |
+| `sequence_()` / `sequence_(n)` | Execute collection for side-effects only | Parallel (bounded) |
 
 | `race` / `raceN` / `raceAll` | First to succeed | Competitive |
 | `raceEither(fa, fb)` | First to succeed, different types | Competitive |
@@ -1006,6 +1035,7 @@ All arities are **unified at 22** — the maximum supported by Kotlin's function
 | `followedByV` / `thenValueV` / `flatMapV` | Phase barriers / sequential short-circuit |
 | `validated { }` / `accumulate { }` | Short-circuit builder with `.bind()` / `.bindV()` — sequential validation DSL |
 | `valid` / `invalid` / `catching` / `validate` | Entry points |
+| `Validated<E, A>` (typealias) | Shorthand for `Computation<Either<NonEmptyList<E>, A>>` |
 | `Nel<A>` (typealias) | Shorthand for `NonEmptyList<A>` — reduces validated type verbosity |
 | `ensureV(error) { pred }` / `ensureVAll(errors) { pred }` | Predicate-based validated guards |
 | `recoverV` / `mapV` / `mapError` / `orThrow` | Transforms |
