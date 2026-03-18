@@ -155,6 +155,52 @@ fun <E, A, B> NonEmptyList<A>.traverseV(
         either.map { list -> NonEmptyList(list[0], list.subList(1, list.size)) }
     }
 
+// ── traverseSettled / sequenceSettled ────────────────────────────────────
+
+/**
+ * Applies [f] to each element in parallel, collecting ALL results — both successes
+ * and failures — without cancelling siblings on failure.
+ *
+ * Unlike [traverse] which cancels all siblings when any computation fails (standard
+ * structured concurrency), [traverseSettled] runs every computation to completion
+ * and returns a [NonEmptyList] of [Result] values.
+ *
+ * ```
+ * val results: NonEmptyList<Result<Profile>> = Async {
+ *     userIds.traverseSettled { id -> Computation { fetchProfile(id) } }
+ * }
+ * val successes = results.filter { it.isSuccess }.map { it.getOrThrow() }
+ * ```
+ *
+ * **Concurrency warning:** launches one coroutine per element with no upper bound.
+ * For bounded concurrency, use the overload with a `concurrency` parameter.
+ */
+fun <A, B> NonEmptyList<A>.traverseSettled(f: (A) -> Computation<B>): Computation<NonEmptyList<Result<B>>> =
+    (this as List<A>).traverseSettled(f).map { list -> NonEmptyList(list[0], list.subList(1, list.size)) }
+
+/**
+ * Like [traverseSettled] but limits the number of concurrent computations.
+ *
+ * @param concurrency maximum number of computations running simultaneously
+ */
+fun <A, B> NonEmptyList<A>.traverseSettled(concurrency: Int, f: (A) -> Computation<B>): Computation<NonEmptyList<Result<B>>> =
+    (this as List<A>).traverseSettled(concurrency, f).map { list -> NonEmptyList(list[0], list.subList(1, list.size)) }
+
+/**
+ * Executes all computations in parallel, collecting ALL results without cancellation.
+ *
+ * Returns a [NonEmptyList] of [Result] values — every computation runs to completion
+ * regardless of whether siblings fail.
+ */
+fun <A> NonEmptyList<Computation<A>>.sequenceSettled(): Computation<NonEmptyList<Result<A>>> =
+    traverseSettled { it }
+
+/**
+ * Like [sequenceSettled] but limits the number of concurrent computations.
+ */
+fun <A> NonEmptyList<Computation<A>>.sequenceSettled(concurrency: Int): Computation<NonEmptyList<Result<A>>> =
+    traverseSettled(concurrency) { it }
+
 /** Convenience alias — shorter than [NonEmptyList] in validated signatures. */
 typealias Nel<A> = NonEmptyList<A>
 

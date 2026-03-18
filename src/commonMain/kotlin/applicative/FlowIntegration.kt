@@ -45,14 +45,20 @@ fun <A> Flow<A>.collectAsComputation(): Computation<List<A>> = Computation {
 /**
  * Maps each element of this [Flow] through a [Computation] with bounded concurrency.
  *
- * When [concurrency] is 1 (default), elements are processed sequentially.
+ * When [concurrency] is 1 (default), elements are processed sequentially and
+ * emission order is preserved.
  * When [concurrency] > 1, up to [concurrency] elements are processed in parallel
  * using a [channelFlow] with a [Semaphore]-based limiter.
+ *
+ * **Ordering caveat:** when [concurrency] > 1, results are emitted in
+ * *completion order*, not in the original upstream order. If you need ordered
+ * output, either use `concurrency = 1` or collect into a list and sort
+ * after the fact.
  *
  * ```
  * userIdsFlow
  *     .mapComputation(concurrency = 5) { id -> Computation { fetchUser(id) } }
- *     .collect { user -> process(user) }
+ *     .collect { user -> process(user) }  // results arrive in completion order
  * ```
  */
 fun <A, B> Flow<A>.mapComputation(

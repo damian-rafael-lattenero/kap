@@ -4,11 +4,13 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-923%20passing-brightgreen.svg)](#empirical-data)
+[![Tests](https://img.shields.io/badge/Tests-930%20passing-brightgreen.svg)](#empirical-data)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
 [![Lines](https://img.shields.io/badge/Hand--written-2.5k%20lines-informational.svg)](#)
+
+*Applicative-first orchestration: the Haskell Applicative pattern, natively expressed in Kotlin coroutines. Not a framework. Not Arrow-lite. A precision tool for parallel dependency graphs where your code shape is your execution plan.*
 
 > **Declarative parallel orchestration for Kotlin coroutines. Zero overhead.**
 >
@@ -745,7 +747,7 @@ lift4(::R) .ap{A} .ap{B} .thenValue{C} .ap{D}
 
 ## Empirical Data
 
-All claims backed by **28 JMH benchmarks** (2 forks × 5 measurement iterations each) and deterministic virtual-time proofs. No flaky timing assertions — `runTest` + `currentTime` gives provably correct results.
+All claims backed by **32 JMH benchmark groups** (2 forks × 5 measurement iterations each) and deterministic virtual-time proofs. No flaky timing assertions — `runTest` + `currentTime` gives provably correct results.
 
 > **Environment:** JDK 21.0.9 (Amazon Corretto), OpenJDK 64-Bit Server VM, macOS. JMH 1.36 with Compiler Blackholes.
 
@@ -935,7 +937,7 @@ Unlike most Kotlin libraries, every algebraic law is **property-based tested** w
 
 Source: [`ApplicativeLawsTest.kt`](src/jvmTest/kotlin/applicative/ApplicativeLawsTest.kt)
 
-**923 tests across 57 suites. All passing.**
+**930 tests across 57 suites. All passing.**
 
 ---
 
