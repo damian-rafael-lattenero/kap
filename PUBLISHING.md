@@ -1,151 +1,187 @@
-# Publishing to Maven Central
+# Publicar en Maven Central — Paso a Paso
 
-This guide covers publishing `coroutines-applicatives` to Maven Central via Sonatype OSSRH.
+Esta guia cubre como publicar `coroutines-applicatives` en Maven Central usando el
+[Central Portal](https://central.sonatype.com/) y el plugin
+[vanniktech/gradle-maven-publish-plugin](https://github.com/vanniktech/gradle-maven-publish-plugin)
+(recomendado por la documentacion oficial de Kotlin).
 
-## Prerequisites
+---
 
-### 1. Sonatype OSSRH Account
+## Paso 1: Crear cuenta en Maven Central
 
-1. Create an account at https://issues.sonatype.org/secure/Signup!default.jspa
-2. Create a New Project ticket requesting access to the `org.applicative.coroutines` group ID.
-   - Issue type: **Community Support - Open Source Project Repository Hosting**
-   - Group Id: `org.applicative.coroutines`
-   - Project URL: `https://github.com/dlattenero/coroutines-applicatives`
-   - SCM URL: `https://github.com/dlattenero/coroutines-applicatives.git`
-3. Sonatype will ask you to verify domain ownership (e.g., via a DNS TXT record or a GitHub repo). Follow their instructions.
-4. Wait for the ticket to be resolved before attempting to publish.
+1. Ir a https://central.sonatype.com/ y registrarse (se puede usar cuenta de GitHub, Google o email).
+2. Una vez logueado, ir a [Namespaces](https://central.sonatype.com/publishing/namespaces).
 
-### 2. GPG Signing Key
+## Paso 2: Registrar y verificar el namespace
 
-Maven Central requires all artifacts to be GPG-signed.
+El namespace define el `groupId` de tus artefactos (en este caso `io.github.damian-rafael-lattenero`).
+
+**Opcion A — Usando un dominio propio:**
+1. Click en "Add Namespace" y escribir `io.github.damian-rafael-lattenero`.
+2. Copiar la Verification Key que aparece.
+3. Crear un registro DNS TXT en tu dominio con esa key.
+4. Volver a Maven Central y click en "Verify Namespace".
+
+**Opcion B — Usando GitHub (mas facil si no tenes dominio):**
+1. Click en "Add Namespace" y escribir `io.github.TU-USUARIO-GITHUB`.
+2. Copiar la Verification Key.
+3. En GitHub, crear un repositorio publico con ese key como nombre.
+4. Volver a Maven Central y click en "Verify Namespace".
+5. Despues podes borrar el repo de verificacion.
+
+> Si usas la opcion B, vas a necesitar cambiar el `group` en `build.gradle.kts`
+> a `io.github.tu-usuario`.
+
+## Paso 3: Generar clave GPG para firmar artefactos
+
+Maven Central requiere que todos los artefactos esten firmados con GPG.
 
 ```bash
-# Generate a key if you don't have one
+# Instalar GPG (macOS)
+brew install gpg
+
+# Generar la clave (seguir las instrucciones interactivas)
 gpg --full-generate-key
 
-# List your keys to find the key ID (last 8+ hex characters of the fingerprint)
+# Ver las claves generadas
 gpg --list-keys --keyid-format long
-
-# Upload your public key to a keyserver so Maven Central can verify signatures
-gpg --keyserver keyserver.ubuntu.com --send-keys <YOUR_KEY_ID>
 ```
 
-### 3. Namespace Claim (Central Portal)
+Vas a ver algo como:
+```
+pub   ed25519 2026-03-19 [SC]
+      F175482952A225BFD4A07A713EE6B5F76620B385CE
+uid   [ultimate] Tu Nombre <tu@email.com>
+```
 
-If using the newer Sonatype Central Portal (https://central.sonatype.com/) instead of the legacy OSSRH, you need to verify namespace ownership there. The build is configured for the `s01.oss.sonatype.org` legacy OSSRH endpoints. If Sonatype has migrated your account to the Central Portal, update the repository URLs in `build.gradle.kts` accordingly.
+El ID largo es `F175482952A225BFD4A07A713EE6B5F76620B385CE`.
+Los ultimos 8 caracteres (`20B385CE`) son el "key ID corto" que vas a usar despues.
 
-## Configure Credentials
+```bash
+# Subir la clave publica a un keyserver
+gpg --keyserver keyserver.ubuntu.com --send-keys TU_KEY_ID_COMPLETO
 
-Add the following to your **`~/.gradle/gradle.properties`** (create the file if it does not exist):
+# Exportar la clave privada a un archivo (te va a pedir el passphrase)
+gpg --armor --export-secret-keys TU_KEY_ID_COMPLETO > key.gpg
+```
+
+> Guardar `key.gpg` en un lugar seguro. **NUNCA** commitear este archivo.
+
+## Paso 4: Generar token de Maven Central
+
+1. Ir a https://central.sonatype.com/account
+2. Click en "Generate User Token".
+3. Copiar el `username` y `password` que genera (no se pueden ver de nuevo despues).
+
+## Paso 5: Configurar credenciales locales
+
+Crear o editar `~/.gradle/gradle.properties`:
 
 ```properties
-# Sonatype OSSRH credentials (from https://s01.oss.sonatype.org)
-ossrhUsername=your-sonatype-username
-ossrhPassword=your-sonatype-password
+mavenCentralUsername=EL_USERNAME_DEL_TOKEN
+mavenCentralPassword=EL_PASSWORD_DEL_TOKEN
 
-# GPG signing
-signing.gnupg.keyName=YOUR_GPG_KEY_ID
-signing.gnupg.passphrase=your-gpg-passphrase
+# GPG signing — ultimos 8 chars del key ID
+signing.gnupg.keyName=20B385CE
+signing.gnupg.passphrase=TU_PASSPHRASE_GPG
 ```
 
-Replace the placeholder values:
+> Este archivo **NO** se commitea. Es local a tu maquina.
 
-| Property                    | Value                                                        |
-|-----------------------------|--------------------------------------------------------------|
-| `ossrhUsername`             | Your Sonatype JIRA / OSSRH username                          |
-| `ossrhPassword`            | Your Sonatype JIRA / OSSRH password (or a generated token)   |
-| `signing.gnupg.keyName`    | Last 8+ hex chars of your GPG key fingerprint                |
-| `signing.gnupg.passphrase` | Passphrase for your GPG key                                  |
+**Alternativa: firmar con clave en memoria** (util para CI):
 
-**Do not commit `~/.gradle/gradle.properties` to version control.**
+```properties
+mavenCentralUsername=EL_USERNAME_DEL_TOKEN
+mavenCentralPassword=EL_PASSWORD_DEL_TOKEN
 
-## Publishing
+signingInMemoryKeyId=20B385CE
+signingInMemoryKeyPassword=TU_PASSPHRASE_GPG
+signingInMemoryKey=CONTENIDO_COMPLETO_DE_key.gpg
+```
 
-### Publish to Sonatype Staging
+## Paso 6: Publicar
 
 ```bash
-./gradlew publishAllPublicationsToSonatypeRepository
+# Publicar y esperar aprobacion manual en el portal
+./gradlew publishToMavenCentral
+
+# O publicar y liberar automaticamente (sin intervencion manual)
+./gradlew publishAndReleaseToMavenCentral
 ```
 
-This will:
-1. Build all Kotlin multiplatform artifacts (JVM, JS, native targets).
-2. Generate Dokka HTML documentation and package it as the javadoc JAR.
-3. Sign all artifacts with your GPG key.
-4. Upload everything to a Sonatype staging repository.
+Si usas `publishToMavenCentral`:
+1. Ir a https://central.sonatype.com/publishing/deployments
+2. Esperar a que el estado sea "Validated".
+3. Click en "Publish" para liberar.
 
-If the version in `build.gradle.kts` ends with `-SNAPSHOT`, artifacts go to the snapshots repository instead of staging.
+Los artefactos aparecen en Maven Central en ~10-30 minutos despues de liberar.
 
-### Publishing a Snapshot
+## Paso 7: Verificar la publicacion
 
-To publish a snapshot, change the version in `build.gradle.kts`:
+- **Buscar:** https://search.maven.org/search?q=g:io.github.damian-rafael-lattenero
+- **Directo:** https://repo1.maven.org/maven2/io/github/damian-rafael-lattenero/kap/
 
-```kotlin
-version = "1.0.0-SNAPSHOT"
-```
-
-Then run:
-
-```bash
-./gradlew publishAllPublicationsToSonatypeRepository
-```
-
-Snapshots are available immediately at:
-`https://s01.oss.sonatype.org/content/repositories/snapshots/`
-
-### Release from Staging to Maven Central
-
-After publishing a release (non-SNAPSHOT) version:
-
-1. Go to https://s01.oss.sonatype.org/ and log in.
-2. Click **Staging Repositories** in the left sidebar.
-3. Find your staging repository (named something like `orgapplicativecoroutines-XXXX`).
-4. Inspect the contents to verify all expected artifacts are present:
-   - `.jar` (main artifact per target)
-   - `-javadoc.jar`
-   - `-sources.jar`
-   - `.pom`
-   - `.asc` signature files for each of the above
-5. Click **Close** to trigger Sonatype's validation rules. Wait for the close operation to complete.
-   - If it fails, check the **Activity** tab for details (common issues: missing javadoc JAR, invalid POM, unsigned artifacts).
-6. Once closed successfully, click **Release** to promote the artifacts to Maven Central.
-7. Drop the staging repository after release (or check the "Automatically Drop" option when releasing).
-
-Artifacts typically appear on Maven Central within 10-30 minutes after release, though it may take up to 2 hours for full sync.
-
-## Verifying the Publication
-
-After releasing, confirm the artifacts are available:
-
-1. **Maven Central Search**: https://search.maven.org/search?q=g:org.applicative.coroutines
-2. **Direct URL**: https://repo1.maven.org/maven2/org/applicative/coroutines/coroutines-applicatives/1.0.0/
-
-Users can then depend on the library:
+Los usuarios pueden depender de la libreria asi:
 
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("org.applicative.coroutines:coroutines-applicatives:1.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap:1.0.0")
 }
 ```
 
+---
+
+## (Opcional) Publicar automaticamente con GitHub Actions
+
+Agregar estos secrets en GitHub -> Settings -> Secrets and variables -> Actions:
+
+| Secret | Valor |
+|---|---|
+| `MAVEN_CENTRAL_USERNAME` | Username del token |
+| `MAVEN_CENTRAL_PASSWORD` | Password del token |
+| `SIGNING_KEY_ID` | Ultimos 8 chars del key ID GPG |
+| `SIGNING_PASSWORD` | Passphrase GPG |
+| `GPG_KEY_CONTENTS` | Contenido completo de `key.gpg` |
+
+Crear `.github/workflows/publish.yml`:
+
+```yaml
+name: Publish to Maven Central
+on:
+  release:
+    types: [released, prereleased]
+
+jobs:
+  publish:
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 21
+
+      - name: Publish to Maven Central
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+```
+
+Con esto, cada vez que crees un Release en GitHub, se publica automaticamente.
+
+---
+
 ## Troubleshooting
 
-### "401 Unauthorized" during upload
-- Verify `ossrhUsername` and `ossrhPassword` in `~/.gradle/gradle.properties`.
-- Ensure your Sonatype JIRA ticket for the group ID has been resolved.
-
-### "403 Forbidden" during upload
-- Your account may not have deploy permissions for the group ID yet. Check the JIRA ticket status.
-
-### Signing fails
-- Ensure `gpg` is installed and on your PATH.
-- Verify `signing.gnupg.keyName` matches an available secret key: `gpg --list-secret-keys`.
-- Ensure the passphrase is correct.
-
-### Staging repository close fails
-- Check the Activity tab in the Sonatype UI for the specific rule that failed.
-- Common failures: missing `-javadoc.jar`, missing `-sources.jar`, POM validation errors, or missing GPG signatures.
-
-### "Could not find or load main class" for Dokka
-- Ensure the Dokka plugin version in `build.gradle.kts` is compatible with your Kotlin version.
-- Run `./gradlew dokkaHtml` independently to check for Dokka errors.
+| Problema | Solucion |
+|---|---|
+| 401 Unauthorized | Verificar `mavenCentralUsername`/`mavenCentralPassword` en `~/.gradle/gradle.properties` |
+| 403 Forbidden | Tu namespace no esta verificado. Verificarlo en https://central.sonatype.com/publishing/namespaces |
+| Firma falla | Verificar que `gpg` esta instalado y `signing.gnupg.keyName` es correcto (`gpg --list-secret-keys`) |
+| Deployment rechazado | Revisar en el portal que tiene: `.jar`, `-javadoc.jar`, `-sources.jar`, `.pom`, y firmas `.asc` |
+| Dokka falla | Correr `./gradlew dokkaHtml` solo para ver el error especifico |

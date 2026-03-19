@@ -4,7 +4,7 @@ plugins {
     signing
 }
 
-group = "org.applicative.coroutines"
+group = "io.github.damian-rafael-lattenero"
 version = "1.0.0"
 
 repositories {
@@ -32,13 +32,13 @@ tasks.test {
 publishing {
     publications {
         create<MavenPublication>("maven") {
-            artifactId = "coroutines-applicatives-arrow"
+            artifactId = "kap-arrow"
             from(components["java"])
 
             pom {
-                name.set("coroutines-applicatives-arrow")
-                description.set("Arrow interop for coroutines-applicatives")
-                url.set("https://github.com/dlattenero/coroutines-applicatives")
+                name.set("kap-arrow")
+                description.set("Arrow interop for kap")
+                url.set("https://github.com/damian-rafael-lattenero/coroutines-applicatives")
 
                 licenses {
                     license {
@@ -49,13 +49,13 @@ publishing {
 
                 developers {
                     developer {
-                        id.set("dlattenero")
-                        name.set("D. Lattenero")
+                        id.set("damian-rafael-lattenero")
+                        name.set("Damian Rafael Lattenero")
                     }
                 }
 
                 scm {
-                    url.set("https://github.com/dlattenero/coroutines-applicatives")
+                    url.set("https://github.com/damian-rafael-lattenero/coroutines-applicatives")
                 }
             }
         }

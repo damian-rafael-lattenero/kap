@@ -1,4 +1,4 @@
-rootProject.name = "coroutines-applicatives"
+rootProject.name = "kap"
 include(":benchmarks")
 include(":arrow-interop")
 include(":examples:ecommerce-checkout")
