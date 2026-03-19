@@ -12,7 +12,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":"))
+    implementation("io.github.damian-rafael-lattenero:kap-jvm:1.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 }
 

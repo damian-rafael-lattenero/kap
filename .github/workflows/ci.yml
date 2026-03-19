@@ -30,11 +30,32 @@ jobs:
         run: ./gradlew compileKotlinJs
       - name: Verify Native compilation
         run: ./gradlew compileKotlinLinuxX64
-      - name: Build examples
+      - name: Run examples
         run: |
-          ./gradlew :examples:ecommerce-checkout:classes
-          ./gradlew :examples:dashboard-aggregator:classes
-          ./gradlew :examples:validated-registration:classes
+          ./gradlew :examples:ecommerce-checkout:run
+          ./gradlew :examples:dashboard-aggregator:run
+          ./gradlew :examples:validated-registration:run
+      - name: Run ktor-integration smoke test
+        run: |
+          ./gradlew :examples:ktor-integration:run &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            curl -s http://localhost:8080/dashboard/42 > /dev/null 2>&1 && break
+            sleep 1
+          done
+          echo "=== GET /dashboard/42 ==="
+          curl -sf http://localhost:8080/dashboard/42
+          echo ""
+          echo "=== POST /register (valid) ==="
+          curl -sf -X POST http://localhost:8080/register \
+            -H "Content-Type: application/json" \
+            -d '{"name":"Alice","email":"alice@test.com","age":25}'
+          echo ""
+          echo "=== GET /fast-user/99 ==="
+          curl -sf http://localhost:8080/fast-user/99
+          echo ""
+          kill $SERVER_PID 2>/dev/null || true
+          wait $SERVER_PID 2>/dev/null || true
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
