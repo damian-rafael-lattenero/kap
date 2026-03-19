@@ -1,11 +1,10 @@
 plugins {
     kotlin("multiplatform") version "2.0.21"
-    `maven-publish`
-    signing
     id("org.jetbrains.dokka") version "1.9.20"
+    id("com.vanniktech.maven.publish") version "0.30.0"
 }
 
-group = "org.applicative.coroutines"
+group = "io.github.damian-rafael-lattenero"
 version = "1.0.0"
 
 repositories {
@@ -68,67 +67,40 @@ kotlin {
     }
 }
 
-val javadocJar by tasks.registering(Jar::class) {
-    archiveClassifier.set("javadoc")
-    from(tasks.named("dokkaHtml"))
-}
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
 
-publishing {
-    repositories {
-        maven {
-            name = "sonatype"
-            val releasesUrl = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-            val snapshotsUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-            url = if (version.toString().endsWith("SNAPSHOT")) snapshotsUrl else releasesUrl
-            credentials {
-                username = findProperty("ossrhUsername") as String? ?: ""
-                password = findProperty("ossrhPassword") as String? ?: ""
+    coordinates(group.toString(), "kap", version.toString())
+
+    pom {
+        name.set("kap")
+        description.set("Kotlin Applicative Parallelism — declarative parallel orchestration for Kotlin coroutines with zero overhead")
+        inceptionYear.set("2025")
+        url.set("https://github.com/damian-rafael-lattenero/coroutines-applicatives")
+
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                distribution.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
             }
         }
-    }
 
-    publications.withType<MavenPublication> {
-        artifact(javadocJar)
-
-        pom {
-            name.set("coroutines-applicatives")
-            description.set("Applicative functor DSL for declarative parallel composition of Kotlin coroutines")
-            url.set("https://github.com/dlattenero/coroutines-applicatives")
-
-            licenses {
-                license {
-                    name.set("Apache-2.0")
-                    url.set("https://www.apache.org/licenses/LICENSE-2.0")
-                }
-            }
-
-            developers {
-                developer {
-                    id.set("dlattenero")
-                    name.set("D. Lattenero")
-                }
-            }
-
-            scm {
-                url.set("https://github.com/dlattenero/coroutines-applicatives")
-                connection.set("scm:git:git://github.com/dlattenero/coroutines-applicatives.git")
-                developerConnection.set("scm:git:ssh://github.com/dlattenero/coroutines-applicatives.git")
+        developers {
+            developer {
+                id.set("damian-rafael-lattenero")
+                name.set("Damian Rafael Lattenero")
+                url.set("https://github.com/damian-rafael-lattenero")
             }
         }
-    }
-}
 
-signing {
-    // Configure GPG signing for Maven Central publishing.
-    // Requires GPG key and Sonatype credentials.
-    // Set these in ~/.gradle/gradle.properties:
-    //   signing.gnupg.keyName=<KEY_ID>
-    //   signing.gnupg.passphrase=<PASSPHRASE>
-    //   ossrhUsername=<SONATYPE_USERNAME>
-    //   ossrhPassword=<SONATYPE_PASSWORD>
-    isRequired = gradle.taskGraph.hasTask("publish")
-    useGpgCmd()
-    sign(publishing.publications)
+        scm {
+            url.set("https://github.com/damian-rafael-lattenero/coroutines-applicatives")
+            connection.set("scm:git:git://github.com/damian-rafael-lattenero/coroutines-applicatives.git")
+            developerConnection.set("scm:git:ssh://git@github.com/damian-rafael-lattenero/coroutines-applicatives.git")
+        }
+    }
 }
 
 // ── Code generation tasks ────────────────────────────────────────────────

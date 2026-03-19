@@ -74,7 +74,7 @@ lift4(::Page)
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("org.applicative.coroutines:coroutines-applicatives:1.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap:1.0.0")
 }
 ```
 
