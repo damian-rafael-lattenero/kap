@@ -5,5 +5,11 @@ plugins {
     id("com.vanniktech.maven.publish") version "0.30.0" apply false
 }
 
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+
 group = "io.github.damian-rafael-lattenero"
 version = "2.0.2"
