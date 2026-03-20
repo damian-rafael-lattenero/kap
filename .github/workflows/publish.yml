@@ -42,7 +42,7 @@ jobs:
                 echo "$MODULE $VERSION not found on Maven Central (OK)."
               done
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: ${{ matrix.check }}
         run: ${{ matrix.script }}
 
@@ -51,7 +51,7 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-java@v4
         with:
           distribution: corretto
@@ -81,7 +81,7 @@ jobs:
     needs: test
     runs-on: macOS-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-java@v4
         with:
           distribution: zulu
@@ -102,7 +102,7 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-java@v4
         with:
           distribution: corretto
