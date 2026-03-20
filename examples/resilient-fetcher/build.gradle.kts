@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm")
+    kotlin("jvm") version "2.0.21"
     application
 }
 
@@ -11,13 +11,9 @@ kotlin {
     jvmToolchain(21)
 }
 
-// Modules used: kap-core + kap-resilience
-// Maven equivalents:
-//   io.github.damian-rafael-lattenero:kap-core:2.0.0
-//   io.github.damian-rafael-lattenero:kap-resilience:2.0.0
 dependencies {
-    implementation(project(":kap-core"))
-    implementation(project(":kap-resilience"))
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 }
 

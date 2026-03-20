@@ -1,7 +1,6 @@
 plugins {
     kotlin("jvm")
-    `maven-publish`
-    signing
+    id("com.vanniktech.maven.publish")
 }
 
 group = "io.github.damian-rafael-lattenero"
@@ -110,35 +109,35 @@ $params,
     }
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            artifactId = "kap-arrow"
-            from(components["java"])
+mavenPublishing {
+    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+    coordinates(group.toString(), "kap-arrow", version.toString())
 
-            pom {
-                name.set("kap-arrow")
-                description.set("Kotlin Applicative Parallelism — Arrow integration: validated DSL, Either/Nel bridges, raceEither")
-                url.set("https://github.com/damian-rafael-lattenero/coroutines-applicatives")
+    pom {
+        name.set("kap-arrow")
+        description.set("Kotlin Applicative Parallelism — Arrow integration: validated DSL, Either/Nel bridges, raceEither")
+        inceptionYear.set("2025")
+        url.set("https://github.com/damian-rafael-lattenero/coroutines-applicatives")
 
-                licenses {
-                    license {
-                        name.set("Apache-2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
-                    }
-                }
-
-                developers {
-                    developer {
-                        id.set("damian-rafael-lattenero")
-                        name.set("Damian Rafael Lattenero")
-                    }
-                }
-
-                scm {
-                    url.set("https://github.com/damian-rafael-lattenero/coroutines-applicatives")
-                }
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                distribution.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
             }
+        }
+        developers {
+            developer {
+                id.set("damian-rafael-lattenero")
+                name.set("Damian Rafael Lattenero")
+                url.set("https://github.com/damian-rafael-lattenero")
+            }
+        }
+        scm {
+            url.set("https://github.com/damian-rafael-lattenero/coroutines-applicatives")
+            connection.set("scm:git:git://github.com/damian-rafael-lattenero/coroutines-applicatives.git")
+            developerConnection.set("scm:git:ssh://git@github.com/damian-rafael-lattenero/coroutines-applicatives.git")
         }
     }
 }
