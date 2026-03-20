@@ -1,12 +1,9 @@
 // ┌──────────────────────────────────────────────────────────────────────┐
 // │  AUTO-GENERATED — do not edit by hand.                               │
-// │  Run: ./gradlew generateResourceZip                                  │
+// │  Run: ./gradlew :kap-resilience:generateResourceZip                  │
 // └──────────────────────────────────────────────────────────────────────┘
 package applicative
 
-// ── Resource.zip: composable resource combination (2-22 arity) ────────
-
-/** Combines 2 resources. Release runs in reverse order, even on failure. */
 fun <A, B, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -17,7 +14,6 @@ fun <A, B, R> Resource.Companion.zip(
      } }
 }
 
-/** Combines 3 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -29,7 +25,6 @@ fun <A, B, C, R> Resource.Companion.zip(
      } } }
 }
 
-/** Combines 4 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -42,7 +37,6 @@ fun <A, B, C, D, R> Resource.Companion.zip(
      } } } }
 }
 
-/** Combines 5 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -56,7 +50,6 @@ fun <A, B, C, D, E, R> Resource.Companion.zip(
      } } } } }
 }
 
-/** Combines 6 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -71,7 +64,6 @@ fun <A, B, C, D, E, F, R> Resource.Companion.zip(
      } } } } } }
 }
 
-/** Combines 7 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -87,7 +79,6 @@ fun <A, B, C, D, E, F, G, R> Resource.Companion.zip(
      } } } } } } }
 }
 
-/** Combines 8 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -104,7 +95,6 @@ fun <A, B, C, D, E, F, G, H, R> Resource.Companion.zip(
      } } } } } } } }
 }
 
-/** Combines 9 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -122,7 +112,6 @@ fun <A, B, C, D, E, F, G, H, I, R> Resource.Companion.zip(
      } } } } } } } } }
 }
 
-/** Combines 10 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -141,7 +130,6 @@ fun <A, B, C, D, E, F, G, H, I, J, R> Resource.Companion.zip(
      } } } } } } } } } }
 }
 
-/** Combines 11 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -161,7 +149,6 @@ fun <A, B, C, D, E, F, G, H, I, J, K, R> Resource.Companion.zip(
      } } } } } } } } } } }
 }
 
-/** Combines 12 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -182,7 +169,6 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, R> Resource.Companion.zip(
      } } } } } } } } } } } }
 }
 
-/** Combines 13 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -204,7 +190,6 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, R> Resource.Companion.zip(
      } } } } } } } } } } } } }
 }
 
-/** Combines 14 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -227,7 +212,6 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, R> Resource.Companion.zip(
      } } } } } } } } } } } } } }
 }
 
-/** Combines 15 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -251,7 +235,6 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, R> Resource.Companion.zip(
      } } } } } } } } } } } } } } }
 }
 
-/** Combines 16 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -276,7 +259,6 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R> Resource.Companion.zip(
      } } } } } } } } } } } } } } } }
 }
 
-/** Combines 17 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -302,7 +284,6 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> Resource.Companion.zi
      } } } } } } } } } } } } } } } } }
 }
 
-/** Combines 18 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -329,7 +310,6 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> Resource.Companion
      } } } } } } } } } } } } } } } } } }
 }
 
-/** Combines 19 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -357,7 +337,6 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> Resource.Compan
      } } } } } } } } } } } } } } } } } } }
 }
 
-/** Combines 20 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -386,7 +365,6 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> Resource.Com
      } } } } } } } } } } } } } } } } } } } }
 }
 
-/** Combines 21 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -416,7 +394,6 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> Resource.
      } } } } } } } } } } } } } } } } } } } } }
 }
 
-/** Combines 22 resources. Release runs in reverse order, even on failure. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,

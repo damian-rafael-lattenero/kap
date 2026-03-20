@@ -1,6 +1,6 @@
 // ┌──────────────────────────────────────────────────────────────────────┐
 // │  AUTO-GENERATED — do not edit by hand.                               │
-// │  Run: ./gradlew generateLift                                         │
+// │  Run: ./gradlew :kap-core:generateLift                               │
 // └──────────────────────────────────────────────────────────────────────┘
 package applicative
 
@@ -8,17 +8,7 @@ import applicative.internal.curried
 
 // ── lift: pure . curry ──────────────────────────────────────────────────
 
-/**
- * Curries [f] and wraps it as a pure [Computation], ready for [ap] chains.
- *
- * ```
- * lift2 { a: String, b: Int -> "$a=$b" }
- *     .ap { fetchName() }
- *     .ap { fetchAge() }
- * ```
- *
- * Overloads [lift2] through [lift22] cover arities 2-22.
- */
+/** Curries [f] and wraps it as a pure [Computation], ready for [ap] chains. */
 
 fun <P1, P2, R> lift2(f: (P1, P2) -> R): Computation<(P1) -> (P2) -> R> = pure(f.curried())
 
