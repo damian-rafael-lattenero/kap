@@ -10,7 +10,7 @@ dependencies {
     implementation(project(":kap-core"))
     implementation(project(":kap-resilience"))
     implementation(project(":kap-arrow"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 }
 
 application {

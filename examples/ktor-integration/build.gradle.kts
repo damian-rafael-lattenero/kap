@@ -9,7 +9,7 @@ dependencies {
     // Maven: implementation("io.github.damian-rafael-lattenero:kap-arrow:2.0.3")
     implementation(project(":kap-core"))
     implementation(project(":kap-arrow"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("io.ktor:ktor-server-core:3.0.3")
     implementation("io.ktor:ktor-server-netty:3.0.3")
     implementation("io.ktor:ktor-server-content-negotiation:3.0.3")
