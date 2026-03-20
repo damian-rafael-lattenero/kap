@@ -2,17 +2,48 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  test:
-    name: Tests & Compilation
+
+  # ── Fast gate: wrapper validation ────────────────────────────────────────
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gradle/actions/wrapper-validation@v4
+
+  # ── Unit & comparison tests (parallel matrix) ───────────────────────────
+  test:
+    name: Test · ${{ matrix.module }}
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: kap-core
+            task: ":kap-core:jvmTest"
+            report-path: "kap-core/build/reports/tests/jvmTest"
+          - module: kap-resilience
+            task: ":kap-resilience:jvmTest"
+            report-path: "kap-resilience/build/reports/tests/jvmTest"
+          - module: kap-arrow
+            task: ":kap-arrow:test"
+            report-path: "kap-arrow/build/reports/tests/test"
+          - module: benchmarks
+            task: ":benchmarks:test"
+            report-path: "benchmarks/build/reports/tests/test"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -21,53 +52,25 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main' }}
-      - name: Run JVM tests
-        run: ./gradlew jvmTest
-      - name: Run Arrow interop tests
-        run: ./gradlew :arrow-interop:test || true
-      - name: Verify JS compilation
-        run: ./gradlew compileKotlinJs
-      - name: Verify Native compilation
-        run: ./gradlew compileKotlinLinuxX64
-      - name: Run examples
-        run: |
-          ./gradlew :examples:ecommerce-checkout:run
-          ./gradlew :examples:dashboard-aggregator:run
-          ./gradlew :examples:validated-registration:run
-      - name: Run ktor-integration smoke test
-        run: |
-          ./gradlew :examples:ktor-integration:run &
-          SERVER_PID=$!
-          for i in $(seq 1 30); do
-            curl -s http://localhost:8080/dashboard/42 > /dev/null 2>&1 && break
-            sleep 1
-          done
-          echo "=== GET /dashboard/42 ==="
-          curl -sf http://localhost:8080/dashboard/42
-          echo ""
-          echo "=== POST /register (valid) ==="
-          curl -sf -X POST http://localhost:8080/register \
-            -H "Content-Type: application/json" \
-            -d '{"name":"Alice","email":"alice@test.com","age":25}'
-          echo ""
-          echo "=== GET /fast-user/99 ==="
-          curl -sf http://localhost:8080/fast-user/99
-          echo ""
-          kill $SERVER_PID 2>/dev/null || true
-          wait $SERVER_PID 2>/dev/null || true
-      - name: Upload test reports
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+      - name: Run tests
+        run: ./gradlew ${{ matrix.task }}
+      - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
-          path: build/reports/tests/
+          name: test-report-${{ matrix.module }}
+          path: ${{ matrix.report-path }}
           retention-days: 14
 
-  benchmark:
-    name: JMH Benchmarks
+  # ── Multiplatform compilation checks ─────────────────────────────────────
+  compile-platforms:
+    name: Compile · ${{ matrix.target }}
+    needs: validate
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    strategy:
+      matrix:
+        target: [Js, LinuxX64]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -77,12 +80,220 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: true
+      - name: Compile ${{ matrix.target }}
+        run: ./gradlew compileKotlin${{ matrix.target }}
+
+  # ── Codegen freshness check ──────────────────────────────────────────────
+  codegen-check:
+    name: Codegen · Up-to-date
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+      - name: Regenerate all codegen
+        run: |
+          ./gradlew :kap-core:generateAll \
+                    :kap-resilience:generateResourceZip \
+                    :kap-arrow:generateValidatedOverloads
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git diff --name-only)" ]; then
+            echo "::error::Generated code is out of date. Run codegen tasks and commit the results."
+            echo ""
+            echo "Changed files:"
+            git diff --name-only
+            echo ""
+            git diff --stat
+            exit 1
+          fi
+          echo "Generated code is up-to-date"
+
+  # ── Examples integration (standalone projects via mavenLocal) ─────────────
+  examples:
+    name: Examples
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Publish to Maven Local
+        run: ./gradlew publishToMavenLocal
+
+      - name: Prepare init script
+        run: |
+          cat > /tmp/maven-local.init.gradle << 'INITEOF'
+          allprojects {
+            repositories {
+              mavenLocal()
+            }
+          }
+          INITEOF
+
+      - name: Run standalone examples
+        run: |
+          INIT="--init-script /tmp/maven-local.init.gradle"
+          for dir in \
+            examples/ecommerce-checkout \
+            examples/dashboard-aggregator \
+            examples/validated-registration \
+            examples/resilient-fetcher \
+            examples/full-stack-order; do
+            echo ""
+            echo "════════════════════════════════════════"
+            echo "  Running: $dir"
+            echo "════════════════════════════════════════"
+            (cd "$dir" && gradle run $INIT --no-daemon)
+          done
+
+      - name: Ktor integration smoke test
+        run: |
+          INIT="--init-script /tmp/maven-local.init.gradle"
+          cd examples/ktor-integration
+          gradle run $INIT --no-daemon &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            curl -s http://localhost:8080/dashboard/42 > /dev/null 2>&1 && break
+            sleep 1
+          done
+
+          echo "=== GET /dashboard/42 ==="
+          curl -sf http://localhost:8080/dashboard/42
+          echo ""
+
+          echo "=== POST /register (valid) ==="
+          curl -sf -X POST http://localhost:8080/register \
+            -H "Content-Type: application/json" \
+            -d '{"name":"Alice","email":"alice@test.com","age":25}'
+          echo ""
+
+          echo "=== GET /fast-user/99 ==="
+          curl -sf http://localhost:8080/fast-user/99
+          echo ""
+
+          kill $SERVER_PID 2>/dev/null || true
+          wait $SERVER_PID 2>/dev/null || true
+
+  # ── JMH Benchmarks — full run on push, track history ─────────────────────
+  benchmark:
+    name: Benchmark · Track
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+
       - name: Run JMH benchmarks
         run: ./gradlew :benchmarks:jmh
-      - name: Upload benchmark results
+
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: KAP JMH Benchmarks
+          tool: jmh
+          output-file-path: benchmarks/build/results/jmh/results.json
+          gh-pages-branch: gh-pages
+          benchmark-data-dir-path: benchmarks
+          auto-push: true
+          alert-threshold: "150%"
+          comment-on-alert: true
+          fail-on-alert: false
+          alert-comment-cc-users: "@damian-rafael-lattenero"
+
+      - name: Upload raw results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jmh-results
           path: benchmarks/build/results/jmh/
-          retention-days: 30
+          retention-days: 90
+
+  # ── JMH Benchmarks — quick run on PR, compare & comment ──────────────────
+  benchmark-pr:
+    name: Benchmark · PR Compare
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+
+      - name: Run JMH benchmarks (quick)
+        run: ./gradlew :benchmarks:jmh -Pjmh.warmup=1 -Pjmh.iterations=2 -Pjmh.fork=1
+
+      - name: Compare with baseline
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: KAP JMH Benchmarks
+          tool: jmh
+          output-file-path: benchmarks/build/results/jmh/results.json
+          gh-pages-branch: gh-pages
+          benchmark-data-dir-path: benchmarks
+          auto-push: false
+          alert-threshold: "200%"
+          comment-on-alert: true
+          fail-on-alert: true
+          alert-comment-cc-users: "@damian-rafael-lattenero"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload PR benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmh-results-pr
+          path: benchmarks/build/results/jmh/
+          retention-days: 14
+
+  # ── Aggregate status gate (for branch protection rules) ──────────────────
+  ci-gate:
+    name: CI Gate
+    if: always()
+    needs: [test, compile-platforms, codegen-check, examples]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required jobs
+        run: |
+          echo "test:              ${{ needs.test.result }}"
+          echo "compile-platforms: ${{ needs.compile-platforms.result }}"
+          echo "codegen-check:     ${{ needs.codegen-check.result }}"
+          echo "examples:          ${{ needs.examples.result }}"
+          if [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.compile-platforms.result }}" != "success" ] || \
+             [ "${{ needs.codegen-check.result }}" != "success" ] || \
+             [ "${{ needs.examples.result }}" != "success" ]; then
+            echo ""
+            echo "One or more required jobs failed."
+            exit 1
+          fi
+          echo ""
+          echo "All CI checks passed."

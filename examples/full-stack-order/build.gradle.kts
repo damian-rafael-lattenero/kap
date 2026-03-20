@@ -12,9 +12,9 @@ kotlin {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.0.0")
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.0.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.0.2")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.0.2")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.0.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 }
 

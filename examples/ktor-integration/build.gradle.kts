@@ -13,8 +13,8 @@ kotlin {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.0.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.0.2")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.0.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     implementation("io.ktor:ktor-server-core:3.0.3")
     implementation("io.ktor:ktor-server-netty:3.0.3")

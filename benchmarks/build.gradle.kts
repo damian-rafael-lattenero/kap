@@ -24,9 +24,10 @@ dependencies {
 }
 
 jmh {
-    warmupIterations.set(3)
-    iterations.set(5)
-    fork.set(2)
+    warmupIterations.set((findProperty("jmh.warmup") as? String)?.toIntOrNull() ?: 3)
+    iterations.set((findProperty("jmh.iterations") as? String)?.toIntOrNull() ?: 5)
+    fork.set((findProperty("jmh.fork") as? String)?.toIntOrNull() ?: 2)
+    resultFormat.set("JSON")
     includes.set(listOf("applicative.benchmarks.*"))
     jmhVersion.set("1.37")
 }

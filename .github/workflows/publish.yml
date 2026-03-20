@@ -2,10 +2,83 @@ name: Publish to Maven Central
 
 on:
   release:
-    types: [released, prereleased]
+    types: [released]
+
+permissions:
+  contents: read
 
 jobs:
+
+  # ── Pre-publish validation ───────────────────────────────────────────────
+  validate:
+    name: Pre-publish · ${{ matrix.check }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - check: Version consistency
+            script: |
+              VERSION=$(grep '^version' build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+              TAG="${GITHUB_REF_NAME}"
+              EXPECTED="v${VERSION}"
+              echo "build.gradle.kts version: $VERSION"
+              echo "Release tag:              $TAG"
+              echo "Expected tag:             $EXPECTED"
+              if [ "$TAG" != "$EXPECTED" ]; then
+                echo "::error::Version mismatch: build.gradle.kts has $VERSION but release tag is $TAG (expected $EXPECTED)"
+                exit 1
+              fi
+              echo "Version matches."
+          - check: Not already published
+            script: |
+              VERSION=$(grep '^version' build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+              for MODULE in kap-core kap-resilience kap-arrow; do
+                URL="https://repo1.maven.org/maven2/io/github/damian-rafael-lattenero/$MODULE/$VERSION/$MODULE-$VERSION.pom"
+                if curl -sf "$URL" > /dev/null 2>&1; then
+                  echo "::error::$MODULE $VERSION already exists on Maven Central. Bump the version before publishing."
+                  exit 1
+                fi
+                echo "$MODULE $VERSION not found on Maven Central (OK)."
+              done
+    steps:
+      - uses: actions/checkout@v4
+      - name: ${{ matrix.check }}
+        run: ${{ matrix.script }}
+
+  test:
+    name: Pre-publish · Tests
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Run all tests
+        run: |
+          ./gradlew :kap-core:jvmTest \
+                    :kap-resilience:jvmTest \
+                    :kap-arrow:test \
+                    :benchmarks:test
+      - name: Verify multiplatform compilation
+        run: ./gradlew compileKotlinJs compileKotlinLinuxX64
+      - name: Verify codegen is up-to-date
+        run: |
+          ./gradlew :kap-core:generateAll \
+                    :kap-resilience:generateResourceZip \
+                    :kap-arrow:generateValidatedOverloads
+          if [ -n "$(git diff --name-only)" ]; then
+            echo "::error::Generated code is out of date."
+            exit 1
+          fi
+
+  # ── Publish (macOS for Apple targets) ────────────────────────────────────
   publish:
+    name: Publish
+    needs: test
     runs-on: macOS-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,10 +87,6 @@ jobs:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-
-      - name: Run tests
-        run: ./gradlew jvmTest
-
       - name: Publish to Maven Central
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
         env:
@@ -26,3 +95,78 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+
+  # ── Post-publish verification ────────────────────────────────────────────
+  verify:
+    name: Post-publish · Verify
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Wait for Maven Central sync
+        run: |
+          VERSION=$(grep '^version' build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "Waiting for kap-core $VERSION on Maven Central..."
+          for i in $(seq 1 30); do
+            URL="https://repo1.maven.org/maven2/io/github/damian-rafael-lattenero/kap-core/$VERSION/kap-core-$VERSION.pom"
+            if curl -sf "$URL" > /dev/null 2>&1; then
+              echo "kap-core $VERSION available on Maven Central."
+              break
+            fi
+            echo "  Attempt $i/30 — not yet available, waiting 60s..."
+            sleep 60
+          done
+
+      - name: Verify all modules are resolvable
+        run: |
+          VERSION=$(grep '^version' build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          for MODULE in kap-core kap-resilience kap-arrow; do
+            URL="https://repo1.maven.org/maven2/io/github/damian-rafael-lattenero/$MODULE/$VERSION/$MODULE-$VERSION.pom"
+            if ! curl -sf "$URL" > /dev/null 2>&1; then
+              echo "::error::$MODULE $VERSION NOT found on Maven Central after publish."
+              exit 1
+            fi
+            echo "$MODULE $VERSION verified on Maven Central."
+          done
+
+      - name: Run examples against Maven Central
+        run: |
+          for dir in \
+            examples/ecommerce-checkout \
+            examples/dashboard-aggregator \
+            examples/validated-registration \
+            examples/resilient-fetcher \
+            examples/full-stack-order; do
+            echo ""
+            echo "════════════════════════════════════════"
+            echo "  Verifying: $dir"
+            echo "════════════════════════════════════════"
+            (cd "$dir" && gradle run --no-daemon)
+          done
+
+      - name: Ktor integration smoke test
+        run: |
+          cd examples/ktor-integration
+          gradle run --no-daemon &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            curl -s http://localhost:8080/dashboard/42 > /dev/null 2>&1 && break
+            sleep 1
+          done
+          curl -sf http://localhost:8080/dashboard/42
+          curl -sf -X POST http://localhost:8080/register \
+            -H "Content-Type: application/json" \
+            -d '{"name":"Alice","email":"alice@test.com","age":25}'
+          curl -sf http://localhost:8080/fast-user/99
+          kill $SERVER_PID 2>/dev/null || true
+          wait $SERVER_PID 2>/dev/null || true
+          echo ""
+          echo "Post-publish verification complete."

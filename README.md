@@ -2,6 +2,7 @@
 
 **Your code shape *is* the execution plan.**
 
+[![CI](https://github.com/damian-rafael-lattenero/coroutines-applicatives/actions/workflows/ci.yml/badge.svg)](https://github.com/damian-rafael-lattenero/coroutines-applicatives/actions/workflows/ci.yml)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
 [![Tests](https://img.shields.io/badge/Tests-906%20across%2061%20suites-brightgreen.svg)](#empirical-data)
@@ -238,13 +239,13 @@ KAP is split into three modules so you only pay for what you use. Non-Arrow proj
 // build.gradle.kts
 dependencies {
     // Core applicative DSL — the only required module (zero deps beyond coroutines)
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.0.2")
 
     // Optional: resilience patterns (Schedule, Resource, CircuitBreaker, bracket)
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.0.2")
 
     // Optional: Arrow integration (validated DSL, Either/Nel, raceEither, attempt)
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.0.2")
 }
 ```
 
@@ -1419,8 +1420,8 @@ Source: [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/applicative/Appli
 | **Arrow dependency** | — | Always required | Optional (kap-arrow only) |
 | **JMH overhead** | 0.001ms | 0.010-0.020ms | **0.001-0.002ms** |
 
-> Side-by-side comparison: [`ThreeWayComparisonTest.kt`](benchmarks/src/test/kotlin/applicative/ThreeWayComparisonTest.kt)
-> JMH benchmarks: [`OrchestrationBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/OrchestrationBenchmark.kt)
+> Side-by-side comparison: [`CoreComparisonTest.kt`](benchmarks/src/test/kotlin/applicative/CoreComparisonTest.kt) | [`ResilienceComparisonTest.kt`](benchmarks/src/test/kotlin/applicative/ResilienceComparisonTest.kt) | [`ArrowComparisonTest.kt`](benchmarks/src/test/kotlin/applicative/ArrowComparisonTest.kt)
+> JMH benchmarks: [`CoreBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/CoreBenchmark.kt) | [`ResilienceBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/ResilienceBenchmark.kt) | [`ArrowBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/ArrowBenchmark.kt)
 
 ### Coming from Arrow?
 
@@ -1598,15 +1599,16 @@ Each example's `build.gradle.kts` includes comments with the equivalent Maven co
 # Full build
 ./gradlew build                      # auto-skips Apple targets without Xcode
 
-# Examples
-./gradlew :examples:ecommerce-checkout:run
-./gradlew :examples:resilient-fetcher:run
-./gradlew :examples:full-stack-order:run
+# Examples (standalone projects — run from their directory)
+cd examples/ecommerce-checkout && gradle run
+cd examples/resilient-fetcher && gradle run
+cd examples/full-stack-order && gradle run
 
 # Benchmarks & docs
-./gradlew :benchmarks:jmh            # JMH benchmarks
+./gradlew :benchmarks:jmh            # JMH benchmarks (JSON results in benchmarks/build/results/jmh/)
+./gradlew :benchmarks:test           # comparison tests (kap vs raw vs arrow)
 ./gradlew dokkaHtml                   # API docs
-./gradlew generateAll                 # regenerate all overloads (arities 2-22)
+./gradlew :kap-core:generateAll       # regenerate all overloads (arities 2-22)
 ```
 
 > **First time?** Start with `./gradlew :kap-core:jvmTest` — it runs the core
@@ -1615,6 +1617,43 @@ Each example's `build.gradle.kts` includes comments with the equivalent Maven co
 > **Native targets:** Apple targets (iOS, macOS) are automatically skipped when
 > Xcode is not installed. Linux Native compiles with just the Kotlin toolchain.
 > To enable Apple targets, install Xcode and its command-line tools (`xcode-select --install`).
+
+## CI/CD
+
+The project uses a comprehensive GitHub Actions pipeline:
+
+```
+Push / PR to master
+├── validate          Gradle wrapper validation
+├── test              4 parallel jobs: kap-core · kap-resilience · kap-arrow · benchmarks
+├── compile-platforms JS + LinuxX64 compilation checks
+├── codegen-check     Regenerate all codegen, fail if out-of-date
+├── examples          publishToMavenLocal → run all 6 examples + Ktor smoke test
+├── benchmark         (push only) Full JMH → store results in gh-pages → historical chart
+├── benchmark-pr      (PR only) Quick JMH → compare against baseline → block on regression
+└── ci-gate           Aggregate status for branch protection
+
+Release (tag vX.Y.Z)
+├── validate          Version consistency + not-already-published check
+├── test              Full test suite + multiplatform compilation + codegen check
+├── publish           Maven Central (macOS runner for Apple targets)
+└── verify            Wait for Maven Central sync → run examples against real artifacts
+```
+
+### Benchmark Tracking
+
+Every push to `master` runs the full JMH suite and stores results in the `gh-pages` branch using [`github-action-benchmark`](https://github.com/benchmark-action/github-action-benchmark). This provides:
+
+- **Historical chart** — visual trend of all benchmark results over time
+- **Regression alerts** — notifies with `@mention` if any benchmark regresses >50% on master
+- **PR comparison** — PRs run a quick JMH pass (1 fork, 2 iterations) and **block merge** if any benchmark regresses >100%
+
+JMH config is tunable via Gradle properties for local experimentation:
+
+```bash
+./gradlew :benchmarks:jmh                                    # defaults: 3 warmup, 5 iterations, 2 forks
+./gradlew :benchmarks:jmh -Pjmh.warmup=1 -Pjmh.iterations=2 -Pjmh.fork=1  # quick run
+```
 
 ## License
 
