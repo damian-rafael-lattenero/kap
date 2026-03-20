@@ -56,7 +56,7 @@ jobs:
         with:
           distribution: corretto
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - name: Run all tests
         run: |
           ./gradlew :kap-core:jvmTest \
@@ -86,7 +86,7 @@ jobs:
         with:
           distribution: zulu
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - name: Publish to Maven Central
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
         env:
@@ -107,7 +107,7 @@ jobs:
         with:
           distribution: corretto
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       - name: Wait for Maven Central sync
         run: |
