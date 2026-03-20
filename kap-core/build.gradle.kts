@@ -224,7 +224,7 @@ tasks.register("generateAll") {
 
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-    signAllPublications()
+    if (!project.hasProperty("skipSigning")) signAllPublications()
     coordinates(group.toString(), "kap-core", version.toString())
 
     pom {

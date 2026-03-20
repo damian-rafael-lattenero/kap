@@ -111,7 +111,7 @@ $params,
 
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-    signAllPublications()
+    if (!project.hasProperty("skipSigning")) signAllPublications()
     coordinates(group.toString(), "kap-arrow", version.toString())
 
     pom {

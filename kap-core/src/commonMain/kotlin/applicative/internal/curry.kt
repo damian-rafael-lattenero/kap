@@ -1,6 +1,6 @@
 // ┌──────────────────────────────────────────────────────────────────────┐
 // │  AUTO-GENERATED — do not edit by hand.                               │
-// │  Run: ./gradlew generateCurry                                        │
+// │  Run: ./gradlew :kap-core:generateCurry                              │
 // └──────────────────────────────────────────────────────────────────────┘
 package applicative.internal
 
