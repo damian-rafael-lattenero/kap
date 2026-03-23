@@ -6,6 +6,7 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
 [![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
 [![Tests](https://img.shields.io/badge/Tests-906%20across%2061%20suites-brightgreen.svg)](#empirical-data)
+[![Benchmarks](https://img.shields.io/badge/Benchmarks-119%20JMH-blueviolet.svg)](https://damian-rafael-lattenero.github.io/coroutines-applicatives/benchmarks/)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
@@ -1904,6 +1905,8 @@ Release (tag vX.Y.Z)
 ```
 
 ### Benchmark Tracking
+
+**Live dashboard:** [**damian-rafael-lattenero.github.io/coroutines-applicatives/benchmarks/**](https://damian-rafael-lattenero.github.io/coroutines-applicatives/benchmarks/)
 
 Every push to `master` runs the full JMH suite and stores results in the `gh-pages` branch using [`github-action-benchmark`](https://github.com/benchmark-action/github-action-benchmark). This provides:
 
