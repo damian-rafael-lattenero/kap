@@ -109,19 +109,41 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v5
 
-      - name: Wait for Maven Central sync
+      # Central often surfaces artifacts at different times; waiting only for kap-core
+      # caused false failures when kap-resilience/kap-arrow lagged by minutes.
+      - name: Wait for Maven Central sync (all modules)
         run: |
           VERSION=$(grep '^version' build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
-          echo "Waiting for kap-core $VERSION on Maven Central..."
-          for i in $(seq 1 30); do
-            URL="https://repo1.maven.org/maven2/io/github/damian-rafael-lattenero/kap-core/$VERSION/kap-core-$VERSION.pom"
-            if curl -sf "$URL" > /dev/null 2>&1; then
-              echo "kap-core $VERSION available on Maven Central."
-              break
+          BASE="https://repo1.maven.org/maven2/io/github/damian-rafael-lattenero"
+          MODULES="kap-core kap-resilience kap-arrow"
+          MAX_ATTEMPTS=40
+          INTERVAL=60
+
+          for i in $(seq 1 "$MAX_ATTEMPTS"); do
+            MISSING=""
+            for MODULE in $MODULES; do
+              URL="$BASE/$MODULE/$VERSION/$MODULE-$VERSION.pom"
+              if ! curl -sf "$URL" > /dev/null 2>&1; then
+                MISSING="$MISSING $MODULE"
+              fi
+            done
+            if [ -z "$MISSING" ]; then
+              echo "All modules $VERSION available on Maven Central (attempt $i/$MAX_ATTEMPTS)."
+              exit 0
             fi
-            echo "  Attempt $i/30 — not yet available, waiting 60s..."
-            sleep 60
+            echo "Attempt $i/$MAX_ATTEMPTS — still missing:$MISSING — waiting ${INTERVAL}s..."
+            sleep "$INTERVAL"
           done
+
+          MISSING=""
+          for MODULE in $MODULES; do
+            URL="$BASE/$MODULE/$VERSION/$MODULE-$VERSION.pom"
+            if ! curl -sf "$URL" > /dev/null 2>&1; then
+              MISSING="$MISSING $MODULE"
+            fi
+          done
+          echo "::error::Timeout: not all artifacts visible on repo1.maven.org after $((MAX_ATTEMPTS * INTERVAL / 60)) minutes. Missing:$MISSING"
+          exit 1
 
       - name: Verify all modules are resolvable
         run: |
