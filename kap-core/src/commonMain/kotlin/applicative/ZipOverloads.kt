@@ -626,47 +626,47 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> zip(
     combine(d1.await(), d2.await(), d3.await(), d4.await(), d5.await(), d6.await(), d7.await(), d8.await(), d9.await(), d10.await(), d11.await(), d12.await(), d13.await(), d14.await(), d15.await(), d16.await(), d17.await(), d18.await(), d19.await(), d20.await(), d21.await(), d22.await())
 }
 
-fun <A, B, R> mapN(
+fun <A, B, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
-    combine: (A, B) -> R,
-): Computation<R> = c1.zip(c2, combine)
+    f: (A, B) -> R,
+): Computation<R> = c1.zip(c2, f)
 
-fun <A, B, C, R> mapN(
+fun <A, B, C, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
-    combine: (A, B, C) -> R,
-): Computation<R> = zip(c1, c2, c3, combine)
+    f: (A, B, C) -> R,
+): Computation<R> = zip(c1, c2, c3, f)
 
-fun <A, B, C, D, R> mapN(
+fun <A, B, C, D, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
     c4: Computation<D>,
-    combine: (A, B, C, D) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, combine)
+    f: (A, B, C, D) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, f)
 
-fun <A, B, C, D, E, R> mapN(
+fun <A, B, C, D, E, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
     c4: Computation<D>,
     c5: Computation<E>,
-    combine: (A, B, C, D, E) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, combine)
+    f: (A, B, C, D, E) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, f)
 
-fun <A, B, C, D, E, F, R> mapN(
+fun <A, B, C, D, E, F, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
     c4: Computation<D>,
     c5: Computation<E>,
     c6: Computation<F>,
-    combine: (A, B, C, D, E, F) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, combine)
+    f: (A, B, C, D, E, F) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, f)
 
-fun <A, B, C, D, E, F, G, R> mapN(
+fun <A, B, C, D, E, F, G, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -674,10 +674,10 @@ fun <A, B, C, D, E, F, G, R> mapN(
     c5: Computation<E>,
     c6: Computation<F>,
     c7: Computation<G>,
-    combine: (A, B, C, D, E, F, G) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, combine)
+    f: (A, B, C, D, E, F, G) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, f)
 
-fun <A, B, C, D, E, F, G, H, R> mapN(
+fun <A, B, C, D, E, F, G, H, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -686,10 +686,10 @@ fun <A, B, C, D, E, F, G, H, R> mapN(
     c6: Computation<F>,
     c7: Computation<G>,
     c8: Computation<H>,
-    combine: (A, B, C, D, E, F, G, H) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, combine)
+    f: (A, B, C, D, E, F, G, H) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, f)
 
-fun <A, B, C, D, E, F, G, H, I, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -699,10 +699,10 @@ fun <A, B, C, D, E, F, G, H, I, R> mapN(
     c7: Computation<G>,
     c8: Computation<H>,
     c9: Computation<I>,
-    combine: (A, B, C, D, E, F, G, H, I) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, combine)
+    f: (A, B, C, D, E, F, G, H, I) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -713,10 +713,10 @@ fun <A, B, C, D, E, F, G, H, I, J, R> mapN(
     c8: Computation<H>,
     c9: Computation<I>,
     c10: Computation<J>,
-    combine: (A, B, C, D, E, F, G, H, I, J) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, combine)
+    f: (A, B, C, D, E, F, G, H, I, J) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -728,10 +728,10 @@ fun <A, B, C, D, E, F, G, H, I, J, K, R> mapN(
     c9: Computation<I>,
     c10: Computation<J>,
     c11: Computation<K>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, L, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, L, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -744,10 +744,10 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, R> mapN(
     c10: Computation<J>,
     c11: Computation<K>,
     c12: Computation<L>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K, L) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K, L) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, L, M, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, L, M, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -761,10 +761,10 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, R> mapN(
     c11: Computation<K>,
     c12: Computation<L>,
     c13: Computation<M>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K, L, M) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K, L, M) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -779,10 +779,10 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, R> mapN(
     c12: Computation<L>,
     c13: Computation<M>,
     c14: Computation<N>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -798,10 +798,10 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, R> mapN(
     c13: Computation<M>,
     c14: Computation<N>,
     c15: Computation<O>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -818,10 +818,10 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R> mapN(
     c14: Computation<N>,
     c15: Computation<O>,
     c16: Computation<P>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -839,10 +839,10 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> mapN(
     c15: Computation<O>,
     c16: Computation<P>,
     c17: Computation<Q>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -861,10 +861,10 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> mapN(
     c16: Computation<P>,
     c17: Computation<Q>,
     c18: Computation<S>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -884,10 +884,10 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> mapN(
     c17: Computation<Q>,
     c18: Computation<S>,
     c19: Computation<T>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -908,10 +908,10 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> mapN(
     c18: Computation<S>,
     c19: Computation<T>,
     c20: Computation<U>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -933,10 +933,10 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> mapN(
     c19: Computation<T>,
     c20: Computation<U>,
     c21: Computation<V>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, f)
 
-fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> mapN(
+fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> combine(
     c1: Computation<A>,
     c2: Computation<B>,
     c3: Computation<C>,
@@ -959,5 +959,5 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> mapN(
     c20: Computation<U>,
     c21: Computation<V>,
     c22: Computation<W>,
-    combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, combine)
+    f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W) -> R,
+): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, f)

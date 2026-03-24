@@ -26,7 +26,7 @@ class ApplicativeLawsTest {
     @Test
     fun `functor identity - map id == id`() = runTest {
         checkAll(Arb.int()) { x ->
-            val result = Async { pure(x).map { it } }
+            val result = Async { Computation.of(x).map { it } }
             assertEquals(x, result)
         }
     }
@@ -37,8 +37,8 @@ class ApplicativeLawsTest {
         val g: (Int) -> String = { "v=$it" }
 
         checkAll(Arb.int()) { x ->
-            val composed = Async { pure(x).map { g(f(it)) } }
-            val chained = Async { pure(x).map(f).map(g) }
+            val composed = Async { Computation.of(x).map { g(f(it)) } }
+            val chained = Async { Computation.of(x).map(f).map(g) }
             assertEquals(composed, chained)
         }
     }
@@ -48,49 +48,49 @@ class ApplicativeLawsTest {
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `applicative identity - pure id ap v == v`() = runTest {
+    fun `applicative identity - pure id with v == v`() = runTest {
         val id: (Int) -> Int = { it }
 
         checkAll(Arb.int()) { x ->
-            val result = Async { pure(id) ap pure(x) }
+            val result = Async { Computation.of(id) with Computation.of(x) }
             assertEquals(x, result)
         }
     }
 
     @Test
-    fun `applicative homomorphism - pure f ap pure x == pure (f x)`() = runTest {
+    fun `applicative homomorphism - pure f with pure x == pure (f x)`() = runTest {
         val f: (Int) -> String = { "v=$it" }
 
         checkAll(Arb.int()) { x ->
-            val left = Async { pure(f) ap pure(x) }
-            val right = Async { pure(f(x)) }
+            val left = Async { Computation.of(f) with Computation.of(x) }
+            val right = Async { Computation.of(f(x)) }
             assertEquals(left, right)
         }
     }
 
     @Test
-    fun `applicative interchange - u ap pure y == pure (apply y) ap u`() = runTest {
-        val u: Computation<(Int) -> String> = pure { n: Int -> "v=$n" }
+    fun `applicative interchange - u with pure y == pure (apply y) with u`() = runTest {
+        val u: Computation<(Int) -> String> = Computation.of { n: Int -> "v=$n" }
 
         checkAll(Arb.int()) { y ->
-            val left = Async { u ap pure(y) }
+            val left = Async { u with Computation.of(y) }
             val applyY: ((Int) -> String) -> String = { fn -> fn(y) }
-            val right = Async { pure(applyY) ap u }
+            val right = Async { Computation.of(applyY) with u }
             assertEquals(left, right)
         }
     }
 
     @Test
-    fun `applicative composition - pure compose ap u ap v ap w == u ap (v ap w)`() = runTest {
-        val u: Computation<(String) -> String> = pure { s: String -> "[$s]" }
-        val v: Computation<(Int) -> String> = pure { n: Int -> "v=$n" }
+    fun `applicative composition - pure compose with u with v with w == u with (v with w)`() = runTest {
+        val u: Computation<(String) -> String> = Computation.of { s: String -> "[$s]" }
+        val v: Computation<(Int) -> String> = Computation.of { n: Int -> "v=$n" }
 
         val compose: ((String) -> String) -> ((Int) -> String) -> (Int) -> String =
             { f -> { g -> { a -> f(g(a)) } } }
 
         checkAll(Arb.int()) { x ->
-            val left = Async { pure(compose) ap u ap v ap pure(x) }
-            val right = Async { u ap (v ap pure(x)) }
+            val left = Async { Computation.of(compose) with u with v with Computation.of(x) }
+            val right = Async { u with (v with Computation.of(x)) }
             assertEquals(left, right)
         }
     }
@@ -101,10 +101,10 @@ class ApplicativeLawsTest {
 
     @Test
     fun `monad left identity - pure a flatMap f == f a`() = runTest {
-        val f: (Int) -> Computation<String> = { n -> pure("v=$n") }
+        val f: (Int) -> Computation<String> = { n -> Computation.of("v=$n") }
 
         checkAll(Arb.int()) { a ->
-            val left = Async { pure(a).flatMap(f) }
+            val left = Async { Computation.of(a).flatMap(f) }
             val right = Async { f(a) }
             assertEquals(left, right)
         }
@@ -113,20 +113,20 @@ class ApplicativeLawsTest {
     @Test
     fun `monad right identity - m flatMap pure == m`() = runTest {
         checkAll(Arb.int()) { x ->
-            val left = Async { pure(x).flatMap { pure(it) } }
-            val right = Async { pure(x) }
+            val left = Async { Computation.of(x).flatMap { Computation.of(it) } }
+            val right = Async { Computation.of(x) }
             assertEquals(left, right)
         }
     }
 
     @Test
     fun `monad associativity - (m flatMap f) flatMap g == m flatMap (a - f(a) flatMap g)`() = runTest {
-        val f: (Int) -> Computation<Int> = { n -> pure(n + 1) }
-        val g: (Int) -> Computation<String> = { n -> pure("v=$n") }
+        val f: (Int) -> Computation<Int> = { n -> Computation.of(n + 1) }
+        val g: (Int) -> Computation<String> = { n -> Computation.of("v=$n") }
 
         checkAll(Arb.int()) { x ->
-            val left = Async { pure(x).flatMap(f).flatMap(g) }
-            val right = Async { pure(x).flatMap { a -> f(a).flatMap(g) } }
+            val left = Async { Computation.of(x).flatMap(f).flatMap(g) }
+            val right = Async { Computation.of(x).flatMap { a -> f(a).flatMap(g) } }
             assertEquals(left, right)
         }
     }
@@ -141,7 +141,7 @@ class ApplicativeLawsTest {
 
         checkAll(Arb.int()) { x ->
             val effectful = Computation { kotlinx.coroutines.delay(1); x }
-            val result = Async { pure(id) ap effectful }
+            val result = Async { Computation.of(id) with effectful }
             assertEquals(x, result)
         }
     }
@@ -160,8 +160,8 @@ class ApplicativeLawsTest {
 
         checkAll(Arb.int()) { x ->
             val effectful = Computation { kotlinx.coroutines.delay(1); x }
-            val left = Async { pure(compose) ap u ap v ap effectful }
-            val right = Async { u ap (v ap effectful) }
+            val left = Async { Computation.of(compose) with u with v with effectful }
+            val right = Async { u with (v with effectful) }
             assertEquals(left, right)
         }
     }
@@ -193,28 +193,28 @@ class ApplicativeLawsTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // LIFT + AP CONSISTENCY
+    // KAP + WITH CONSISTENCY
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `lift2 ap ap == zip for binary function`() = runTest {
+    fun `kap with with == zip for binary function`() = runTest {
         val f: (Int, String) -> String = { n, s -> "$s=$n" }
 
         checkAll(Arb.int(), Arb.string()) { n, s ->
-            val viaLift = Async { lift2(f).ap(pure(n)).ap(pure(s)) }
-            val viaZip = Async { pure(n).zip(pure(s)) { a, b -> f(a, b) } }
+            val viaLift = Async { kap(f).with(Computation.of(n)).with(Computation.of(s)) }
+            val viaZip = Async { Computation.of(n).zip(Computation.of(s)) { a, b -> f(a, b) } }
             assertEquals(viaLift, viaZip)
         }
     }
 
     @Test
-    fun `lift3 ap ap ap is consistent with nested zip`() = runTest {
+    fun `kap with with with is consistent with nested zip`() = runTest {
         val f: (Int, Int, Int) -> Int = { a, b, c -> a + b + c }
 
         checkAll(Arb.int(), Arb.int(), Arb.int()) { a, b, c ->
-            val viaLift = Async { lift3(f) ap pure(a) ap pure(b) ap pure(c) }
+            val viaLift = Async { kap(f) with Computation.of(a) with Computation.of(b) with Computation.of(c) }
             val viaZip = Async {
-                pure(a).zip(pure(b)) { x, y -> x to y }.zip(pure(c)) { (x, y), z -> f(x, y, z) }
+                Computation.of(a).zip(Computation.of(b)) { x, y -> x to y }.zip(Computation.of(c)) { (x, y), z -> f(x, y, z) }
             }
             assertEquals(viaLift, viaZip)
         }

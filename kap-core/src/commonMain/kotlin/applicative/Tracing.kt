@@ -12,10 +12,10 @@ import kotlin.time.TimeSource
  * tracing, or logging via the callback parameters.
  *
  * ```
- * lift3(::Dashboard)
- *     .ap { fetchUser().traced("user", tracer) }
- *     .ap { fetchConfig().traced("config", tracer) }
- *     .ap { fetchCart().traced("cart", tracer) }
+ * kap(::Dashboard)
+ *     .with { fetchUser().traced("user", tracer) }
+ *     .with { fetchConfig().traced("config", tracer) }
+ *     .with { fetchCart().traced("cart", tracer) }
  * ```
  *
  * [kotlinx.coroutines.CancellationException] is reported via [onError]
@@ -55,9 +55,9 @@ fun <A> Computation<A>.traced(
  *     }
  * }
  *
- * lift2(::Result)
- *     .ap { fetchUser().traced("user", tracer) }
- *     .ap { fetchCart().traced("cart", tracer) }
+ * kap(::Result)
+ *     .with { fetchUser().traced("user", tracer) }
+ *     .with { fetchCart().traced("cart", tracer) }
  * ```
  */
 fun interface ComputationTracer {

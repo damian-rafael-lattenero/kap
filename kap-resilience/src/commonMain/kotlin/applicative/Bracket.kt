@@ -18,9 +18,9 @@ import kotlinx.coroutines.withContext
  *     bracket(
  *         acquire = { openConnection() },
  *         use = { conn ->
- *             lift2(::Result)
- *                 .ap { conn.fetchUser() }
- *                 .ap { conn.fetchCart() }
+ *             kap(::Result)
+ *                 .with { conn.fetchUser() }
+ *                 .with { conn.fetchCart() }
  *         },
  *         release = { conn -> conn.close() },
  *     )

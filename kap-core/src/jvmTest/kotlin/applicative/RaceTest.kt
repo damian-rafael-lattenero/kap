@@ -57,7 +57,7 @@ class RaceTest {
 
     @Test
     fun `raceN with single computation returns it`() = runTest {
-        val result = Async { raceN(pure(42)) }
+        val result = Async { raceN(Computation.of(42)) }
         assertEquals(42, result)
     }
 

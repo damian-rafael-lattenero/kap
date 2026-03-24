@@ -75,36 +75,36 @@ fun <A> Iterable<Computation<A>>.sequence(concurrency: Int): Computation<List<A>
     map { c -> async { semaphore.withPermit { with(c) { execute() } } } }.awaitAll()
 }
 
-// ── traverse_ / sequence_: fire-and-forget (discard results) ──────────
+// ── traverseDiscard / sequenceDiscard: fire-and-forget (discard results)
 
 /**
  * Like [traverse] but discards results. Useful for side-effects (logging,
  * metrics, notifications) where you need parallelism but don't need the output.
  *
  * ```
- * userIds.traverse_ { id -> Computation { notifyUser(id) } }
+ * userIds.traverseDiscard { id -> Computation { notifyUser(id) } }
  * ```
  */
-fun <A> Iterable<A>.traverse_(f: (A) -> Computation<Unit>): Computation<Unit> =
+fun <A> Iterable<A>.traverseDiscard(f: (A) -> Computation<Unit>): Computation<Unit> =
     traverse(f).map { }
 
 /**
- * Like [traverse_] but limits the number of concurrent computations.
+ * Like [traverseDiscard] but limits the number of concurrent computations.
  */
-fun <A> Iterable<A>.traverse_(concurrency: Int, f: (A) -> Computation<Unit>): Computation<Unit> =
+fun <A> Iterable<A>.traverseDiscard(concurrency: Int, f: (A) -> Computation<Unit>): Computation<Unit> =
     traverse(concurrency, f).map { }
 
 /**
  * Like [sequence] but discards results. Executes all computations for
  * their side-effects only.
  */
-fun Iterable<Computation<Unit>>.sequence_(): Computation<Unit> =
+fun Iterable<Computation<Unit>>.sequenceDiscard(): Computation<Unit> =
     sequence().map { }
 
 /**
- * Like [sequence_] but limits the number of concurrent computations.
+ * Like [sequenceDiscard] but limits the number of concurrent computations.
  */
-fun Iterable<Computation<Unit>>.sequence_(concurrency: Int): Computation<Unit> =
+fun Iterable<Computation<Unit>>.sequenceDiscard(concurrency: Int): Computation<Unit> =
     sequence(concurrency).map { }
 
 // ── traverseSettled / sequenceSettled: collect ALL results (no cancellation) ──

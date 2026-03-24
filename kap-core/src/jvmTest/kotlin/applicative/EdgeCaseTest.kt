@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
  * in production but are easy to miss in happy-path testing.
  *
  * Categories:
- * 1. Barrier failure propagation — followedBy throws, post-barrier ap cancelled
+ * 1. Barrier failure propagation — followedBy throws, post-barrier with cancelled
  * 2. Memoize — caching, failure caching, and retry-on-failure
  * 3. Race + CancellationException — internal timeout in a racer
  * 4. PhaseBarrier signal lifecycle — chained barriers, signal on exception
@@ -34,10 +34,10 @@ class EdgeCaseTest {
     fun `followedBy failure propagates the barrier exception`() = runTest {
         val result = runCatching {
             Async {
-                lift3<String, String, String, String> { a, b, c -> "$a|$b|$c" }
-                    .ap { delay(10); "A" }
+                kap<String, String, String, String> { a, b, c -> "$a|$b|$c" }
+                    .with { delay(10); "A" }
                     .followedBy(Computation<String> { throw RuntimeException("barrier failed") })
-                    .ap { delay(10); "C" }
+                    .with { delay(10); "C" }
             }
         }
         assertTrue(result.isFailure)
@@ -45,15 +45,15 @@ class EdgeCaseTest {
     }
 
     @Test
-    fun `followedBy failure with concurrent ap - exception propagates cleanly`() = runTest {
+    fun `followedBy failure with concurrent with - exception propagates cleanly`() = runTest {
         // Proves that when a barrier fails, the whole computation fails
-        // even if there are concurrent ap branches running.
+        // even if there are concurrent with branches running.
         val result = runCatching {
             Async {
-                lift3<String, String, String, String> { a, b, c -> "$a|$b|$c" }
-                    .ap { delay(200); "A" }
+                kap<String, String, String, String> { a, b, c -> "$a|$b|$c" }
+                    .with { delay(200); "A" }
                     .followedBy(Computation<String> { delay(10); throw RuntimeException("boom") })
-                    .ap { delay(100); "C" }
+                    .with { delay(100); "C" }
             }
         }
 
@@ -125,7 +125,7 @@ class EdgeCaseTest {
     }
 
     @Test
-    fun `memoize used in parallel ap branches executes only once`() = runTest {
+    fun `memoize used in parallel with branches executes only once`() = runTest {
         var callCount = 0
         val shared: Computation<String> = Computation {
             callCount++
@@ -134,9 +134,9 @@ class EdgeCaseTest {
         }.memoize()
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap(shared)
-                .ap(shared)
+            kap { a: String, b: String -> "$a|$b" }
+                .with(shared)
+                .with(shared)
         }
         assertEquals("shared-1|shared-1", result)
         assertEquals(1, callCount, "Memoized computation should execute only once even in parallel")
@@ -195,10 +195,10 @@ class EdgeCaseTest {
     @Test
     fun `multiple followedBy barriers chain correctly`() = runTest {
         val result = Async {
-            lift5 { a: String, b: String, c: String, d: String, e: String ->
+            kap { a: String, b: String, c: String, d: String, e: String ->
                 "$a|$b|$c|$d|$e"
             }
-                .ap { delay(20); "A" }
+                .with { delay(20); "A" }
                 .followedBy { delay(10); "B" }
                 .followedBy { delay(10); "C" }
                 .followedBy { delay(10); "D" }
@@ -211,11 +211,11 @@ class EdgeCaseTest {
     @Test
     fun `ap after multiple barriers launches only after last barrier`() = runTest {
         val result = Async {
-            lift4 { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
-                .ap { delay(20); "A" }
+            kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+                .with { delay(20); "A" }
                 .followedBy { delay(20); "B" }
                 .followedBy { delay(20); "C" }
-                .ap { delay(20); "D" }
+                .with { delay(20); "D" }
         }
         assertEquals("A|B|C|D", result)
         assertEquals(80, currentTime, "D waits for both barriers: 20+20+20+20=80ms")

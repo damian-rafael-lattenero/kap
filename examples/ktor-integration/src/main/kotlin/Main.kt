@@ -3,10 +3,10 @@
  * kap-core, kap-resilience, and kap-arrow in a realistic e-commerce BFF.
  *
  * ── kap-core: Parallel orchestration ──────────────────────────────────────
- *   GET  /dashboard/{userId}         lift/ap/followedBy/flatMap, named, traced, memoize
+ *   GET  /dashboard/{userId}         kap/with/followedBy/flatMap, named, traced, memoize
  *   GET  /products                   traverse, traverse(concurrency), traverseSettled
  *   GET  /search?q=…                 computation{} DSL with bind, ensure, ensureNotNull
- *   GET  /compare?ids=…              zip, mapN, race, raceAgainst, settled
+ *   GET  /compare?ids=…              zip, combine, race, raceAgainst, settled
  *
  * ── kap-resilience: Fault tolerance ───────────────────────────────────────
  *   GET  /pricing/{itemId}           raceQuorum, timeoutRace, firstSuccessOf
@@ -14,7 +14,7 @@
  *   GET  /health                     Resource.zip, bracket, guarantee, guaranteeCase
  *
  * ── kap-arrow: Typed error handling ───────────────────────────────────────
- *   POST /register                   validated{} DSL, liftV/apV, flatMapV, traverseV, mapV, mapError
+ *   POST /register                   validated{} DSL, kapV/withV, flatMapV, traverseV, mapV, mapError
  *   POST /validate-batch             traverseV(concurrency), sequenceV, ensureV
  *
  * ── Combined: All three modules ───────────────────────────────────────────
@@ -342,23 +342,23 @@ fun Routing.coreRoutes() {
     //  Phase 2 (barrier):  authorize (needs user context)
     //  Phase 3 (parallel): recommendations (needs user.tier) + notifications
     //
-    //  APIs: lift6, ap, followedBy, flatMap, named, traced, on
+    //  APIs: kap, with, followedBy, flatMap, named, traced, on
     get("/dashboard/{userId}") {
         val userId = call.parameters["userId"]!!
 
         val dashboard = Async {
-            lift6(::Dashboard)
-                .ap(
+            kap(::Dashboard)
+                .with(
                     Computation { Services.fetchUserProfile(userId) }
                         .named("fetchProfile")
                         .traced("profile", tracer)
                 )
-                .ap(
+                .with(
                     Computation { Services.fetchCart(userId) }
                         .named("fetchCart")
                         .traced("cart", tracer)
                 )
-                .ap(
+                .with(
                     Computation { Services.fetchRecentOrders(userId) }
                         .on(Dispatchers.IO)
                         .traced("recentOrders", tracer)
@@ -367,8 +367,8 @@ fun Routing.coreRoutes() {
                     Computation { Services.authorize(userId) }
                         .traced("authorize", tracer)
                 )
-                .ap { Services.fetchRecommendations("Gold") }
-                .ap { Services.countNotifications(userId) }
+                .with { Services.fetchRecommendations("Gold") }
+                .with { Services.countNotifications(userId) }
         }
 
         call.respond(dashboard)
@@ -435,7 +435,7 @@ fun Routing.coreRoutes() {
 
     // ── 4. zip, race, raceAgainst, settled, memoize ────────────────────
     //
-    //  APIs: computation{} DSL with bind(), traverseSettled, race, memoizeOnSuccess, lift2/ap
+    //  APIs: computation{} DSL with bind(), traverseSettled, race, memoizeOnSuccess, kap/with
     get("/compare") {
         val ids = call.request.queryParameters["ids"]?.split(",")
             ?: throw IllegalArgumentException("'ids' parameter required (comma-separated)")
@@ -460,9 +460,9 @@ fun Routing.coreRoutes() {
                     ).bind()
                 } else null
 
-                lift2 { a: Product, b: Product ->
+                kap { a: Product, b: Product ->
                     if (a.price < b.price) a else b
-                }.ap(memoizedExpensive).ap(memoizedExpensive).bind()
+                }.with(memoizedExpensive).with(memoizedExpensive).bind()
 
                 CompareResponse(products, cheapest, statusList)
             }
@@ -534,7 +534,7 @@ fun Routing.resilienceRoutes() {
 
     // ── 6. CircuitBreaker + Schedule retry + retryOrElse ────────────────
     //
-    //  APIs: CircuitBreaker, withCircuitBreaker, Schedule.recurs, Schedule.exponential,
+    //  APIs: CircuitBreaker, withCircuitBreaker, Schedule.times, Schedule.exponential,
     //        jittered, and, retry(schedule), retryOrElse, retryWithResult, attempt
     get("/users/{userId}") {
         val userId = call.parameters["userId"]!!
@@ -543,7 +543,7 @@ fun Routing.resilienceRoutes() {
 
         when (mode) {
             "retry" -> {
-                val policy = Schedule.recurs<Throwable>(5) and
+                val policy = Schedule.times<Throwable>(5) and
                     Schedule.exponential<Throwable>(30.milliseconds).jittered()
 
                 val retryResult = Async {
@@ -555,7 +555,7 @@ fun Routing.resilienceRoutes() {
                 call.respond(UserResponse(retryResult.value, retryResult.attempts, retryResult.totalDelay.toString()))
             }
             "fallback" -> {
-                val policy = Schedule.recurs<Throwable>(1) and
+                val policy = Schedule.times<Throwable>(1) and
                     Schedule.spaced<Throwable>(10.milliseconds)
 
                 val user = Async {
@@ -637,18 +637,18 @@ fun Routing.resilienceRoutes() {
 fun Routing.arrowRoutes() {
 
     // ── 8. Comprehensive validation ─────────────────────────────────────
-    //  APIs: validated{} DSL, liftV/apV, flatMapV, traverseV, mapV, mapError, orThrow
+    //  APIs: validated{} DSL, kapV/withV, flatMapV, traverseV, mapV, mapError, orThrow
     post("/register") {
         val req = call.receive<RegistrationRequest>()
 
         val result = Async {
-            liftV4<RegistrationError, String, String, Int, List<String>, RegistrationResult> { name, email, age, interests ->
+            kapV<RegistrationError, String, String, Int, List<String>, RegistrationResult> { name, email, age, interests ->
                 RegistrationResult("USR-${System.currentTimeMillis()}", name, email, age, interests)
             }
-                .apV { Services.validateName(req.name) }
-                .apV { Services.validateEmail(req.email) }
-                .apV { Services.validateAge(req.age) }
-                .apV(
+                .withV { Services.validateName(req.name) }
+                .withV { Services.validateEmail(req.email) }
+                .withV { Services.validateAge(req.age) }
+                .withV(
                     req.interests.traverseV { interest ->
                         Computation<Either<NonEmptyList<RegistrationError>, String>> {
                             Services.validateSingleInterest(interest)
@@ -697,14 +697,14 @@ fun Routing.arrowRoutes() {
 fun Routing.combinedRoutes() {
 
     // ── 10. Full order pipeline ─────────────────────────────────────────
-    //  kap-arrow:       validate input (liftV3/apV/orThrow)
+    //  kap-arrow:       validate input (kapV/withV/orThrow)
     //  kap-resilience:  resilient fetch (Schedule, retry, timeoutRace, CircuitBreaker, bracket)
-    //  kap-core:        parallel orchestration (lift5, ap, followedBy)
+    //  kap-core:        parallel orchestration (kap, with, followedBy)
     post("/orders") {
         val req = call.receive<OrderRequest>()
         Services.resetCounters()
 
-        val retryPolicy = Schedule.recurs<Throwable>(4) and
+        val retryPolicy = Schedule.times<Throwable>(4) and
             Schedule.exponential<Throwable>(20.milliseconds).jittered()
 
         val paymentBreaker = CircuitBreaker(
@@ -713,24 +713,24 @@ fun Routing.combinedRoutes() {
         )
 
         val order = Async {
-            liftV3<OrderError, ValidatedItem, ValidatedQuantity, ValidatedAddress, ValidatedOrder>(::ValidatedOrder)
-                .apV { Services.validateItem(req.itemId) }
-                .apV { Services.validateQuantity(req.quantity) }
-                .apV { Services.validateAddress(req.street, req.city, req.zip) }
+            kapV<OrderError, ValidatedItem, ValidatedQuantity, ValidatedAddress, ValidatedOrder>(::ValidatedOrder)
+                .withV { Services.validateItem(req.itemId) }
+                .withV { Services.validateQuantity(req.quantity) }
+                .withV { Services.validateAddress(req.street, req.city, req.zip) }
                 .mapError { "${it::class.simpleName}: ${it.message}" }
                 .orThrow()
                 .flatMap { validated ->
-                    lift6(::PlacedOrder)
-                        .ap { validated.item.value }
-                        .ap { validated.qty.value }
-                        .ap(
+                    kap(::PlacedOrder)
+                        .with { validated.item.value }
+                        .with { validated.qty.value }
+                        .with(
                             Computation { Services.checkInventory(validated.item.value) }
                                 .retry(retryPolicy) { attempt, err, nextDelay ->
                                     println("  Inventory retry #$attempt: ${err.message} (waiting $nextDelay)")
                                 }
                                 .traced("inventory", tracer)
                         )
-                        .ap(
+                        .with(
                             Computation { Services.fetchLivePricing(validated.item.value) }
                                 .timeoutRace(100.milliseconds, Computation { Services.fetchCachedPricing(validated.item.value) })
                                 .traced("pricing", tracer)
@@ -738,7 +738,7 @@ fun Routing.combinedRoutes() {
                         .followedBy(
                             Computation { Services.processPayment(validated.qty.value * 49.99 * 0.95) }
                                 .withCircuitBreaker(paymentBreaker)
-                                .retry(Schedule.recurs<Throwable>(2) and Schedule.spaced(30.milliseconds))
+                                .retry(Schedule.times<Throwable>(2) and Schedule.spaced(30.milliseconds))
                                 .traced("payment", tracer)
                         )
                         .followedBy(

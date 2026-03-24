@@ -68,7 +68,7 @@ class ResourceZipBoundaryTest {
     }
 
     @Test
-    fun `Resource useComputation works with ap chains inside`() = runTest {
+    fun `Resource useComputation works with with chains inside`() = runTest {
         val releaseOrder = mutableListOf<String>()
 
         val infra = Resource.zip(
@@ -78,9 +78,9 @@ class ResourceZipBoundaryTest {
 
         val result = Async {
             infra.useComputation { (db, cache) ->
-                lift2 { a: String, b: String -> "$a|$b" }
-                    .ap(Computation { "query:$db" })
-                    .ap(Computation { "get:$cache" })
+                kap { a: String, b: String -> "$a|$b" }
+                    .with(Computation { "query:$db" })
+                    .with(Computation { "get:$cache" })
             }
         }
 

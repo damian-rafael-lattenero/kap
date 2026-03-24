@@ -29,7 +29,7 @@ class ScheduleTest {
                 Computation<String> {
                     attempts++
                     throw RuntimeException("fail #$attempts")
-                }.retry(Schedule.recurs(3))
+                }.retry(Schedule.times(3))
             }
         }
         assertTrue(result.isFailure)
@@ -44,7 +44,7 @@ class ScheduleTest {
                 attempts++
                 if (attempts < 3) throw RuntimeException("fail")
                 "ok"
-            }.retry(Schedule.recurs(5))
+            }.retry(Schedule.times(5))
         }
         assertEquals("ok", result)
         assertEquals(3, attempts)
@@ -62,7 +62,7 @@ class ScheduleTest {
                 Computation<String> {
                     throw RuntimeException("fail")
                 }.retry(
-                    Schedule.recurs<Throwable>(3) and Schedule.exponential(100.milliseconds),
+                    Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds),
                     onRetry = { _, _, _ -> delays.add(currentTime) },
                 )
             }
@@ -88,7 +88,7 @@ class ScheduleTest {
                 Computation<String> {
                     attempts++
                     throw RuntimeException("fail")
-                }.retry(Schedule.recurs<Throwable>(3) and Schedule.spaced(50.milliseconds))
+                }.retry(Schedule.times<Throwable>(3) and Schedule.spaced(50.milliseconds))
             }
         }
         assertTrue(result.isFailure)
@@ -130,7 +130,7 @@ class ScheduleTest {
                 Computation<String> {
                     attempts++
                     throw RuntimeException("fail")
-                }.retry(Schedule.recurs<Throwable>(2) and Schedule.doWhile { true })
+                }.retry(Schedule.times<Throwable>(2) and Schedule.doWhile { true })
             }
         }
         assertTrue(result.isFailure)
@@ -146,7 +146,7 @@ class ScheduleTest {
                 Computation<String> {
                     attempts++
                     throw RuntimeException("fail")
-                }.retry(Schedule.recurs<Throwable>(1) or Schedule.recurs(3))
+                }.retry(Schedule.times<Throwable>(1) or Schedule.times(3))
             }
         }
         assertTrue(result.isFailure)
@@ -196,7 +196,7 @@ class ScheduleTest {
 
     @Test
     fun `jittered preserves Done decisions`() {
-        val schedule = Schedule.recurs<Throwable>(1).jittered()
+        val schedule = Schedule.times<Throwable>(1).jittered()
         val err = RuntimeException("test")
 
         // attempt 0 → Continue (within recurs limit)
@@ -230,7 +230,7 @@ class ScheduleTest {
     @Test
     fun `jittered composes with exponential for production retry`() = runTest {
         val seeded = Random(123)
-        val policy = Schedule.recurs<Throwable>(3) and
+        val policy = Schedule.times<Throwable>(3) and
             Schedule.exponential<Throwable>(100.milliseconds).jittered(0.5, seeded)
 
         var attempts = 0
@@ -283,7 +283,7 @@ class ScheduleTest {
     @Test
     fun `fibonacci with recurs produces correct virtual time`() = runTest {
         var attempts = 0
-        val policy = Schedule.recurs<Throwable>(4) and
+        val policy = Schedule.times<Throwable>(4) and
             Schedule.fibonacci(50.milliseconds)
 
         val result = runCatching {
@@ -368,7 +368,7 @@ class ScheduleTest {
     @Test
     fun `composed policy - recurs + exponential + doWhile`() = runTest {
         var attempts = 0
-        val policy = Schedule.recurs<Throwable>(5) and
+        val policy = Schedule.times<Throwable>(5) and
             Schedule.exponential(50.milliseconds) and
             Schedule.doWhile { it is IOException }
 
@@ -400,7 +400,7 @@ class ScheduleTest {
     @Test
     fun `fold accumulates values across retries`() = runTest {
         var errorLog = emptyList<String>()
-        val policy = Schedule.recurs<Throwable>(3)
+        val policy = Schedule.times<Throwable>(3)
             .fold(emptyList<String>()) { acc, err -> acc + err.message.orEmpty() }
 
         // Capture the fold side-effect via the schedule itself
@@ -432,7 +432,7 @@ class ScheduleTest {
     @Test
     fun `retryWithResult returns attempt count and total delay on success`() = runTest {
         var attempts = 0
-        val policy = Schedule.recurs<Throwable>(3) and Schedule.spaced(50.milliseconds)
+        val policy = Schedule.times<Throwable>(3) and Schedule.spaced(50.milliseconds)
 
         val retryResult = Async {
             Computation<String> {
@@ -450,7 +450,7 @@ class ScheduleTest {
 
     @Test
     fun `retryWithResult reports zero attempts on immediate success`() = runTest {
-        val policy = Schedule.recurs<Throwable>(3)
+        val policy = Schedule.times<Throwable>(3)
 
         val retryResult = Async {
             Computation { "instant" }.retryWithResult(policy)
@@ -463,7 +463,7 @@ class ScheduleTest {
 
     @Test
     fun `retryWithResult throws when schedule exhausted`() = runTest {
-        val policy = Schedule.recurs<Throwable>(2)
+        val policy = Schedule.times<Throwable>(2)
 
         val result = runCatching {
             Async {

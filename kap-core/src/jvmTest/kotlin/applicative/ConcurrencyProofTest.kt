@@ -28,18 +28,18 @@ import kotlin.test.assertTrue
 class ConcurrencyProofTest {
 
     // ════════════════════════════════════════════════════════════════════════
-    // 1. VIRTUAL-TIME PROOF: parallel ap completes in O(max), not O(sum)
+    // 1. VIRTUAL-TIME PROOF: parallel with completes in O(max), not O(sum)
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
     fun `5 parallel 50ms calls complete in 50ms virtual time not 250ms`() = runTest {
         Async {
-            lift5 { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
-                .ap { delay(50); "A" }
-                .ap { delay(50); "B" }
-                .ap { delay(50); "C" }
-                .ap { delay(50); "D" }
-                .ap { delay(50); "E" }
+            kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
+                .with { delay(50); "A" }
+                .with { delay(50); "B" }
+                .with { delay(50); "C" }
+                .with { delay(50); "D" }
+                .with { delay(50); "E" }
         }
 
         // If sequential: 250ms. If parallel: 50ms.
@@ -50,14 +50,14 @@ class ConcurrencyProofTest {
     @Test
     fun `10 parallel 30ms calls complete in 30ms virtual time not 300ms`() = runTest {
         Async {
-            lift10 { a: String, b: String, c: String, d: String, e: String,
+            kap { a: String, b: String, c: String, d: String, e: String,
                      f: String, g: String, h: String, i: String, j: String ->
                 listOf(a, b, c, d, e, f, g, h, i, j).joinToString("|")
             }
-                .ap { delay(30); "v1" }.ap { delay(30); "v2" }.ap { delay(30); "v3" }
-                .ap { delay(30); "v4" }.ap { delay(30); "v5" }.ap { delay(30); "v6" }
-                .ap { delay(30); "v7" }.ap { delay(30); "v8" }.ap { delay(30); "v9" }
-                .ap { delay(30); "v10" }
+                .with { delay(30); "v1" }.with { delay(30); "v2" }.with { delay(30); "v3" }
+                .with { delay(30); "v4" }.with { delay(30); "v5" }.with { delay(30); "v6" }
+                .with { delay(30); "v7" }.with { delay(30); "v8" }.with { delay(30); "v9" }
+                .with { delay(30); "v10" }
         }
 
         assertEquals(30, currentTime,
@@ -81,21 +81,21 @@ class ConcurrencyProofTest {
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `followedBy is a true phase barrier - post-barrier ap waits`() = runTest {
-        // followedBy creates a real phase barrier. Post-barrier ap calls
+    fun `followedBy is a true phase barrier - post-barrier with waits`() = runTest {
+        // followedBy creates a real phase barrier. Post-barrier with calls
         // do NOT launch until the barrier completes.
         //
-        // Timeline for: lift4(f).ap{A@30}.ap{B@30}.followedBy{C@50}.ap{D@30}
+        // Timeline for: kap(f).with{A@30}.with{B@30}.followedBy{C@50}.with{D@30}
         //   t=0:  A, B launch (pre-barrier ap, parallel)
         //   t=30: A, B complete. followedBy runs C
         //   t=80: C completes. Barrier signal fires. D launches.
         //   t=110: D completes.
         val result = Async {
-            lift4 { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
-                .ap { delay(30); "A" }
-                .ap { delay(30); "B" }
+            kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+                .with { delay(30); "A" }
+                .with { delay(30); "B" }
                 .followedBy { delay(50); "C" }
-                .ap { delay(30); "D" }
+                .with { delay(30); "D" }
         }
 
         assertEquals("A|B|C|D", result)
@@ -106,14 +106,14 @@ class ConcurrencyProofTest {
 
     @Test
     fun `thenValue preserves old eager-launch semantics - no barrier`() = runTest {
-        // thenValue fills a slot sequentially but does NOT gate subsequent ap calls.
+        // thenValue fills a slot sequentially but does NOT gate subsequent with calls.
         // D launches at t=0 and overlaps with everything.
         val result = Async {
-            lift4 { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
-                .ap { delay(30); "A" }
-                .ap { delay(30); "B" }
+            kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+                .with { delay(30); "A" }
+                .with { delay(30); "B" }
                 .thenValue { delay(50); "C" }
-                .ap { delay(30); "D" }
+                .with { delay(30); "D" }
         }
 
         assertEquals("A|B|C|D", result)
@@ -125,13 +125,13 @@ class ConcurrencyProofTest {
     @Test
     fun `followedBy ordering proof - barrier value depends on prior phase`() = runTest {
         // Proves the VALUE from followedBy is sequenced correctly,
-        // even though subsequent ap computations launch eagerly.
+        // even though subsequent with computations launch eagerly.
         val order = mutableListOf<String>()
 
         val result = Async {
-            lift4 { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
-                .ap { order.add("A"); "A" }
-                .ap { order.add("B"); "B" }
+            kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+                .with { order.add("A"); "A" }
+                .with { order.add("B"); "B" }
                 .followedBy { order.add("C"); "C" }
                 .followedBy { order.add("D"); "D" }
         }
@@ -152,15 +152,15 @@ class ConcurrencyProofTest {
         // Phase 2: E, F launch in parallel AFTER barrier (40ms)
         // Total: 40 + 30 + 40 = 110ms
         val result = Async {
-            lift6 { a: String, b: String, c: String, d: String, e: String, f: String ->
+            kap { a: String, b: String, c: String, d: String, e: String, f: String ->
                 "$a|$b|$c|$d|$e|$f"
             }
-                .ap { delay(40); "A" }            // ┐ phase 1: parallel
-                .ap { delay(40); "B" }            // │
-                .ap { delay(40); "C" }            // ┘
+                .with { delay(40); "A" }            // ┐ phase 1: parallel
+                .with { delay(40); "B" }            // │
+                .with { delay(40); "C" }            // ┘
                 .followedBy { delay(30); "D" }    // ── barrier
-                .ap { delay(40); "E" }            // ┐ phase 2: parallel (after barrier)
-                .ap { delay(40); "F" }            // ┘
+                .with { delay(40); "E" }            // ┐ phase 2: parallel (after barrier)
+                .with { delay(40); "F" }            // ┘
         }
 
         assertEquals("A|B|C|D|E|F", result)
@@ -169,17 +169,17 @@ class ConcurrencyProofTest {
     }
 
     @Test
-    fun `multiple ap calls after followedBy all run in parallel`() = runTest {
-        // Proves that post-barrier ap calls launch SIMULTANEOUSLY when the barrier fires
+    fun `multiple with calls after followedBy all run in parallel`() = runTest {
+        // Proves that post-barrier with calls launch SIMULTANEOUSLY when the barrier fires
         val result = Async {
-            lift5 { a: String, b: String, c: String, d: String, e: String ->
+            kap { a: String, b: String, c: String, d: String, e: String ->
                 "$a|$b|$c|$d|$e"
             }
-                .ap { delay(20); "A" }
+                .with { delay(20); "A" }
                 .followedBy { delay(30); "B" }
-                .ap { delay(40); "C" }    // ┐ all three launch when barrier fires
-                .ap { delay(40); "D" }    // │ at t=50, and complete at t=90
-                .ap { delay(40); "E" }    // ┘
+                .with { delay(40); "C" }    // ┐ all three launch when barrier fires
+                .with { delay(40); "D" }    // │ at t=50, and complete at t=90
+                .with { delay(40); "E" }    // ┘
         }
 
         assertEquals("A|B|C|D|E", result)
@@ -199,21 +199,21 @@ class ConcurrencyProofTest {
 
         runCatching {
             Async {
-                lift10 { a: String, b: String, c: String, d: String, e: String,
+                kap { a: String, b: String, c: String, d: String, e: String,
                          f: String, g: String, h: String, i: String, j: String ->
                     "$a|$b|$c|$d|$e|$f|$g|$h|$i|$j"
                 }
-                    .ap { allStarted[0].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[0].complete(true); throw e } }
-                    .ap { allStarted[1].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[1].complete(true); throw e } }
-                    .ap { allStarted[2].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[2].complete(true); throw e } }
-                    .ap { allStarted[3].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[3].complete(true); throw e } }
-                    .ap { allStarted[4].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[4].complete(true); throw e } }
-                    .ap { allStarted[5].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[5].complete(true); throw e } }
-                    .ap { allStarted[6].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[6].complete(true); throw e } }
-                    .ap { allStarted[7].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[7].complete(true); throw e } }
-                    .ap { allStarted[8].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[8].complete(true); throw e } }
+                    .with { allStarted[0].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[0].complete(true); throw e } }
+                    .with { allStarted[1].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[1].complete(true); throw e } }
+                    .with { allStarted[2].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[2].complete(true); throw e } }
+                    .with { allStarted[3].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[3].complete(true); throw e } }
+                    .with { allStarted[4].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[4].complete(true); throw e } }
+                    .with { allStarted[5].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[5].complete(true); throw e } }
+                    .with { allStarted[6].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[6].complete(true); throw e } }
+                    .with { allStarted[7].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[7].complete(true); throw e } }
+                    .with { allStarted[8].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[8].complete(true); throw e } }
                     // The 10th: ensures all others started, then crashes
-                    .ap {
+                    .with {
                         allStarted[9].complete(Unit)
                         allStarted.forEach { it.await() }
                         throw RuntimeException("crash")
@@ -246,12 +246,12 @@ class ConcurrencyProofTest {
 
         // Library (starts from same virtual clock)
         Async {
-            lift5 { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
-                .ap { delay(50); "A" }
-                .ap { delay(50); "B" }
-                .ap { delay(50); "C" }
-                .ap { delay(50); "D" }
-                .ap { delay(50); "E" }
+            kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
+                .with { delay(50); "A" }
+                .with { delay(50); "B" }
+                .with { delay(50); "C" }
+                .with { delay(50); "D" }
+                .with { delay(50); "E" }
         }
         val libTime = currentTime - rawTime
 
@@ -267,15 +267,15 @@ class ConcurrencyProofTest {
         // Phase 2: shipping, tax launch in parallel (40ms) → t=110
         // Barrier 2: pay (50ms) → t=160
         Async {
-            lift7 { a: String, b: String, c: String, d: String, e: String, f: String, g: String ->
+            kap { a: String, b: String, c: String, d: String, e: String, f: String, g: String ->
                 "$a|$b|$c|$d|$e|$f|$g"
             }
-                .ap { delay(40); "user" }           // ┐ phase 1
-                .ap { delay(40); "cart" }           // │
-                .ap { delay(40); "promos" }         // ┘
+                .with { delay(40); "user" }           // ┐ phase 1
+                .with { delay(40); "cart" }           // │
+                .with { delay(40); "promos" }         // ┘
                 .followedBy { delay(30); "valid" }  // ── barrier 1
-                .ap { delay(40); "shipping" }       // ┐ phase 2 (after barrier 1)
-                .ap { delay(40); "tax" }            // ┘
+                .with { delay(40); "shipping" }       // ┐ phase 2 (after barrier 1)
+                .with { delay(40); "tax" }            // ┘
                 .followedBy { delay(50); "pay" }    // ── barrier 2
         }
 
@@ -298,27 +298,27 @@ class ConcurrencyProofTest {
         // Total: 30 + 20 + 30 + 20 + 30 = 130ms
         // Sequential would be: 14*30 + 2*20 = 460ms (3.5x speedup)
         val result = Async {
-            lift14 { v1: String, v2: String, v3: String, v4: String,
+            kap { v1: String, v2: String, v3: String, v4: String,
                      v5: String,
                      v6: String, v7: String, v8: String, v9: String, v10: String,
                      v11: String,
                      v12: String, v13: String, v14: String ->
                 listOf(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14).joinToString("|")
             }
-                .ap { delay(30); "user" }          // ┐ phase 1
-                .ap { delay(30); "prefs" }         // │
-                .ap { delay(30); "loyalty" }       // │
-                .ap { delay(30); "orders" }        // ┘
+                .with { delay(30); "user" }          // ┐ phase 1
+                .with { delay(30); "prefs" }         // │
+                .with { delay(30); "loyalty" }       // │
+                .with { delay(30); "orders" }        // ┘
                 .followedBy { delay(20); "persona" } // ── barrier 1
-                .ap { delay(30); "recs" }          // ┐ phase 2
-                .ap { delay(30); "promos" }        // │
-                .ap { delay(30); "trending" }      // │
-                .ap { delay(30); "seller" }        // │
-                .ap { delay(30); "flash" }         // ┘
+                .with { delay(30); "recs" }          // ┐ phase 2
+                .with { delay(30); "promos" }        // │
+                .with { delay(30); "trending" }      // │
+                .with { delay(30); "seller" }        // │
+                .with { delay(30); "flash" }         // ┘
                 .followedBy { delay(20); "layout" }  // ── barrier 2
-                .ap { delay(30); "notifs" }        // ┐ phase 3
-                .ap { delay(30); "cart" }          // │
-                .ap { delay(30); "wishlist" }      // ┘
+                .with { delay(30); "notifs" }        // ┐ phase 3
+                .with { delay(30); "cart" }          // │
+                .with { delay(30); "wishlist" }      // ┘
         }
 
         assertEquals(14, result.split("|").size)

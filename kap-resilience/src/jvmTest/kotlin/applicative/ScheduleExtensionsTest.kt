@@ -35,7 +35,7 @@ class ScheduleExtensionsTest {
 
     @Test
     fun `collect accumulates values`() {
-        val schedule = Schedule.recurs<String>(3).collect()
+        val schedule = Schedule.times<String>(3).collect()
         // collect wraps fold which doesn't change retry behavior
         assertEquals(Schedule.Decision.Continue(ZERO), schedule.decide(0, "a"))
         assertEquals(Schedule.Decision.Continue(ZERO), schedule.decide(1, "b"))
@@ -54,7 +54,7 @@ class ScheduleExtensionsTest {
 
     @Test
     fun `zipWith stops when either schedule stops`() {
-        val s1 = Schedule.recurs<Int>(2)
+        val s1 = Schedule.times<Int>(2)
         val s2 = Schedule.forever<Int>()
         val combined = s1.zipWith(s2) { a, b -> maxOf(a, b) }
         assertEquals(Schedule.Decision.Continue(ZERO), combined.decide(0, 0))

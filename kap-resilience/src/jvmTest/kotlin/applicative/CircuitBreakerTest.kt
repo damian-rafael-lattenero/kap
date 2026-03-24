@@ -114,7 +114,7 @@ class CircuitBreakerTest {
     }
 
     @Test
-    fun `parallel ap branches — latch barrier proof`() = runTest {
+    fun `parallel with branches — latch barrier proof`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 1.seconds)
         val latch1 = CompletableDeferred<Unit>()
         val latch2 = CompletableDeferred<Unit>()
@@ -126,7 +126,7 @@ class CircuitBreakerTest {
             latch2.complete(Unit); latch1.await(); "B"
         }.withCircuitBreaker(breaker)
 
-        val graph = lift2 { a: String, b: String -> "$a|$b" }.ap(compA).ap(compB)
+        val graph = kap { a: String, b: String -> "$a|$b" }.with(compA).with(compB)
         assertEquals("A|B", Async { graph })
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
@@ -154,7 +154,7 @@ class CircuitBreakerTest {
 
         val compA = Computation<String> { error("nope") }.withCircuitBreaker(breaker).recover { "fast-a" }
         val compB = Computation<String> { error("nope") }.withCircuitBreaker(breaker).recover { "fast-b" }
-        val graph = lift2 { a: String, b: String -> "$a|$b" }.ap(compA).ap(compB)
+        val graph = kap { a: String, b: String -> "$a|$b" }.with(compA).with(compB)
         assertEquals("fast-a|fast-b", Async { graph })
     }
 
@@ -172,7 +172,7 @@ class CircuitBreakerTest {
         var callCount = 0
         val graph = Computation<String> {
             callCount++; throw RuntimeException("always fails")
-        }.withCircuitBreaker(breaker).retry(Schedule.recurs(4))
+        }.withCircuitBreaker(breaker).retry(Schedule.times(4))
 
         assertTrue(runCatching { Async { graph } }.isFailure)
         assertEquals(5, callCount)

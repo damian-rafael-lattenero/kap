@@ -13,20 +13,20 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Tests for Phase 6 improvements:
- * - liftA6..liftA9
+ * - combine (6)..combine (9)
  * - traverse_ / sequence_ (fire-and-forget)
  * - memoize(null) edge case
  */
 class Phase6Test {
 
     // ════════════════════════════════════════════════════════════════════════
-    // liftA6..liftA9
+    // combine (6)..combine (9)
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `liftA6 runs 6 lambdas in parallel`() = runTest {
+    fun `combine (6) runs 6 lambdas in parallel`() = runTest {
         val result = Async {
-            liftA6(
+            combine(
                 { delay(50.milliseconds); 1 },
                 { delay(50.milliseconds); 2 },
                 { delay(50.milliseconds); 3 },
@@ -40,9 +40,9 @@ class Phase6Test {
     }
 
     @Test
-    fun `liftA7 runs 7 lambdas in parallel`() = runTest {
+    fun `combine (7) runs 7 lambdas in parallel`() = runTest {
         val result = Async {
-            liftA7(
+            combine(
                 { delay(50.milliseconds); 1 },
                 { delay(50.milliseconds); 2 },
                 { delay(50.milliseconds); 3 },
@@ -57,9 +57,9 @@ class Phase6Test {
     }
 
     @Test
-    fun `liftA8 runs 8 lambdas in parallel`() = runTest {
+    fun `combine (8) runs 8 lambdas in parallel`() = runTest {
         val result = Async {
-            liftA8(
+            combine(
                 { delay(50.milliseconds); 1 },
                 { delay(50.milliseconds); 2 },
                 { delay(50.milliseconds); 3 },
@@ -75,9 +75,9 @@ class Phase6Test {
     }
 
     @Test
-    fun `liftA9 runs 9 lambdas in parallel`() = runTest {
+    fun `combine (9) runs 9 lambdas in parallel`() = runTest {
         val result = Async {
-            liftA9(
+            combine(
                 { delay(50.milliseconds); 1 },
                 { delay(50.milliseconds); 2 },
                 { delay(50.milliseconds); 3 },
@@ -94,10 +94,10 @@ class Phase6Test {
     }
 
     @Test
-    fun `liftA9 propagates failure correctly`() = runTest {
+    fun `combine (9) propagates failure correctly`() = runTest {
         val result = runCatching {
             Async {
-                liftA9(
+                combine(
                     { 1 },
                     { 2 },
                     { throw IllegalStateException("boom"); @Suppress("UNREACHABLE_CODE") 3 },
@@ -124,7 +124,7 @@ class Phase6Test {
     fun `traverse_ executes all side-effects in parallel`() = runTest {
         val log = mutableListOf<Int>()
         Async {
-            (1..5).toList().traverse_ { i ->
+            (1..5).toList().traverseDiscard { i ->
                 Computation {
                     delay(50.milliseconds)
                     synchronized(log) { log.add(i) }
@@ -140,7 +140,7 @@ class Phase6Test {
     fun `traverse_ with concurrency limit`() = runTest {
         val log = mutableListOf<Int>()
         Async {
-            (1..6).toList().traverse_(3) { i ->
+            (1..6).toList().traverseDiscard(3) { i ->
                 Computation {
                     delay(50.milliseconds)
                     synchronized(log) { log.add(i) }
@@ -160,7 +160,7 @@ class Phase6Test {
             Computation { delay(50.milliseconds); synchronized(log) { log.add("b") }; Unit },
             Computation { delay(50.milliseconds); synchronized(log) { log.add("c") }; Unit },
         )
-        Async { computations.sequence_() }
+        Async { computations.sequenceDiscard() }
         assertEquals(50, currentTime)
         assertEquals(3, log.size)
     }
@@ -171,7 +171,7 @@ class Phase6Test {
         val computations: List<Computation<Unit>> = (1..4).map { i ->
             Computation { delay(50.milliseconds); synchronized(log) { log.add("$i") }; Unit }
         }
-        Async { computations.sequence_(2) }
+        Async { computations.sequenceDiscard(2) }
         // 4 items, concurrency 2 → 2 batches × 50ms = 100ms
         assertTrue(currentTime >= 100)
         assertEquals(4, log.size)
@@ -216,7 +216,7 @@ class Phase6Test {
     }
 
     @Test
-    fun `memoize with null in parallel ap`() = runTest {
+    fun `memoize with null in parallel kap+with`() = runTest {
         var callCount = 0
         val nullComp = Computation<String?> {
             callCount++
@@ -225,9 +225,9 @@ class Phase6Test {
         }.memoize()
 
         val result = Async {
-            lift2 { a: String?, b: String? -> "${a}|${b}" }
-                .ap { nullComp.await() }
-                .ap { nullComp.await() }
+            kap { a: String?, b: String? -> "${a}|${b}" }
+                .with { nullComp.await() }
+                .with { nullComp.await() }
         }
         assertEquals("null|null", result)
         assertEquals(1, callCount)

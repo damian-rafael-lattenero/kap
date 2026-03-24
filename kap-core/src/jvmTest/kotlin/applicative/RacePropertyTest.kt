@@ -178,21 +178,21 @@ class RacePropertyTest {
         assertTrue(currentTime in 40..60, "Should wait for slow success: ${currentTime}ms")
     }
 
-    // ── race inside ap chains ──────────────────────────────────────────────
+    // ── race inside with chains ──────────────────────────────────────────────
 
     @Test
-    fun `race composed with ap — parallel branches with racing`() = runTest {
+    fun `race composed with with — parallel branches with racing`() = runTest {
         data class Result(val a: String, val b: String)
 
         val result = Async {
-            lift2(::Result)
-                .ap {
+            kap(::Result)
+                .with {
                     race(
                         Computation { delay(100.milliseconds); "slow-a" },
                         Computation { delay(10.milliseconds); "fast-a" },
                     ).await()
                 }
-                .ap {
+                .with {
                     race(
                         Computation { delay(10.milliseconds); "fast-b" },
                         Computation { delay(100.milliseconds); "slow-b" },

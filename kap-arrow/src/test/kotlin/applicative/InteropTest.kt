@@ -33,9 +33,9 @@ class InteropTest {
         val deferredB = CompletableDeferred("world")
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a $b" }
-                .ap { with(deferredA.toComputation()) { execute() } }
-                .ap { with(deferredB.toComputation()) { execute() } }
+            kap { a: String, b: String -> "$a $b" }
+                .with { with(deferredA.toComputation()) { execute() } }
+                .with { with(deferredB.toComputation()) { execute() } }
         }
         assertEquals("hello world", result)
     }
@@ -46,7 +46,7 @@ class InteropTest {
 
     @Test
     fun `Computation toDeferred starts eagerly in scope`() = runTest {
-        val computation = pure(42)
+        val computation = Computation.of(42)
         val deferred = coroutineScope {
             computation.toDeferred(this)
         }
@@ -67,9 +67,9 @@ class InteropTest {
     @Test
     fun `Flow firstAsComputation composes with lift+ap`() = runTest {
         val result = Async {
-            lift2 { a: String, b: Int -> "$a=$b" }
-                .ap { with(flowOf("count").firstAsComputation()) { execute() } }
-                .ap { with(flowOf(42).firstAsComputation()) { execute() } }
+            kap { a: String, b: Int -> "$a=$b" }
+                .with { with(flowOf("count").firstAsComputation()) { execute() } }
+                .with { with(flowOf(42).firstAsComputation()) { execute() } }
         }
         assertEquals("count=42", result)
     }
@@ -91,9 +91,9 @@ class InteropTest {
         val fetchAge: suspend () -> Int = { 30 }
 
         val result = Async {
-            lift2 { name: String, age: Int -> "$name($age)" }
-                .ap { with(fetchUser.toComputation()) { execute() } }
-                .ap { with(fetchAge.toComputation()) { execute() } }
+            kap { name: String, age: Int -> "$name($age)" }
+                .with { with(fetchUser.toComputation()) { execute() } }
+                .with { with(fetchAge.toComputation()) { execute() } }
         }
         assertEquals("Alice(30)", result)
     }
@@ -201,7 +201,7 @@ class InteropTest {
         val result = Async {
             race(
                 delayed(10_000.milliseconds, "slow"),
-                pure("fast"),
+                Computation.of("fast"),
             )
         }
         assertEquals("fast", result)
@@ -217,13 +217,13 @@ class InteropTest {
         val computation = deferred.toComputation()
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap {
+            kap { a: String, b: String -> "$a|$b" }
+                .with {
                     kotlinx.coroutines.delay(50)
                     deferred.complete("resolved")
                     "trigger"
                 }
-                .ap { with(computation) { execute() } }
+                .with { with(computation) { execute() } }
         }
         assertEquals("trigger|resolved", result)
     }
@@ -262,9 +262,9 @@ class InteropTest {
         val bad = Result.failure<Int>(RuntimeException("oops")).toValidated { "error: ${it.message}" }
 
         val result = Async {
-            liftV2<String, Int, Int, Int> { a, b -> a + b }
-                .apV(good)
-                .apV(bad)
+            kapV<String, Int, Int, Int> { a, b -> a + b }
+                .withV(good)
+                .withV(bad)
         }
 
         assertTrue(result is Either.Left)

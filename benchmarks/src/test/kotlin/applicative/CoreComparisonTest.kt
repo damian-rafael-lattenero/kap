@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.milliseconds
 // Every major kap-core operation implemented three ways:
 //   1. Raw Coroutines  — manual async/await
 //   2. Arrow           — parZip / arrow-fx
-//   3. KAP             — lift + ap / combinators
+//   3. KAP             — kap + with / combinators
 // ════════════════════════════════════════════════════════════════════════════════
 
 private suspend fun fetchUser(): UserProfile { delay(50.milliseconds); return UserProfile("Alice", 1) }
@@ -109,10 +109,10 @@ class CoreComparisonTest {
         data class Result(val user: UserProfile, val friends: FriendList, val prefs: Preferences)
         val result = Async {
             Computation { fetchUser() }.flatMap { user ->
-                lift3(::Result)
-                    .ap(pure(user))
-                    .ap { fetchFriends(user.id) }
-                    .ap { fetchPrefs() }
+                kap(::Result)
+                    .with(Computation.of(user))
+                    .with { fetchFriends(user.id) }
+                    .with { fetchPrefs() }
             }
         }
         assertEquals("Alice", result.user.name)
@@ -169,9 +169,9 @@ class CoreComparisonTest {
 
     @Test fun `fan-out 5 - kap`() = runTest {
         val result = Async {
-            lift5(::SimpleFanout)
-                .ap { fetchUser() }.ap { fetchCart() }.ap { fetchPromos() }
-                .ap { calcShipping() }.ap { calcTax() }
+            kap(::SimpleFanout)
+                .with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }
+                .with { calcShipping() }.with { calcTax() }
         }
         assertEquals(expectedFanout, result)
     }
@@ -211,10 +211,10 @@ class CoreComparisonTest {
 
     @Test fun `multi-phase - kap`() = runTest {
         val result = Async {
-            lift7(::CheckoutPhased)
-                .ap { fetchUser() }.ap { fetchCart() }.ap { fetchPromos() }.ap { fetchInventory() }
+            kap(::CheckoutPhased)
+                .with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }.with { fetchInventory() }
                 .followedBy { validateStock() }
-                .ap { calcShipping() }.ap { calcTax() }
+                .with { calcShipping() }.with { calcTax() }
         }
         assertEquals(expectedPhased, result)
     }
@@ -249,10 +249,10 @@ class CoreComparisonTest {
 
     @Test fun `multi-phase 4-phases - kap`() = runTest {
         val result = Async {
-            lift7(::FullCheckout)
-                .ap { fetchUser() }.ap { fetchCart() }.ap { fetchPromos() }
+            kap(::FullCheckout)
+                .with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }
                 .followedBy { validateStock() }
-                .ap { calcShipping() }.ap { calcTax() }
+                .with { calcShipping() }.with { calcTax() }
                 .followedBy { reservePayment() }
         }
         assertEquals(expectedCheckout, result)
@@ -295,7 +295,7 @@ class CoreComparisonTest {
     @Test fun `sequence - kap`() = runTest {
         val results = Async {
             listOf(
-                Computation { fetchUser() }, pure(UserProfile("Bob", 2)), pure(UserProfile("Charlie", 3)),
+                Computation { fetchUser() }, Computation.of(UserProfile("Bob", 2)), Computation.of(UserProfile("Charlie", 3)),
             ).sequence()
         }
         assertEquals(3, results.size)
@@ -390,7 +390,7 @@ class CoreComparisonTest {
     @Test fun `fallback - kap`() = runTest {
         val result = Async {
             Computation<UserProfile> { fetchUserFailing() }
-                .fallback(pure(UserProfile("Default", 0)))
+                .fallback(Computation.of(UserProfile("Default", 0)))
         }
         assertEquals("Default", result.name)
     }
@@ -445,9 +445,9 @@ class CoreComparisonTest {
 
     @Test fun `on - kap - switch dispatcher`() = runTest {
         val result = Async {
-            lift2 { a: UserProfile, b: ShoppingCart -> a.name to b.items }
-                .ap(Computation { fetchUser() }.on(kotlinx.coroutines.Dispatchers.Default))
-                .ap(Computation { fetchCart() }.on(kotlinx.coroutines.Dispatchers.Default))
+            kap { a: UserProfile, b: ShoppingCart -> a.name to b.items }
+                .with(Computation { fetchUser() }.on(kotlinx.coroutines.Dispatchers.Default))
+                .with(Computation { fetchCart() }.on(kotlinx.coroutines.Dispatchers.Default))
         }
         assertEquals("Alice" to 3, result)
     }
@@ -471,10 +471,10 @@ class CoreComparisonTest {
     @Test fun `traced - kap - composable`() = runTest {
         val events = mutableListOf<String>()
         val result = Async {
-            lift2 { a: UserProfile, b: ShoppingCart -> a.name to b.items }
-                .ap(Computation { fetchUser() }.traced("user",
+            kap { a: UserProfile, b: ShoppingCart -> a.name to b.items }
+                .with(Computation { fetchUser() }.traced("user",
                     onStart = { events += "start:$it" }, onSuccess = { n, _ -> events += "done:$n" }))
-                .ap(Computation { fetchCart() }.traced("cart",
+                .with(Computation { fetchCart() }.traced("cart",
                     onStart = { events += "start:$it" }, onSuccess = { n, _ -> events += "done:$n" }))
         }
         assertEquals("Alice" to 3, result)
@@ -485,9 +485,9 @@ class CoreComparisonTest {
         val events = mutableListOf<TraceEvent>()
         val tracer = ComputationTracer { events += it }
         Async {
-            lift2 { a: UserProfile, b: ShoppingCart -> a.name to b.items }
-                .ap(Computation { fetchUser() }.traced("user", tracer))
-                .ap(Computation { fetchCart() }.traced("cart", tracer))
+            kap { a: UserProfile, b: ShoppingCart -> a.name to b.items }
+                .with(Computation { fetchUser() }.traced("user", tracer))
+                .with(Computation { fetchCart() }.traced("cart", tracer))
         }
         assertEquals(4, events.size)
     }
@@ -496,7 +496,7 @@ class CoreComparisonTest {
     // AP-OR-NULL
     // ═══════════════════════════════════════════════════════════════════════
 
-    @Test fun `apOrNull - raw`() = runTest {
+    @Test fun `withOrNull - raw`() = runTest {
         val insurance: (suspend () -> InsurancePlan)? = null
         val result = coroutineScope {
             fetchUser().name to insurance?.invoke()?.provider
@@ -504,11 +504,11 @@ class CoreComparisonTest {
         assertEquals("Alice" to null, result)
     }
 
-    @Test fun `apOrNull - kap`() = runTest {
+    @Test fun `withOrNull - kap`() = runTest {
         val insurance: Computation<InsurancePlan>? = null
         val result = Async {
-            lift2 { u: UserProfile, i: InsurancePlan? -> u.name to i?.provider }
-                .ap { fetchUser() }.apOrNull(insurance)
+            kap { u: UserProfile, i: InsurancePlan? -> u.name to i?.provider }
+                .with { fetchUser() }.withOrNull(insurance)
         }
         assertEquals("Alice" to null, result)
     }

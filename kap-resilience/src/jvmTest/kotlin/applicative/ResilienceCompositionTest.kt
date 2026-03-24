@@ -19,7 +19,7 @@ class ResilienceCompositionTest {
 
     @Test
     fun `retryOrElse invokes fallback when schedule exhausted`() = runTest {
-        val schedule = Schedule.recurs<Throwable>(2)
+        val schedule = Schedule.times<Throwable>(2)
         var attempts = 0
         val result = Async {
             Computation<String> {
@@ -33,7 +33,7 @@ class ResilienceCompositionTest {
 
     @Test
     fun `retryOrElse succeeds before exhaustion`() = runTest {
-        val schedule = Schedule.recurs<Throwable>(5)
+        val schedule = Schedule.times<Throwable>(5)
         var attempts = 0
         val result = Async {
             Computation {
@@ -48,7 +48,7 @@ class ResilienceCompositionTest {
 
     @Test
     fun `retryOrElse propagates CancellationException without fallback`() = runTest {
-        val schedule = Schedule.recurs<Throwable>(3)
+        val schedule = Schedule.times<Throwable>(3)
         val comp = Computation<String> {
             throw CancellationException("cancel")
         }.retryOrElse(schedule) { "should not reach" }
@@ -57,7 +57,7 @@ class ResilienceCompositionTest {
 
     @Test
     fun `retryOrElse with zero retries goes directly to fallback`() = runTest {
-        val schedule = Schedule.recurs<Throwable>(0)
+        val schedule = Schedule.times<Throwable>(0)
         val result = Async {
             Computation<String> { error("fail") }
                 .retryOrElse(schedule) { "fallback" }
@@ -69,7 +69,7 @@ class ResilienceCompositionTest {
 
     @Test
     fun `retryWithResult returns metadata on success after retries`() = runTest {
-        val schedule = Schedule.recurs<Throwable>(5) and Schedule.spaced(10.milliseconds)
+        val schedule = Schedule.times<Throwable>(5) and Schedule.spaced(10.milliseconds)
         var attempts = 0
         val result = Async {
             Computation {
@@ -85,7 +85,7 @@ class ResilienceCompositionTest {
 
     @Test
     fun `retryWithResult with immediate success has zero retries`() = runTest {
-        val schedule = Schedule.recurs<Throwable>(5)
+        val schedule = Schedule.times<Throwable>(5)
         val result = Async {
             Computation { "immediate" }.retryWithResult(schedule)
         }
@@ -96,7 +96,7 @@ class ResilienceCompositionTest {
 
     @Test
     fun `retryWithResult throws when schedule exhausted`() = runTest {
-        val schedule = Schedule.recurs<Throwable>(2)
+        val schedule = Schedule.times<Throwable>(2)
         val comp = Computation<String> { error("always fails") }
             .retryWithResult(schedule)
         assertFailsWith<IllegalStateException> { val r = Async { comp } }
@@ -209,7 +209,7 @@ class ResilienceCompositionTest {
         val result = Async {
             Computation { -1 }
                 .ensure({ IllegalStateException("negative") }) { it > 0 }
-                .orElse(pure(42))
+                .orElse(Computation.of(42))
         }
         assertEquals(42, result)
     }
@@ -243,7 +243,7 @@ class ResilienceCompositionTest {
             }
             .timeout(50.milliseconds)
             .withCircuitBreaker(breaker)
-            .retry(Schedule.recurs<Throwable>(5) and Schedule.spaced(1.milliseconds))
+            .retry(Schedule.times<Throwable>(5) and Schedule.spaced(1.milliseconds))
             .recover { "fallback" }
         }
         // After 2 failures the breaker opens, retry catches CircuitBreakerOpenException,
@@ -254,7 +254,7 @@ class ResilienceCompositionTest {
     @Test
     fun `liftA with individual branch resilience`() = runTest {
         val result = Async {
-            liftA3(
+            combine(
                 { Computation { "user" }.retry(2).await() },
                 {
                     Computation<String> { error("down") }
@@ -273,7 +273,7 @@ class ResilienceCompositionTest {
 
     @Test
     fun `retryOrElse with exponential backoff`() = runTest {
-        val schedule = Schedule.recurs<Throwable>(3) and Schedule.exponential(10.milliseconds)
+        val schedule = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
         var attempts = 0
         val result = Async {
             Computation<String> {

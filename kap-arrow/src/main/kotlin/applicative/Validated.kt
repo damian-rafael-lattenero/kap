@@ -13,21 +13,21 @@ import kotlinx.coroutines.sync.withPermit
 // ── entry points ─────────────────────────────────────────────────────────
 
 /** Wraps a success value into a validated computation. */
-fun <E, A> valid(a: A): Computation<Either<NonEmptyList<E>, A>> = pure(Either.Right(a))
+fun <E, A> valid(a: A): Computation<Either<NonEmptyList<E>, A>> = Computation.of(Either.Right(a))
 
 /** Wraps a single error into a validated computation. */
-fun <E, A> invalid(e: E): Computation<Either<NonEmptyList<E>, A>> = pure(Either.Left(nonEmptyListOf(e)))
+fun <E, A> invalid(e: E): Computation<Either<NonEmptyList<E>, A>> = Computation.of(Either.Left(nonEmptyListOf(e)))
 
 /** Wraps multiple errors into a validated computation. */
-fun <E, A> invalidAll(errors: NonEmptyList<E>): Computation<Either<NonEmptyList<E>, A>> = pure(Either.Left(errors))
+fun <E, A> invalidAll(errors: NonEmptyList<E>): Computation<Either<NonEmptyList<E>, A>> = Computation.of(Either.Left(errors))
 
-// ── apV: parallel applicative apply with error accumulation ──────────────
+// ── withV: parallel applicative apply with error accumulation ────────────
 
 /**
- * Validated applicative apply — runs both sides in parallel,
+ * Validated parallel apply — runs both sides in parallel,
  * **accumulating** errors from both if both fail.
  */
-infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.apV(
+infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.withV(
     fa: Computation<Either<NonEmptyList<E>, A>>,
 ): Computation<Either<NonEmptyList<E>, B>> {
     val self = this
@@ -63,15 +63,15 @@ private fun <E, A, B> combineValidated(
 }
 
 /** Convenience overload that wraps a suspend lambda returning [Either]. */
-infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.apV(
+infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.withV(
     fa: suspend () -> Either<NonEmptyList<E>, A>,
-): Computation<Either<NonEmptyList<E>, B>> = apV(Computation { fa() })
+): Computation<Either<NonEmptyList<E>, B>> = withV(Computation { fa() })
 
 // ── followedByV: true phase barrier with short-circuit ──────────────────
 
 /**
  * True phase barrier for validated computations — awaits the left side,
- * then runs [fa], and **gates** all subsequent [apV] calls until the
+ * then runs [fa], and **gates** all subsequent [withV] calls until the
  * barrier completes.
  *
  * Short-circuits: if the left side is [Either.Left], the right side is **not** executed.

@@ -32,7 +32,7 @@ fun <A> Computation<A>.timeoutRace(duration: Duration, fallback: Computation<A>)
  * Retries this computation according to the given [schedule].
  *
  * ```
- * val policy = Schedule.recurs<Throwable>(3) and Schedule.exponential(100.milliseconds)
+ * val policy = Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds)
  * Computation { fetchUser() }.retry(policy)
  * ```
  *
@@ -90,7 +90,7 @@ fun <A> Computation<A>.retry(
  * When retries are exhausted, calls [orElse] with the last error instead of throwing.
  *
  * ```
- * val policy = Schedule.recurs<Throwable>(3) and Schedule.exponential(100.milliseconds)
+ * val policy = Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds)
  * Computation { fetchUser() }
  *     .retryOrElse(policy) { err -> User.cached() }
  * ```
@@ -145,7 +145,7 @@ data class RetryResult<out A>(
  * ```
  * val (user, attempts, totalDelay) = Async {
  *     Computation { fetchUser() }
- *         .retryWithResult(Schedule.recurs<Throwable>(3) and Schedule.exponential(100.milliseconds))
+ *         .retryWithResult(Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds))
  * }
  * logger.info("Fetched user after $attempts retries (${totalDelay} delay)")
  * ```

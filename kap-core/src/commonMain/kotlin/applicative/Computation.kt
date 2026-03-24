@@ -21,7 +21,7 @@ annotation class AsyncDsl
  * A lazy computation that produces [A] when executed inside a [CoroutineScope].
  *
  * Computations are descriptions — they don't run until [Async.invoke] executes them.
- * They can be composed outside the DSL using [map], [ap], [followedBy], [flatMap], [zip],
+ * They can be composed outside the DSL using [map], [with], [followedBy], [flatMap], [zip],
  * and other top-level combinators, then executed via `Async { computation }`.
  *
  * ## Design note: `suspend fun CoroutineScope.execute()`
@@ -30,12 +30,12 @@ annotation class AsyncDsl
  * The Kotlin coroutines convention separates them (`suspend fun` = suspends,
  * `CoroutineScope.fun` = launches coroutines), but [Computation] requires both:
  *
- * - **CoroutineScope** — operators like [ap] and [race] call `async {}` to launch
+ * - **CoroutineScope** — operators like [with] and [race] call `async {}` to launch
  *   parallel branches within the caller's scope (structured concurrency).
  * - **suspend** — branches call `await()`, `withContext()`, `withTimeout()`, etc.
  *
  * This is safe because **users never call [execute] directly** — they compose
- * via [ap], [followedBy], [flatMap], and execute via [Async.invoke].
+ * via [with], [followedBy], [flatMap], and execute via [Async.invoke].
  * The dual contract is an internal implementation detail, not a public API concern.
  *
  * This mirrors `kotlinx.coroutines.async {}` and `launch {}`, whose blocks are
@@ -69,7 +69,7 @@ fun interface Computation<out A> {
          *     Computation.defer {
          *         c.settled().flatMap { result ->
          *             result.fold(
-         *                 onSuccess = { pure(it) },
+         *                 onSuccess = { Computation.of(it) },
          *                 onFailure = { retryForever(c) },
          *             )
          *         }
@@ -83,13 +83,13 @@ fun interface Computation<out A> {
 }
 
 /**
- * A [Computation] that acts as a phase barrier. When subsequent [ap] calls
+ * A [Computation] that acts as a phase barrier. When subsequent [with] calls
  * are chained on a PhaseBarrier, their right-side launches are gated until
  * the barrier completes. All gated launches proceed in parallel once the
  * barrier's signal fires.
  *
  * This is an internal implementation detail — users interact through
- * [followedBy] which creates barriers, and [ap] which respects them.
+ * [followedBy] which creates barriers, and [with] which respects them.
  */
 class PhaseBarrier<out A>(
     val inner: Computation<A>,
@@ -101,7 +101,7 @@ class PhaseBarrier<out A>(
             signal.complete(Unit)
             return result
         } catch (e: Throwable) {
-            // Complete the signal even on failure so gated ap/apV calls don't hang.
+            // Complete the signal even on failure so gated with/withV calls don't hang.
             // They will observe the failure through structured concurrency (parent scope
             // cancellation), but the signal must fire to prevent deadlock if the exception
             // is caught by recover/attempt inside the chain.
@@ -111,16 +111,16 @@ class PhaseBarrier<out A>(
     }
 }
 
-// ── pure: wrap a value ──────────────────────────────────────────────────
+// ── Computation.of: wrap a value ────────────────────────────────────────
 
 /**
- * Wraps a pure value into a [Computation] that immediately returns it.
+ * Wraps a value into a [Computation] that immediately returns it.
  *
  * ```
- * val answer: Computation<Int> = pure(42)
+ * val answer: Computation<Int> = Computation.of(42)
  * ```
  */
-fun <A> pure(a: A): Computation<A> = Computation { a }
+fun <A> Computation.Companion.of(a: A): Computation<A> = Computation { a }
 
 // ── map: transform the result ───────────────────────────────────────────
 
@@ -128,43 +128,35 @@ fun <A> pure(a: A): Computation<A> = Computation { a }
  * Transforms the result of this computation by applying [f].
  *
  * ```
- * pure(42).map { it * 2 }  // Computation producing 84
+ * Computation.of(42).map { it * 2 }  // Computation producing 84
  * ```
  */
 inline fun <A, B> Computation<A>.map(crossinline f: (A) -> B): Computation<B> = Computation {
     f(with(this@map) { execute() })
 }
 
-// ── ap: parallel — right side async, left side inline ─────────────────
+// ── with: parallel — right side async, left side inline ─────────────────
 
 /**
- * Applicative apply — runs this (a curried function) and [fa] in parallel,
- * then applies the function to the result.
+ * Provides the next argument in parallel — runs this (a curried function)
+ * and [fa] concurrently, then applies the function to the result.
  *
  * The left spine executes inline while the right side launches as [async].
  * Each chain link creates exactly **one** new coroutine (the right side),
- * so a chain of N `.ap` calls creates N coroutines. The left spine itself
- * is evaluated recursively (depth O(N)) with N intermediate curried closures.
+ * so a chain of N `.with` calls creates N coroutines.
  *
- * **Complexity note:** a chain of N `.ap` calls uses O(N) stack depth and
- * allocates N curried closures. For typical BFF orchestrations (N ≤ 15)
+ * **Complexity note:** a chain of N `.with` calls uses O(N) stack depth and
+ * allocates N curried closures. For typical BFF orchestrations (N <= 15)
  * this is negligible. For very large or dynamic N, prefer [traverse]/[sequence].
  *
- * **Why not `inline`:** Unlike [map] and [flatMap] which transform and execute
- * immediately within the computation body, `ap` returns a new [Computation]
- * that captures [fa] as a closure. The `inline` modifier requires that lambdas
- * be executed in-place, but `Computation {}` is a SAM constructor that stores
- * the lambda — making `inline` inapplicable here. The same applies to
- * [followedBy] and [apOrNull].
- *
  * ```
- * lift3(::buildResult)
- *     .ap { fetchUser() }     // parallel
- *     .ap { fetchConfig() }   // parallel
+ * kap(::buildResult)
+ *     .with { fetchUser() }     // parallel
+ *     .with { fetchConfig() }   // parallel
  * ```
  *
  */
-infix fun <A, B> Computation<(A) -> B>.ap(fa: Computation<A>): Computation<B> {
+infix fun <A, B> Computation<(A) -> B>.with(fa: Computation<A>): Computation<B> {
     val self = this
     return if (self is PhaseBarrier) {
         val signal = self.signal
@@ -186,31 +178,31 @@ infix fun <A, B> Computation<(A) -> B>.ap(fa: Computation<A>): Computation<B> {
 }
 
 /** Convenience overload that wraps a suspend lambda into a [Computation]. */
-infix fun <A, B> Computation<(A) -> B>.ap(fa: suspend () -> A): Computation<B> =
-    ap(Computation { fa() })
+infix fun <A, B> Computation<(A) -> B>.with(fa: suspend () -> A): Computation<B> =
+    with(Computation { fa() })
 
 /**
- * Applicative apply for a nullable [Computation] — when the curried function
+ * Provides a nullable argument in parallel — when the curried function
  * expects a nullable argument (`A?`).
  *
- * When [fa] is non-null, launches it in parallel (same as normal [ap]).
+ * When [fa] is non-null, launches it in parallel (same as normal [with]).
  * When [fa] is null (literal or variable), passes `null` to the function immediately.
  *
  * ```
  * val insurance: Computation<String>? = null
  *
- * lift3 { flight: String, hotel: String, ins: String? -> buildBooking(flight, hotel, ins) }
- *     .ap { fetchFlight() }
- *     .ap { fetchHotel() }
- *     .apOrNull(insurance)     // passes null when insurance is null
+ * kap { flight: String, hotel: String, ins: String? -> buildBooking(flight, hotel, ins) }
+ *     .with { fetchFlight() }
+ *     .with { fetchHotel() }
+ *     .withOrNull(insurance)     // passes null when insurance is null
  *
  * // Also works with literal null:
- * lift2 { a: String, b: String? -> "$a|${b ?: "nil"}" }
- *     .ap { "hello" }
- *     .apOrNull(null)
+ * kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
+ *     .with { "hello" }
+ *     .withOrNull(null)
  * ```
  */
-infix fun <A : Any, B> Computation<(A?) -> B>.apOrNull(fa: Computation<A>?): Computation<B> {
+infix fun <A : Any, B> Computation<(A?) -> B>.withOrNull(fa: Computation<A>?): Computation<B> {
     val self = this
     return if (self is PhaseBarrier) {
         val signal = self.signal
@@ -235,23 +227,23 @@ infix fun <A : Any, B> Computation<(A?) -> B>.apOrNull(fa: Computation<A>?): Com
 
 /**
  * True phase barrier — awaits the left side, runs [fa], and **gates** all
- * subsequent [ap] calls until the barrier completes.
+ * subsequent [with] calls until the barrier completes.
  *
- * Unlike [ap], [followedBy] enforces ordering: the right side does **not** start
+ * Unlike [with], [followedBy] enforces ordering: the right side does **not** start
  * until the left side completes. Unlike [flatMap], the right side does
  * **not** receive the left side's value.
  *
- * **Phase semantics:** Any [ap] chained after a [followedBy] will not launch
+ * **Phase semantics:** Any [with] chained after a [followedBy] will not launch
  * its right-side coroutine until the barrier completes. This means the code
  * structure honestly reflects the execution phases:
  *
  * ```
- * lift4(::build)
- *     .ap { fetchA() }             // ┐ phase 1: parallel
- *     .ap { fetchB() }             // ┘
- *     .followedBy { validate() }   // ── barrier: waits for phase 1
- *     .ap { calcC() }              // ┐ phase 2: parallel (starts AFTER barrier)
- *     .ap { calcD() }              // ┘
+ * kap(::build)
+ *     .with { fetchA() }             // phase 1: parallel
+ *     .with { fetchB() }             //
+ *     .followedBy { validate() }     // barrier: waits for phase 1
+ *     .with { calcC() }              // phase 2: parallel (starts AFTER barrier)
+ *     .with { calcD() }              //
  * ```
  */
 infix fun <A, B> Computation<(A) -> B>.followedBy(fa: Computation<A>): Computation<B> {
@@ -274,18 +266,18 @@ infix fun <A, B> Computation<(A) -> B>.followedBy(fa: suspend () -> A): Computat
  * Sequential value fill — awaits the left side, then runs [fa].
  *
  * Unlike [followedBy], [thenValue] does **not** create a phase barrier.
- * Subsequent [ap] calls will still launch eagerly at t=0.
+ * Subsequent [with] calls will still launch eagerly at t=0.
  * The sequencing only affects the value assembly order, not the launch timing.
  *
- * Use [followedBy] when subsequent [ap] calls should wait for the barrier.
- * Use [thenValue] when subsequent [ap] calls are truly independent and
+ * Use [followedBy] when subsequent [with] calls should wait for the barrier.
+ * Use [thenValue] when subsequent [with] calls are truly independent and
  * should overlap with the sequential computation for maximum performance.
  *
  * ```
- * lift3(::build)
- *     .ap { fetchData() }          // launched at t=0
- *     .thenValue { enrich() }      // sequential value, but...
- *     .ap { independentWork() }    // launched at t=0 (overlaps!)
+ * kap(::build)
+ *     .with { fetchData() }          // launched at t=0
+ *     .thenValue { enrich() }        // sequential value, but...
+ *     .with { independentWork() }    // launched at t=0 (overlaps!)
  * ```
  */
 infix fun <A, B> Computation<(A) -> B>.thenValue(fa: Computation<A>): Computation<B> = Computation {
@@ -305,13 +297,13 @@ infix fun <A, B> Computation<(A) -> B>.thenValue(fa: suspend () -> A): Computati
  *
  * Unlike [followedBy], the continuation [f] receives the left-hand result and
  * decides what to compute next. This breaks the static dependency-graph
- * property; prefer [ap]/[followedBy] when the right side is independent.
+ * property; prefer [with]/[followedBy] when the right side is independent.
  *
  * ```
- * pure(userId).flatMap { id ->
- *     lift2(::buildProfile)
- *         .ap { fetchUser(id) }
- *         .ap { fetchAvatar(id) }
+ * Computation.of(userId).flatMap { id ->
+ *     kap(::buildProfile)
+ *         .with { fetchUser(id) }
+ *         .with { fetchAvatar(id) }
  * }
  * ```
  */
@@ -326,9 +318,9 @@ inline fun <A, B> Computation<A>.flatMap(crossinline f: (A) -> Computation<B>): 
  * Switches this computation to run on the given [context].
  *
  * ```
- * lift2(::build)
- *     .ap { readFile().on(Dispatchers.IO) }
- *     .ap { compute().on(Dispatchers.Default) }
+ * kap(::build)
+ *     .with { readFile().on(Dispatchers.IO) }
+ *     .with { compute().on(Dispatchers.Default) }
  * ```
  */
 fun <A> Computation<A>.on(context: CoroutineContext): Computation<A> = Computation {
@@ -347,19 +339,19 @@ fun <A> Computation<A>.on(context: CoroutineContext): Computation<A> = Computati
  * Async {
  *     context.flatMap { ctx ->
  *         val traceId = ctx[TraceKey]
- *         lift2(::build)
- *             .ap { fetchUser(traceId) }
- *             .ap { fetchCart(traceId) }
+ *         kap(::build)
+ *             .with { fetchUser(traceId) }
+ *             .with { fetchCart(traceId) }
  *     }
  * }
  * ```
  */
 val context: Computation<CoroutineContext> = Computation { coroutineContext }
 
-// ── unit: convenience for pure(Unit) ────────────────────────────────────
+// ── Computation.empty: convenience for Computation.of(Unit) ─────────────
 
 /** A [Computation] that immediately returns [Unit]. */
-val unit: Computation<Unit> = pure(Unit)
+val Computation.Companion.empty: Computation<Unit> get() = Computation { }
 
 // ── named: CoroutineName for debugger/logging ───────────────────────────
 
@@ -368,44 +360,44 @@ val unit: Computation<Unit> = pure(Unit)
  * coroutine debugger, thread dumps, and logging frameworks.
  *
  * ```
- * lift3(::Dashboard)
- *     .ap { fetchUser().named("fetchUser") }
- *     .ap { fetchCart().named("fetchCart") }
- *     .ap { fetchPromos().named("fetchPromos") }
+ * kap(::Dashboard)
+ *     .with { fetchUser().named("fetchUser") }
+ *     .with { fetchCart().named("fetchCart") }
+ *     .with { fetchPromos().named("fetchPromos") }
  * ```
  */
 fun <A> Computation<A>.named(name: String): Computation<A> = Computation {
     withContext(CoroutineName(name)) { with(this@named) { execute() } }
 }
 
-// ── void: discard the result ─────────────────────────────────────────────
+// ── discard: discard the result ──────────────────────────────────────────
 
 /**
  * Discards the result of this computation, returning [Unit].
  *
  * ```
- * Computation { sendEmail() }.void()  // Computation<Unit>
+ * Computation { sendEmail() }.discard()  // Computation<Unit>
  * ```
  */
-fun <A> Computation<A>.void(): Computation<Unit> = map { }
+fun <A> Computation<A>.discard(): Computation<Unit> = map { }
 
-// ── tap: side-effect without changing value ──────────────────────────────
+// ── peek: side-effect without changing value ─────────────────────────────
 
 /**
  * Executes a side-effect [f] with the result, then returns the original value unchanged.
  *
  * ```
  * Computation { fetchUser() }
- *     .tap { user -> logger.info("fetched $user") }
+ *     .peek { user -> logger.info("fetched $user") }
  * ```
  */
-inline fun <A> Computation<A>.tap(crossinline f: suspend (A) -> Unit): Computation<A> = Computation {
-    val a = with(this@tap) { execute() }
+inline fun <A> Computation<A>.peek(crossinline f: suspend (A) -> Unit): Computation<A> = Computation {
+    val a = with(this@peek) { execute() }
     f(a)
     a
 }
 
-// ── zipLeft / zipRight: parallel, keep one side ─────────────────────────
+// ── keepFirst / keepSecond: parallel, keep one side ──────────────────────
 
 /**
  * Runs this computation and [other] in parallel, returning only this result.
@@ -413,11 +405,11 @@ inline fun <A> Computation<A>.tap(crossinline f: suspend (A) -> Unit): Computati
  *
  * ```
  * Computation { fetchUser() }
- *     .zipLeft(Computation { logAccess() })  // returns User, logAccess runs in parallel
+ *     .keepFirst(Computation { logAccess() })  // returns User, logAccess runs in parallel
  * ```
  */
-fun <A, B> Computation<A>.zipLeft(other: Computation<B>): Computation<A> = Computation {
-    val da = async { with(this@zipLeft) { execute() } }
+fun <A, B> Computation<A>.keepFirst(other: Computation<B>): Computation<A> = Computation {
+    val da = async { with(this@keepFirst) { execute() } }
     val db = async { with(other) { execute() } }
     db.await()
     da.await()
@@ -429,11 +421,11 @@ fun <A, B> Computation<A>.zipLeft(other: Computation<B>): Computation<A> = Compu
  *
  * ```
  * Computation { logAccess() }
- *     .zipRight(Computation { fetchUser() })  // returns User
+ *     .keepSecond(Computation { fetchUser() })  // returns User
  * ```
  */
-fun <A, B> Computation<A>.zipRight(other: Computation<B>): Computation<B> = Computation {
-    val da = async { with(this@zipRight) { execute() } }
+fun <A, B> Computation<A>.keepSecond(other: Computation<B>): Computation<B> = Computation {
+    val da = async { with(this@keepSecond) { execute() } }
     val db = async { with(other) { execute() } }
     da.await()
     db.await()
@@ -456,9 +448,9 @@ fun <A, B> Computation<A>.zipRight(other: Computation<B>): Computation<B> = Comp
  * val expensive = Computation { fetchExpensiveData() }.memoize()
  *
  * Async {
- *     lift2(::combine)
- *         .ap { expensive }   // executes the original
- *         .ap { expensive }   // reuses cached result
+ *     kap(::combine)
+ *         .with { expensive }   // executes the original
+ *         .with { expensive }   // reuses cached result
  * }
  * ```
  */
@@ -532,9 +524,9 @@ private class Memoized<A>(private val original: Computation<A>) : Computation<A>
  * val config = Computation { fetchRemoteConfig() }.memoizeOnSuccess()
  *
  * Async {
- *     lift2(::combine)
- *         .ap { config }   // first call fetches
- *         .ap { config }   // reuses cached result (or retries if first failed)
+ *     kap(::combine)
+ *         .with { config }   // first call fetches
+ *         .with { config }   // reuses cached result (or retries if first failed)
  * }
  * ```
  */
@@ -578,22 +570,22 @@ private class MemoizedOnSuccess<A>(private val original: Computation<A>) : Compu
  * [coroutineScope] for structured concurrency.
  *
  * This is the ergonomic bridge for using combinators like [timeout],
- * [retry], and [recover] inside `.ap` lambdas without the verbose
+ * [retry], and [recover] inside `.with` lambdas without the verbose
  * `with(computation) { execute() }` pattern:
  *
  * ```
  * // Before (verbose):
- * lift3(::Dashboard)
- *     .ap {
+ * kap(::Dashboard)
+ *     .with {
  *         with(Computation { fetchUser() }
  *             .timeout(200.milliseconds, User.cached())) { execute() }
  *     }
- *     .ap { fetchCart() }
+ *     .with { fetchCart() }
  *
  * // After (clean):
- * lift3(::Dashboard)
- *     .ap { Computation { fetchUser() }.timeout(200.milliseconds, User.cached()).await() }
- *     .ap { fetchCart() }
+ * kap(::Dashboard)
+ *     .with { Computation { fetchUser() }.timeout(200.milliseconds, User.cached()).await() }
+ *     .with { fetchCart() }
  * ```
  *
  * **Note:** Creates a [coroutineScope] internally, which correctly maintains
@@ -612,13 +604,13 @@ suspend fun <A> Computation<A>.await(): A =
  * tolerance in a parallel chain:
  *
  * ```
- * lift3 { user: Result<User>, cart: Cart, config: Config ->
+ * kap { user: Result<User>, cart: Cart, config: Config ->
  *     val u = user.getOrDefault(User.anonymous())
  *     Dashboard(u, cart, config)
  * }
- *     .ap { fetchUser().settled() }  // won't cancel siblings on failure
- *     .ap { fetchCart() }
- *     .ap { fetchConfig() }
+ *     .with { fetchUser().settled() }  // won't cancel siblings on failure
+ *     .with { fetchCart() }
+ *     .with { fetchConfig() }
  * ```
  *
  * [CancellationException] is never caught — structured concurrency cancellation
@@ -644,11 +636,11 @@ fun <A> Computation<A>.settled(): Computation<Result<A>> = Computation {
  *
  * ```
  * val result = Async {
- *     lift4(::buildDashboard)
- *         .ap { fetchUser() }              // parallel
- *         .ap { fetchConfig() }            // parallel
- *         .followedBy { validate() }       // sequential barrier
- *         .ap { calcShipping() }           // parallel again
+ *     kap(::buildDashboard)
+ *         .with { fetchUser() }              // parallel
+ *         .with { fetchConfig() }            // parallel
+ *         .followedBy { validate() }         // sequential barrier
+ *         .with { calcShipping() }           // parallel again
  * }
  * ```
  */

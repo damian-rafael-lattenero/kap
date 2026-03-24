@@ -23,7 +23,7 @@ import kotlin.time.Duration.Companion.milliseconds
 // Every major kap-arrow operation implemented three ways:
 //   1. Raw Coroutines  — manual Either + try-catch
 //   2. Arrow           — zipOrAccumulate / either {} / raceN
-//   3. KAP             — liftV + apV / zipV / attempt / raceEither
+//   3. KAP             — kapV + withV / zipV / attempt / raceEither
 // ════════════════════════════════════════════════════════════════════════════════
 
 // ── Validation domain ─────────────────────────────────────────────────────────
@@ -155,10 +155,10 @@ class ArrowComparisonTest {
             ) { n, e, a -> Reg3(n, e, a) }
         }
         val kap = Async {
-            liftV3<FErr, VName, VEmail, VAge, Reg3>(::Reg3)
-                .apV { valName("Alice") }
-                .apV { valEmail("alice@example.com") }
-                .apV { valAge(30) }
+            kapV<FErr, VName, VEmail, VAge, Reg3>(::Reg3)
+                .withV { valName("Alice") }
+                .withV { valEmail("alice@example.com") }
+                .withV { valAge(30) }
         }
         assertEquals(expected, raw)
         assertEquals(Either.Right(expected), arrow)
@@ -262,8 +262,8 @@ class ArrowComparisonTest {
     // ═══════════════════════════════════════════════════════════════════════
 
     @Test fun `validate - kap`() = runTest {
-        val tooShort = Async { pure("A").validate { s -> if (s.length < 2) "too short" else null } }
-        val ok = Async { pure("Alice").validate { s -> if (s.length < 2) "too short" else null } }
+        val tooShort = Async { Computation.of("A").validate { s -> if (s.length < 2) "too short" else null } }
+        val ok = Async { Computation.of("Alice").validate { s -> if (s.length < 2) "too short" else null } }
         assertIs<Either.Left<NonEmptyList<String>>>(tooShort)
         assertIs<Either.Right<String>>(ok)
     }

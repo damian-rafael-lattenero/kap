@@ -130,7 +130,7 @@ class CollectionsExtTest {
         val zipResult = Async { fa.zip(fb) { a, b -> "$a+$b" } }
         val zipTime = currentTime
 
-        val mapNResult = Async { mapN(fa, fb) { a, b -> "$a+$b" } }
+        val mapNResult = Async { combine(fa, fb) { a, b -> "$a+$b" } }
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN2 and zip should produce the same result")
@@ -151,7 +151,7 @@ class CollectionsExtTest {
         val zipResult = Async { zip(fa, fb, fc) { a, b, c -> "$a|$b|$c" } }
         val zipTime = currentTime
 
-        val mapNResult = Async { mapN(fa, fb, fc) { a, b, c -> "$a|$b|$c" } }
+        val mapNResult = Async { combine(fa, fb, fc) { a, b, c -> "$a|$b|$c" } }
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN3 and zip3 should produce the same result")
@@ -173,7 +173,7 @@ class CollectionsExtTest {
         val zipResult = Async { zip(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" } }
         val zipTime = currentTime
 
-        val mapNResult = Async { mapN(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" } }
+        val mapNResult = Async { combine(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" } }
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN4 and zip4 should produce the same result")
@@ -196,7 +196,7 @@ class CollectionsExtTest {
         val zipResult = Async { zip(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" } }
         val zipTime = currentTime
 
-        val mapNResult = Async { mapN(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" } }
+        val mapNResult = Async { combine(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" } }
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN5 and zip5 should produce the same result")
@@ -257,12 +257,12 @@ class CollectionsExtTest {
                 .flatMap { (user, cart, prefs) ->
                     // Use the zip3 result to drive the next computation
                     val summary = "$user+$cart+$prefs"
-                    lift3 { enriched: String, shipping: String, tax: String ->
+                    kap { enriched: String, shipping: String, tax: String ->
                         "$enriched|$shipping|$tax"
                     }
-                        .ap(Computation { delay(20); "enriched($summary)" })
+                        .with(Computation { delay(20); "enriched($summary)" })
                         .followedBy(Computation { delay(10); "shipping" })
-                        .ap(Computation { delay(20); "tax" })
+                        .with(Computation { delay(20); "tax" })
                 }
         }
 

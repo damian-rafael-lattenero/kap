@@ -4,11 +4,11 @@ import kotlinx.coroutines.delay
 /**
  * E-commerce checkout flow — 11 service calls, 5 phases.
  *
- * Demonstrates: lift+ap+followedBy, parallel fan-out, sequential barriers,
+ * Demonstrates: kap+with+followedBy, parallel fan-out, sequential barriers,
  * and how the code structure mirrors the execution plan.
  *
  * Every service call returns a distinct domain type so the compiler enforces
- * parameter ordering — swap any two .ap lines and it won't compile.
+ * parameter ordering — swap any two .with lines and it won't compile.
  */
 
 // ── Domain types ────────────────────────────────────────────────────────────
@@ -52,30 +52,30 @@ suspend fun generateConfirmation(): OrderConfirmation { delay(60); return OrderC
 suspend fun sendEmail(): EmailReceipt { delay(40); return EmailReceipt("alice@example.com", "order-#90142") }
 
 suspend fun main() {
-    println("=== E-Commerce Checkout (lift+ap+followedBy) ===\n")
+    println("=== E-Commerce Checkout (kap+with+followedBy) ===\n")
 
     val start = System.currentTimeMillis()
 
-    // Type safety: swap any two .ap lines and the compiler rejects it.
+    // Type safety: swap any two .with lines and the compiler rejects it.
     // Each slot expects a specific type — UserProfile, ShoppingCart, etc.
     val result = Async {
-        lift11(::CheckoutResult)
+        kap(::CheckoutResult)
             // Phase 1: Fetch everything we need (parallel)
-            .ap { fetchUser() }
-            .ap { fetchCart() }
-            .ap { fetchPromos() }
-            .ap { fetchInventory() }
+            .with { fetchUser() }
+            .with { fetchCart() }
+            .with { fetchPromos() }
+            .with { fetchInventory() }
             // Phase 2: Validate stock (sequential — must wait for phase 1)
             .followedBy { validateStock() }
             // Phase 3: Calculate costs (parallel)
-            .ap { calcShipping() }
-            .ap { calcTax() }
-            .ap { calcDiscounts() }
+            .with { calcShipping() }
+            .with { calcTax() }
+            .with { calcDiscounts() }
             // Phase 4: Reserve payment (sequential)
             .followedBy { reservePayment() }
             // Phase 5: Confirmation + email (parallel)
-            .ap { generateConfirmation() }
-            .ap { sendEmail() }
+            .with { generateConfirmation() }
+            .with { sendEmail() }
     }
 
     val elapsed = System.currentTimeMillis() - start

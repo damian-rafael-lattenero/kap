@@ -52,14 +52,14 @@ class ResilienceComparisonTest {
         assertEquals(3, attempts)
     }
 
-    @Test fun `retry - kap - Schedule recurs + spaced`() = runTest {
+    @Test fun `retry - kap - Schedule times + spaced`() = runTest {
         var attempts = 0
         val result = Async {
             Computation {
                 attempts++
                 if (attempts < 3) throw RuntimeException("flaky")
                 "success"
-            }.retry(Schedule.recurs<Throwable>(3) and Schedule.spaced(10.milliseconds))
+            }.retry(Schedule.times<Throwable>(3) and Schedule.spaced(10.milliseconds))
         }
         assertEquals("success", result)
     }
@@ -72,7 +72,7 @@ class ResilienceComparisonTest {
                 if (attempts < 3) throw RuntimeException("flaky")
                 "success"
             }.retry(
-                Schedule.recurs<Throwable>(5)
+                Schedule.times<Throwable>(5)
                     .and(Schedule.exponential(1.milliseconds))
                     .jittered()
             )
@@ -108,9 +108,9 @@ class ResilienceComparisonTest {
             bracket(
                 acquire = { "db-conn".also { log += "acquired:$it" } },
                 use = { conn ->
-                    lift2 { a: String, b: String -> "$a|$b" }
-                        .ap { networkCall("q1", 50) }
-                        .ap { networkCall("q2", 50) }
+                    kap { a: String, b: String -> "$a|$b" }
+                        .with { networkCall("q1", 50) }
+                        .with { networkCall("q2", 50) }
                 },
                 release = { conn -> log += "released:$conn" },
             )
@@ -368,7 +368,7 @@ class ResilienceComparisonTest {
     // ═══════════════════════════════════════════════════════════════════════
 
     @Test fun `schedule - fold accumulator`() = runTest {
-        val policy = Schedule.recurs<Throwable>(3)
+        val policy = Schedule.times<Throwable>(3)
             .fold(0) { count, _ -> count + 1 }
         var attempts = 0
         val result = Async {
@@ -384,7 +384,7 @@ class ResilienceComparisonTest {
 
     @Test fun `schedule - composed policies`() = runTest {
         var attempts = 0
-        val policy = Schedule.recurs<Throwable>(5)
+        val policy = Schedule.times<Throwable>(5)
             .and(Schedule.exponential(1.milliseconds))
             .jittered()
         val result = Async {

@@ -77,10 +77,10 @@ class EdgeCaseStressTest {
             42
         }.memoize()
 
-        val graph = lift3 { a: Int, b: Int, c: Int -> listOf(a, b, c) }
-            .ap { computation.await() }
-            .ap { computation.await() }
-            .ap { computation.await() }
+        val graph = kap { a: Int, b: Int, c: Int -> listOf(a, b, c) }
+            .with { computation.await() }
+            .with { computation.await() }
+            .with { computation.await() }
 
         val results = Async { graph }
         assertEquals(listOf(42, 42, 42), results)
@@ -244,10 +244,10 @@ class EdgeCaseStressTest {
     @Test
     fun `followedBy — barrier signal fires even on failure`() = runTest {
         val failing: Computation<Int> = Computation { throw RuntimeException("barrier failed") }
-        val graph = lift3 { a: Int, b: Int, c: Int -> a + b + c }
-            .ap { 1 }
+        val graph = kap { a: Int, b: Int, c: Int -> a + b + c }
+            .with { 1 }
             .followedBy(failing)
-            .ap { 3 }
+            .with { 3 }
         val ex = assertFailsWith<RuntimeException> { val r = Async { graph } }
         assertEquals("barrier failed", ex.message)
     }
@@ -256,14 +256,14 @@ class EdgeCaseStressTest {
     fun `followedBy — multiple barriers in sequence`() = runTest {
         val order = mutableListOf<String>()
         val result = Async {
-            lift5 { a: String, b: String, c: String, d: String, e: String ->
+            kap { a: String, b: String, c: String, d: String, e: String ->
                 "$a|$b|$c|$d|$e"
             }
-                .ap { order.add("a"); "a" }
+                .with { order.add("a"); "a" }
                 .followedBy { order.add("b"); "b" }
-                .ap { order.add("c"); "c" }
+                .with { order.add("c"); "c" }
                 .followedBy { order.add("d"); "d" }
-                .ap { order.add("e"); "e" }
+                .with { order.add("e"); "e" }
         }
         assertEquals("a|b|c|d|e", result)
         assertTrue(order.indexOf("b") > order.indexOf("a"))
@@ -308,10 +308,10 @@ class EdgeCaseStressTest {
 
     @Test
     fun `ensure — predicate failure throws, success passes through`() = runTest {
-        val passGraph = pure(42).ensure({ IllegalStateException("too small") }) { it > 10 }
+        val passGraph = Computation.of(42).ensure({ IllegalStateException("too small") }) { it > 10 }
         assertEquals(42, Async { passGraph })
 
-        val failGraph = pure(5).ensure({ IllegalStateException("too small") }) { it > 10 }
+        val failGraph = Computation.of(5).ensure({ IllegalStateException("too small") }) { it > 10 }
         assertFailsWith<IllegalStateException> { val r = Async { failGraph } }
     }
 
@@ -319,11 +319,11 @@ class EdgeCaseStressTest {
     fun `ensureNotNull — null extraction throws`() = runTest {
         data class Wrapper(val inner: String?)
 
-        val passGraph = pure(Wrapper("hello"))
+        val passGraph = Computation.of(Wrapper("hello"))
             .ensureNotNull({ IllegalStateException("null!") }) { it.inner }
         assertEquals("hello", Async { passGraph })
 
-        val failGraph = pure(Wrapper(null))
+        val failGraph = Computation.of(Wrapper(null))
             .ensureNotNull({ IllegalStateException("null!") }) { it.inner }
         assertFailsWith<IllegalStateException> { val r = Async { failGraph } }
     }
@@ -357,7 +357,7 @@ class EdgeCaseStressTest {
     @Test
     fun `defer — lazy construction prevents eager stack overflow`() = runTest {
         fun countdown(n: Int): Computation<Int> =
-            if (n <= 0) pure(0)
+            if (n <= 0) Computation.of(0)
             else Computation.defer { countdown(n - 1).map { it + 1 } }
 
         assertEquals(100, Async { countdown(100) })

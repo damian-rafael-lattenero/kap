@@ -25,7 +25,7 @@ class ArrowInteropTest {
     @Test
     fun `attempt wraps success in Right`() = runTest {
         val result = Async {
-            pure(42).attempt()
+            Computation.of(42).attempt()
         }
         assertEquals(Either.Right(42), result)
     }
@@ -53,9 +53,9 @@ class ArrowInteropTest {
     @Test
     fun `attempt composes with validated operations via catching`() = runTest {
         val result = Async {
-            liftV2<String, Int, Int, Int> { a, b -> a + b }
-                .apV(Computation { 1 }.catching { it.message ?: "unknown" })
-                .apV(Computation { 2 }.catching { it.message ?: "unknown" })
+            kapV<String, Int, Int, Int> { a, b -> a + b }
+                .withV(Computation { 1 }.catching { it.message ?: "unknown" })
+                .withV(Computation { 2 }.catching { it.message ?: "unknown" })
         }
         assertEquals(Either.Right(3), result)
     }
@@ -68,7 +68,7 @@ class ArrowInteropTest {
     fun `raceEither returns Left when first computation wins`() = runTest {
         val result = Async {
             raceEither(
-                fa = pure("fast"),
+                fa = Computation.of("fast"),
                 fb = Computation { delay(10_000); 42 },
             )
         }
@@ -80,7 +80,7 @@ class ArrowInteropTest {
         val result = Async {
             raceEither(
                 fa = Computation { delay(10_000); "slow" },
-                fb = pure(42),
+                fb = Computation.of(42),
             )
         }
         assertEquals(Either.Right(42), result)
@@ -174,9 +174,9 @@ class ArrowInteropTest {
     @Test
     fun `fromArrow composes with ap`() = runTest {
         val result = Async {
-            lift2 { a: Int, b: String -> "$b=$a" }
-                .ap(fromArrow { 42 })
-                .ap(fromArrow { "answer" })
+            kap { a: Int, b: String -> "$b=$a" }
+                .with(fromArrow { 42 })
+                .with(fromArrow { "answer" })
         }
         assertEquals("answer=42", result)
     }
@@ -187,7 +187,7 @@ class ArrowInteropTest {
 
     @Test
     fun `runCatchingArrow returns Right on success`() = runTest {
-        val computation = pure(42)
+        val computation = Computation.of(42)
         val result = computation.runCatchingArrow(this)
         assertEquals(Either.Right(42), result)
     }

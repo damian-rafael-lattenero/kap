@@ -16,26 +16,26 @@ import kotlin.test.assertTrue
 class NamedAndUnitTest {
 
     // ════════════════════════════════════════════════════════════════════════
-    // unit
+    // Computation.empty
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `unit returns Unit`() = runTest {
-        val result = Async { unit }
+    fun `Computation empty returns Unit`() = runTest {
+        val result = Async { Computation.empty }
         assertEquals(Unit, result)
     }
 
     @Test
-    fun `unit works as followedBy barrier value`() = runTest {
-        // unit is just pure(Unit), usable as a barrier value in phase chains
+    fun `Computation empty works as followedBy barrier value`() = runTest {
+        // Computation.empty is just Computation.of(Unit), usable as a barrier value in phase chains
         val result = Async {
-            lift3 { a: String, _: Unit, b: Int -> "$a=$b" }
-                .ap { delay(30); "hello" }
-                .followedBy(unit)
-                .ap { delay(30); 42 }
+            kap { a: String, _: Unit, b: Int -> "$a=$b" }
+                .with { delay(30); "hello" }
+                .followedBy(Computation.empty)
+                .with { delay(30); 42 }
         }
         assertEquals("hello=42", result)
-        // phase 1: 30ms, barrier: 0ms (unit is instant), phase 2: 30ms
+        // phase 1: 30ms, barrier: 0ms (Computation.empty is instant), phase 2: 30ms
         assertEquals(60, currentTime)
     }
 
@@ -54,16 +54,16 @@ class NamedAndUnitTest {
     }
 
     @Test
-    fun `named composes with ap - each branch has its own name`() = runTest {
+    fun `named composes with with - each branch has its own name`() = runTest {
         val result = Async {
-            lift3 { a: String, b: String, c: String -> listOf(a, b, c) }
-                .ap(Computation<String> {
+            kap { a: String, b: String, c: String -> listOf(a, b, c) }
+                .with(Computation<String> {
                     coroutineContext[CoroutineName]?.name ?: "missing"
                 }.named("branch-a"))
-                .ap(Computation<String> {
+                .with(Computation<String> {
                     coroutineContext[CoroutineName]?.name ?: "missing"
                 }.named("branch-b"))
-                .ap(Computation<String> {
+                .with(Computation<String> {
                     coroutineContext[CoroutineName]?.name ?: "missing"
                 }.named("branch-c"))
         }
@@ -85,7 +85,7 @@ class NamedAndUnitTest {
         val tracer = ComputationTracer { events += it }
 
         val result = Async {
-            pure(42).named("x").traced("x", tracer)
+            Computation.of(42).named("x").traced("x", tracer)
         }
 
         assertEquals(42, result)
@@ -131,11 +131,11 @@ class NamedAndUnitTest {
     }
 
     @Test
-    fun `catching composes with ap branches in parallel`() = runTest {
+    fun `catching composes with with branches in parallel`() = runTest {
         val result = Async {
-            lift2 { a: Result<Int>, b: Result<String> -> a to b }
-                .ap(catching<Int> { delay(30); 42 })
-                .ap(catching<String> { delay(30); "hello" })
+            kap { a: Result<Int>, b: Result<String> -> a to b }
+                .with(catching<Int> { delay(30); 42 })
+                .with(catching<String> { delay(30); "hello" })
         }
         assertTrue(result.first.isSuccess)
         assertEquals(42, result.first.getOrNull())

@@ -97,12 +97,12 @@ class CancellationPropertyTest {
         val siblingCancelled = AtomicBoolean(false)
         val result = runCatching {
             Async {
-                lift2 { a: String, b: String -> "$a$b" }
-                    .ap {
+                kap { a: String, b: String -> "$a$b" }
+                    .with {
                         delay(10)
                         throw IllegalStateException("fail fast")
                     }
-                    .ap {
+                    .with {
                         try {
                             delay(1.seconds)
                             "should not complete"
@@ -115,7 +115,7 @@ class CancellationPropertyTest {
         }
 
         assertTrue(result.isFailure)
-        assertTrue(siblingCancelled.get(), "Sibling should be cancelled when one ap branch fails")
+        assertTrue(siblingCancelled.get(), "Sibling should be cancelled when one with branch fails")
     }
 
     @Test

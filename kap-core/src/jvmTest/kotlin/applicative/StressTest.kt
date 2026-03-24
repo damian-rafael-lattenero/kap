@@ -77,9 +77,9 @@ class StressTest {
 
     @Test
     fun `flatMap chain depth 50 completes without stack overflow`() = runTest {
-        var computation: Computation<Int> = pure(0)
+        var computation: Computation<Int> = Computation.of(0)
         repeat(50) {
-            computation = computation.flatMap { n -> pure(n + 1) }
+            computation = computation.flatMap { n -> Computation.of(n + 1) }
         }
         val result = Async { computation }
         assertEquals(50, result)
@@ -88,37 +88,37 @@ class StressTest {
     @Test
     fun `flatMap chain depth 200 with defer completes without stack overflow`() = runTest {
         fun chain(depth: Int, current: Int): Computation<Int> =
-            if (depth <= 0) pure(current)
+            if (depth <= 0) Computation.of(current)
             else Computation.defer { chain(depth - 1, current + 1) }
 
         val result = Async { chain(200, 0) }
         assertEquals(200, result)
     }
 
-    // ── high-arity lift+ap ──────────────────────────────────────────────
+    // ── high-arity kap+with ──────────────────────────────────────────────
 
     @Test
-    fun `lift15 with ap runs all 15 in parallel`() = runTest {
+    fun `kap with with (15 params) runs all 15 in parallel`() = runTest {
         val result = Async {
-            lift15 { a: Int, b: Int, c: Int, d: Int, e: Int,
+            kap { a: Int, b: Int, c: Int, d: Int, e: Int,
                      f: Int, g: Int, h: Int, i: Int, j: Int,
                      k: Int, l: Int, m: Int, n: Int, o: Int ->
                 a + b + c + d + e + f + g + h + i + j + k + l + m + n + o
             }
-                .ap { delay(30); 1 }.ap { delay(30); 2 }.ap { delay(30); 3 }
-                .ap { delay(30); 4 }.ap { delay(30); 5 }.ap { delay(30); 6 }
-                .ap { delay(30); 7 }.ap { delay(30); 8 }.ap { delay(30); 9 }
-                .ap { delay(30); 10 }.ap { delay(30); 11 }.ap { delay(30); 12 }
-                .ap { delay(30); 13 }.ap { delay(30); 14 }.ap { delay(30); 15 }
+                .with { delay(30); 1 }.with { delay(30); 2 }.with { delay(30); 3 }
+                .with { delay(30); 4 }.with { delay(30); 5 }.with { delay(30); 6 }
+                .with { delay(30); 7 }.with { delay(30); 8 }.with { delay(30); 9 }
+                .with { delay(30); 10 }.with { delay(30); 11 }.with { delay(30); 12 }
+                .with { delay(30); 13 }.with { delay(30); 14 }.with { delay(30); 15 }
         }
         assertEquals(120, result)
         assertEquals(30, currentTime, "All 15 should run in parallel → 30ms")
     }
 
     @Test
-    fun `lift22 with ap runs all 22 in parallel`() = runTest {
+    fun `kap with with (22 params) runs all 22 in parallel`() = runTest {
         val result = Async {
-            lift22 { a: Int, b: Int, c: Int, d: Int, e: Int,
+            kap { a: Int, b: Int, c: Int, d: Int, e: Int,
                      f: Int, g: Int, h: Int, i: Int, j: Int,
                      k: Int, l: Int, m: Int, n: Int, o: Int,
                      p: Int, q: Int, r: Int, s: Int, t: Int,
@@ -126,14 +126,14 @@ class StressTest {
                 a + b + c + d + e + f + g + h + i + j +
                 k + l + m + n + o + p + q + r + s + t + u + v
             }
-                .ap { delay(30); 1 }.ap { delay(30); 2 }.ap { delay(30); 3 }
-                .ap { delay(30); 4 }.ap { delay(30); 5 }.ap { delay(30); 6 }
-                .ap { delay(30); 7 }.ap { delay(30); 8 }.ap { delay(30); 9 }
-                .ap { delay(30); 10 }.ap { delay(30); 11 }.ap { delay(30); 12 }
-                .ap { delay(30); 13 }.ap { delay(30); 14 }.ap { delay(30); 15 }
-                .ap { delay(30); 16 }.ap { delay(30); 17 }.ap { delay(30); 18 }
-                .ap { delay(30); 19 }.ap { delay(30); 20 }.ap { delay(30); 21 }
-                .ap { delay(30); 22 }
+                .with { delay(30); 1 }.with { delay(30); 2 }.with { delay(30); 3 }
+                .with { delay(30); 4 }.with { delay(30); 5 }.with { delay(30); 6 }
+                .with { delay(30); 7 }.with { delay(30); 8 }.with { delay(30); 9 }
+                .with { delay(30); 10 }.with { delay(30); 11 }.with { delay(30); 12 }
+                .with { delay(30); 13 }.with { delay(30); 14 }.with { delay(30); 15 }
+                .with { delay(30); 16 }.with { delay(30); 17 }.with { delay(30); 18 }
+                .with { delay(30); 19 }.with { delay(30); 20 }.with { delay(30); 21 }
+                .with { delay(30); 22 }
         }
         assertEquals((1..22).sum(), result) // 253
         assertEquals(30, currentTime, "All 22 should run in parallel → 30ms")
@@ -213,7 +213,7 @@ class StressTest {
     @Test
     fun `retry + timeout + recover composition in parallel branches`() = runTest {
         val result = Async {
-            liftA3(
+            combine(
                 {
                     // Branch 1: flaky, succeeds on 2nd try
                     var attempts = 0

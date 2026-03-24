@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
 /**
  * JMH benchmarks for **kap-core** APIs.
  *
- * Covers: lift+ap, followedBy, liftA, zip, mapN, traverse, sequence,
+ * Covers: kap+with, followedBy, combine, zip, traverse, sequence,
  * race, timeout, recover, memoize, computation{}, settled, Flow interop.
  *
  * Every KAP benchmark has a `raw_` baseline (and `arrow_` where applicable).
@@ -56,8 +56,8 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_overhead_arity3(): String = runBlocking {
         Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                .ap { compute(1) }.ap { compute(2) }.ap { compute(3) }
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                .with { compute(1) }.with { compute(2) }.with { compute(3) }
         }
     }
 
@@ -73,12 +73,12 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_overhead_arity9(): String = runBlocking {
         Async {
-            lift9 { a: String, b: String, c: String, d: String, e: String,
+            kap { a: String, b: String, c: String, d: String, e: String,
                     f: String, g: String, h: String, i: String ->
                 listOf(a, b, c, d, e, f, g, h, i).joinToString("|")
-            }.ap { compute(1) }.ap { compute(2) }.ap { compute(3) }
-             .ap { compute(4) }.ap { compute(5) }.ap { compute(6) }
-             .ap { compute(7) }.ap { compute(8) }.ap { compute(9) }
+            }.with { compute(1) }.with { compute(2) }.with { compute(3) }
+             .with { compute(4) }.with { compute(5) }.with { compute(6) }
+             .with { compute(7) }.with { compute(8) }.with { compute(9) }
         }
     }
 
@@ -109,12 +109,12 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_latency_arity5(): String = runBlocking {
         Async {
-            lift5 { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
-                .ap { networkCall("user", 50) }
-                .ap { networkCall("cart", 50) }
-                .ap { networkCall("prefs", 50) }
-                .ap { networkCall("recs", 50) }
-                .ap { networkCall("promos", 50) }
+            kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
+                .with { networkCall("user", 50) }
+                .with { networkCall("cart", 50) }
+                .with { networkCall("prefs", 50) }
+                .with { networkCall("recs", 50) }
+                .with { networkCall("promos", 50) }
         }
     }
 
@@ -157,19 +157,19 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_latency_multiPhase(): String = runBlocking {
         Async {
-            lift9 { user: String, cart: String, inv: String, addr: String,
+            kap { user: String, cart: String, inv: String, addr: String,
                     validated: String, ship: String, tax: String, disc: String,
                     payment: String ->
                 "$user|$cart|$inv|$addr|$validated|$ship|$tax|$disc|$payment"
             }
-                .ap { networkCall("user", 50) }
-                .ap { networkCall("cart", 50) }
-                .ap { networkCall("inventory", 50) }
-                .ap { networkCall("address", 50) }
+                .with { networkCall("user", 50) }
+                .with { networkCall("cart", 50) }
+                .with { networkCall("inventory", 50) }
+                .with { networkCall("address", 50) }
                 .followedBy { networkCall("validated", 30) }
-                .ap { networkCall("shipping", 40) }
-                .ap { networkCall("tax", 40) }
-                .ap { networkCall("discount", 40) }
+                .with { networkCall("shipping", 40) }
+                .with { networkCall("tax", 40) }
+                .with { networkCall("discount", 40) }
                 .followedBy { networkCall("payment", 60) }
         }
     }
@@ -197,37 +197,37 @@ open class CoreBenchmark {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 4. LIFTA — Haskell-style (accepts suspend lambdas directly)
+    // 4. COMBINE — parallel suspend lambdas (parZip-like)
     // ════════════════════════════════════════════════════════════════════════
 
-    @Benchmark fun raw_liftA3_overhead(): String = runBlocking {
+    @Benchmark fun raw_combine3_overhead(): String = runBlocking {
         coroutineScope {
             val a = async { compute(1) }; val b = async { compute(2) }; val c = async { compute(3) }
             "${a.await()}|${b.await()}|${c.await()}"
         }
     }
 
-    @Benchmark fun kap_liftA3_overhead(): String = runBlocking {
+    @Benchmark fun kap_combine3_overhead(): String = runBlocking {
         Async {
-            liftA3({ compute(1) }, { compute(2) }, { compute(3) }) { a, b, c -> "$a|$b|$c" }
+            combine({ compute(1) }, { compute(2) }, { compute(3) }) { a, b, c -> "$a|$b|$c" }
         }
     }
 
-    @Benchmark fun arrow_liftA3_overhead(): String = runBlocking {
+    @Benchmark fun arrow_combine3_overhead(): String = runBlocking {
         parZip({ compute(1) }, { compute(2) }, { compute(3) }) { a, b, c -> "$a|$b|$c" }
     }
 
-    @Benchmark fun kap_liftA5_overhead(): String = runBlocking {
+    @Benchmark fun kap_combine5_overhead(): String = runBlocking {
         Async {
-            liftA5(
+            combine(
                 { compute(1) }, { compute(2) }, { compute(3) }, { compute(4) }, { compute(5) },
             ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }
         }
     }
 
-    @Benchmark fun kap_liftA5_latency(): String = runBlocking {
+    @Benchmark fun kap_combine5_latency(): String = runBlocking {
         Async {
-            liftA5(
+            combine(
                 { networkCall("user", 50) }, { networkCall("cart", 50) },
                 { networkCall("prefs", 50) }, { networkCall("recs", 50) },
                 { networkCall("promos", 50) },
@@ -236,7 +236,7 @@ open class CoreBenchmark {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 5. HIGH-ARITY — lift15, measure curried chain overhead
+    // 5. HIGH-ARITY — kap (15-arity), measure curried chain overhead
     // ════════════════════════════════════════════════════════════════════════
 
     @Benchmark fun raw_overhead_arity15(): String = runBlocking {
@@ -247,16 +247,16 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_overhead_arity15(): String = runBlocking {
         Async {
-            lift15 { a: String, b: String, c: String, d: String, e: String,
+            kap { a: String, b: String, c: String, d: String, e: String,
                      f: String, g: String, h: String, i: String, j: String,
                      k: String, l: String, m: String, n: String, o: String ->
                 listOf(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o).joinToString("|")
             }
-                .ap { compute(1) }.ap { compute(2) }.ap { compute(3) }
-                .ap { compute(4) }.ap { compute(5) }.ap { compute(6) }
-                .ap { compute(7) }.ap { compute(8) }.ap { compute(9) }
-                .ap { compute(10) }.ap { compute(11) }.ap { compute(12) }
-                .ap { compute(13) }.ap { compute(14) }.ap { compute(15) }
+                .with { compute(1) }.with { compute(2) }.with { compute(3) }
+                .with { compute(4) }.with { compute(5) }.with { compute(6) }
+                .with { compute(7) }.with { compute(8) }.with { compute(9) }
+                .with { compute(10) }.with { compute(11) }.with { compute(12) }
+                .with { compute(13) }.with { compute(14) }.with { compute(15) }
         }
     }
 
@@ -445,9 +445,9 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_flatMap_chain_overhead(): String = runBlocking {
         Async {
-            pure(compute(1)).flatMap { a ->
-                pure(compute(2)).flatMap { b ->
-                    pure(compute(3)).map { c -> "$a|$b|$c" }
+            Computation.of(compute(1)).flatMap { a ->
+                Computation.of(compute(2)).flatMap { b ->
+                    Computation.of(compute(3)).map { c -> "$a|$b|$c" }
                 }
             }
         }
@@ -580,10 +580,10 @@ open class CoreBenchmark {
     @Benchmark fun kap_settled_failure_no_cancel(): String = runBlocking {
         data class R(val a: Result<String>, val b: String, val c: String)
         val result = Async {
-            lift3(::R)
-                .ap(Computation<String> { throw RuntimeException("down") }.settled())
-                .ap { networkCall("b", 50) }
-                .ap { networkCall("c", 50) }
+            kap(::R)
+                .with(Computation<String> { throw RuntimeException("down") }.settled())
+                .with { networkCall("b", 50) }
+                .with { networkCall("c", 50) }
         }
         "${result.a.isFailure}|${result.b}|${result.c}"
     }

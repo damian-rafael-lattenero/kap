@@ -51,9 +51,9 @@ class OverloadsAndEdgeCasesTest {
         val comp = Computation { "from-computation" }
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap(comp)
-                .ap(Computation { "also-computation" })
+            kap { a: String, b: String -> "$a|$b" }
+                .with(comp)
+                .with(Computation { "also-computation" })
         }
 
         assertEquals("from-computation|also-computation", result)
@@ -64,9 +64,9 @@ class OverloadsAndEdgeCasesTest {
         val comp = Computation { "barrier" }
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
+            kap { a: String, b: String -> "$a|$b" }
                 .followedBy(comp)
-                .ap { "after" }
+                .with { "after" }
         }
 
         assertEquals("barrier|after", result)
@@ -93,7 +93,7 @@ class OverloadsAndEdgeCasesTest {
         val fallback = Computation { "fallback-value" }
 
         val result = Async {
-            pure("fast").timeout(1.seconds, fallback)
+            Computation.of("fast").timeout(1.seconds, fallback)
         }
 
         assertEquals("fast", result)
@@ -103,7 +103,7 @@ class OverloadsAndEdgeCasesTest {
     fun `recoverWith switches to recovery computation`() = runTest {
         val result = Async {
             Computation<String> { throw RuntimeException("boom") }
-                .recoverWith { e -> pure("recovered: ${e.message}") }
+                .recoverWith { e -> Computation.of("recovered: ${e.message}") }
         }
 
         assertEquals("recovered: boom", result)
@@ -112,7 +112,7 @@ class OverloadsAndEdgeCasesTest {
     @Test
     fun `recoverWith passes through on success`() = runTest {
         val result = Async {
-            pure("ok").recoverWith { pure("should-not-reach") }
+            Computation.of("ok").recoverWith { Computation.of("should-not-reach") }
         }
 
         assertEquals("ok", result)
@@ -184,9 +184,9 @@ class OverloadsAndEdgeCasesTest {
     @Test
     fun `on switches dispatcher for a specific computation`() = runTest {
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap(Computation { "io-task" }.on(Dispatchers.IO))
-                .ap { "default-task" }
+            kap { a: String, b: String -> "$a|$b" }
+                .with(Computation { "io-task" }.on(Dispatchers.IO))
+                .with { "default-task" }
         }
         assertEquals("io-task|default-task", result)
     }

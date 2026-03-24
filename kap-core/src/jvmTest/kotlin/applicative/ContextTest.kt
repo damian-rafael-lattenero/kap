@@ -29,7 +29,7 @@ class ContextTest {
     @Test
     fun `Async without context still works`() = runTest {
         val result = Async {
-            pure(42)
+            Computation.of(42)
         }
         assertEquals(42, result)
     }
@@ -64,9 +64,9 @@ class ContextTest {
         }.on(Dispatchers.Default)
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap { with(compA) { execute() } }
-                .ap { with(compB) { execute() } }
+            kap { a: String, b: String -> "$a|$b" }
+                .with { with(compA) { execute() } }
+                .with { with(compB) { execute() } }
         }
 
         // Proves parallelism still works with .on()
@@ -78,9 +78,9 @@ class ContextTest {
         // One computation on Default, rest inherit parent context
         val compA = Computation { 21 }.on(Dispatchers.Default)
         val result = Async {
-            lift2 { a: Int, b: Int -> a + b }
-                .ap { with(compA) { execute() } }
-                .ap { 21 }
+            kap { a: Int, b: Int -> a + b }
+                .with { with(compA) { execute() } }
+                .with { 21 }
         }
         assertEquals(42, result)
     }
@@ -103,9 +103,9 @@ class ContextTest {
         val result = Async(CoroutineName("trace-123")) {
             context.flatMap { ctx ->
                 val traceName = ctx[CoroutineName]?.name ?: "unknown"
-                lift2 { a: String, b: String -> "$a|$b|trace=$traceName" }
-                    .ap { "user" }
-                    .ap { "cart" }
+                kap { a: String, b: String -> "$a|$b|trace=$traceName" }
+                    .with { "user" }
+                    .with { "cart" }
             }
         }
 
@@ -123,8 +123,8 @@ class ContextTest {
 
         val result = runCatching {
             Async(CoroutineName("test-cancel")) {
-                lift2 { a: String, b: String -> "$a|$b" }
-                    .ap {
+                kap { a: String, b: String -> "$a|$b" }
+                    .with {
                         try {
                             siblingStarted.complete(Unit)
                             kotlinx.coroutines.awaitCancellation()
@@ -133,7 +133,7 @@ class ContextTest {
                             throw e
                         }
                     }
-                    .ap {
+                    .with {
                         siblingStarted.await()
                         throw RuntimeException("fast-fail")
                     }

@@ -8,43 +8,43 @@ import kotlin.test.assertEquals
 class NullableTest {
 
     // ════════════════════════════════════════════════════════════════════════
-    // .apOrNull(null) — literal null
+    // .withOrNull(null) — literal null
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `apOrNull with null literal passes null to function`() = runTest {
+    fun `withOrNull with null literal passes null to function`() = runTest {
         val result = Async {
-            lift2 { a: String, b: String? -> "$a|${b ?: "nil"}" }
-                .ap { "fixed" }
-                .apOrNull(null)
+            kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
+                .with { "fixed" }
+                .withOrNull(null)
         }
         assertEquals("fixed|nil", result)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // .apOrNull(comp) where comp: Computation<A>?
+    // .withOrNull(comp) where comp: Computation<A>?
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `apOrNull with nullable Computation - non-null executes`() = runTest {
-        val comp: Computation<String>? = pure("yes")
+    fun `withOrNull with nullable Computation - non-null executes`() = runTest {
+        val comp: Computation<String>? = Computation.of("yes")
 
         val result = Async {
-            lift2 { a: String, b: String? -> "$a|${b ?: "nil"}" }
-                .ap { "fixed" }
-                .apOrNull(comp)
+            kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
+                .with { "fixed" }
+                .withOrNull(comp)
         }
         assertEquals("fixed|yes", result)
     }
 
     @Test
-    fun `apOrNull with nullable Computation - null passes null`() = runTest {
+    fun `withOrNull with nullable Computation - null passes null`() = runTest {
         val comp: Computation<String>? = null
 
         val result = Async {
-            lift2 { a: String, b: String? -> "$a|${b ?: "nil"}" }
-                .ap { "fixed" }
-                .apOrNull(comp)
+            kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
+                .with { "fixed" }
+                .withOrNull(comp)
         }
         assertEquals("fixed|nil", result)
     }
@@ -55,14 +55,14 @@ class NullableTest {
 
     @Test
     fun `mixed chain with nullable and non-null`() = runTest {
-        val present: Computation<String>? = pure("yes")
+        val present: Computation<String>? = Computation.of("yes")
         val absent: Computation<String>? = null
 
         val result = Async {
-            lift3 { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
-                .ap { "fixed" }
-                .apOrNull(present)
-                .apOrNull(absent)
+            kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
+                .with { "fixed" }
+                .withOrNull(present)
+                .withOrNull(absent)
         }
 
         assertEquals("fixed|yes|nil", result)
@@ -70,13 +70,13 @@ class NullableTest {
 
     @Test
     fun `chain with literal null and nullable variable`() = runTest {
-        val present: Computation<String>? = pure("yes")
+        val present: Computation<String>? = Computation.of("yes")
 
         val result = Async {
-            lift3 { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
-                .ap { "fixed" }
-                .apOrNull(present)
-                .apOrNull(null)
+            kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
+                .with { "fixed" }
+                .withOrNull(present)
+                .withOrNull(null)
         }
 
         assertEquals("fixed|yes|nil", result)
@@ -85,21 +85,21 @@ class NullableTest {
     @Test
     fun `all null parameters`() = runTest {
         val result = Async {
-            lift3 { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
-                .ap { "fixed" }
-                .apOrNull(null)
-                .apOrNull(null)
+            kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
+                .with { "fixed" }
+                .withOrNull(null)
+                .withOrNull(null)
         }
 
         assertEquals("fixed|nil|nil", result)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // apOrNull with real parallelism + followedBy + flatMap
+    // withOrNull with real parallelism + followedBy + flatMap
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `apOrNull runs non-null in parallel - barrier proof`() = runTest {
+    fun `withOrNull runs non-null in parallel - barrier proof`() = runTest {
         val latchA = CompletableDeferred<Unit>()
         val latchB = CompletableDeferred<Unit>()
 
@@ -114,20 +114,20 @@ class NullableTest {
             "B"
         }
 
-        // Would deadlock if apOrNull ran sequentially
+        // Would deadlock if withOrNull ran sequentially
         val result = Async {
-            lift3 { a: String?, b: String?, c: String -> "${a ?: "nil"}|${b ?: "nil"}|$c" }
-                .apOrNull(compA)
-                .apOrNull(compB)
-                .ap { "C" }
+            kap { a: String?, b: String?, c: String -> "${a ?: "nil"}|${b ?: "nil"}|$c" }
+                .withOrNull(compA)
+                .withOrNull(compB)
+                .with { "C" }
         }
 
         assertEquals("A|B|C", result)
     }
 
     @Test
-    fun `apOrNull integrates with followedBy and flatMap`() = runTest {
-        val optionalDiscount: Computation<Discount>? = pure(Discount("SUMMER20", 20))
+    fun `withOrNull integrates with followedBy and flatMap`() = runTest {
+        val optionalDiscount: Computation<Discount>? = Computation.of(Discount("SUMMER20", 20))
         val noInsurance: Computation<InsurancePlan>? = null
 
         data class BookingDetails(
@@ -139,11 +139,11 @@ class NullableTest {
         )
 
         val result = Async {
-            lift5(::BookingDetails)
-                .ap { UserProfile("Alice", 42) }
-                .ap { CartSummary(3) }
-                .apOrNull(optionalDiscount)
-                .apOrNull(noInsurance)
+            kap(::BookingDetails)
+                .with { UserProfile("Alice", 42) }
+                .with { CartSummary(3) }
+                .withOrNull(optionalDiscount)
+                .withOrNull(noInsurance)
                 .followedBy { OrderTotal(42.0) }
         }
 

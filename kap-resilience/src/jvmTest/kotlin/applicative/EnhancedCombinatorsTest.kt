@@ -272,11 +272,11 @@ class EnhancedCombinatorsTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // COMPOSITION: INSIDE ap CHAINS
+    // COMPOSITION: INSIDE with CHAINS
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `timeoutRace inside ap chain - parallel branches with different strategies`() = runTest {
+    fun `timeoutRace inside with chain - parallel branches with different strategies`() = runTest {
         val timeoutRaceBranch = Computation<String> {
             delay(500.milliseconds)
             "slow-service"
@@ -297,9 +297,9 @@ class EnhancedCombinatorsTest {
         }.retry(maxAttempts = 3)
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap(timeoutRaceBranch)
-                .ap(retryBranch)
+            kap { a: String, b: String -> "$a|$b" }
+                .with(timeoutRaceBranch)
+                .with(retryBranch)
         }
 
         assertEquals("cached|retried-ok", result)
@@ -313,7 +313,7 @@ class EnhancedCombinatorsTest {
     }
 
     @Test
-    fun `retry with shouldRetry inside ap chain - selective retry in parallel`() = runTest {
+    fun `retry with shouldRetry inside with chain - selective retry in parallel`() = runTest {
         var ioAttempts = 0
         val ioBranch = Computation<String> {
             ioAttempts++
@@ -337,9 +337,9 @@ class EnhancedCombinatorsTest {
         )
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap(ioBranch)
-                .ap(stateBranch)
+            kap { a: String, b: String -> "$a|$b" }
+                .with(ioBranch)
+                .with(stateBranch)
         }
 
         assertEquals("io-ok|state-ok", result)

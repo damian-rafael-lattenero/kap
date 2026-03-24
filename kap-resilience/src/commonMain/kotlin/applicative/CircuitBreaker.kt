@@ -124,10 +124,10 @@ class CircuitBreakerOpenException(
  * val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 10.seconds)
  *
  * val result = Async {
- *     lift3(::Dashboard)
- *         .ap { fetchUser().withCircuitBreaker(breaker) }
- *         .ap { fetchConfig() }
- *         .ap { fetchCart() }
+ *     kap(::Dashboard)
+ *         .with { fetchUser().withCircuitBreaker(breaker) }
+ *         .with { fetchConfig() }
+ *         .with { fetchCart() }
  * }
  * ```
  */

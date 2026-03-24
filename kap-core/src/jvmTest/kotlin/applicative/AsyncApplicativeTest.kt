@@ -26,20 +26,20 @@ class AsyncApplicativeTest {
         val latchB = CompletableDeferred<Unit>()
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap {
+            kap { a: String, b: String -> "$a|$b" }
+                .with {
                     latchA.complete(Unit)   // signal: A started
                     latchB.await()          // wait for B to start
                     "A"
                 }
-                .ap {
+                .with {
                     latchB.complete(Unit)   // signal: B started
                     latchA.await()          // wait for A to start
                     "B"
                 }
         }
 
-        // If ap were sequential, this would deadlock.
+        // If with were sequential, this would deadlock.
         // Completion proves true parallelism.
         assertEquals("A|B", result)
     }
@@ -49,10 +49,10 @@ class AsyncApplicativeTest {
         val latches = (0 until 3).map { CompletableDeferred<Unit>() }
 
         val result = Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                .ap { latches[0].complete(Unit); latches.awaitOthers(0); "A" }
-                .ap { latches[1].complete(Unit); latches.awaitOthers(1); "B" }
-                .ap { latches[2].complete(Unit); latches.awaitOthers(2); "C" }
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                .with { latches[0].complete(Unit); latches.awaitOthers(0); "A" }
+                .with { latches[1].complete(Unit); latches.awaitOthers(1); "B" }
+                .with { latches[2].complete(Unit); latches.awaitOthers(2); "C" }
         }
 
         assertEquals("A|B|C", result)
@@ -63,8 +63,8 @@ class AsyncApplicativeTest {
         val order = mutableListOf<String>()
 
         val result = Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                .ap { order.add("first"); "A" }
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                .with { order.add("first"); "A" }
                 .followedBy { order.add("second"); "B" }
                 .followedBy { order.add("third"); "C" }
         }
@@ -74,18 +74,18 @@ class AsyncApplicativeTest {
     }
 
     @Test
-    fun `followedBy then ap fires concurrently - barrier proof`() = runTest {
+    fun `followedBy then with fires concurrently - barrier proof`() = runTest {
         val apStarted = CompletableDeferred<Unit>()
 
         val result = Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .followedBy { "A" }
-                .ap {
+                .with {
                     // B cannot complete until C has started
                     apStarted.await()
                     "B"
                 }
-                .ap {
+                .with {
                     // C signals it started — proving it runs alongside B
                     apStarted.complete(Unit)
                     "C"
@@ -100,14 +100,14 @@ class AsyncApplicativeTest {
         val latches = (0 until 7).map { CompletableDeferred<Unit>() }
 
         val result = Async {
-            lift7 { a: String, b: String, c: String, d: String, e: String, f: String, g: String -> "$a|$b|$c|$d|$e|$f|$g" }
-                .ap { latches[0].complete(Unit); latches.awaitOthers(0); "A" }
-                .ap { latches[1].complete(Unit); latches.awaitOthers(1); "B" }
-                .ap { latches[2].complete(Unit); latches.awaitOthers(2); "C" }
-                .ap { latches[3].complete(Unit); latches.awaitOthers(3); "D" }
-                .ap { latches[4].complete(Unit); latches.awaitOthers(4); "E" }
-                .ap { latches[5].complete(Unit); latches.awaitOthers(5); "F" }
-                .ap { latches[6].complete(Unit); latches.awaitOthers(6); "G" }
+            kap { a: String, b: String, c: String, d: String, e: String, f: String, g: String -> "$a|$b|$c|$d|$e|$f|$g" }
+                .with { latches[0].complete(Unit); latches.awaitOthers(0); "A" }
+                .with { latches[1].complete(Unit); latches.awaitOthers(1); "B" }
+                .with { latches[2].complete(Unit); latches.awaitOthers(2); "C" }
+                .with { latches[3].complete(Unit); latches.awaitOthers(3); "D" }
+                .with { latches[4].complete(Unit); latches.awaitOthers(4); "E" }
+                .with { latches[5].complete(Unit); latches.awaitOthers(5); "F" }
+                .with { latches[6].complete(Unit); latches.awaitOthers(6); "G" }
         }
 
         // All seven must be running simultaneously or this deadlocks.
@@ -119,22 +119,22 @@ class AsyncApplicativeTest {
         val latches = (0 until 13).map { CompletableDeferred<Unit>() }
 
         val result = Async {
-            lift13 { s1: String, s2: String, s3: String, s4: String, s5: String, s6: String, s7: String, s8: String, s9: String, s10: String, s11: String, s12: String, s13: String ->
+            kap { s1: String, s2: String, s3: String, s4: String, s5: String, s6: String, s7: String, s8: String, s9: String, s10: String, s11: String, s12: String, s13: String ->
                 listOf(s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13).joinToString(";")
             }
-                .ap { latches[0].complete(Unit);  latches.awaitOthers(0);  "v1" }
-                .ap { latches[1].complete(Unit);  latches.awaitOthers(1);  "v2" }
-                .ap { latches[2].complete(Unit);  latches.awaitOthers(2);  "v3" }
-                .ap { latches[3].complete(Unit);  latches.awaitOthers(3);  "v4" }
-                .ap { latches[4].complete(Unit);  latches.awaitOthers(4);  "v5" }
-                .ap { latches[5].complete(Unit);  latches.awaitOthers(5);  "v6" }
-                .ap { latches[6].complete(Unit);  latches.awaitOthers(6);  "v7" }
-                .ap { latches[7].complete(Unit);  latches.awaitOthers(7);  "v8" }
-                .ap { latches[8].complete(Unit);  latches.awaitOthers(8);  "v9" }
-                .ap { latches[9].complete(Unit);  latches.awaitOthers(9);  "v10" }
-                .ap { latches[10].complete(Unit); latches.awaitOthers(10); "v11" }
-                .ap { latches[11].complete(Unit); latches.awaitOthers(11); "v12" }
-                .ap { latches[12].complete(Unit); latches.awaitOthers(12); "v13" }
+                .with { latches[0].complete(Unit);  latches.awaitOthers(0);  "v1" }
+                .with { latches[1].complete(Unit);  latches.awaitOthers(1);  "v2" }
+                .with { latches[2].complete(Unit);  latches.awaitOthers(2);  "v3" }
+                .with { latches[3].complete(Unit);  latches.awaitOthers(3);  "v4" }
+                .with { latches[4].complete(Unit);  latches.awaitOthers(4);  "v5" }
+                .with { latches[5].complete(Unit);  latches.awaitOthers(5);  "v6" }
+                .with { latches[6].complete(Unit);  latches.awaitOthers(6);  "v7" }
+                .with { latches[7].complete(Unit);  latches.awaitOthers(7);  "v8" }
+                .with { latches[8].complete(Unit);  latches.awaitOthers(8);  "v9" }
+                .with { latches[9].complete(Unit);  latches.awaitOthers(9);  "v10" }
+                .with { latches[10].complete(Unit); latches.awaitOthers(10); "v11" }
+                .with { latches[11].complete(Unit); latches.awaitOthers(11); "v12" }
+                .with { latches[12].complete(Unit); latches.awaitOthers(12); "v13" }
         }
 
         assertEquals((1..13).joinToString(";") { "v$it" }, result)
@@ -152,9 +152,9 @@ class AsyncApplicativeTest {
         val order = mutableListOf<String>()
 
         val result = Async {
-            lift5 { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
-                .ap { order.add("a"); "A" }
-                .ap { order.add("b"); "B" }
+            kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
+                .with { order.add("a"); "A" }
+                .with { order.add("b"); "B" }
                 .followedBy { order.add("c"); "C" }
                 .followedBy { order.add("d"); "D" }
                 .followedBy { order.add("e"); "E" }
@@ -196,17 +196,17 @@ class AsyncApplicativeTest {
         fun reservePayment() = PaymentAuth(cardLast4 = "4242", authorized = true)
 
         val result = Async {
-            lift8 { user: UserProfile, cart: ShoppingCart, promos: PromotionBundle, inventory: InventorySnapshot,
+            kap { user: UserProfile, cart: ShoppingCart, promos: PromotionBundle, inventory: InventorySnapshot,
                     stock: StockConfirmation, shipping: ShippingQuote, tax: TaxBreakdown, payment: PaymentAuth ->
                 CheckoutSummary(user, cart, promos, inventory, stock, shipping, tax, payment)
             }
-                .ap { fetchUser() }
-                .ap { fetchCart() }
-                .ap { fetchPromotions() }
-                .ap { fetchInventory() }
+                .with { fetchUser() }
+                .with { fetchCart() }
+                .with { fetchPromotions() }
+                .with { fetchInventory() }
                 .followedBy { validateStock() }
-                .ap { calcShipping() }
-                .ap { calcTax() }
+                .with { calcShipping() }
+                .with { calcTax() }
                 .followedBy { reservePayment() }
         }
 
@@ -235,13 +235,13 @@ class AsyncApplicativeTest {
         val present: (suspend () -> String)? = { "present" }
 
         val result = Async {
-            lift4 { a: String, b: String?, c: String, d: String? ->
+            kap { a: String, b: String?, c: String, d: String? ->
                 "$a|${b ?: "nil"}|$c|${d ?: "nil"}"
             }
-                .ap { "A" }
-                .ap { absent?.invoke() }
-                .ap { "C" }
-                .ap { present?.invoke() }
+                .with { "A" }
+                .with { absent?.invoke() }
+                .with { "C" }
+                .with { present?.invoke() }
         }
 
         assertEquals("A|nil|C|present", result)
@@ -252,7 +252,7 @@ class AsyncApplicativeTest {
         val absent: (suspend () -> String)? = null
 
         val result = Async {
-            lift2 { a: String, b: String? -> "$a|${b ?: "nil"}" }
+            kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
                 .followedBy { "A" }
                 .followedBy { absent?.invoke() }
         }
@@ -268,10 +268,10 @@ class AsyncApplicativeTest {
     fun `exception in lift+ap propagates through structured concurrency`() = runTest {
         val result = runCatching {
             Async {
-                lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                    .ap { "ok" }
-                    .ap { throw RuntimeException("boom") }
-                    .ap { "ok" }
+                kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                    .with { "ok" }
+                    .with { throw RuntimeException("boom") }
+                    .with { "ok" }
             }
         }
 
@@ -287,8 +287,8 @@ class AsyncApplicativeTest {
 
         runCatching {
             Async {
-                lift2 { a: String, b: String -> "$a|$b" }
-                    .ap {
+                kap { a: String, b: String -> "$a|$b" }
+                    .with {
                         try {
                             siblingStarted.complete(Unit)
                             awaitCancellation()
@@ -297,7 +297,7 @@ class AsyncApplicativeTest {
                             throw e
                         }
                     }
-                    .ap {
+                    .with {
                         siblingStarted.await() // ensure sibling is running
                         throw RuntimeException("fast-fail")
                     }
@@ -311,7 +311,7 @@ class AsyncApplicativeTest {
     fun `exception in followedBy propagates correctly`() = runTest {
         val result = runCatching {
             Async {
-                lift2 { a: String, b: String -> "$a|$b" }
+                kap { a: String, b: String -> "$a|$b" }
                     .followedBy { "ok" }
                     .followedBy { throw RuntimeException("followedBy failed") }
             }
@@ -328,7 +328,7 @@ class AsyncApplicativeTest {
     @Test
     fun `map transforms computation result`() = runTest {
         val result = Async {
-            pure(42).map { it * 2 }.map { "result=$it" }
+            Computation.of(42).map { it * 2 }.map { "result=$it" }
         }
         assertEquals("result=84", result)
     }
@@ -336,10 +336,10 @@ class AsyncApplicativeTest {
     @Test
     fun `flatMap allows value-dependent continuation`() = runTest {
         val result = Async {
-            pure(42).flatMap { n ->
-                lift2 { doubled: Int, label: String -> "$label=$doubled" }
-                    .ap { n * 2 }
-                    .ap { "result" }
+            Computation.of(42).flatMap { n ->
+                kap { doubled: Int, label: String -> "$label=$doubled" }
+                    .with { n * 2 }
+                    .with { "result" }
             }
         }
         assertEquals("result=84", result)
@@ -350,12 +350,12 @@ class AsyncApplicativeTest {
         val order = mutableListOf<String>()
 
         val result = Async {
-            pure("hello").flatMap { greeting ->
+            Computation.of("hello").flatMap { greeting ->
                 order.add("step1: $greeting")
-                pure("$greeting world")
+                Computation.of("$greeting world")
             }.flatMap { msg ->
                 order.add("step2: $msg")
-                pure(msg.uppercase())
+                Computation.of(msg.uppercase())
             }
         }
 
@@ -369,11 +369,11 @@ class AsyncApplicativeTest {
         val latchC = CompletableDeferred<Unit>()
 
         val result = Async {
-            pure(10).flatMap { base ->
+            Computation.of(10).flatMap { base ->
                 // After getting the base value, fan out in parallel
-                lift2 { b: Int, c: Int -> base + b + c }
-                    .ap { latchB.complete(Unit); latchC.await(); base * 2 }
-                    .ap { latchC.complete(Unit); latchB.await(); base * 3 }
+                kap { b: Int, c: Int -> base + b + c }
+                    .with { latchB.complete(Unit); latchC.await(); base * 2 }
+                    .with { latchC.complete(Unit); latchB.await(); base * 3 }
             }
         }
 
@@ -465,7 +465,7 @@ class AsyncApplicativeTest {
     @Test
     fun `traverse on empty list returns empty list`() = runTest {
         val result = Async {
-            emptyList<Int>().traverse { pure(it) }
+            emptyList<Int>().traverse { Computation.of(it) }
         }
         assertEquals(emptyList(), result)
     }
@@ -547,18 +547,18 @@ class AsyncApplicativeTest {
 
         // -- DSL: declarative, zero boilerplate --
         val dsl = Async {
-            lift7 { user: UserProfile, notifications: NotificationList, prefs: Preferences,
+            kap { user: UserProfile, notifications: NotificationList, prefs: Preferences,
                     feed: FeedContent, suggestions: PeopleSuggestions,
                     recommendations: Recommendations, badges: FeatureFlags ->
                 DashboardSummary(user, notifications, prefs, feed, suggestions, recommendations, badges)
             }
-                .ap { fetchUser() }
-                .ap { fetchNotifications() }
-                .ap { fetchPrefs() }
-                .ap { fetchFeed() }
-                .ap { fetchSuggestions() }
-                .ap { fetchRecommendations() }
-                .ap { fetchBadges() }
+                .with { fetchUser() }
+                .with { fetchNotifications() }
+                .with { fetchPrefs() }
+                .with { fetchFeed() }
+                .with { fetchSuggestions() }
+                .with { fetchRecommendations() }
+                .with { fetchBadges() }
         }
 
         assertEquals(traditional, dsl)
@@ -604,16 +604,16 @@ class AsyncApplicativeTest {
 
         // -- DSL: the code IS the execution plan --
         val dsl = Async {
-            lift7 { user: UserProfile, cart: ShoppingCart, promos: PromotionBundle, stock: StockConfirmation,
+            kap { user: UserProfile, cart: ShoppingCart, promos: PromotionBundle, stock: StockConfirmation,
                     shipping: ShippingQuote, tax: TaxBreakdown, payment: PaymentAuth ->
                 CheckoutPhased(user, cart, promos, stock, shipping, tax, payment)
             }
-                .ap { fetchUser() }
-                .ap { fetchCart() }
-                .ap { fetchPromos() }
+                .with { fetchUser() }
+                .with { fetchCart() }
+                .with { fetchPromos() }
                 .followedBy { validateStock() }
-                .ap { calcShipping() }
-                .ap { calcTax() }
+                .with { calcShipping() }
+                .with { calcTax() }
                 .followedBy { reservePayment() }
         }
 
@@ -628,12 +628,12 @@ class AsyncApplicativeTest {
         fun callKtorClient(): List<String> = listOf("a", "b", "c")
 
         val result = Async {
-            lift3 { user: String, count: Int, items: List<String> ->
+            kap { user: String, count: Int, items: List<String> ->
                 "$user|$count|${items.joinToString(",")}"
             }
-                .ap { fetchFromRetrofit() }
-                .ap { queryFromRoom() }
-                .ap { callKtorClient() }
+                .with { fetchFromRetrofit() }
+                .with { queryFromRoom() }
+                .with { callKtorClient() }
         }
 
         assertEquals("user-data|42|a,b,c", result)
@@ -676,20 +676,20 @@ class AsyncApplicativeTest {
 
         // -- DSL: the structure IS the execution plan --
         val dsl = Async {
-            lift9 { user: UserProfile, prefs: Preferences, flags: FeatureFlags,
+            kap { user: UserProfile, prefs: Preferences, flags: FeatureFlags,
                     auth: AuthToken, feed: FeedContent,
                     notifications: NotificationList, messages: MessageSummary,
                     recommendations: Recommendations, trending: TrendingTopics ->
                 FullPageLoad(user, prefs, flags, auth, feed, notifications, messages, recommendations, trending)
             }
-                .ap { fetchUser() }
-                .ap { fetchPrefs() }
-                .ap { fetchFlags() }
+                .with { fetchUser() }
+                .with { fetchPrefs() }
+                .with { fetchFlags() }
                 .followedBy { loadAuth() }
                 .followedBy { loadFeed() }
-                .ap { loadNotifications() }
-                .ap { loadMessages() }
-                .ap { loadRecommendations() }
+                .with { loadNotifications() }
+                .with { loadMessages() }
+                .with { loadRecommendations() }
                 .followedBy { loadTrending() }
         }
 

@@ -21,14 +21,14 @@ class ExtensionsTest {
 
     @Test
     fun `void discards result and returns Unit`() = runTest {
-        val result = Async { Computation { 42 }.void() }
+        val result = Async { Computation { 42 }.discard() }
         assertEquals(Unit, result)
     }
 
     @Test
     fun `void propagates failure`() = runTest {
         val result = runCatching {
-            Async { Computation<Int> { throw RuntimeException("boom") }.void() }
+            Async { Computation<Int> { throw RuntimeException("boom") }.discard() }
         }
         assertTrue(result.isFailure)
         assertEquals("boom", result.exceptionOrNull()?.message)
@@ -77,7 +77,7 @@ class ExtensionsTest {
         val sideEffects = mutableListOf<String>()
         val result = Async {
             Computation { "hello" }
-                .tap { sideEffects.add("saw: $it") }
+                .peek { sideEffects.add("saw: $it") }
         }
         assertEquals("hello", result)
         assertEquals(listOf("saw: hello"), sideEffects)
@@ -88,7 +88,7 @@ class ExtensionsTest {
         val result = runCatching {
             Async {
                 Computation { "hello" }
-                    .tap { throw RuntimeException("side-effect failed") }
+                    .peek { throw RuntimeException("side-effect failed") }
             }
         }
         assertTrue(result.isFailure)
@@ -103,7 +103,7 @@ class ExtensionsTest {
     fun `zipLeft runs both in parallel and returns left result`() = runTest {
         val result = Async {
             Computation { delay(50); "left" }
-                .zipLeft(Computation { delay(50); "right" })
+                .keepFirst(Computation { delay(50); "right" })
         }
         assertEquals("left", result)
         assertEquals(50, currentTime, "Both should run in parallel (50ms, not 100ms)")
@@ -113,7 +113,7 @@ class ExtensionsTest {
     fun `zipRight runs both in parallel and returns right result`() = runTest {
         val result = Async {
             Computation { delay(50); "left" }
-                .zipRight(Computation { delay(50); "right" })
+                .keepSecond(Computation { delay(50); "right" })
         }
         assertEquals("right", result)
         assertEquals(50, currentTime, "Both should run in parallel (50ms, not 100ms)")
@@ -124,7 +124,7 @@ class ExtensionsTest {
         val result = runCatching {
             Async {
                 Computation { delay(100); "left" }
-                    .zipLeft(Computation<String> { throw RuntimeException("right failed") })
+                    .keepFirst(Computation<String> { throw RuntimeException("right failed") })
             }
         }
         assertTrue(result.isFailure)
@@ -136,7 +136,7 @@ class ExtensionsTest {
         val result = runCatching {
             Async {
                 Computation<String> { throw RuntimeException("left failed") }
-                    .zipRight(Computation { delay(100); "right" })
+                    .keepSecond(Computation { delay(100); "right" })
             }
         }
         assertTrue(result.isFailure)
@@ -149,7 +149,7 @@ class ExtensionsTest {
         val result = runCatching {
             Async {
                 Computation<String> { delay(10); throw RuntimeException("boom") }
-                    .zipLeft(Computation {
+                    .keepFirst(Computation {
                         try { awaitCancellation() }
                         catch (e: CancellationException) { cancelled.complete(true); throw e }
                     })

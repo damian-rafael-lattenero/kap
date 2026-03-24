@@ -11,7 +11,7 @@ import kotlin.time.Duration.Companion.seconds
  *
  * Combines all three modules in a realistic order-processing pipeline:
  *
- *   kap-core:       lift/ap/followedBy for type-safe parallel orchestration
+ *   kap-core:       kap/with/followedBy for type-safe parallel orchestration
  *   kap-resilience: Schedule retry, CircuitBreaker, bracket, timeoutRace
  *   kap-arrow:      validated/accumulate for input validation, attempt(),
  *                   raceEither for heterogeneous racing, Either bridges
@@ -143,10 +143,10 @@ suspend fun main() {
     // Scenario A: all valid
     println("  Scenario A: valid input")
     val validResult = Async {
-        liftV3<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
-            .apV { validateItem("ITEM-12345") }
-            .apV { validateQuantity(3) }
-            .apV { validateAddress("123 Main St", "Springfield", "62701") }
+        kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
+            .withV { validateItem("ITEM-12345") }
+            .withV { validateQuantity(3) }
+            .withV { validateAddress("123 Main St", "Springfield", "62701") }
     }
 
     when (validResult) {
@@ -157,10 +157,10 @@ suspend fun main() {
     // Scenario B: multiple failures accumulated in parallel
     println("  Scenario B: invalid input (errors accumulated)")
     val invalidResult = Async {
-        liftV3<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
-            .apV { validateItem("bad") }
-            .apV { validateQuantity(0) }
-            .apV { validateAddress("", "", "abc") }
+        kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
+            .withV { validateItem("bad") }
+            .withV { validateQuantity(0) }
+            .withV { validateAddress("", "", "abc") }
     }
 
     when (invalidResult) {
@@ -177,20 +177,20 @@ suspend fun main() {
 
     val order = (validResult as Either.Right).value
 
-    val retryPolicy = Schedule.recurs<Throwable>(4) and
+    val retryPolicy = Schedule.times<Throwable>(4) and
         Schedule.exponential<Throwable>(30.milliseconds).jittered()
 
     val fetched = Async {
-        lift2(::FetchedData)
+        kap(::FetchedData)
             // Retry flaky inventory API with exponential backoff
-            .ap(
+            .with(
                 Computation { checkInventory(order.item.value) }
                     .retry(retryPolicy) { attempt, err, nextDelay ->
                         println("  Inventory retry #$attempt: ${err.message} (waiting $nextDelay)")
                     }
             )
             // timeoutRace: try live pricing, fall back to cache if slow
-            .ap(
+            .with(
                 Computation { fetchLivePricing(order.item.value) }
                     .timeoutRace(100.milliseconds, Computation { fetchCachedPricing(order.item.value) })
             )
@@ -214,7 +214,7 @@ suspend fun main() {
     val payment = Async {
         Computation { processPayment(totalAmount) }
             .withCircuitBreaker(breaker)
-            .retry(Schedule.recurs<Throwable>(2) and Schedule.spaced(50.milliseconds))
+            .retry(Schedule.times<Throwable>(2) and Schedule.spaced(50.milliseconds))
     }
 
     println("  Payment: txId=${payment.txId}, amount=$${String.format("%.2f", payment.amount)}")
@@ -268,23 +268,23 @@ suspend fun main() {
 
     // Step 1: validate input (kap-arrow)
     val validated = Async {
-        liftV3<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
-            .apV { validateItem("ITEM-99999") }
-            .apV { validateQuantity(2) }
-            .apV { validateAddress("456 Oak Ave", "Shelbyville", "62702") }
+        kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
+            .withV { validateItem("ITEM-99999") }
+            .withV { validateQuantity(2) }
+            .withV { validateAddress("456 Oak Ave", "Shelbyville", "62702") }
             .orThrow()
     }
 
-    // Step 2: orchestrate with lift+ap+followedBy (all three modules)
+    // Step 2: orchestrate with kap+with+followedBy (all three modules)
     val fullOrder = Async {
-        lift5(::PlacedOrder)
-            .ap { validated }
+        kap(::PlacedOrder)
+            .with { validated }
             // Phase: inventory + pricing in parallel (kap-resilience)
-            .ap(
+            .with(
                 Computation { checkInventory(validated.item.value) }
-                    .retry(Schedule.recurs<Throwable>(4) and Schedule.exponential(20.milliseconds))
+                    .retry(Schedule.times<Throwable>(4) and Schedule.exponential(20.milliseconds))
             )
-            .ap(
+            .with(
                 Computation { fetchLivePricing(validated.item.value) }
                     .timeoutRace(80.milliseconds, Computation { fetchCachedPricing(validated.item.value) })
             )
@@ -292,7 +292,7 @@ suspend fun main() {
             .followedBy(
                 Computation { processPayment(validated.qty.value * 49.99 * 0.95) }
                     .withCircuitBreaker(breaker)
-                    .retry(Schedule.recurs<Throwable>(2) and Schedule.spaced(30.milliseconds))
+                    .retry(Schedule.times<Throwable>(2) and Schedule.spaced(30.milliseconds))
             )
             // Phase: confirmation (sequential, depends on payment)
             .followedBy(

@@ -3,8 +3,8 @@ package applicative
 // ════════════════════════════════════════════════════════════════════════
 // Shared domain types for tests.
 //
-// Every type is distinct, so lift+ap chains enforce correct parameter
-// ordering at compile time — swap two .ap lines and it won't compile.
+// Every type is distinct, so kap+with chains enforce correct parameter
+// ordering at compile time — swap two .with lines and it won't compile.
 // ════════════════════════════════════════════════════════════════════════
 
 // ── Checkout domain ─────────────────────────────────────────────────────

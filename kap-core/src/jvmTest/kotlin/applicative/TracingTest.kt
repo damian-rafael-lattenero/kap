@@ -16,7 +16,7 @@ class TracingTest {
         val events = mutableListOf<String>()
 
         val result = Async {
-            pure(42).traced(
+            Computation.of(42).traced(
                 name = "compute",
                 onStart = { events += "start:$it" },
                 onSuccess = { name, _ -> events += "success:$name" },
@@ -90,7 +90,7 @@ class TracingTest {
         val tracer = ComputationTracer { events += it }
 
         val result = Async {
-            pure(99).traced("op", tracer)
+            Computation.of(99).traced("op", tracer)
         }
 
         assertEquals(99, result)
@@ -122,14 +122,14 @@ class TracingTest {
     }
 
     @Test
-    fun `traced works with ap for parallel tracing`() = runTest {
+    fun `traced works with with for parallel tracing`() = runTest {
         val started = mutableListOf<String>()
         val succeeded = mutableListOf<String>()
 
         val result = Async {
-            lift2 { a: Int, b: Int -> a + b }
-                .ap(pure(10).traced("left", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
-                .ap(pure(20).traced("right", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
+            kap { a: Int, b: Int -> a + b }
+                .with(Computation.of(10).traced("left", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
+                .with(Computation.of(20).traced("right", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
         }
 
         assertEquals(30, result)

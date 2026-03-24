@@ -18,9 +18,9 @@ import kotlin.time.Duration
  * ) { db, cache -> db to cache }
  *
  * combined.use { (db, cache) ->
- *     lift2(::Result)
- *         .ap { Computation { db.query("...") } }
- *         .ap { Computation { cache.get("key") } }
+ *     kap(::Result)
+ *         .with { Computation { db.query("...") } }
+ *         .with { Computation { cache.get("key") } }
  * }
  * ```
  *
@@ -102,14 +102,14 @@ class Resource<out A> @PublishedApi internal constructor(
     }
 
     /**
-     * Terminal operation returning a [Computation] — integrates with [ap] chains.
+     * Terminal operation returning a [Computation] — integrates with [with] chains.
      *
      * ```
      * val result = Async {
      *     dbResource.use { conn ->
-     *         lift2(::Result)
-     *             .ap { Computation { conn.query("...") } }
-     *             .ap { Computation { conn.fetchMeta() } }
+     *         kap(::Result)
+     *             .with { Computation { conn.query("...") } }
+     *             .with { Computation { conn.fetchMeta() } }
      *     }
      * }
      * ```

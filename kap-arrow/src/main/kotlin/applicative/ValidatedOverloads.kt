@@ -1269,65 +1269,65 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, X, R> zip
     }
 }
 
-fun <E, P1, P2, R> liftV2(f: (P1, P2) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, R> kapV(f: (P1, P2) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, R> liftV3(f: (P1, P2, P3) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, R> kapV(f: (P1, P2, P3) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, R> liftV4(f: (P1, P2, P3, P4) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, R> kapV(f: (P1, P2, P3, P4) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, R> liftV5(f: (P1, P2, P3, P4, P5) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, R> kapV(f: (P1, P2, P3, P4, P5) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, R> liftV6(f: (P1, P2, P3, P4, P5, P6) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, R> kapV(f: (P1, P2, P3, P4, P5, P6) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, R> liftV7(f: (P1, P2, P3, P4, P5, P6, P7) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, R> liftV8(f: (P1, P2, P3, P4, P5, P6, P7, P8) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, R> liftV9(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, R> liftV10(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, R> liftV11(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, R> liftV12(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, R> liftV13(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, R> liftV14(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, R> liftV15(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, R> liftV16(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, R> liftV17(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, R> liftV18(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, R> liftV19(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, R> liftV20(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, R> liftV21(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> (P21) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> (P21) -> R>> =
+    Computation.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22, R> liftV22(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> (P21) -> (P22) -> R>> =
-    pure(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> (P21) -> (P22) -> R>> =
+    Computation.of(Either.Right(f.curried()))

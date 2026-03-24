@@ -22,7 +22,7 @@ class CombinatorsTest {
     @Test
     fun `timeout returns result when computation completes in time`() = runTest {
         val result = Async {
-            pure(42).timeout(1.seconds)
+            Computation.of(42).timeout(1.seconds)
         }
         assertEquals(42, result)
     }
@@ -48,7 +48,7 @@ class CombinatorsTest {
     @Test
     fun `timeout with default returns result when fast enough`() = runTest {
         val result = Async {
-            pure(42).timeout(1.seconds, default = -1)
+            Computation.of(42).timeout(1.seconds, default = -1)
         }
         assertEquals(42, result)
     }
@@ -57,7 +57,7 @@ class CombinatorsTest {
     fun `timeout with fallback computation runs fallback on timeout`() = runTest {
         val result = Async {
             Computation<String> { delay(10.seconds); "slow" }
-                .timeout(100.milliseconds, pure("fallback"))
+                .timeout(100.milliseconds, Computation.of("fallback"))
         }
         assertEquals("fallback", result)
     }
@@ -78,7 +78,7 @@ class CombinatorsTest {
     @Test
     fun `recover passes through successful computation`() = runTest {
         val result = Async {
-            pure("ok").recover { "recovered" }
+            Computation.of("ok").recover { "recovered" }
         }
         assertEquals("ok", result)
     }
@@ -99,7 +99,7 @@ class CombinatorsTest {
     fun `recoverWith switches to recovery computation`() = runTest {
         val result = Async {
             Computation<String> { throw RuntimeException("boom") }
-                .recoverWith { pure("recovered from: ${it.message}") }
+                .recoverWith { Computation.of("recovered from: ${it.message}") }
         }
         assertEquals("recovered from: boom", result)
     }
@@ -111,7 +111,7 @@ class CombinatorsTest {
     @Test
     fun `fallback switches to alternative on failure`() = runTest {
         val result = Async {
-            Computation<String> { throw RuntimeException("boom") } fallback pure("backup")
+            Computation<String> { throw RuntimeException("boom") } fallback Computation.of("backup")
         }
         assertEquals("backup", result)
     }
@@ -119,7 +119,7 @@ class CombinatorsTest {
     @Test
     fun `fallback returns primary on success`() = runTest {
         val result = Async {
-            pure("primary") fallback pure("backup")
+            Computation.of("primary") fallback Computation.of("backup")
         }
         assertEquals("primary", result)
     }
@@ -193,9 +193,9 @@ class CombinatorsTest {
         }.retry(3)
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap { with(retryable) { execute() } }
-                .ap { "ok" }
+            kap { a: String, b: String -> "$a|$b" }
+                .with { with(retryable) { execute() } }
+                .with { "ok" }
         }
         assertEquals("retried|ok", result)
     }
@@ -217,7 +217,7 @@ class CombinatorsTest {
     fun `timeout exception plus fallback compose naturally`() = runTest {
         val result = Async {
             Computation<String> { delay(10.seconds); "slow" }
-                .timeout(100.milliseconds, pure("fallback-value"))
+                .timeout(100.milliseconds, Computation.of("fallback-value"))
         }
         assertEquals("fallback-value", result)
     }
@@ -252,7 +252,7 @@ class CombinatorsTest {
     @Test
     fun `timeout with fallback preserves null as a valid result`() = runTest {
         val result = Async {
-            Computation<String?> { null }.timeout(1.seconds, pure("fallback"))
+            Computation<String?> { null }.timeout(1.seconds, Computation.of("fallback"))
         }
         assertEquals(null, result)
     }
@@ -285,7 +285,7 @@ class CombinatorsTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `memoize shares result across parallel ap branches`() = runTest {
+    fun `memoize shares result across parallel with branches`() = runTest {
         val counter = AtomicInteger(0)
         val expensive = Computation {
             delay(50)
@@ -294,9 +294,9 @@ class CombinatorsTest {
         }.memoize()
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap(expensive)
-                .ap(expensive)
+            kap { a: String, b: String -> "$a|$b" }
+                .with(expensive)
+                .with(expensive)
         }
 
         assertEquals("data|data", result)

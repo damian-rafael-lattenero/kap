@@ -7,7 +7,7 @@ import kotlinx.coroutines.delay
 /**
  * User registration with parallel validation and error accumulation.
  *
- * Demonstrates: liftV+apV for validation with error accumulation,
+ * Demonstrates: kapV+withV for validation with error accumulation,
  * typed validation results via wrapper data classes,
  * and how ALL errors are collected (not just the first).
  */
@@ -75,15 +75,15 @@ suspend fun main() {
     // ── Scenario 1: All validations pass ──
     println("=== Scenario 1: Valid registration ===\n")
 
-    // Type safety: swap any two .apV calls and it won't compile!
+    // Type safety: swap any two .withV calls and it won't compile!
     // The types ValidName, ValidEmail, ValidAge, ValidUsername are all distinct,
     // so the compiler enforces the correct order of arguments.
     val result1 = Async {
-        liftV4<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
-            .apV { validateName("Alice") }
-            .apV { validateEmail("alice@example.com") }
-            .apV { validateAge(28) }
-            .apV { checkUsernameAvailable("alice_new") }
+        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+            .withV { validateName("Alice") }
+            .withV { validateEmail("alice@example.com") }
+            .withV { validateAge(28) }
+            .withV { checkUsernameAvailable("alice_new") }
     }
 
     when (result1) {
@@ -95,11 +95,11 @@ suspend fun main() {
     println("\n=== Scenario 2: Multiple failures (all errors collected) ===\n")
 
     val result2 = Async {
-        liftV4<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
-            .apV { validateName("A") }           // too short
-            .apV { validateEmail("not-an-email") } // no @
-            .apV { validateAge(5) }               // too young
-            .apV { checkUsernameAvailable("admin") } // taken
+        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+            .withV { validateName("A") }           // too short
+            .withV { validateEmail("not-an-email") } // no @
+            .withV { validateAge(5) }               // too young
+            .withV { checkUsernameAvailable("admin") } // taken
     }
 
     when (result2) {
@@ -114,10 +114,10 @@ suspend fun main() {
     println("\n=== Scenario 3: Phased validation with flatMapV ===\n")
 
     val result3 = Async {
-        liftV3<RegError, ValidName, ValidEmail, ValidAge, Triple<ValidName, ValidEmail, ValidAge>>(::Triple)
-            .apV { validateName("Bob") }
-            .apV { validateEmail("bob@test.com") }
-            .apV { validateAge(25) }
+        kapV<RegError, ValidName, ValidEmail, ValidAge, Triple<ValidName, ValidEmail, ValidAge>>(::Triple)
+            .withV { validateName("Bob") }
+            .withV { validateEmail("bob@test.com") }
+            .withV { validateAge(25) }
             .flatMapV { (name, email, age) ->
                 Computation { checkUsernameAvailable("alice") }.mapV { username ->
                     User(name, email, age, username)
@@ -137,12 +137,12 @@ suspend fun main() {
     println("\n=== Scenario 4: Password with multiple rule violations ===\n")
 
     val result4 = Async {
-        liftV3<RegError, ValidName, ValidEmail, ValidPassword, String> { name, email, _ ->
+        kapV<RegError, ValidName, ValidEmail, ValidPassword, String> { name, email, _ ->
             "${name.value} (${email.value}) - password accepted"
         }
-            .apV { validateName("Charlie") }
-            .apV { validateEmail("charlie@test.com") }
-            .apV { validatePassword("abc") }  // too short, no digit, no uppercase
+            .withV { validateName("Charlie") }
+            .withV { validateEmail("charlie@test.com") }
+            .withV { validatePassword("abc") }  // too short, no digit, no uppercase
     }
 
     when (result4) {

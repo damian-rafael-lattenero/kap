@@ -18,11 +18,11 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * Categories:
  * 1. flatMap creates a TRUE phase boundary (vs followedBy's eager launch)
- * 2. timeout inside ap chains
- * 3. retry inside ap chains
- * 4. recover inside ap chains (error isolation)
+ * 2. timeout inside with chains
+ * 3. retry inside with chains
+ * 4. recover inside with chains (error isolation)
  * 5. race timing proof
- * 6. Full production pattern: timeout + retry + recover + traced inside ap
+ * 6. Full production pattern: timeout + retry + recover + traced inside with
  * 7. Consecutive barriers timing
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -31,25 +31,25 @@ class CompositionProofTest {
     // ════════════════════════════════════════════════════════════════════════
     // 1. flatMap creates a TRUE phase boundary
     //
-    //    Unlike followedBy (where ap right sides launch eagerly), flatMap
+    //    Unlike followedBy (where with right sides launch eagerly), flatMap
     //    constructs the next Computation INSIDE its lambda — so subsequent
-    //    ap calls can't launch until flatMap's lambda has run.
+    //    with calls can't launch until flatMap's lambda has run.
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `flatMap prevents eager launch - post-flatMap ap waits for flatMap result`() = runTest {
+    fun `flatMap prevents eager launch - post-flatMap with waits for flatMap result`() = runTest {
         // With followedBy, the ap{D@30} would launch at t=0.
         // With flatMap, the ap{D@30} cannot exist until flatMap's lambda runs (t=80).
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap { delay(30); "A" }
-                .ap { delay(30); "B" }
+            kap { a: String, b: String -> "$a|$b" }
+                .with { delay(30); "A" }
+                .with { delay(30); "B" }
                 .flatMap { ab ->
                     // This lambda runs at t=30 (after A and B complete).
                     // The next ap{C@50} launches INSIDE this lambda.
-                    lift2 { c: String, d: String -> "$ab|$c|$d" }
-                        .ap { delay(50); "C" }
-                        .ap { delay(50); "D" }
+                    kap { c: String, d: String -> "$ab|$c|$d" }
+                        .with { delay(50); "C" }
+                        .with { delay(50); "D" }
                 }
         }
 
@@ -64,23 +64,23 @@ class CompositionProofTest {
     fun `followedBy and flatMap both create true phase boundaries`() = runTest {
         // followedBy version: C waits for barrier (true phase boundary)
         val followedByResult = Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                .ap { delay(30); "A" }
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                .with { delay(30); "A" }
                 .followedBy { delay(50); "B" }  // barrier
-                .ap { delay(30); "C" }          // waits for barrier, launches at t=80
+                .with { delay(30); "C" }          // waits for barrier, launches at t=80
         }
         val followedByTime = currentTime  // 30 + 50 + 30 = 110ms
 
         // flatMap version: same timing, but passes value
         Async {
-            pure(Unit).flatMap {
-                lift2 { a: String, b: String -> "$a|$b" }
-                    .ap { delay(30); "A" }
-                    .ap { delay(30); "B" }
+            Computation.of(Unit).flatMap {
+                kap { a: String, b: String -> "$a|$b" }
+                    .with { delay(30); "A" }
+                    .with { delay(30); "B" }
             }.flatMap { ab ->
-                lift2 { c: String, d: String -> "$ab|$c|$d" }
-                    .ap { delay(50); "C" }
-                    .ap { delay(50); "D" }
+                kap { c: String, d: String -> "$ab|$c|$d" }
+                    .with { delay(50); "C" }
+                    .with { delay(50); "D" }
             }
         }
         val flatMapTime = currentTime - followedByTime  // 30 + 50 = 80ms
@@ -94,10 +94,10 @@ class CompositionProofTest {
     fun `thenValue vs followedBy - thenValue allows eager launch`() = runTest {
         // thenValue: C launches eagerly at t=0 (old behavior)
         val thenValueResult = Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                .ap { delay(30); "A" }
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                .with { delay(30); "A" }
                 .thenValue { delay(50); "B" }
-                .ap { delay(30); "C" }          // launches at t=0, overlaps
+                .with { delay(30); "C" }          // launches at t=0, overlaps
         }
         val thenValueTime = currentTime  // 30 + 50 = 80ms (C was already done)
 
@@ -110,10 +110,10 @@ class CompositionProofTest {
         val result = Async {
             Computation { delay(20); 10 }.flatMap { base ->
                 // base is available here — fan out with computed values
-                lift3 { a: Int, b: Int, c: Int -> a + b + c }
-                    .ap { delay(30); base * 2 }  // 20
-                    .ap { delay(30); base * 3 }  // 30
-                    .ap { delay(30); base * 4 }  // 40
+                kap { a: Int, b: Int, c: Int -> a + b + c }
+                    .with { delay(30); base * 2 }  // 20
+                    .with { delay(30); base * 3 }  // 30
+                    .with { delay(30); base * 4 }  // 40
             }
         }
 
@@ -124,19 +124,19 @@ class CompositionProofTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 2. timeout INSIDE ap chains
+    // 2. timeout INSIDE with chains
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `timeout inside ap - slow branch gets default while others proceed`() = runTest {
+    fun `timeout inside with - slow branch gets default while others proceed`() = runTest {
         val result = Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                .ap { delay(30); "fast-A" }
-                .ap {
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                .with { delay(30); "fast-A" }
+                .with {
                     with(Computation { delay(500); "slow-B" }
                         .timeout(50.milliseconds, "timeout-B")) { execute() }
                 }
-                .ap { delay(30); "fast-C" }
+                .with { delay(30); "fast-C" }
         }
 
         assertEquals("fast-A|timeout-B|fast-C", result)
@@ -146,14 +146,14 @@ class CompositionProofTest {
     }
 
     @Test
-    fun `timeout inside ap - fast branch returns before timeout`() = runTest {
+    fun `timeout inside with - fast branch returns before timeout`() = runTest {
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap {
+            kap { a: String, b: String -> "$a|$b" }
+                .with {
                     with(Computation { delay(20); "fast" }
                         .timeout(100.milliseconds, "timeout")) { execute() }
                 }
-                .ap { delay(30); "other" }
+                .with { delay(30); "other" }
         }
 
         assertEquals("fast|other", result)
@@ -161,23 +161,23 @@ class CompositionProofTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 3. retry INSIDE ap chains
+    // 3. retry INSIDE with chains
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `retry inside ap - flaky branch retries while others proceed`() = runTest {
+    fun `retry inside with - flaky branch retries while others proceed`() = runTest {
         var attempts = 0
 
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap {
+            kap { a: String, b: String -> "$a|$b" }
+                .with {
                     with(Computation {
                         attempts++
                         if (attempts < 3) throw RuntimeException("flaky")
                         delay(20); "recovered-B"
                     }.retry(3, delay = 10.milliseconds)) { execute() }
                 }
-                .ap { delay(30); "stable-A" }
+                .with { delay(30); "stable-A" }
         }
 
         assertEquals("recovered-B|stable-A", result)
@@ -190,19 +190,19 @@ class CompositionProofTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 4. recover INSIDE ap chains - error isolation
+    // 4. recover INSIDE with chains - error isolation
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `recover inside ap - one branch fails and recovers without affecting siblings`() = runTest {
+    fun `recover inside with - one branch fails and recovers without affecting siblings`() = runTest {
         val result = Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                .ap { delay(30); "A" }
-                .ap {
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                .with { delay(30); "A" }
+                .with {
                     with(Computation<String> { throw RuntimeException("boom") }
                         .recover { "recovered" }) { execute() }
                 }
-                .ap { delay(30); "C" }
+                .with { delay(30); "C" }
         }
 
         // B failed and recovered immediately. A and C completed normally.
@@ -216,12 +216,12 @@ class CompositionProofTest {
         // B's error should propagate — recover on A doesn't affect B.
         val result = runCatching {
             Async {
-                lift2 { a: String, b: String -> "$a|$b" }
-                    .ap {
+                kap { a: String, b: String -> "$a|$b" }
+                    .with {
                         with(Computation<String> { throw RuntimeException("A-error") }
                             .recover { "A-recovered" }) { execute() }
                     }
-                    .ap {
+                    .with {
                         throw RuntimeException("B-crash")
                     }
             }
@@ -266,16 +266,16 @@ class CompositionProofTest {
     }
 
     @Test
-    fun `race inside ap chain - use fastest data source`() = runTest {
+    fun `race inside with chain - use fastest data source`() = runTest {
         val result = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap {
+            kap { a: String, b: String -> "$a|$b" }
+                .with {
                     with(race(
                         Computation { delay(100); "primary-A" },
                         Computation { delay(20); "cache-A" },
                     )) { execute() }
                 }
-                .ap { delay(30); "B" }
+                .with { delay(30); "B" }
         }
 
         assertEquals("cache-A|B", result)
@@ -289,17 +289,17 @@ class CompositionProofTest {
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `production pattern - timeout + retry + recover + race inside ap chain`() = runTest {
+    fun `production pattern - timeout + retry + recover + race inside with chain`() = runTest {
         var fetchAttempts = 0
 
         val result = Async {
-            lift4 { user: String, cart: String, promos: String, shipping: String ->
+            kap { user: String, cart: String, promos: String, shipping: String ->
                 "$user|$cart|$promos|$shipping"
             }
                 // Branch 1: normal fast call
-                .ap { delay(20); "user-data" }
+                .with { delay(20); "user-data" }
                 // Branch 2: flaky service with retry
-                .ap {
+                .with {
                     with(Computation {
                         fetchAttempts++
                         if (fetchAttempts < 2) throw RuntimeException("flaky")
@@ -307,12 +307,12 @@ class CompositionProofTest {
                     }.retry(3, delay = 10.milliseconds)) { execute() }
                 }
                 // Branch 3: slow service with timeout + fallback
-                .ap {
+                .with {
                     with(Computation { delay(500); "promos-fresh" }
                         .timeout(40.milliseconds, "promos-cached")) { execute() }
                 }
                 // Branch 4: race between primary and cache
-                .ap {
+                .with {
                     with(race(
                         Computation { delay(100); "shipping-api" },
                         Computation { delay(15); "shipping-cache" },
@@ -338,7 +338,7 @@ class CompositionProofTest {
     @Test
     fun `consecutive followedBy barriers are strictly sequential`() = runTest {
         val result = Async {
-            lift4 { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+            kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
                 .followedBy { delay(20); "A" }
                 .followedBy { delay(30); "B" }
                 .followedBy { delay(40); "C" }
@@ -376,10 +376,10 @@ class CompositionProofTest {
         var executed = false
 
         // Build a full computation graph — should NOT run anything yet
-        val graph = lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-            .ap(Computation { executed = true; "A" })
-            .ap(Computation { "B" })
-            .ap(Computation { "C" })
+        val graph = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+            .with(Computation { executed = true; "A" })
+            .with(Computation { "B" })
+            .with(Computation { "C" })
 
         // Verify nothing happened
         assertEquals(false, executed, "Computation should NOT execute during construction")

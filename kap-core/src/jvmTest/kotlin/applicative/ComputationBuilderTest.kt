@@ -11,8 +11,8 @@ class ComputationBuilderTest {
     fun `bind executes computation and returns value`() = runTest {
         val result = Async {
             computation {
-                val a = pure(1).bind()
-                val b = pure(2).bind()
+                val a = Computation.of(1).bind()
+                val b = Computation.of(2).bind()
                 a + b
             }
         }
@@ -23,9 +23,9 @@ class ComputationBuilderTest {
     fun `bind is sequential — later steps depend on earlier values`() = runTest {
         val result = Async {
             computation {
-                val x = pure(10).bind()
-                val y = pure(x * 2).bind()  // depends on x
-                val z = pure(y + 5).bind()  // depends on y
+                val x = Computation.of(10).bind()
+                val y = Computation.of(x * 2).bind()  // depends on x
+                val z = Computation.of(y + 5).bind()  // depends on y
                 z
             }
         }
@@ -37,7 +37,7 @@ class ComputationBuilderTest {
         val error = try {
             Async {
                 computation {
-                    val a = pure(1).bind()
+                    val a = Computation.of(1).bind()
                     val b = Computation<Int> { throw IllegalStateException("boom") }.bind()
                     a + b
                 }
@@ -50,14 +50,14 @@ class ComputationBuilderTest {
     }
 
     @Test
-    fun `computation composes with ap — sequential then parallel`() = runTest {
+    fun `computation composes with with — sequential then parallel`() = runTest {
         val result = Async {
             computation {
-                val userId = pure("user-1").bind()
+                val userId = Computation.of("user-1").bind()
                 // Now use the value in a parallel phase via bind
-                val dashboard = (lift2 { name: String, cart: String -> "$name|$cart" }
-                    .ap { "Name-$userId" }
-                    .ap { "Cart-$userId" }).bind()
+                val dashboard = (kap { name: String, cart: String -> "$name|$cart" }
+                    .with { "Name-$userId" }
+                    .with { "Cart-$userId" }).bind()
                 dashboard
             }
         }
@@ -67,9 +67,9 @@ class ComputationBuilderTest {
     @Test
     fun `computation works with flatMap interop`() = runTest {
         val result = Async {
-            pure(5).flatMap { x ->
+            Computation.of(5).flatMap { x ->
                 computation {
-                    val y = pure(x * 3).bind()
+                    val y = Computation.of(x * 3).bind()
                     y + 1
                 }
             }

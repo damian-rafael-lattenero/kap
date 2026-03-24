@@ -191,32 +191,32 @@ class RaceFixTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 4. Race inside ap chains — production pattern
+    // 4. Race inside with chains — production pattern
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `race inside parallel ap branches - each branch races independently`() = runTest {
+    fun `race inside parallel with branches - each branch races independently`() = runTest {
         val result = Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                .ap {
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                .with {
                     with(race(
                         Computation { delay(100); "primary-A" },
                         Computation { delay(20); "cache-A" },
                     )) { execute() }
                 }
-                .ap {
+                .with {
                     with(race(
                         Computation { delay(15); "primary-B" },
                         Computation { delay(80); "cache-B" },
                     )) { execute() }
                 }
-                .ap { delay(30); "direct-C" }
+                .with { delay(30); "direct-C" }
         }
 
         assertEquals("cache-A|primary-B|direct-C", result)
         // max(20, 15, 30) = 30ms
         assertEquals(30, currentTime,
-            "All 3 ap branches race in parallel. Total = max(20, 15, 30) = 30ms")
+            "All 3 with branches race in parallel. Total = max(20, 15, 30) = 30ms")
     }
 
     @Test

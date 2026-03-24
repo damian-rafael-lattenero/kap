@@ -144,7 +144,7 @@ class NewCombinatorsTest {
 
     @Test
     fun `Schedule forever composed with recurs stops after N`() {
-        val schedule = Schedule.forever<Throwable>() and Schedule.recurs(3)
+        val schedule = Schedule.forever<Throwable>() and Schedule.times(3)
         val err = RuntimeException()
 
         assertIs<Schedule.Decision.Continue>(schedule.decide(0, err))
@@ -171,7 +171,7 @@ class NewCombinatorsTest {
     fun `retry with Schedule forever composed with recurs retries correct times`() = runTest {
         var attempts = 0
         val schedule = Schedule.forever<Throwable>()
-            .and(Schedule.recurs(4))
+            .and(Schedule.times(4))
             .and(Schedule.spaced(10.milliseconds))
 
         val failing: Computation<String> = Computation { attempts++; throw RuntimeException("fail") }

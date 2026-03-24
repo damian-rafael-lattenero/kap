@@ -199,10 +199,10 @@ class TraverseSettledTest {
         data class Dashboard(val user: Result<String>, val cart: String, val config: String)
 
         val result = Async {
-            lift3(::Dashboard)
-                .ap { Computation<String> { throw RuntimeException("user-down") }.settled().await() }
-                .ap { delay(50.milliseconds); "cart-ok" }
-                .ap { delay(50.milliseconds); "config-ok" }
+            kap(::Dashboard)
+                .with { Computation<String> { throw RuntimeException("user-down") }.settled().await() }
+                .with { delay(50.milliseconds); "cart-ok" }
+                .with { delay(50.milliseconds); "config-ok" }
         }
 
         assertTrue(result.user.isFailure)
@@ -212,16 +212,16 @@ class TraverseSettledTest {
     }
 
     @Test
-    fun `settled inside ap chain — proven parallel by virtual time`() = runTest {
+    fun `settled inside with chain — proven parallel by virtual time`() = runTest {
         data class R(val a: Result<String>, val b: String)
 
         val result = Async {
-            lift2(::R)
-                .ap {
+            kap(::R)
+                .with {
                     delay(50.milliseconds)
                     Computation<String> { throw RuntimeException("err") }.settled().await()
                 }
-                .ap { delay(50.milliseconds); "ok" }
+                .with { delay(50.milliseconds); "ok" }
         }
 
         assertEquals(50L, currentTime, "both branches should run in parallel")

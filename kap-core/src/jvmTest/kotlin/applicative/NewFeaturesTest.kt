@@ -44,9 +44,9 @@ class NewFeaturesTest {
         }.memoize()
 
         val result = Async {
-            lift2 { a: Int, b: Int -> a + b }
-                .ap(memoized)
-                .ap(memoized)
+            kap { a: Int, b: Int -> a + b }
+                .with(memoized)
+                .with(memoized)
         }
 
         assertEquals(20, result, "Both branches should get cached value 10")
@@ -80,7 +80,7 @@ class NewFeaturesTest {
     fun `failed works with recoverWith`() = runTest {
         val result = Async {
             Computation.failed(RuntimeException("oops"))
-                .recoverWith { pure("recovered via: ${it.message}") }
+                .recoverWith { Computation.of("recovered via: ${it.message}") }
         }
         assertEquals("recovered via: oops", result)
     }
@@ -95,7 +95,7 @@ class NewFeaturesTest {
 
         val deferred = Computation.defer {
             constructed.incrementAndGet()
-            pure("lazy")
+            Computation.of("lazy")
         }
 
         assertEquals(0, constructed.get(), "Block should not be called until execution")
@@ -112,7 +112,7 @@ class NewFeaturesTest {
 
         val deferred = Computation.defer {
             callLog.incrementAndGet()
-            pure(callLog.get())
+            Computation.of(callLog.get())
         }
 
         // Not executed yet — counter should be zero

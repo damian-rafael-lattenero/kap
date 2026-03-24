@@ -31,7 +31,7 @@ tasks.test {
 // ── Code generation tasks ────────────────────────────────────────────────
 
 tasks.register("generateValidatedOverloads") {
-    description = "Regenerates src/main/kotlin/applicative/ValidatedOverloads.kt (zipV + liftV arities 2-22)"
+    description = "Regenerates src/main/kotlin/applicative/ValidatedOverloads.kt (zipV + kapV arities 2-22)"
     group = "codegen"
 
     val maxArity = 22
@@ -77,7 +77,7 @@ $params,
             val typeParams = (1..n).joinToString(", ") { "P$it" }
             val paramType = (1..n).joinToString(", ") { "P$it" }
             val curriedType = (1..n).joinToString(" -> ") { "(P$it)" } + " -> R"
-            return "fun <E, $typeParams, R> liftV$n(f: ($paramType) -> R): Computation<Either<NonEmptyList<E>, $curriedType>> =\n    pure(Either.Right(f.curried()))"
+            return "fun <E, $typeParams, R> kapV(f: ($paramType) -> R): Computation<Either<NonEmptyList<E>, $curriedType>> =\n    Computation.of(Either.Right(f.curried()))"
         }
 
         val header = buildString {

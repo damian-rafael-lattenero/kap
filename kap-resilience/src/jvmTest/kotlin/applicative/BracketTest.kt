@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
  * Tests for bracket, guarantee, and guaranteeCase.
  *
  * Proves resource safety under success, failure, and cancellation,
- * including real concurrent scenarios with parallel ap branches
+ * including real concurrent scenarios with parallel with branches
  * and virtual-time timing assertions.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -92,12 +92,12 @@ class BracketTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 4. bracket inside ap branches - parallel resources released on sibling failure
+    // 4. bracket inside with branches - parallel resources released on sibling failure
     //    Uses CompletableDeferred barriers to PROVE parallelism (deadlocks if sequential)
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `bracket inside ap branches - parallel resources released on sibling failure`() = runTest {
+    fun `bracket inside with branches - parallel resources released on sibling failure`() = runTest {
         val releases = CopyOnWriteArrayList<String>()
         val barrierA = CompletableDeferred<Unit>()
         val barrierB = CompletableDeferred<Unit>()
@@ -135,10 +135,10 @@ class BracketTest {
 
         val result = runCatching {
             Async {
-                lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                    .ap(branchA)
-                    .ap(branchB)
-                    .ap(branchC)
+                kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                    .with(branchA)
+                    .with(branchB)
+                    .with(branchC)
             }
         }
 
@@ -271,10 +271,10 @@ class BracketTest {
         val result = runCatching {
             Async {
                 // Phase 1: acquire 3 connections in parallel via bracket+ap
-                lift3 { a: String, b: String, c: String -> Triple(a, b, c) }
-                    .ap(dbBracket)
-                    .ap(cacheBracket)
-                    .ap(apiBracket)
+                kap { a: String, b: String, c: String -> Triple(a, b, c) }
+                    .with(dbBracket)
+                    .with(cacheBracket)
+                    .with(apiBracket)
                     // Phase 2: use the combined result - this fails
                     .flatMap { triple ->
                         Computation {

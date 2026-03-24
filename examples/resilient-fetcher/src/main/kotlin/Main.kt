@@ -7,7 +7,7 @@ import kotlin.time.Duration.Companion.seconds
  * Resilient multi-source data fetcher — kap-core + kap-resilience.
  *
  * Demonstrates every resilience primitive in kap-resilience:
- *   - Schedule (exponential, jittered, withMaxDuration, recurs, and/or)
+ *   - Schedule (exponential, jittered, withMaxDuration, times, and/or)
  *   - retry(schedule), retryOrElse, retryWithResult
  *   - CircuitBreaker + withCircuitBreaker
  *   - bracket / guarantee / guaranteeCase
@@ -121,7 +121,7 @@ suspend fun main() {
     println("=== 2. retryWithResult: exponential backoff on flaky user API ===\n")
 
     var userAttempt = 0
-    val retryPolicy = Schedule.recurs<Throwable>(5) and
+    val retryPolicy = Schedule.times<Throwable>(5) and
         Schedule.exponential<Throwable>(50.milliseconds).jittered()
 
     val retryResult = Async {
@@ -177,9 +177,9 @@ suspend fun main() {
 
     val dualConfig = combined.use { pair ->
         Async {
-            lift2(::DualConfig)
-                .ap { pair.first.query() }
-                .ap { pair.second.query() }
+            kap(::DualConfig)
+                .with { pair.first.query() }
+                .with { pair.second.query() }
         }
     }
     println("  DB config: ${dualConfig.primary}")
@@ -232,7 +232,7 @@ suspend fun main() {
     // ═══════════════════════════════════════════════════════════════════
     println("=== 7. retryOrElse: fallback when retries exhausted ===\n")
 
-    val limitedPolicy = Schedule.recurs<Throwable>(2) and
+    val limitedPolicy = Schedule.times<Throwable>(2) and
         Schedule.spaced<Throwable>(30.milliseconds)
 
     val graceful = Async {
@@ -246,7 +246,7 @@ suspend fun main() {
     println("  (${elapsed()})\n")
 
     // ═══════════════════════════════════════════════════════════════════
-    //  8. Full pipeline: combine everything with lift+ap+followedBy
+    //  8. Full pipeline: combine everything with kap+with+followedBy
     //     ap(Computation<A>) overload accepts resilience-wrapped computations
     // ═══════════════════════════════════════════════════════════════════
     println("=== 8. Full pipeline: all resilience features composed ===\n")
@@ -254,9 +254,9 @@ suspend fun main() {
     val pipelineStart = System.currentTimeMillis()
 
     val fullResult = Async {
-        lift4(::FetcherResult)
+        kap(::FetcherResult)
             // Phase 1: quorum pricing (parallel 2-of-3), take first result
-            .ap(
+            .with(
                 raceQuorum(
                     required = 2,
                     Computation { fetchPricingReplicaA() },
@@ -265,10 +265,10 @@ suspend fun main() {
                 ).map { it.first() }
             )
             // Phase 2: resilient user fetch (retry with backoff)
-            .ap(run {
+            .with(run {
                 var att = 0
                 Computation { fetchUserFlaky(att++) }
-                    .retry(Schedule.recurs<Throwable>(3) and Schedule.exponential(20.milliseconds))
+                    .retry(Schedule.times<Throwable>(3) and Schedule.exponential(20.milliseconds))
             })
             // Phase 3: bracketed config (sequential — needs user for auth)
             .followedBy(
@@ -279,7 +279,7 @@ suspend fun main() {
                 )
             )
             // Phase 4: audit with timeout fallback
-            .ap(
+            .with(
                 Computation { fetchAuditLogSlow() }
                     .timeoutRace(100.milliseconds, Computation { fetchAuditLogCache() })
             )

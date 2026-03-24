@@ -23,7 +23,7 @@ class ScheduleLawsTest {
 
     @Test
     fun `and is associative — (s1 and s2) and s3 == s1 and (s2 and s3)`() = runTest {
-        val s1 = Schedule.recurs<Int>(5)
+        val s1 = Schedule.times<Int>(5)
         val s2 = Schedule.spaced<Int>(100.milliseconds)
         val s3 = Schedule.spaced<Int>(200.milliseconds)
 
@@ -64,9 +64,9 @@ class ScheduleLawsTest {
 
     @Test
     fun `or is associative — (s1 or s2) or s3 == s1 or (s2 or s3)`() = runTest {
-        val s1 = Schedule.recurs<Int>(2)
-        val s2 = Schedule.recurs<Int>(4)
-        val s3 = Schedule.recurs<Int>(6)
+        val s1 = Schedule.times<Int>(2)
+        val s2 = Schedule.times<Int>(4)
+        val s3 = Schedule.times<Int>(6)
 
         checkAll(Arb.int(0..10), Arb.int()) { attempt, value ->
             val left = ((s1 or s2) or s3).decide(attempt, value)
@@ -93,8 +93,8 @@ class ScheduleLawsTest {
 
     @Test
     fun `and is more restrictive than or — if and says Done, or may still Continue`() {
-        val short = Schedule.recurs<Int>(2)
-        val long = Schedule.recurs<Int>(5)
+        val short = Schedule.times<Int>(2)
+        val long = Schedule.times<Int>(5)
 
         // At attempt=3: short says Done, long says Continue
         val andResult = (short and long).decide(3, 0)
@@ -130,7 +130,7 @@ class ScheduleLawsTest {
 
     @Test
     fun `jittered preserves Continue vs Done decisions`() = runTest {
-        val s = Schedule.recurs<Int>(3)
+        val s = Schedule.times<Int>(3)
 
         checkAll(Arb.int(0..10), Arb.int()) { attempt, value ->
             val original = s.decide(attempt, value)
@@ -245,7 +245,7 @@ class ScheduleLawsTest {
 
     @Test
     fun `recurs(0) never retries`() = runTest {
-        val s = Schedule.recurs<Int>(0)
+        val s = Schedule.times<Int>(0)
         checkAll(Arb.int()) { value ->
             assertEquals(Schedule.Decision.Done, s.decide(0, value))
         }
@@ -254,7 +254,7 @@ class ScheduleLawsTest {
     @Test
     fun `recurs(n) continues for exactly n attempts then stops`() = runTest {
         checkAll(Arb.int(1..20)) { n ->
-            val s = Schedule.recurs<Int>(n)
+            val s = Schedule.times<Int>(n)
             repeat(n) { attempt ->
                 assertIsContinue(s.decide(attempt, 0), "should Continue at attempt=$attempt for recurs($n)")
             }

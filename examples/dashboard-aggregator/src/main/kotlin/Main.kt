@@ -8,7 +8,7 @@ import kotlinx.coroutines.delay
  * many microservices with sequential authorization and enrichment gates.
  *
  * Every service call returns a distinct domain type, and the final
- * DashboardView is assembled via lift14(::DashboardView) — the compiler
+ * DashboardView is assembled via kap(::DashboardView) — the compiler
  * enforces that each slot receives the correct type.
  */
 
@@ -120,30 +120,30 @@ suspend fun main() {
 
     val start = System.currentTimeMillis()
 
-    // Type-safe: each .ap slot is verified at compile time against
+    // Type-safe: each .with slot is verified at compile time against
     // the corresponding DashboardView constructor parameter type.
     // Swapping two calls (e.g. fetchFeed and fetchNotifications) is a compile error.
     val dashboard = Async {
-        lift14(::DashboardView)
+        kap(::DashboardView)
             // Phase 1: User context (parallel)
-            .ap { fetchUserProfile().also { println("  Phase 1 [${System.currentTimeMillis() - start}ms]: user loaded") } }
-            .ap { fetchPreferences() }
-            .ap { fetchFeatureFlags() }
+            .with { fetchUserProfile().also { println("  Phase 1 [${System.currentTimeMillis() - start}ms]: user loaded") } }
+            .with { fetchPreferences() }
+            .with { fetchFeatureFlags() }
             // Phase 2: Authorization (must know user first)
             .followedBy { authorize().also { println("  Phase 2 [${System.currentTimeMillis() - start}ms]: authorized") } }
             // Phase 3: Main content (parallel, requires auth)
-            .ap { fetchFeed() }
-            .ap { fetchNotifications() }
-            .ap { fetchMessages() }
-            .ap { fetchRecommendations().also { println("  Phase 3 [${System.currentTimeMillis() - start}ms]: content loaded") } }
+            .with { fetchFeed() }
+            .with { fetchNotifications() }
+            .with { fetchMessages() }
+            .with { fetchRecommendations().also { println("  Phase 3 [${System.currentTimeMillis() - start}ms]: content loaded") } }
             // Phase 4: Analytics enrichment (sequential)
             .followedBy { enrichWithAnalytics().also { println("  Phase 4 [${System.currentTimeMillis() - start}ms]: analytics enriched") } }
             // Phase 5: Sidebar (parallel)
-            .ap { fetchTrending() }
-            .ap { fetchSuggestions() }
-            .ap { fetchAds() }
-            .ap { fetchSocialProof() }
-            .ap { fetchAppVersion().also { println("  Phase 5 [${System.currentTimeMillis() - start}ms]: sidebar loaded") } }
+            .with { fetchTrending() }
+            .with { fetchSuggestions() }
+            .with { fetchAds() }
+            .with { fetchSocialProof() }
+            .with { fetchAppVersion().also { println("  Phase 5 [${System.currentTimeMillis() - start}ms]: sidebar loaded") } }
     }
 
     val elapsed = System.currentTimeMillis() - start

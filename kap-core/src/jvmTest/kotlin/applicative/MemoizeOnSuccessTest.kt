@@ -63,7 +63,7 @@ class MemoizeOnSuccessTest {
 
         val a = shared
         val b = shared
-        val graph = lift2 { x: String, y: String -> "$x|$y" }.ap(a).ap(b)
+        val graph = kap { x: String, y: String -> "$x|$y" }.with(a).with(b)
         val result = Async { graph }
         assertEquals("shared|shared", result)
         assertEquals(1, callCount, "Parallel branches should share single execution")
@@ -85,7 +85,7 @@ class MemoizeOnSuccessTest {
             with(shared) { execute() }
         }
 
-        val graph = lift2 { a: String, b: String -> "$a+$b" }.ap(compA).ap(compB)
+        val graph = kap { a: String, b: String -> "$a+$b" }.with(compA).with(compB)
         assertEquals("data+data", Async { graph })
         assertTrue(callCount <= 1)
     }

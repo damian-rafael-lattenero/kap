@@ -60,10 +60,10 @@ open class ResilienceBenchmark {
         result ?: "fallback"
     }
 
-    @Benchmark fun kap_retry_schedule_recurs(): String = runBlocking {
+    @Benchmark fun kap_retry_schedule_times(): String = runBlocking {
         Async {
             Computation { networkCall("service", 30) }
-                .retry(Schedule.recurs<Throwable>(3) and Schedule.spaced(kotlin.time.Duration.parse("10ms")))
+                .retry(Schedule.times<Throwable>(3) and Schedule.spaced(kotlin.time.Duration.parse("10ms")))
                 .recover { "fallback" }
         }
     }
@@ -72,7 +72,7 @@ open class ResilienceBenchmark {
         Async {
             Computation { networkCall("service", 30) }
                 .retry(
-                    Schedule.recurs<Throwable>(3)
+                    Schedule.times<Throwable>(3)
                         .and(Schedule.exponential(kotlin.time.Duration.parse("1ms")))
                         .jittered()
                 )
@@ -85,7 +85,7 @@ open class ResilienceBenchmark {
     // ════════════════════════════════════════════════════════════════════════
 
     @Benchmark fun kap_schedule_fold(): String = runBlocking {
-        val policy = Schedule.recurs<Throwable>(3)
+        val policy = Schedule.times<Throwable>(3)
             .fold(0) { count, _ -> count + 1 }
         var attempts = 0
         Async {
@@ -139,10 +139,10 @@ open class ResilienceBenchmark {
             bracket(
                 acquire = { "conn" },
                 use = { conn ->
-                    lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                        .ap { networkCall("$conn-q1", 50) }
-                        .ap { networkCall("$conn-q2", 50) }
-                        .ap { networkCall("$conn-q3", 50) }
+                    kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                        .with { networkCall("$conn-q1", 50) }
+                        .with { networkCall("$conn-q2", 50) }
+                        .with { networkCall("$conn-q3", 50) }
                 },
                 release = { },
             )
@@ -186,10 +186,10 @@ open class ResilienceBenchmark {
             bracketCase(
                 acquire = { networkCall("conn", 10) },
                 use = { conn ->
-                    lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                        .ap { networkCall("$conn-q1", 50) }
-                        .ap { networkCall("$conn-q2", 50) }
-                        .ap { networkCall("$conn-q3", 50) }
+                    kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                        .with { networkCall("$conn-q1", 50) }
+                        .with { networkCall("$conn-q2", 50) }
+                        .with { networkCall("$conn-q3", 50) }
                 },
                 release = { _, _ -> },
             )

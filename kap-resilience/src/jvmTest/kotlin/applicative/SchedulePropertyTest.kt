@@ -30,7 +30,7 @@ class SchedulePropertyTest {
     @Test
     fun `recurs(n) produces exactly n Continue then Done`() = runTest {
         checkAll(Arb.int(0..20)) { n ->
-            val schedule = Schedule.recurs<Throwable>(n)
+            val schedule = Schedule.times<Throwable>(n)
             repeat(n) { attempt ->
                 assertIs<Schedule.Decision.Continue>(schedule.decide(attempt, err),
                     "attempt $attempt of recurs($n) should Continue")
@@ -47,8 +47,8 @@ class SchedulePropertyTest {
     @Test
     fun `and stops when either schedule says Done`() = runTest {
         checkAll(Arb.int(0..10), Arb.int(0..10)) { n1, n2 ->
-            val s1 = Schedule.recurs<Throwable>(n1)
-            val s2 = Schedule.recurs<Throwable>(n2)
+            val s1 = Schedule.times<Throwable>(n1)
+            val s2 = Schedule.times<Throwable>(n2)
             val combined = s1 and s2
             val minN = minOf(n1, n2)
 
@@ -80,8 +80,8 @@ class SchedulePropertyTest {
     @Test
     fun `and is commutative for delay`() = runTest {
         checkAll(Arb.long(1L..500L), Arb.long(1L..500L), Arb.int(0..5)) { d1, d2, attempt ->
-            val s1 = Schedule.spaced<Throwable>(d1.milliseconds) and Schedule.recurs(10)
-            val s2 = Schedule.spaced<Throwable>(d2.milliseconds) and Schedule.recurs(10)
+            val s1 = Schedule.spaced<Throwable>(d1.milliseconds) and Schedule.times(10)
+            val s2 = Schedule.spaced<Throwable>(d2.milliseconds) and Schedule.times(10)
 
             val forward = (s1 and s2).decide(attempt, err)
             val reverse = (s2 and s1).decide(attempt, err)
@@ -101,8 +101,8 @@ class SchedulePropertyTest {
     @Test
     fun `or continues when either schedule says Continue`() = runTest {
         checkAll(Arb.int(0..10), Arb.int(0..10)) { n1, n2 ->
-            val s1 = Schedule.recurs<Throwable>(n1)
-            val s2 = Schedule.recurs<Throwable>(n2)
+            val s1 = Schedule.times<Throwable>(n1)
+            val s2 = Schedule.times<Throwable>(n2)
             val combined = s1 or s2
             val maxN = maxOf(n1, n2)
 
@@ -173,7 +173,7 @@ class SchedulePropertyTest {
     @Test
     fun `jittered preserves Done from underlying schedule`() = runTest {
         checkAll(Arb.int(0..5)) { n ->
-            val schedule = Schedule.recurs<Throwable>(n).jittered()
+            val schedule = Schedule.times<Throwable>(n).jittered()
             // After n attempts, should be Done regardless of jitter
             assertIs<Schedule.Decision.Done>(schedule.decide(n, err))
         }
@@ -186,7 +186,7 @@ class SchedulePropertyTest {
     @Test
     fun `fold does not change retry decisions`() = runTest {
         checkAll(Arb.int(0..10), Arb.int(0..15)) { n, attempt ->
-            val base = Schedule.recurs<Throwable>(n)
+            val base = Schedule.times<Throwable>(n)
             val folded = base.fold(0) { acc, _ -> acc + 1 }
 
             val baseDecision = base.decide(attempt, err)

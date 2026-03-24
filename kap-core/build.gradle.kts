@@ -126,7 +126,7 @@ tasks.register("generateLift") {
             val typeParams = (1..n).joinToString(", ") { "P$it" }
             val paramType = (1..n).joinToString(", ") { "P$it" }
             val curriedType = (1..n).joinToString(" -> ") { "(P$it)" } + " -> R"
-            return "fun <$typeParams, R> lift$n(f: ($paramType) -> R): Computation<$curriedType> = pure(f.curried())"
+            return "fun <$typeParams, R> kap(f: ($paramType) -> R): Computation<$curriedType> = Computation.of(f.curried())"
         }
 
         val header = buildString {
@@ -138,9 +138,9 @@ tasks.register("generateLift") {
             appendLine()
             appendLine("import applicative.internal.curried")
             appendLine()
-            appendLine("// ── lift: pure . curry ──────────────────────────────────────────────────")
+            appendLine("// ── kap: curry and wrap for .with chains ────────────────────────────────")
             appendLine()
-            appendLine("/** Curries [f] and wraps it as a pure [Computation], ready for [ap] chains. */")
+            appendLine("/** Curries [f] and wraps it as a [Computation], ready for [with] chains. */")
         }
 
         val body = (2..maxArity).joinToString("\n\n") { generateLift(it) }
@@ -181,13 +181,13 @@ $params,
             val typeParams = types.joinToString(", ") + ", R"
             val params = (1..n).joinToString(",\n") { i -> "    c$i: Computation<${types[i - 1]}>" }
             val combineTypes = types.joinToString(", ")
-            val delegation = if (n == 2) "c1.zip(c2, combine)" else {
+            val delegation = if (n == 2) "c1.zip(c2, f)" else {
                 val zipArgs = (1..n).joinToString(", ") { "c$it" }
-                "zip($zipArgs, combine)"
+                "zip($zipArgs, f)"
             }
-            return """fun <$typeParams> mapN(
+            return """fun <$typeParams> combine(
 $params,
-    combine: ($combineTypes) -> R,
+    f: ($combineTypes) -> R,
 ): Computation<R> = $delegation"""
         }
 

@@ -24,13 +24,13 @@ import kotlin.time.Duration.Companion.milliseconds
 class PhaseBarrierEdgeCaseTest {
 
     @Test
-    fun `followedBy signal fires on success - gated ap branches start`() = runTest {
+    fun `followedBy signal fires on success - gated with branches start`() = runTest {
         val gatedStarted = AtomicBoolean(false)
         val result = Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                .ap { delay(50); "A" }
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                .with { delay(50); "A" }
                 .followedBy { delay(30); "B" }
-                .ap {
+                .with {
                     gatedStarted.set(true)
                     delay(20)
                     "C"
@@ -46,10 +46,10 @@ class PhaseBarrierEdgeCaseTest {
     fun `followedBy signal fires on failure - prevents deadlock in gated branches`() = runTest {
         val result = runCatching {
             Async {
-                lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                    .ap { delay(50); "A" }
+                kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                    .with { delay(50); "A" }
                     .followedBy { delay(30); throw IllegalStateException("barrier failed") }
-                    .ap { delay(20); "C" }  // should not hang
+                    .with { delay(20); "C" }  // should not hang
             }
         }
         assertTrue(result.isFailure)
@@ -60,11 +60,11 @@ class PhaseBarrierEdgeCaseTest {
     fun `multiple sequential barriers each gate their subsequent phase`() = runTest {
         val phaseOrder = mutableListOf<String>()
         val result = Async {
-            lift5 { a: Int, b: Int, c: Int, d: Int, e: Int -> a + b + c + d + e }
-                .ap { delay(50); phaseOrder.add("P1-A"); 1 }
-                .ap { delay(30); phaseOrder.add("P1-B"); 2 }
+            kap { a: Int, b: Int, c: Int, d: Int, e: Int -> a + b + c + d + e }
+                .with { delay(50); phaseOrder.add("P1-A"); 1 }
+                .with { delay(30); phaseOrder.add("P1-B"); 2 }
                 .followedBy { delay(20); phaseOrder.add("barrier1"); 3 }
-                .ap { delay(10); phaseOrder.add("P2-D"); 4 }
+                .with { delay(10); phaseOrder.add("P2-D"); 4 }
                 .followedBy { delay(15); phaseOrder.add("barrier2"); 5 }
         }
         assertEquals(15, result)
@@ -77,34 +77,34 @@ class PhaseBarrierEdgeCaseTest {
     @Test
     fun `followedBy with recover allows chain to continue after barrier failure`() = runTest {
         val result = Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                .ap { "A" }
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                .with { "A" }
                 .followedBy {
                     Computation<String> { throw IllegalStateException("recoverable") }
                         .recover { "recovered" }
                         .await()
                 }
-                .ap { "C" }
+                .with { "C" }
         }
         assertEquals("A|recovered|C", result)
     }
 
     @Test
-    fun `thenValue does NOT gate subsequent ap branches`() = runTest {
+    fun `thenValue does NOT gate subsequent with branches`() = runTest {
         val apStartTime = AtomicInteger(-1)
         val result = Async {
-            lift3 { a: Int, b: Int, c: Int -> a + b + c }
-                .ap { delay(50); 1 }
+            kap { a: Int, b: Int, c: Int -> a + b + c }
+                .with { delay(50); 1 }
                 .thenValue { delay(100); 2 }
-                .ap {
+                .with {
                     apStartTime.set(currentTime.toInt())
                     delay(30)
                     3
                 }
         }
         assertEquals(6, result)
-        // The third .ap should start at t=0 (ungated), not after thenValue completes
-        assertEquals(0, apStartTime.get(), "thenValue should NOT gate subsequent ap branches")
+        // The third .with should start at t=0 (ungated), not after thenValue completes
+        assertEquals(0, apStartTime.get(), "thenValue should NOT gate subsequent with branches")
     }
 
     @Test
@@ -112,16 +112,16 @@ class PhaseBarrierEdgeCaseTest {
         val executionLog = mutableListOf<String>()
 
         val result = Async {
-            lift7 { a: Int, b: Int, c: Int, d: Int, e: Int, f: Int, g: Int ->
+            kap { a: Int, b: Int, c: Int, d: Int, e: Int, f: Int, g: Int ->
                 a + b + c + d + e + f + g
             }
-                .ap { delay(50); executionLog.add("P1-1"); 1 }
-                .ap { delay(40); executionLog.add("P1-2"); 2 }
+                .with { delay(50); executionLog.add("P1-1"); 1 }
+                .with { delay(40); executionLog.add("P1-2"); 2 }
                 .followedBy { delay(20); executionLog.add("B1"); 3 }
-                .ap { delay(30); executionLog.add("P2-1"); 4 }
-                .ap { delay(25); executionLog.add("P2-2"); 5 }
+                .with { delay(30); executionLog.add("P2-1"); 4 }
+                .with { delay(25); executionLog.add("P2-2"); 5 }
                 .followedBy { delay(15); executionLog.add("B2"); 6 }
-                .ap { delay(10); executionLog.add("P3-1"); 7 }
+                .with { delay(10); executionLog.add("P3-1"); 7 }
         }
 
         assertEquals(28, result)
@@ -137,13 +137,13 @@ class PhaseBarrierEdgeCaseTest {
     }
 
     @Test
-    fun `followedBy signal fires on failure - gated ap does not hang`() = runTest {
+    fun `followedBy signal fires on failure - gated with does not hang`() = runTest {
         val result = runCatching {
             Async {
-                lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                    .ap { delay(10); "A" }
+                kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                    .with { delay(10); "A" }
                     .followedBy { throw RuntimeException("barrier-fail") }
-                    .ap { delay(10); "C" }  // must not hang
+                    .with { delay(10); "C" }  // must not hang
             }
         }
 
@@ -155,10 +155,10 @@ class PhaseBarrierEdgeCaseTest {
     @Test
     fun `followedBy failure with recover allows continuation`() = runTest {
         val result = Async {
-            lift3 { a: String, b: String, c: String -> "$a|$b|$c" }
-                .ap { delay(10); "A" }
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                .with { delay(10); "A" }
                 .followedBy { delay(10); "B" }
-                .ap { delay(10); "C" }
+                .with { delay(10); "C" }
         }
 
         assertEquals("A|B|C", result)
@@ -169,14 +169,14 @@ class PhaseBarrierEdgeCaseTest {
     @Test
     fun `three consecutive barriers gate correctly with virtual time`() = runTest {
         val result = Async {
-            lift6 { a: String, b: String, c: String, d: String, e: String, f: String ->
+            kap { a: String, b: String, c: String, d: String, e: String, f: String ->
                 "$a|$b|$c|$d|$e|$f"
             }
-                .ap { delay(20); "A" }           // t=0..20
+                .with { delay(20); "A" }           // t=0..20
                 .followedBy { delay(10); "B" }   // t=20..30 (barrier 1)
-                .ap { delay(20); "C" }           // t=30..50
+                .with { delay(20); "C" }           // t=30..50
                 .followedBy { delay(10); "D" }   // t=50..60 (barrier 2)
-                .ap { delay(20); "E" }           // t=60..80
+                .with { delay(20); "E" }           // t=60..80
                 .followedBy { delay(10); "F" }   // t=80..90 (barrier 3)
         }
 

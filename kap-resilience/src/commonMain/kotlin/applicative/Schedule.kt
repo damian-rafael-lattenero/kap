@@ -14,7 +14,7 @@ import kotlin.time.TimeSource
  * [Computation.retry].
  *
  * ```
- * val policy = Schedule.recurs<Throwable>(5) and
+ * val policy = Schedule.times<Throwable>(5) and
  *     Schedule.exponential(100.milliseconds) and
  *     Schedule.doWhile { it is IOException }
  *
@@ -31,7 +31,7 @@ class Schedule<A>(
 
     companion object {
         /** Retry up to [n] times (total attempts = n + 1 including the first). */
-        fun <A> recurs(n: Int): Schedule<A> = Schedule { attempt, _ ->
+        fun <A> times(n: Int): Schedule<A> = Schedule { attempt, _ ->
             if (attempt < n) Decision.Continue(ZERO) else Decision.Done
         }
 
@@ -224,7 +224,7 @@ class Schedule<A>(
      * failure types.
      *
      * ```
-     * val countIOErrors = Schedule.recurs<Throwable>(5)
+     * val countIOErrors = Schedule.times<Throwable>(5)
      *     .fold(0) { count, err -> if (err is IOException) count + 1 else count }
      * ```
      *

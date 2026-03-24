@@ -96,10 +96,10 @@ class RecoverVTest {
                 Either.Left(nonEmptyListOf("err-C"))
             }
 
-            liftV3<String, String, String, String, String> { a, b, c -> "$a|$b|$c" }
-                .apV(branchA)
-                .apV(branchB)
-                .apV(branchC)
+            kapV<String, String, String, String, String> { a, b, c -> "$a|$b|$c" }
+                .withV(branchA)
+                .withV(branchB)
+                .withV(branchC)
         }
 
         // All 3 branches ran concurrently (barrier proof — would deadlock otherwise)
@@ -132,10 +132,10 @@ class RecoverVTest {
                 Either.Left(nonEmptyListOf("timeout-C"))
             }
 
-            liftV3<String, String, String, String, String> { a, b, c -> "$a|$b|$c" }
-                .apV(branchA)
-                .apV(branchB)
-                .apV(branchC)
+            kapV<String, String, String, String, String> { a, b, c -> "$a|$b|$c" }
+                .withV(branchA)
+                .withV(branchB)
+                .withV(branchC)
         }
 
         // All 3 run in parallel at 50ms each. If B's exception cancelled siblings,
@@ -172,10 +172,10 @@ class RecoverVTest {
                 Either.Left(nonEmptyListOf("validation-err-C"))
             }
 
-            liftV3<String, String, String, String, String> { a, b, c -> "$a|$b|$c" }
-                .apV(branchA)
-                .apV(branchB)
-                .apV(branchC)
+            kapV<String, String, String, String, String> { a, b, c -> "$a|$b|$c" }
+                .withV(branchA)
+                .withV(branchB)
+                .withV(branchC)
         }
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)

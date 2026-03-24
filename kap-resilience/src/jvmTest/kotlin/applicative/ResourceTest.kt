@@ -158,7 +158,7 @@ class ResourceTest {
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `use with Computation integrates with ap chains`() = runTest {
+    fun `use with Computation integrates with with chains`() = runTest {
         val releases = CopyOnWriteArrayList<String>()
 
         val dbResource = Resource({ "db-conn" }, { releases.add("release:$it") })
@@ -168,9 +168,9 @@ class ResourceTest {
 
         val result = Async {
             combined.useComputation { (db, cache) ->
-                lift2 { a: String, b: String -> "$a|$b" }
-                    .ap { delay(40); "data-from-$db" }
-                    .ap { delay(40); "data-from-$cache" }
+                kap { a: String, b: String -> "$a|$b" }
+                    .with { delay(40); "data-from-$db" }
+                    .with { delay(40); "data-from-$cache" }
             }
         }
 
@@ -236,16 +236,16 @@ class ResourceTest {
     }
 
     @Test
-    fun `use with Computation releases on ap failure`() = runTest {
+    fun `use with Computation releases on with failure`() = runTest {
         val releases = CopyOnWriteArrayList<String>()
         val resource = Resource({ "conn" }, { releases.add("release:$it") })
 
         val result = runCatching {
             Async {
                 resource.useComputation { _ ->
-                    lift2 { a: String, b: String -> "$a|$b" }
-                        .ap { "ok" }
-                        .ap { throw RuntimeException("branch failed") }
+                    kap { a: String, b: String -> "$a|$b" }
+                        .with { "ok" }
+                        .with { throw RuntimeException("branch failed") }
                 }
             }
         }

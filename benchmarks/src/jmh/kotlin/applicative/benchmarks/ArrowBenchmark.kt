@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 /**
  * JMH benchmarks for **kap-arrow** APIs.
  *
- * Covers: liftV+apV, zipV, traverseV, raceEither, ensureV,
+ * Covers: kapV+withV, zipV, traverseV, raceEither, ensureV,
  * attempt, catching, validated{}, flatMapV.
  *
  * Every KAP benchmark has a `raw_` and/or `arrow_` baseline where applicable.
@@ -60,16 +60,16 @@ open class ArrowBenchmark {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 1. VALIDATED ERROR ACCUMULATION — liftV + apV
+    // 1. VALIDATED ERROR ACCUMULATION — kapV + withV
     // ════════════════════════════════════════════════════════════════════════
 
-    @Benchmark fun kap_apV_latency_all_pass(): String = runBlocking {
+    @Benchmark fun kap_withV_latency_all_pass(): String = runBlocking {
         val result = Async {
-            liftV4<String, String, String, String, String, String> { a, b, c, d -> "$a|$b|$c|$d" }
-                .apV { validate("card", 40, pass = true) }
-                .apV { validate("stock", 40, pass = true) }
-                .apV { validate("address", 40, pass = true) }
-                .apV { validate("age", 40, pass = true) }
+            kapV<String, String, String, String, String, String> { a, b, c, d -> "$a|$b|$c|$d" }
+                .withV { validate("card", 40, pass = true) }
+                .withV { validate("stock", 40, pass = true) }
+                .withV { validate("address", 40, pass = true) }
+                .withV { validate("age", 40, pass = true) }
         }
         when (result) {
             is Either.Right -> result.value
@@ -110,13 +110,13 @@ open class ArrowBenchmark {
         }
     }
 
-    @Benchmark fun kap_apV_latency_all_fail(): String = runBlocking {
+    @Benchmark fun kap_withV_latency_all_fail(): String = runBlocking {
         val result = Async {
-            liftV4<String, String, String, String, String, String> { a, b, c, d -> "$a|$b|$c|$d" }
-                .apV { validate("card", 40, pass = false) }
-                .apV { validate("stock", 40, pass = false) }
-                .apV { validate("address", 40, pass = false) }
-                .apV { validate("age", 40, pass = false) }
+            kapV<String, String, String, String, String, String> { a, b, c, d -> "$a|$b|$c|$d" }
+                .withV { validate("card", 40, pass = false) }
+                .withV { validate("stock", 40, pass = false) }
+                .withV { validate("address", 40, pass = false) }
+                .withV { validate("age", 40, pass = false) }
         }
         when (result) {
             is Either.Right -> result.value

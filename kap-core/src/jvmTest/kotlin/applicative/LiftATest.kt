@@ -8,18 +8,18 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 /**
- * Tests for [liftA2]–[liftA5] and [product] — Haskell-style applicative lifting
+ * Tests for [combine] (suspend lambda variant) and [pair]/[triple] — Haskell-style applicative lifting
  * with suspend lambda inputs (parZip-like ergonomics).
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class LiftATest {
 
-    // ── liftA2 ──────────────────────────────────────────────────────────
+    // ── combine (2) ─────────────────────────────────────────────────────
 
     @Test
-    fun `liftA2 runs both lambdas in parallel`() = runTest {
+    fun `combine (2) runs both lambdas in parallel`() = runTest {
         val result = Async {
-            liftA2(
+            combine(
                 { delay(50); "A" },
                 { delay(50); "B" },
             ) { a, b -> "$a|$b" }
@@ -29,9 +29,9 @@ class LiftATest {
     }
 
     @Test
-    fun `liftA2 with different types`() = runTest {
+    fun `combine (2) with different types`() = runTest {
         val result = Async {
-            liftA2(
+            combine(
                 { delay(10); 42 },
                 { delay(10); "hello" },
             ) { n, s -> "$s-$n" }
@@ -40,20 +40,20 @@ class LiftATest {
     }
 
     @Test
-    fun `liftA2 propagates first exception`() = runTest {
-        val comp = liftA2(
+    fun `combine (2) propagates first exception`() = runTest {
+        val comp = combine(
             { error("boom") },
             { delay(100); "B" },
         ) { a: String, b: String -> "$a|$b" }
         assertFailsWith<IllegalStateException> { val r = Async { comp } }
     }
 
-    // ── liftA3 ──────────────────────────────────────────────────────────
+    // ── combine (3) ─────────────────────────────────────────────────────
 
     @Test
-    fun `liftA3 runs all three in parallel`() = runTest {
+    fun `combine (3) runs all three in parallel`() = runTest {
         val result = Async {
-            liftA3(
+            combine(
                 { delay(50); "user" },
                 { delay(50); "cart" },
                 { delay(50); "promos" },
@@ -64,11 +64,11 @@ class LiftATest {
     }
 
     @Test
-    fun `liftA3 with constructor reference`() = runTest {
+    fun `combine (3) with constructor reference`() = runTest {
         data class Dashboard(val user: String, val cart: String, val promos: String)
 
         val result = Async {
-            liftA3(
+            combine(
                 { delay(10); "Alice" },
                 { delay(10); "3 items" },
                 { delay(10); "SAVE20" },
@@ -79,12 +79,12 @@ class LiftATest {
         assertEquals("SAVE20", result.promos)
     }
 
-    // ── liftA4 ──────────────────────────────────────────────────────────
+    // ── combine (4) ─────────────────────────────────────────────────────
 
     @Test
-    fun `liftA4 runs all four in parallel`() = runTest {
+    fun `combine (4) runs all four in parallel`() = runTest {
         val result = Async {
-            liftA4(
+            combine(
                 { delay(50); "A" },
                 { delay(50); "B" },
                 { delay(50); "C" },
@@ -96,9 +96,9 @@ class LiftATest {
     }
 
     @Test
-    fun `liftA4 cancels siblings on failure`() = runTest {
+    fun `combine (4) cancels siblings on failure`() = runTest {
         val started = mutableListOf<String>()
-        val comp = liftA4(
+        val comp = combine(
             { started.add("A"); delay(10); error("boom") },
             { started.add("B"); delay(200); "B" },
             { started.add("C"); delay(200); "C" },
@@ -109,12 +109,12 @@ class LiftATest {
         assertEquals(4, started.size, "All 4 should start in parallel")
     }
 
-    // ── liftA5 ──────────────────────────────────────────────────────────
+    // ── combine (5) ─────────────────────────────────────────────────────
 
     @Test
-    fun `liftA5 runs all five in parallel`() = runTest {
+    fun `combine (5) runs all five in parallel`() = runTest {
         val result = Async {
-            liftA5(
+            combine(
                 { delay(50); "A" },
                 { delay(50); "B" },
                 { delay(50); "C" },
@@ -127,9 +127,9 @@ class LiftATest {
     }
 
     @Test
-    fun `liftA5 with heterogeneous types`() = runTest {
+    fun `combine (5) with heterogeneous types`() = runTest {
         val result = Async {
-            liftA5(
+            combine(
                 { delay(10); "user" },
                 { delay(10); 42 },
                 { delay(10); true },
@@ -140,12 +140,12 @@ class LiftATest {
         assertEquals("user|42|true|2|3.14", result)
     }
 
-    // ── product ─────────────────────────────────────────────────────────
+    // ── pair / triple ───────────────────────────────────────────────────
 
     @Test
-    fun `product2 returns Pair in parallel`() = runTest {
+    fun `pair returns Pair in parallel`() = runTest {
         val (a, b) = Async {
-            product(
+            pair(
                 { delay(50); "user" },
                 { delay(50); 42 },
             )
@@ -156,9 +156,9 @@ class LiftATest {
     }
 
     @Test
-    fun `product3 returns Triple in parallel`() = runTest {
+    fun `triple returns Triple in parallel`() = runTest {
         val (a, b, c) = Async {
-            product(
+            triple(
                 { delay(50); "user" },
                 { delay(50); 42 },
                 { delay(50); true },
@@ -173,15 +173,15 @@ class LiftATest {
     // ── composition with other combinators ──────────────────────────────
 
     @Test
-    fun `liftA3 composes with flatMap for phased execution`() = runTest {
+    fun `combine (3) composes with flatMap for phased execution`() = runTest {
         val result = Async {
-            liftA3(
+            combine(
                 { delay(50); "user" },
                 { delay(50); "prefs" },
                 { delay(50); "tier" },
             ) { u, p, t -> Triple(u, p, t) }
             .flatMap { (user, prefs, tier) ->
-                liftA2(
+                combine(
                     { delay(50); "recs for $user" },
                     { delay(50); "promos for $tier" },
                 ) { recs, promos -> "$user|$prefs|$tier|$recs|$promos" }
@@ -192,13 +192,13 @@ class LiftATest {
     }
 
     @Test
-    fun `liftA2 with individual branch retry`() = runTest {
+    fun `combine (2) with individual branch retry`() = runTest {
         var attempts = 0
         val result = Async {
-            liftA2(
+            combine(
                 { "stable" },
                 {
-                    // Retry inside the branch, not outside liftA2
+                    // Retry inside the branch, not outside combine (2)
                     Computation {
                         attempts++
                         if (attempts < 3) error("flaky")
@@ -211,9 +211,9 @@ class LiftATest {
     }
 
     @Test
-    fun `liftA2 composes with timeout`() = runTest {
+    fun `combine (2) composes with timeout`() = runTest {
         val result = Async {
-            liftA2(
+            combine(
                 { delay(10); "fast" },
                 { delay(10); "also fast" },
             ) { a, b -> "$a|$b" }
@@ -225,45 +225,45 @@ class LiftATest {
     // ── law verification ────────────────────────────────────────────────
 
     @Test
-    fun `liftA2 identity - liftA2 id fa fb == product fa fb`() = runTest {
-        val a = Async { liftA2({ 1 }, { 2 }) { x, y -> Pair(x, y) } }
-        val b = Async { product({ 1 }, { 2 }) }
+    fun `combine (2) identity - combine id fa fb == pair fa fb`() = runTest {
+        val a = Async { combine({ 1 }, { 2 }) { x, y -> Pair(x, y) } }
+        val b = Async { pair({ 1 }, { 2 }) }
         assertEquals(a, b)
     }
 
     @Test
-    fun `liftA2 agrees with lift2+ap`() = runTest {
+    fun `combine (2) agrees with kap+with`() = runTest {
         val viaLiftA = Async {
-            liftA2({ delay(10); "A" }, { delay(10); "B" }) { a, b -> "$a|$b" }
+            combine({ delay(10); "A" }, { delay(10); "B" }) { a, b -> "$a|$b" }
         }
         val viaLiftAp = Async {
-            lift2 { a: String, b: String -> "$a|$b" }
-                .ap { delay(10); "A" }
-                .ap { delay(10); "B" }
+            kap { a: String, b: String -> "$a|$b" }
+                .with { delay(10); "A" }
+                .with { delay(10); "B" }
         }
         assertEquals(viaLiftA, viaLiftAp)
     }
 
     @Test
-    fun `liftA3 agrees with lift3+ap`() = runTest {
+    fun `combine (3) agrees with kap+with`() = runTest {
         val viaLiftA = Async {
-            liftA3({ 1 }, { 2 }, { 3 }) { a, b, c -> a + b + c }
+            combine({ 1 }, { 2 }, { 3 }) { a, b, c -> a + b + c }
         }
         val viaLiftAp = Async {
-            lift3 { a: Int, b: Int, c: Int -> a + b + c }
-                .ap { 1 }.ap { 2 }.ap { 3 }
+            kap { a: Int, b: Int, c: Int -> a + b + c }
+                .with { 1 }.with { 2 }.with { 3 }
         }
         assertEquals(viaLiftA, viaLiftAp)
     }
 
     @Test
-    fun `liftA5 agrees with lift5+ap`() = runTest {
+    fun `combine (5) agrees with kap+with`() = runTest {
         val viaLiftA = Async {
-            liftA5({ 1 }, { 2 }, { 3 }, { 4 }, { 5 }) { a, b, c, d, e -> a + b + c + d + e }
+            combine({ 1 }, { 2 }, { 3 }, { 4 }, { 5 }) { a, b, c, d, e -> a + b + c + d + e }
         }
         val viaLiftAp = Async {
-            lift5 { a: Int, b: Int, c: Int, d: Int, e: Int -> a + b + c + d + e }
-                .ap { 1 }.ap { 2 }.ap { 3 }.ap { 4 }.ap { 5 }
+            kap { a: Int, b: Int, c: Int, d: Int, e: Int -> a + b + c + d + e }
+                .with { 1 }.with { 2 }.with { 3 }.with { 4 }.with { 5 }
         }
         assertEquals(viaLiftA, viaLiftAp)
     }
@@ -271,15 +271,15 @@ class LiftATest {
     // ── deadlock detection (barrier proof) ──────────────────────────────
 
     @Test
-    fun `liftA3 does not deadlock with barrier from follow-up flatMap`() = runTest {
+    fun `combine (3) does not deadlock with barrier from follow-up flatMap`() = runTest {
         val result = Async {
-            liftA3(
+            combine(
                 { delay(30); 1 },
                 { delay(30); 2 },
                 { delay(30); 3 },
             ) { a, b, c -> a + b + c }
             .flatMap { sum ->
-                pure(sum * 10)
+                Computation.of(sum * 10)
             }
         }
         assertEquals(60, result)
