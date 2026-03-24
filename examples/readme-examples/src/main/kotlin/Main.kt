@@ -956,6 +956,54 @@ suspend fun reorderedWithBarrier() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//  BFF Example — mobile app endpoint aggregating multiple backend services
+// ═══════════════════════════════════════════════════════════════════════
+
+data class UserSession(val userId: String, val tier: String, val prefs: List<String>)
+data class ProductFeed(val items: List<String>, val sponsored: List<String>)
+data class MobileHomePage(val session: UserSession, val feed: ProductFeed, val notifications: Int)
+
+suspend fun fetchSession(token: String): UserSession {
+    delay(40); return UserSession("u-123", "gold", listOf("electronics", "books"))
+}
+suspend fun fetchProductFeed(prefs: List<String>): List<String> {
+    delay(35); return prefs.map { "top-$it" }
+}
+suspend fun fetchSponsored(tier: String): List<String> {
+    delay(25); return listOf("sponsored-for-$tier")
+}
+suspend fun fetchNotifications(userId: String): Int {
+    delay(20); return 7
+}
+
+suspend fun bffMobileApp() {
+    println("=== BFF: Mobile Home Page ===\n")
+
+    val homePage: MobileHomePage = Async {
+        Computation { fetchSession("tok-abc") }         // phase 1: authenticate
+            .flatMap { session ->                        // ── barrier: session ready
+                combine(                                 // phase 2: fan-out (all parallel)
+                    { fetchProductFeed(session.prefs) },
+                    { fetchSponsored(session.tier) },
+                    { fetchNotifications(session.userId) },
+                ) { items, sponsored, notifs ->
+                    MobileHomePage(
+                        session = session,
+                        feed = ProductFeed(items, sponsored),
+                        notifications = notifs,
+                    )
+                }
+            }
+    }
+
+    println("  homePage: $homePage")
+    assert(homePage.session.userId == "u-123")
+    assert(homePage.feed.items.size == 2)
+    assert(homePage.notifications == 7)
+    println("  ✓ BFF example passed\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //  Main — runs every example
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -1010,6 +1058,9 @@ suspend fun main() {
     // Reordered execution
     reorderedWithoutBarrier()
     reorderedWithBarrier()
+
+    // BFF example
+    bffMobileApp()
 
     println("All README examples passed!")
 }

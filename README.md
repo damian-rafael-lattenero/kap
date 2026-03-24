@@ -1,10 +1,12 @@
-# KAP — Kotlin Applicative Parallelism
+# KAP — Kotlin Async Parallelism
+
+Multi-service orchestration for Kotlin coroutines. Flat chains, visible phases, compiler-checked argument order.
 
 **Your code shape *is* the execution plan.**
 
 [![CI](https://github.com/damian-rafael-lattenero/coroutines-applicatives/actions/workflows/ci.yml/badge.svg)](https://github.com/damian-rafael-lattenero/coroutines-applicatives/actions/workflows/ci.yml)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-blue.svg)](https://kotlinlang.org)
-[![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.20-blue.svg)](https://kotlinlang.org)
+[![Coroutines](https://img.shields.io/badge/Coroutines-1.10.2-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
 [![Tests](https://img.shields.io/badge/Tests-906%20across%2061%20suites-brightgreen.svg)](#empirical-data)
 [![Benchmarks](https://img.shields.io/badge/Benchmarks-119%20JMH-blueviolet.svg)](https://damian-rafael-lattenero.github.io/coroutines-applicatives/benchmarks/)
 
@@ -95,33 +97,6 @@ println(result) // Dashboard(user=Alice, cart=3 items, promos=SAVE20)
 
 Build computation graphs, store them, pass them around, compose them — all without triggering any side effects. Execution only happens at the `Async` boundary.
 
-### All `val`, no `null`, no `!!`
-
-With raw coroutines, parallel results force you into mutable variables or nullable types:
-
-```kotlin
-// Raw coroutines: vars and nulls
-var user: String? = null
-var cart: String? = null
-coroutineScope {
-    launch { user = fetchDashUser() }
-    launch { cart = fetchDashCart() }
-}
-val rawResult = DashboardView(user!!, cart!!)
-```
-
-With KAP, the constructor receives everything at once. Every field is `val`. Nothing is ever `null`:
-
-```kotlin
-val kapResult: DashboardView = Async {
-    kap(::DashboardView)
-        .with { fetchDashUser() }
-        .with { fetchDashCart() }
-}
-```
-
-This isn't just style — it's **correctness**. Your data classes keep all `val` fields with no default values, because KAP guarantees the constructor is called with all arguments at once. No partial construction. No temporal coupling.
-
 > All code examples on this page are compilable and verified in [`readme-examples`](examples/readme-examples/).
 
 ---
@@ -205,6 +180,8 @@ t=90ms  ─── sendEmail ───────┘─ phase 5 (parallel)
 t=130ms ─── done
 ```
 
+**Bonus: all `val`, no `null`, no `!!`.** Raw coroutines often force `var user: String? = null` + `launch { user = fetch() }` + `user!!`. With KAP, the constructor receives all arguments at once — every field stays `val`, nothing is ever nullable, no partial construction.
+
 ---
 
 ## Three Primitives — That's the Whole Model
@@ -268,7 +245,7 @@ t=80ms  ─── PersonalizedDashboard ready
 
 ## When Phase 2 Depends on Phase 1: `flatMap`
 
-The checkout above uses `.followedBy` for barriers — phase 2 doesn't need phase 1's *values*, just needs it to finish. But what if phase 2 **uses** phase 1's results?
+**This is the classic BFF pattern:** fetch user context first, then fan out personalized calls that depend on that context. Checkout uses `.followedBy` for barriers — phase 2 doesn't need phase 1's *values*, just needs it to finish. But in a BFF, phase 2 **uses** phase 1's results to decide what to fetch next.
 
 **Raw Coroutines — three separate `coroutineScope` blocks, manual variable threading:**
 
@@ -344,6 +321,48 @@ t=115ms ─── FinalDashboard ready
 
 ---
 
+## Concrete BFF Example: Mobile Home Page
+
+A single endpoint that authenticates, then fans out personalized calls:
+
+```kotlin
+data class UserSession(val userId: String, val tier: String, val prefs: List<String>)
+data class ProductFeed(val items: List<String>, val sponsored: List<String>)
+data class MobileHomePage(val session: UserSession, val feed: ProductFeed, val notifications: Int)
+
+val homePage: MobileHomePage = Async {
+    Computation { fetchSession("tok-abc") }         // phase 1: authenticate
+        .flatMap { session ->                        // ── barrier: session ready
+            combine(                                 // phase 2: fan-out (all parallel)
+                { fetchProductFeed(session.prefs) },
+                { fetchSponsored(session.tier) },
+                { fetchNotifications(session.userId) },
+            ) { items, sponsored, notifs ->
+                MobileHomePage(
+                    session = session,
+                    feed = ProductFeed(items, sponsored),
+                    notifications = notifs,
+                )
+            }
+        }
+}
+```
+
+```
+BFF execution timeline:
+
+t=0ms   ─── fetchSession("tok-abc") ──── phase 1 (single call)
+t=40ms  ─── flatMap { session -> }  ──── barrier, session ready
+t=40ms  ─── fetchProductFeed(session.prefs)  ──┐
+t=40ms  ─── fetchSponsored(session.tier)       ├─ phase 2 (all 3 parallel)
+t=40ms  ─── fetchNotifications(session.userId) ┘
+t=75ms  ─── MobileHomePage ready
+```
+
+Two phases, zero `await()`, full structured concurrency. If `fetchSponsored` fails, everything cancels.
+
+---
+
 ## Quick Start
 
 **Pick only the modules you need:**
@@ -352,13 +371,13 @@ t=115ms ─── FinalDashboard ready
 // build.gradle.kts
 dependencies {
     // Core — the only required module (zero deps beyond coroutines)
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.2.0")
 
     // Optional: resilience patterns (Schedule, Resource, CircuitBreaker, bracket)
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.2.0")
 
     // Optional: Arrow integration (validated DSL, Either/Nel, raceEither, attempt)
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.2.0")
 }
 ```
 
@@ -548,7 +567,7 @@ val failures = results.filter { it.isFailure }.map { it.exceptionOrNull()!!.mess
 // successes=[user-1, user-3, user-5], failures=[fail-2, fail-4]
 ```
 
-Neither raw coroutines nor Arrow offer this. Raw `supervisorScope` breaks cleanup guarantees. Arrow's `parZip` cancels siblings on any failure.
+Raw coroutines require manual `supervisorScope` wiring for this, which breaks structured concurrency cleanup guarantees. Arrow's `parZip` cancels all siblings on any failure — no partial-success path.
 
 ---
 
@@ -593,7 +612,7 @@ For same-type parameters, use value classes for full swap-safety:
 @JvmInline value class ValidEmail(val value: String)
 ```
 
-Neither raw coroutines nor Arrow enforce parameter order at compile time.
+Raw coroutines pass arguments by position — swap two same-type values and the compiler won't catch it. Arrow's `parZip` uses a lambda, so ordering is also unchecked.
 
 ---
 
@@ -614,7 +633,7 @@ val quorum: List<String> = Async {
 // If 2+ fail, throws (quorum impossible).
 ```
 
-No primitive for this exists in raw coroutines or Arrow.
+Requires manual `select` + counting logic in raw coroutines. Not available as a built-in in Arrow.
 
 ---
 
@@ -632,7 +651,7 @@ val b = Async { fetchOnce }  // returns cached result instantly
 // If first call FAILS: not cached, next call retries
 ```
 
-No manual `Mutex` + double-checked locking. Arrow has no equivalent.
+No manual `Mutex` + double-checked locking required. Not available as a built-in in Arrow.
 
 ---
 
@@ -821,111 +840,40 @@ val result: Either<NonEmptyList<RegError>, User> = Async {
 // 3 fail?  -> Either.Left(NonEmptyList(NameTooShort, InvalidEmail, AgeTooLow))
 ```
 
-`zipV` scales to 22 validators and runs them all in parallel. Raw coroutines can't collect errors in parallel (structured concurrency cancels siblings). Arrow's `zipOrAccumulate` stops at 9.
+`zipV` scales to 22 validators and runs them all in parallel. With raw coroutines, structured concurrency cancels siblings on first failure — no error accumulation path. Arrow's `zipOrAccumulate` supports up to 9.
 
 ---
 
-### 12. Phased Validation `kap-arrow`
+### More Combinators
 
-**The problem:** Phase 1 validates name, email, age in parallel. Phase 2 checks username availability and blacklist — but only if phase 1 passes.
+| Feature | Usage | Module |
+|---|---|---|
+| **Phased validation** | `accumulate { zipV(...).bindV() }` — phase 2 only runs if phase 1 passes | `kap-arrow` |
+| **`attempt()`** | Catch exceptions to `Either<Throwable, A>` | `kap-arrow` |
+| **Fallback chains** | `.orElse(other)` / `firstSuccessOf(c1, c2, c3)` — sequential, first success wins | `kap-core` |
+| **`computation {}`** | Imperative builder with `.bind()` for sequential steps | `kap-core` |
 
-```kotlin
-val result: Either<NonEmptyList<RegError>, Registration> = Async {
-    accumulate {
-        val identity = zipV(
-            { validateName("Alice") },
-            { validateEmail("alice@example.com") },
-            { validateAge(25) },
-        ) { name, email, age -> Identity(name, email, age) }
-            .bindV()
-
-        val cleared = zipV(
-            { checkNotBlacklisted(identity) },
-            { checkUsernameAvailable(identity.email.value) },
-        ) { a, b -> Clearance(a, b) }
-            .bindV()
-
-        Registration(identity, cleared)
-    }
-}
-// Phase 1 fails? Short-circuit, phase 2 never runs (saves network calls)
-```
-
----
-
-### 13. `attempt()` — Catch to Either `kap-arrow`
-
-```kotlin
-val success: Either<Throwable, String> = Async {
-    Computation { "hello" }.attempt()
-}
-// Either.Right("hello")
-
-val failure: Either<Throwable, String> = Async {
-    Computation<String> { throw RuntimeException("boom") }.attempt()
-}
-// Either.Left(RuntimeException("boom"))
-```
-
----
-
-### 14. Fallback Chains `kap-core`
-
-```kotlin
-// Sequential fallback on failure:
-val result = Async {
-    Computation<String> { throw RuntimeException("fail-1") }
-        .orElse(Computation { "fallback-ok" })
-}
-// "fallback-ok"
-
-// Try each sequentially, return first success:
-val result2 = Async {
-    firstSuccessOf(
-        Computation { throw RuntimeException("fail-1") },
-        Computation { throw RuntimeException("fail-2") },
-        Computation { "third-wins" },
-    )
-}
-// "third-wins"
-```
-
----
-
-### 15. `computation {}` Builder `kap-core`
-
-For sequential step-by-step composition when you need imperative style:
-
-```kotlin
-val result = Async {
-    computation {
-        val user = Computation { fetchDashUser() }.bind()
-        val cart = Computation { fetchDashCart() }.bind()
-        "$user has $cart"
-    }
-}
-// "Alice has 3 items"
-```
+See [`validated-registration`](examples/validated-registration/) and [`full-stack-order`](examples/full-stack-order/) for working examples of each.
 
 ---
 
 ### Summary Table
 
-| Feature | Raw Coroutines | Arrow | KAP | Module |
-|---|---|---|---|---|
-| **Multi-phase orchestration** | Nested scopes, shuttle vars | Nested `parZip` blocks | Flat chain with `.followedBy` | `kap-core` |
-| **Parallel validation** | Impossible (cancels siblings) | `zipOrAccumulate` max 9 | `zipV` up to 22 | `kap-arrow` |
-| **Value-dependent phases** | Manual variable threading | Sequential `parZip` blocks | `.flatMap` — dependency is the structure | `kap-core` |
-| **Retry + backoff** | Manual loop (~20 lines) | `Schedule` (similar) | `Schedule` + composable with chain | `kap-resilience` |
-| **Resource safety** | try/finally nesting | `Resource` monad | `bracket` / `Resource` — parallel use | `kap-resilience` |
-| **Racing** | Complex `select` | `raceN` (similar) | `raceN` + `raceEither` | `kap-core` + `kap-arrow` |
-| **Bounded traversal** | Manual Semaphore | `parMap(concurrency)` | `traverse(concurrency)` | `kap-core` |
-| **Partial failure** | `supervisorScope` breaks guarantees | No equivalent | **`.settled()`** | `kap-core` |
-| **Timeout + parallel fallback** | Sequential (wastes time) | No equivalent | **`timeoutRace`** — 2.6x faster | `kap-resilience` |
-| **Quorum (N-of-M)** | No primitive | No equivalent | **`raceQuorum`** | `kap-resilience` |
-| **Circuit breaker** | Manual state machine | Separate module | **Composable in chain** | `kap-resilience` |
-| **Compile-time arg safety** | No (positional) | No (named lambda) | **Typed function chain enforces order** | `kap-core` |
-| **Success-only memoization** | Manual Mutex + cache | No equivalent | **`.memoizeOnSuccess()`** | `kap-core` |
+| Feature | Raw Coroutines | Arrow | KAP |
+|---|---|---|---|
+| **Multi-phase orchestration** | Nested scopes, shuttle vars | Nested `parZip` blocks | Flat chain with `.followedBy` |
+| **Parallel validation** | Cancels siblings on failure | `zipOrAccumulate` max 9 | `zipV` up to 22 |
+| **Value-dependent phases** | Manual variable threading | Sequential `parZip` blocks | `.flatMap` — dependency is the structure |
+| **Retry + backoff** | Manual loop (~20 lines) | `Schedule` (similar) | `Schedule` + composable with chain |
+| **Resource safety** | try/finally nesting | `Resource` monad | `bracket` / `Resource` — parallel use |
+| **Racing** | Complex `select` | `raceN` (similar) | `raceN` + `raceEither` |
+| **Bounded traversal** | Manual Semaphore | `parMap(concurrency)` | `traverse(concurrency)` |
+| **Partial failure** | `supervisorScope` (manual) | Not built-in | **`.settled()`** |
+| **Timeout + parallel fallback** | Sequential (wastes time) | Not built-in | **`timeoutRace`** — 2.6x faster |
+| **Quorum (N-of-M)** | Manual `select` + counting | Not built-in | **`raceQuorum`** |
+| **Circuit breaker** | Manual state machine | Separate module | **Composable in chain** |
+| **Compile-time arg safety** | No (positional) | No (named lambda) | **Typed function chain enforces order** |
+| **Success-only memoization** | Manual Mutex + cache | Not built-in | **`.memoizeOnSuccess()`** |
 
 ---
 
@@ -1050,7 +998,8 @@ All claims backed by **119 JMH benchmarks** (2 forks x 5 measurement iterations 
 
 > KAP overhead is indistinguishable from raw coroutines. Where it pulls ahead: `race` (auto-cancel loser), `retry` (declarative schedules vs manual loops), and `timeoutRace` (parallel fallback vs sequential).
 
-### Virtual-Time Proofs
+<details>
+<summary>Virtual-time proofs & full JMH tables</summary>
 
 | Proof | Virtual time | Sequential | Speedup |
 |---|---|---|---|
@@ -1061,10 +1010,7 @@ All claims backed by **119 JMH benchmarks** (2 forks x 5 measurement iterations 
 | Bounded traverse (500 items, c=50) | **300ms** | 15,000ms | **50x** |
 | kap (22 parallel branches) | **30ms** | 660ms | **22x** |
 
-<details>
-<summary>Full JMH benchmark tables</summary>
-
-See [`CoreBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/CoreBenchmark.kt), [`ResilienceBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/ResilienceBenchmark.kt), [`ArrowBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/ArrowBenchmark.kt).
+Benchmarks: [`CoreBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/CoreBenchmark.kt) | [`ResilienceBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/ResilienceBenchmark.kt) | [`ArrowBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/ArrowBenchmark.kt).
 
 Comparison tests: [`CoreComparisonTest.kt`](benchmarks/src/test/kotlin/applicative/CoreComparisonTest.kt) | [`ResilienceComparisonTest.kt`](benchmarks/src/test/kotlin/applicative/ResilienceComparisonTest.kt) | [`ArrowComparisonTest.kt`](benchmarks/src/test/kotlin/applicative/ArrowComparisonTest.kt).
 
@@ -1074,9 +1020,9 @@ Comparison tests: [`CoreComparisonTest.kt`](benchmarks/src/test/kotlin/applicati
 
 ## How It Works
 
-**Step 1: Wrapping.** `kap(::CheckoutResult)` takes your 11-parameter constructor and wraps it into a chain of single-argument functions: `(A) -> (B) -> ... -> (K) -> CheckoutResult`. This is wrapped in a `Computation` — a lazy description that hasn't executed yet.
+**Step 1: Wrapping.** `kap(::CheckoutResult)` takes your 11-parameter constructor and wraps it into a typed pipeline where each `.with` fills the next slot: slot 1 expects `UserProfile`, slot 2 expects `ShoppingCart`, and so on. This is wrapped in a `Computation` — a lazy description that hasn't executed yet.
 
-**Step 2: Parallel fork.** Each `.with { fetchX() }` takes the next function in the chain and applies one argument. The right-hand side (your lambda) launches as `async` in the current `CoroutineScope`, while the left spine stays inline. N `.with` calls produce N concurrent coroutines with O(N) stack depth.
+**Step 2: Parallel fork.** Each `.with { fetchX() }` fills the next slot in the pipeline. The lambda launches as `async` in the current `CoroutineScope`, while the pipeline spine stays inline. N `.with` calls produce N concurrent coroutines with O(N) stack depth.
 
 **Step 3: Barrier join.** `.followedBy { }` awaits all pending parallel work before continuing. `.flatMap` does the same but passes the result value into the next phase.
 
