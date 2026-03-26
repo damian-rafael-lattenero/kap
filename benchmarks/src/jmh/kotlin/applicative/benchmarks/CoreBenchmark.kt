@@ -6,7 +6,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.andThenMerge
+import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -592,9 +592,9 @@ open class CoreBenchmark {
     // 17. FLOW INTEGRATION — mapEffect, filterEffect
     // ════════════════════════════════════════════════════════════════════════
 
-    @Benchmark fun raw_flow_andThenMerge_10(): List<String> = runBlocking {
+    @Benchmark fun raw_flow_flatMapMerge_10(): List<String> = runBlocking {
         flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-            .andThenMerge(concurrency = 5) { n ->
+            .flatMapMerge(concurrency = 5) { n ->
                 flow { emit(networkCall("item-$n", 30)) }
             }.toList()
     }

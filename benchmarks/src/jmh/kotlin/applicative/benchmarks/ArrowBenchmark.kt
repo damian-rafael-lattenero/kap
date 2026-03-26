@@ -106,7 +106,7 @@ open class ArrowBenchmark {
         if (errors.isEmpty()) {
             results.map { (it as Either.Right).value }.joinToString("|")
         } else {
-            "errors:${errors.andThen { it.value }}"
+            "errors:${errors.flatMap { it.value }}"
         }
     }
 

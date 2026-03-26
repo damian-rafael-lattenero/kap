@@ -44,7 +44,7 @@ fun <A> Effect<A>.retry(
     onRetry: suspend (attempt: Int, error: Throwable, nextDelay: Duration) -> Unit = { _, _, _ -> },
 ): Effect<A> = Effect {
     var attempt = 0
-    var lastError: Throwable? = null
+    lateinit var lastError: Throwable
     while (true) {
         try {
             return@Effect with(this@retry) { execute() }
@@ -61,7 +61,7 @@ fun <A> Effect<A>.retry(
             }
         }
     }
-    throw lastError!!
+    throw lastError
 }
 
 /**
@@ -104,7 +104,7 @@ fun <A> Effect<A>.retryOrElse(
     orElse: suspend (Throwable) -> A,
 ): Effect<A> = Effect {
     var attempt = 0
-    var lastError: Throwable? = null
+    lateinit var lastError: Throwable
     while (true) {
         try {
             return@Effect with(this@retryOrElse) { execute() }
@@ -120,7 +120,7 @@ fun <A> Effect<A>.retryOrElse(
             }
         }
     }
-    orElse(lastError!!)
+    orElse(lastError)
 }
 
 // ── retry with result metadata ───────────────────────────────────────────
@@ -157,7 +157,7 @@ fun <A> Effect<A>.retryWithResult(
 ): Effect<RetryResult<A>> = Effect {
     var attempt = 0
     var totalDelay = Duration.ZERO
-    var lastError: Throwable? = null
+    lateinit var lastError: Throwable
     while (true) {
         try {
             val value = with(this@retryWithResult) { execute() }
@@ -175,5 +175,5 @@ fun <A> Effect<A>.retryWithResult(
             }
         }
     }
-    throw lastError!!
+    throw lastError
 }
