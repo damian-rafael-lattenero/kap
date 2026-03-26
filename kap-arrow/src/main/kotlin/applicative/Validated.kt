@@ -307,11 +307,7 @@ fun <E, F, A> Effect<Either<NonEmptyList<E>, A>>.mapError(f: (E) -> F): Effect<E
 // ── validated { } builder: short-circuit DSL ────────────────────────────
 
 @PublishedApi
-internal class ValidatedShortCircuit(val errors: NonEmptyList<Any?>) : ControlFlowException() {
-    /** Type-safe accessor — safe because the scope that throws this always uses NonEmptyList<E>. */
-    @Suppress("UNCHECKED_CAST")
-    fun <E> typedErrors(): NonEmptyList<E> = errors as NonEmptyList<E>
-}
+internal class ValidatedShortCircuit : ControlFlowException()
 
 /**
  * Scope for the [validated] builder, providing [bind] for short-circuit
@@ -320,13 +316,19 @@ internal class ValidatedShortCircuit(val errors: NonEmptyList<Any?>) : ControlFl
 class ValidatedScope<E> @PublishedApi internal constructor(
     @PublishedApi internal val scope: kotlinx.coroutines.CoroutineScope,
 ) {
+    /** Errors captured on short-circuit — typed via the scope's E parameter. */
+    @PublishedApi internal var shortCircuitErrors: NonEmptyList<E>? = null
+
     /**
      * Unwraps an [Either] — returns the [Right][Either.Right] value or
      * short-circuits the [validated] block with the [Left][Either.Left] errors.
      */
     fun <A> Either<NonEmptyList<E>, A>.bind(): A = when (this) {
         is Either.Right -> value
-        is Either.Left -> throw ValidatedShortCircuit(value)
+        is Either.Left -> {
+            shortCircuitErrors = value
+            throw ValidatedShortCircuit()
+        }
     }
 
     /**
@@ -350,10 +352,11 @@ class ValidatedScope<E> @PublishedApi internal constructor(
  */
 fun <E, A> validated(block: suspend ValidatedScope<E>.() -> A): Effect<Either<NonEmptyList<E>, A>> =
     Effect {
+        val validatedScope = ValidatedScope<E>(this)
         try {
-            Either.Right(ValidatedScope<E>(this).block())
-        } catch (e: ValidatedShortCircuit) {
-            Either.Left(e.typedErrors())
+            Either.Right(validatedScope.block())
+        } catch (_: ValidatedShortCircuit) {
+            Either.Left(validatedScope.shortCircuitErrors!!)
         }
     }
 
