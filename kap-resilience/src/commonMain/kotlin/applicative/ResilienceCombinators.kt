@@ -44,23 +44,24 @@ fun <A> Effect<A>.retry(
     onRetry: suspend (attempt: Int, error: Throwable, nextDelay: Duration) -> Unit = { _, _, _ -> },
 ): Effect<A> = Effect {
     var attempt = 0
+    var lastError: Throwable? = null
     while (true) {
         try {
             return@Effect with(this@retry) { execute() }
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
+            lastError = e
             when (val decision = schedule.decide(attempt, e)) {
                 is Schedule.Decision.Continue -> {
                     onRetry(attempt + 1, e, decision.delay)
                     if (decision.delay > Duration.ZERO) delay(decision.delay)
                     attempt++
                 }
-                is Schedule.Decision.Done -> throw e
+                is Schedule.Decision.Done -> break
             }
         }
     }
-    @Suppress("UNREACHABLE_CODE")
-    error("unreachable")
+    throw lastError!!
 }
 
 /**
@@ -103,22 +104,23 @@ fun <A> Effect<A>.retryOrElse(
     orElse: suspend (Throwable) -> A,
 ): Effect<A> = Effect {
     var attempt = 0
+    var lastError: Throwable? = null
     while (true) {
         try {
             return@Effect with(this@retryOrElse) { execute() }
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
+            lastError = e
             when (val decision = schedule.decide(attempt, e)) {
                 is Schedule.Decision.Continue -> {
                     if (decision.delay > Duration.ZERO) delay(decision.delay)
                     attempt++
                 }
-                is Schedule.Decision.Done -> return@Effect orElse(e)
+                is Schedule.Decision.Done -> break
             }
         }
     }
-    @Suppress("UNREACHABLE_CODE")
-    error("unreachable")
+    orElse(lastError!!)
 }
 
 // ── retry with result metadata ───────────────────────────────────────────
@@ -155,22 +157,23 @@ fun <A> Effect<A>.retryWithResult(
 ): Effect<RetryResult<A>> = Effect {
     var attempt = 0
     var totalDelay = Duration.ZERO
+    var lastError: Throwable? = null
     while (true) {
         try {
             val value = with(this@retryWithResult) { execute() }
             return@Effect RetryResult(value, attempt, totalDelay)
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
+            lastError = e
             when (val decision = schedule.decide(attempt, e)) {
                 is Schedule.Decision.Continue -> {
                     totalDelay += decision.delay
                     if (decision.delay > Duration.ZERO) delay(decision.delay)
                     attempt++
                 }
-                is Schedule.Decision.Done -> throw e
+                is Schedule.Decision.Done -> break
             }
         }
     }
-    @Suppress("UNREACHABLE_CODE")
-    error("unreachable")
+    throw lastError!!
 }
