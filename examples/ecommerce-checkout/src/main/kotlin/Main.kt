@@ -4,7 +4,7 @@ import kotlinx.coroutines.delay
 /**
  * E-commerce checkout flow — 11 service calls, 5 phases.
  *
- * Demonstrates: kap+with+followedBy, parallel fan-out, sequential barriers,
+ * Demonstrates: kap+with+then, parallel fan-out, sequential barriers,
  * and how the code structure mirrors the execution plan.
  *
  * Every service call returns a distinct domain type so the compiler enforces
@@ -52,7 +52,7 @@ suspend fun generateConfirmation(): OrderConfirmation { delay(60); return OrderC
 suspend fun sendEmail(): EmailReceipt { delay(40); return EmailReceipt("alice@example.com", "order-#90142") }
 
 suspend fun main() {
-    println("=== E-Commerce Checkout (kap+with+followedBy) ===\n")
+    println("=== E-Commerce Checkout (kap+with+then) ===\n")
 
     val start = System.currentTimeMillis()
 
@@ -66,13 +66,13 @@ suspend fun main() {
             .with { fetchPromos() }
             .with { fetchInventory() }
             // Phase 2: Validate stock (sequential — must wait for phase 1)
-            .followedBy { validateStock() }
+            .then { validateStock() }
             // Phase 3: Calculate costs (parallel)
             .with { calcShipping() }
             .with { calcTax() }
             .with { calcDiscounts() }
             // Phase 4: Reserve payment (sequential)
-            .followedBy { reservePayment() }
+            .then { reservePayment() }
             // Phase 5: Confirmation + email (parallel)
             .with { generateConfirmation() }
             .with { sendEmail() }
@@ -80,5 +80,5 @@ suspend fun main() {
 
     val elapsed = System.currentTimeMillis() - start
     println("Result: $result")
-    println("Total time: ${elapsed}ms (phases run in parallel, followedBy enforces ordering)")
+    println("Total time: ${elapsed}ms (phases run in parallel, then enforces ordering)")
 }

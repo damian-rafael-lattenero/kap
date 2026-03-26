@@ -11,7 +11,7 @@ import kotlin.time.Duration.Companion.seconds
  *
  * Combines all three modules in a realistic order-processing pipeline:
  *
- *   kap-core:       kap/with/followedBy for type-safe parallel orchestration
+ *   kap-core:       kap/with/then for type-safe parallel orchestration
  *   kap-resilience: Schedule retry, CircuitBreaker, bracket, timeoutRace
  *   kap-arrow:      validated/accumulate for input validation, attempt(),
  *                   raceEither for heterogeneous racing, Either bridges
@@ -184,15 +184,15 @@ suspend fun main() {
         kap(::FetchedData)
             // Retry flaky inventory API with exponential backoff
             .with(
-                Computation { checkInventory(order.item.value) }
+                Effect { checkInventory(order.item.value) }
                     .retry(retryPolicy) { attempt, err, nextDelay ->
                         println("  Inventory retry #$attempt: ${err.message} (waiting $nextDelay)")
                     }
             )
             // timeoutRace: try live pricing, fall back to cache if slow
             .with(
-                Computation { fetchLivePricing(order.item.value) }
-                    .timeoutRace(100.milliseconds, Computation { fetchCachedPricing(order.item.value) })
+                Effect { fetchLivePricing(order.item.value) }
+                    .timeoutRace(100.milliseconds, Effect { fetchCachedPricing(order.item.value) })
             )
     }
 
@@ -212,7 +212,7 @@ suspend fun main() {
     val totalAmount = order.qty.value * fetched.pricing.unitPrice * (1 - fetched.pricing.discount)
 
     val payment = Async {
-        Computation { processPayment(totalAmount) }
+        Effect { processPayment(totalAmount) }
             .withCircuitBreaker(breaker)
             .retry(Schedule.times<Throwable>(2) and Schedule.spaced(50.milliseconds))
     }
@@ -229,7 +229,7 @@ suspend fun main() {
                 openOrderDb().also { println("  Acquired DB: ${it.name}") }
             },
             use = { db ->
-                Computation { db.insert("ORD-${System.currentTimeMillis()}") }
+                Effect { db.insert("ORD-${System.currentTimeMillis()}") }
             },
             release = { db ->
                 db.close()
@@ -246,14 +246,14 @@ suspend fun main() {
     println("=== Phase 5: attempt() and raceEither from kap-arrow ===\n")
 
     val attemptResult: Either<Throwable, String> = Async {
-        Computation { "Order ${confirmation.orderId} processed successfully" }.attempt()
+        Effect { "Order ${confirmation.orderId} processed successfully" }.attempt()
     }
     println("  attempt() result: $attemptResult")
 
     val raceResult: Either<String, Int> = Async {
         raceEither(
-            fa = Computation { delay(50); "fast-notification-sent" },
-            fb = Computation { delay(200); 42 },
+            fa = Effect { delay(50); "fast-notification-sent" },
+            fb = Effect { delay(200); 42 },
         )
     }
     println("  raceEither winner: $raceResult")
@@ -275,30 +275,30 @@ suspend fun main() {
             .orThrow()
     }
 
-    // Step 2: orchestrate with kap+with+followedBy (all three modules)
+    // Step 2: orchestrate with kap+with+then (all three modules)
     val fullOrder = Async {
         kap(::PlacedOrder)
             .with { validated }
             // Phase: inventory + pricing in parallel (kap-resilience)
             .with(
-                Computation { checkInventory(validated.item.value) }
+                Effect { checkInventory(validated.item.value) }
                     .retry(Schedule.times<Throwable>(4) and Schedule.exponential(20.milliseconds))
             )
             .with(
-                Computation { fetchLivePricing(validated.item.value) }
-                    .timeoutRace(80.milliseconds, Computation { fetchCachedPricing(validated.item.value) })
+                Effect { fetchLivePricing(validated.item.value) }
+                    .timeoutRace(80.milliseconds, Effect { fetchCachedPricing(validated.item.value) })
             )
             // Phase: payment (sequential, depends on pricing)
-            .followedBy(
-                Computation { processPayment(validated.qty.value * 49.99 * 0.95) }
+            .then(
+                Effect { processPayment(validated.qty.value * 49.99 * 0.95) }
                     .withCircuitBreaker(breaker)
                     .retry(Schedule.times<Throwable>(2) and Schedule.spaced(30.milliseconds))
             )
             // Phase: confirmation (sequential, depends on payment)
-            .followedBy(
+            .then(
                 bracket(
                     acquire = { openOrderDb() },
-                    use = { db -> Computation { db.insert("ORD-FULL-${System.currentTimeMillis()}") } },
+                    use = { db -> Effect { db.insert("ORD-FULL-${System.currentTimeMillis()}") } },
                     release = { db -> db.close() },
                 )
             )

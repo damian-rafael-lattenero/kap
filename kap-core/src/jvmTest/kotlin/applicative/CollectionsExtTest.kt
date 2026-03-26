@@ -21,9 +21,9 @@ class CollectionsExtTest {
     fun `zip3 runs all 3 computations in parallel - timing proof`() = runTest {
         val result = Async {
             zip(
-                Computation { delay(30); "A" },
-                Computation { delay(30); "B" },
-                Computation { delay(30); "C" },
+                Effect { delay(30); "A" },
+                Effect { delay(30); "B" },
+                Effect { delay(30); "C" },
             ) { a, b, c -> "$a|$b|$c" }
         }
 
@@ -40,10 +40,10 @@ class CollectionsExtTest {
     fun `zip4 runs all 4 computations in parallel - timing proof`() = runTest {
         val result = Async {
             zip(
-                Computation { delay(40); "A" },
-                Computation { delay(40); "B" },
-                Computation { delay(40); "C" },
-                Computation { delay(40); "D" },
+                Effect { delay(40); "A" },
+                Effect { delay(40); "B" },
+                Effect { delay(40); "C" },
+                Effect { delay(40); "D" },
             ) { a, b, c, d -> "$a|$b|$c|$d" }
         }
 
@@ -60,11 +60,11 @@ class CollectionsExtTest {
     fun `zip5 runs all 5 computations in parallel - timing proof`() = runTest {
         val result = Async {
             zip(
-                Computation { delay(50); "A" },
-                Computation { delay(50); "B" },
-                Computation { delay(50); "C" },
-                Computation { delay(50); "D" },
-                Computation { delay(50); "E" },
+                Effect { delay(50); "A" },
+                Effect { delay(50); "B" },
+                Effect { delay(50); "C" },
+                Effect { delay(50); "D" },
+                Effect { delay(50); "E" },
             ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }
         }
 
@@ -86,7 +86,7 @@ class CollectionsExtTest {
         val result = runCatching {
             Async {
                 zip(
-                    Computation {
+                    Effect {
                         allStarted[0].complete(Unit)
                         try {
                             awaitCancellation()
@@ -95,12 +95,12 @@ class CollectionsExtTest {
                             throw e
                         }
                     },
-                    Computation<String> {
+                    Effect<String> {
                         allStarted[1].complete(Unit)
                         allStarted.forEach { it.await() }
                         throw RuntimeException("boom")
                     },
-                    Computation {
+                    Effect {
                         allStarted[2].complete(Unit)
                         try {
                             awaitCancellation()
@@ -124,8 +124,8 @@ class CollectionsExtTest {
 
     @Test
     fun `mapN2 is equivalent to zip`() = runTest {
-        val fa = Computation { delay(30); "X" }
-        val fb = Computation { delay(30); "Y" }
+        val fa = Effect { delay(30); "X" }
+        val fb = Effect { delay(30); "Y" }
 
         val zipResult = Async { fa.zip(fb) { a, b -> "$a+$b" } }
         val zipTime = currentTime
@@ -144,9 +144,9 @@ class CollectionsExtTest {
 
     @Test
     fun `mapN3 is equivalent to zip3`() = runTest {
-        val fa = Computation { delay(30); "A" }
-        val fb = Computation { delay(30); "B" }
-        val fc = Computation { delay(30); "C" }
+        val fa = Effect { delay(30); "A" }
+        val fb = Effect { delay(30); "B" }
+        val fc = Effect { delay(30); "C" }
 
         val zipResult = Async { zip(fa, fb, fc) { a, b, c -> "$a|$b|$c" } }
         val zipTime = currentTime
@@ -165,10 +165,10 @@ class CollectionsExtTest {
 
     @Test
     fun `mapN4 is equivalent to zip4`() = runTest {
-        val fa = Computation { delay(40); "A" }
-        val fb = Computation { delay(40); "B" }
-        val fc = Computation { delay(40); "C" }
-        val fd = Computation { delay(40); "D" }
+        val fa = Effect { delay(40); "A" }
+        val fb = Effect { delay(40); "B" }
+        val fc = Effect { delay(40); "C" }
+        val fd = Effect { delay(40); "D" }
 
         val zipResult = Async { zip(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" } }
         val zipTime = currentTime
@@ -187,11 +187,11 @@ class CollectionsExtTest {
 
     @Test
     fun `mapN5 is equivalent to zip5`() = runTest {
-        val fa = Computation { delay(50); "A" }
-        val fb = Computation { delay(50); "B" }
-        val fc = Computation { delay(50); "C" }
-        val fd = Computation { delay(50); "D" }
-        val fe = Computation { delay(50); "E" }
+        val fa = Effect { delay(50); "A" }
+        val fb = Effect { delay(50); "B" }
+        val fc = Effect { delay(50); "C" }
+        val fd = Effect { delay(50); "D" }
+        val fe = Effect { delay(50); "E" }
 
         val zipResult = Async { zip(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" } }
         val zipTime = currentTime
@@ -212,7 +212,7 @@ class CollectionsExtTest {
     fun `traverse runs elements in parallel - timing proof`() = runTest {
         val result = Async {
             listOf(1, 2, 3, 4, 5).traverse { i ->
-                Computation { delay(30); "v$i" }
+                Effect { delay(30); "v$i" }
             }
         }
 
@@ -229,7 +229,7 @@ class CollectionsExtTest {
     fun `traverse with concurrency limit - timing proof`() = runTest {
         val result = Async {
             (1..9).toList().traverse(3) { i ->
-                Computation { delay(30); "v$i" }
+                Effect { delay(30); "v$i" }
             }
         }
 
@@ -246,29 +246,29 @@ class CollectionsExtTest {
     @Test
     fun `zip3 inside Async with other combinators`() = runTest {
         // Phase 1: zip3 runs 3 computations in parallel (30ms)
-        // Phase 2: flatMap uses the result to build a new computation
-        // Phase 3: followedBy gates a final parallel phase
+        // Phase 2: andThen uses the result to build a new computation
+        // Phase 3: then gates a final parallel phase
         val result = Async {
             zip(
-                Computation { delay(30); "user" },
-                Computation { delay(30); "cart" },
-                Computation { delay(30); "prefs" },
+                Effect { delay(30); "user" },
+                Effect { delay(30); "cart" },
+                Effect { delay(30); "prefs" },
             ) { user, cart, prefs -> Triple(user, cart, prefs) }
-                .flatMap { (user, cart, prefs) ->
+                .andThen { (user, cart, prefs) ->
                     // Use the zip3 result to drive the next computation
                     val summary = "$user+$cart+$prefs"
                     kap { enriched: String, shipping: String, tax: String ->
                         "$enriched|$shipping|$tax"
                     }
-                        .with(Computation { delay(20); "enriched($summary)" })
-                        .followedBy(Computation { delay(10); "shipping" })
-                        .with(Computation { delay(20); "tax" })
+                        .with(Effect { delay(20); "enriched($summary)" })
+                        .then(Effect { delay(10); "shipping" })
+                        .with(Effect { delay(20); "tax" })
                 }
         }
 
         assertEquals("enriched(user+cart+prefs)|shipping|tax", result)
         // zip3: 30ms
-        // flatMap -> lift3.ap: 20ms (enriched) -> followedBy: 10ms (shipping) -> ap: 20ms (tax)
+        // andThen -> lift3.ap: 20ms (enriched) -> then: 10ms (shipping) -> ap: 20ms (tax)
         // Total: 30 + 20 + 10 + 20 = 80ms
         assertEquals(80, currentTime,
             "Expected 80ms: 30(zip3) + 20(enriched) + 10(shipping barrier) + 20(tax). Got ${currentTime}ms")

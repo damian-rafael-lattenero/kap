@@ -130,14 +130,14 @@ suspend fun main() {
             .with { fetchPreferences() }
             .with { fetchFeatureFlags() }
             // Phase 2: Authorization (must know user first)
-            .followedBy { authorize().also { println("  Phase 2 [${System.currentTimeMillis() - start}ms]: authorized") } }
+            .then { authorize().also { println("  Phase 2 [${System.currentTimeMillis() - start}ms]: authorized") } }
             // Phase 3: Main content (parallel, requires auth)
             .with { fetchFeed() }
             .with { fetchNotifications() }
             .with { fetchMessages() }
             .with { fetchRecommendations().also { println("  Phase 3 [${System.currentTimeMillis() - start}ms]: content loaded") } }
             // Phase 4: Analytics enrichment (sequential)
-            .followedBy { enrichWithAnalytics().also { println("  Phase 4 [${System.currentTimeMillis() - start}ms]: analytics enriched") } }
+            .then { enrichWithAnalytics().also { println("  Phase 4 [${System.currentTimeMillis() - start}ms]: analytics enriched") } }
             // Phase 5: Sidebar (parallel)
             .with { fetchTrending() }
             .with { fetchSuggestions() }

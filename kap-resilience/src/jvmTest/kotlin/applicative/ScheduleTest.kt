@@ -26,7 +26,7 @@ class ScheduleTest {
         var attempts = 0
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw RuntimeException("fail #$attempts")
                 }.retry(Schedule.times(3))
@@ -40,7 +40,7 @@ class ScheduleTest {
     fun `recurs succeeds on retry`() = runTest {
         var attempts = 0
         val result = Async {
-            Computation {
+            Effect {
                 attempts++
                 if (attempts < 3) throw RuntimeException("fail")
                 "ok"
@@ -59,7 +59,7 @@ class ScheduleTest {
         val delays = mutableListOf<Long>()
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     throw RuntimeException("fail")
                 }.retry(
                     Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds),
@@ -85,7 +85,7 @@ class ScheduleTest {
         var attempts = 0
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw RuntimeException("fail")
                 }.retry(Schedule.times<Throwable>(3) and Schedule.spaced(50.milliseconds))
@@ -105,7 +105,7 @@ class ScheduleTest {
         var attempts = 0
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     if (attempts <= 2) throw IOException("network")
                     throw IllegalStateException("bad state")
@@ -127,7 +127,7 @@ class ScheduleTest {
         // recurs(2) allows 2 retries, doWhile always true → limited by recurs
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw RuntimeException("fail")
                 }.retry(Schedule.times<Throwable>(2) and Schedule.doWhile { true })
@@ -143,7 +143,7 @@ class ScheduleTest {
         // recurs(1) allows 1 retry, but or with recurs(3) allows 3
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw RuntimeException("fail")
                 }.retry(Schedule.times<Throwable>(1) or Schedule.times(3))
@@ -236,7 +236,7 @@ class ScheduleTest {
         var attempts = 0
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw RuntimeException("fail #$attempts")
                 }.retry(policy)
@@ -288,7 +288,7 @@ class ScheduleTest {
 
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw RuntimeException("fail")
                 }.retry(policy)
@@ -331,7 +331,7 @@ class ScheduleTest {
 
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw RuntimeException("fail")
                 }.retry(policy)
@@ -350,7 +350,7 @@ class ScheduleTest {
 
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw RuntimeException("fail")
                 }.retry(policy)
@@ -374,7 +374,7 @@ class ScheduleTest {
 
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     when (attempts) {
                         1 -> throw IOException("net #1")
@@ -413,7 +413,7 @@ class ScheduleTest {
 
         var attempts = 0
         val result = Async {
-            Computation<String> {
+            Effect<String> {
                 attempts++
                 if (attempts <= 3) throw RuntimeException("fail-$attempts")
                 "ok"
@@ -435,7 +435,7 @@ class ScheduleTest {
         val policy = Schedule.times<Throwable>(3) and Schedule.spaced(50.milliseconds)
 
         val retryResult = Async {
-            Computation<String> {
+            Effect<String> {
                 attempts++
                 if (attempts <= 2) throw RuntimeException("fail")
                 "ok"
@@ -453,7 +453,7 @@ class ScheduleTest {
         val policy = Schedule.times<Throwable>(3)
 
         val retryResult = Async {
-            Computation { "instant" }.retryWithResult(policy)
+            Effect { "instant" }.retryWithResult(policy)
         }
 
         assertEquals("instant", retryResult.value)
@@ -467,7 +467,7 @@ class ScheduleTest {
 
         val result = runCatching {
             Async {
-                Computation<String> { throw RuntimeException("always fail") }
+                Effect<String> { throw RuntimeException("always fail") }
                     .retryWithResult(policy)
             }
         }

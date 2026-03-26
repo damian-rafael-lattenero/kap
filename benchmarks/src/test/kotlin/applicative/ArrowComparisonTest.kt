@@ -183,7 +183,7 @@ class ArrowComparisonTest {
         }
     }
 
-    @Test fun `phased validation - arrow - zipOrAccumulate + flatMap`() = runTest {
+    @Test fun `phased validation - arrow - zipOrAccumulate + andThen`() = runTest {
         val phase1 = either {
             zipOrAccumulate(
                 { valNameArrow("A").bind() }, { valEmailArrow("bad").bind() },
@@ -193,13 +193,13 @@ class ArrowComparisonTest {
         assertEquals(2, phase1.value.size)
     }
 
-    @Test fun `phased validation - kap - zipV + flatMapV`() = runTest {
+    @Test fun `phased validation - kap - zipV + andThenV`() = runTest {
         val result = Async {
             zipV(
                 { valName("A") }, { valEmail("bad") },
             ) { n, e -> n to e }
-            .flatMapV { (name, email) ->
-                Computation { valAge(25) }.mapV { age -> Reg3(name, email, age) }
+            .andThenV { (name, email) ->
+                Effect { valAge(25) }.mapV { age -> Reg3(name, email, age) }
             }
         }
         val left = assertIs<Either.Left<NonEmptyList<FErr>>>(result)
@@ -224,7 +224,7 @@ class ArrowComparisonTest {
 
     @Test fun `catching - kap`() = runTest {
         val result = Async {
-            Computation<String> { riskyCall() }.catching { "caught: ${it.message}" }
+            Effect<String> { riskyCall() }.catching { "caught: ${it.message}" }
         }
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals("caught: bad input", result.value[0])
@@ -249,10 +249,10 @@ class ArrowComparisonTest {
     }
 
     @Test fun `attempt - kap`() = runTest {
-        val success = Async { Computation { "success" }.attempt() }
+        val success = Async { Effect { "success" }.attempt() }
         assertIs<Either.Right<String>>(success)
 
-        val failure = Async { Computation<String> { error("boom") }.attempt() }
+        val failure = Async { Effect<String> { error("boom") }.attempt() }
         assertIs<Either.Left<Throwable>>(failure)
         assertEquals("boom", failure.value.message)
     }
@@ -262,8 +262,8 @@ class ArrowComparisonTest {
     // ═══════════════════════════════════════════════════════════════════════
 
     @Test fun `validate - kap`() = runTest {
-        val tooShort = Async { Computation.of("A").validate { s -> if (s.length < 2) "too short" else null } }
-        val ok = Async { Computation.of("Alice").validate { s -> if (s.length < 2) "too short" else null } }
+        val tooShort = Async { Effect.of("A").validate { s -> if (s.length < 2) "too short" else null } }
+        val ok = Async { Effect.of("Alice").validate { s -> if (s.length < 2) "too short" else null } }
         assertIs<Either.Left<NonEmptyList<String>>>(tooShort)
         assertIs<Either.Right<String>>(ok)
     }
@@ -283,7 +283,7 @@ class ArrowComparisonTest {
 
     @Test fun `traverseV - kap - parallel with accumulation`() = runTest {
         val result = Async {
-            listOf("Alice", "A", "ok-name", "B").traverseV { Computation { valName(it) } }
+            listOf("Alice", "A", "ok-name", "B").traverseV { Effect { valName(it) } }
         }
         assertIs<Either.Left<NonEmptyList<FErr>>>(result)
         assertEquals(2, result.value.size)
@@ -296,9 +296,9 @@ class ArrowComparisonTest {
     @Test fun `sequenceV - kap`() = runTest {
         val result = Async {
             listOf(
-                Computation { valName("Alice") },
-                Computation { valEmail("bad") },
-                Computation { valName("B") },
+                Effect { valName("Alice") },
+                Effect { valEmail("bad") },
+                Effect { valName("B") },
             ).sequenceV()
         }
         assertIs<Either.Left<NonEmptyList<FErr>>>(result)
@@ -310,13 +310,13 @@ class ArrowComparisonTest {
     // ═══════════════════════════════════════════════════════════════════════
 
     @Test fun `ensureV - kap - pass`() = runTest {
-        val result = Async { Computation { 25 }.ensureV({ "too young" }) { it >= 18 } }
+        val result = Async { Effect { 25 }.ensureV({ "too young" }) { it >= 18 } }
         assertIs<Either.Right<Int>>(result)
         assertEquals(25, result.value)
     }
 
     @Test fun `ensureV - kap - fail`() = runTest {
-        val result = Async { Computation { 15 }.ensureV({ "too young" }) { it >= 18 } }
+        val result = Async { Effect { 15 }.ensureV({ "too young" }) { it >= 18 } }
         assertIs<Either.Left<NonEmptyList<String>>>(result)
     }
 
@@ -369,8 +369,8 @@ class ArrowComparisonTest {
     @Test fun `raceEither - kap`() = runTest {
         val result = Async {
             raceEither(
-                Computation { networkCall("cache", 30) },
-                Computation { networkCall("network", 100) },
+                Effect { networkCall("cache", 30) },
+                Effect { networkCall("network", 100) },
             )
         }
         assertIs<Either.Left<String>>(result)
@@ -395,9 +395,9 @@ class ArrowComparisonTest {
     @Test fun `validated builder - kap`() = runTest {
         val result = Async {
             validated<FErr, Reg3> {
-                val name = Computation<Either<NonEmptyList<FErr>, VName>> { valName("Alice") }.bindV()
-                val email = Computation<Either<NonEmptyList<FErr>, VEmail>> { valEmail("alice@example.com") }.bindV()
-                val age = Computation<Either<NonEmptyList<FErr>, VAge>> { valAge(30) }.bindV()
+                val name = Effect<Either<NonEmptyList<FErr>, VName>> { valName("Alice") }.bindV()
+                val email = Effect<Either<NonEmptyList<FErr>, VEmail>> { valEmail("alice@example.com") }.bindV()
+                val age = Effect<Either<NonEmptyList<FErr>, VAge>> { valAge(30) }.bindV()
                 Reg3(name, email, age)
             }
         }
@@ -409,7 +409,7 @@ class ArrowComparisonTest {
     // FLATMAPV — phased validation (phase 1 accumulates, phase 2 depends)
     // ═══════════════════════════════════════════════════════════════════════
 
-    @Test fun `flatMapV - arrow - phase1 then phase2`() = runTest {
+    @Test fun `andThenV - arrow - phase1 then phase2`() = runTest {
         val phase1: Either<NonEmptyList<FErr>, Pair<VName, VEmail>> = either {
             zipOrAccumulate(
                 { valNameArrow("Alice").bind() },
@@ -420,14 +420,14 @@ class ArrowComparisonTest {
         assertIs<Either.Right<Reg3>>(result)
     }
 
-    @Test fun `flatMapV - kap - zipV + flatMapV`() = runTest {
+    @Test fun `andThenV - kap - zipV + andThenV`() = runTest {
         val result = Async {
             zipV(
                 { valName("Alice") },
                 { valEmail("alice@example.com") },
             ) { n, e -> n to e }
-            .flatMapV { (name, email) ->
-                Computation { valAge(30) }.mapV { age -> Reg3(name, email, age) }
+            .andThenV { (name, email) ->
+                Effect { valAge(30) }.mapV { age -> Reg3(name, email, age) }
             }
         }
         assertIs<Either.Right<Reg3>>(result)

@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
  *
  * Categories:
  * 1. Virtual-time timing: asserts parallel execution uses O(max) not O(sum) virtual time
- * 2. Phase barriers: proves followedBy blocks with measurable virtual-time delay
+ * 2. Phase barriers: proves then blocks with measurable virtual-time delay
  * 3. Mass cancellation: structured concurrency cancels N siblings on failure
  * 4. Latency regression: library virtual time == raw coroutines virtual time
  * 5. Real-world BFF scenario with timing
@@ -68,7 +68,7 @@ class ConcurrencyProofTest {
     fun `traverse with concurrency 3 over 9 items takes 3x longer than unbounded`() = runTest {
         Async {
             (1..9).toList().traverse(3) { i ->
-                Computation { delay(30); "v$i" }
+                Effect { delay(30); "v$i" }
             }
         }
         // Bounded (3 at a time, 9 items, 30ms each): 3 batches × 30ms = 90ms
@@ -77,31 +77,31 @@ class ConcurrencyProofTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 2. PHASE BARRIERS: followedBy actually blocks the next phase
+    // 2. PHASE BARRIERS: then actually blocks the next phase
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `followedBy is a true phase barrier - post-barrier with waits`() = runTest {
-        // followedBy creates a real phase barrier. Post-barrier with calls
+    fun `then is a true phase barrier - post-barrier with waits`() = runTest {
+        // then creates a real phase barrier. Post-barrier with calls
         // do NOT launch until the barrier completes.
         //
-        // Timeline for: kap(f).with{A@30}.with{B@30}.followedBy{C@50}.with{D@30}
+        // Timeline for: kap(f).with{A@30}.with{B@30}.then{C@50}.with{D@30}
         //   t=0:  A, B launch (pre-barrier ap, parallel)
-        //   t=30: A, B complete. followedBy runs C
+        //   t=30: A, B complete. then runs C
         //   t=80: C completes. Barrier signal fires. D launches.
         //   t=110: D completes.
         val result = Async {
             kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
                 .with { delay(30); "A" }
                 .with { delay(30); "B" }
-                .followedBy { delay(50); "C" }
+                .then { delay(50); "C" }
                 .with { delay(30); "D" }
         }
 
         assertEquals("A|B|C|D", result)
         // Phase 1: max(30,30) = 30. Barrier: 50. Phase 2: 30. Total: 110ms
         assertEquals(110, currentTime,
-            "Expected 110ms. followedBy is a true barrier: 30(A,B) + 50(C) + 30(D)")
+            "Expected 110ms. then is a true barrier: 30(A,B) + 50(C) + 30(D)")
     }
 
     @Test
@@ -123,8 +123,8 @@ class ConcurrencyProofTest {
     }
 
     @Test
-    fun `followedBy ordering proof - barrier value depends on prior phase`() = runTest {
-        // Proves the VALUE from followedBy is sequenced correctly,
+    fun `then ordering proof - barrier value depends on prior phase`() = runTest {
+        // Proves the VALUE from then is sequenced correctly,
         // even though subsequent with computations launch eagerly.
         val order = mutableListOf<String>()
 
@@ -132,8 +132,8 @@ class ConcurrencyProofTest {
             kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
                 .with { order.add("A"); "A" }
                 .with { order.add("B"); "B" }
-                .followedBy { order.add("C"); "C" }
-                .followedBy { order.add("D"); "D" }
+                .then { order.add("C"); "C" }
+                .then { order.add("D"); "D" }
         }
 
         assertEquals("A|B|C|D", result)
@@ -158,7 +158,7 @@ class ConcurrencyProofTest {
                 .with { delay(40); "A" }            // ┐ phase 1: parallel
                 .with { delay(40); "B" }            // │
                 .with { delay(40); "C" }            // ┘
-                .followedBy { delay(30); "D" }    // ── barrier
+                .then { delay(30); "D" }    // ── barrier
                 .with { delay(40); "E" }            // ┐ phase 2: parallel (after barrier)
                 .with { delay(40); "F" }            // ┘
         }
@@ -169,14 +169,14 @@ class ConcurrencyProofTest {
     }
 
     @Test
-    fun `multiple with calls after followedBy all run in parallel`() = runTest {
+    fun `multiple with calls after then all run in parallel`() = runTest {
         // Proves that post-barrier with calls launch SIMULTANEOUSLY when the barrier fires
         val result = Async {
             kap { a: String, b: String, c: String, d: String, e: String ->
                 "$a|$b|$c|$d|$e"
             }
                 .with { delay(20); "A" }
-                .followedBy { delay(30); "B" }
+                .then { delay(30); "B" }
                 .with { delay(40); "C" }    // ┐ all three launch when barrier fires
                 .with { delay(40); "D" }    // │ at t=50, and complete at t=90
                 .with { delay(40); "E" }    // ┘
@@ -273,10 +273,10 @@ class ConcurrencyProofTest {
                 .with { delay(40); "user" }           // ┐ phase 1
                 .with { delay(40); "cart" }           // │
                 .with { delay(40); "promos" }         // ┘
-                .followedBy { delay(30); "valid" }  // ── barrier 1
+                .then { delay(30); "valid" }  // ── barrier 1
                 .with { delay(40); "shipping" }       // ┐ phase 2 (after barrier 1)
                 .with { delay(40); "tax" }            // ┘
-                .followedBy { delay(50); "pay" }    // ── barrier 2
+                .then { delay(50); "pay" }    // ── barrier 2
         }
 
         // 40(phase1) + 30(barrier1) + 40(phase2) + 50(barrier2) = 160ms
@@ -309,13 +309,13 @@ class ConcurrencyProofTest {
                 .with { delay(30); "prefs" }         // │
                 .with { delay(30); "loyalty" }       // │
                 .with { delay(30); "orders" }        // ┘
-                .followedBy { delay(20); "persona" } // ── barrier 1
+                .then { delay(20); "persona" } // ── barrier 1
                 .with { delay(30); "recs" }          // ┐ phase 2
                 .with { delay(30); "promos" }        // │
                 .with { delay(30); "trending" }      // │
                 .with { delay(30); "seller" }        // │
                 .with { delay(30); "flash" }         // ┘
-                .followedBy { delay(20); "layout" }  // ── barrier 2
+                .then { delay(20); "layout" }  // ── barrier 2
                 .with { delay(30); "notifs" }        // ┐ phase 3
                 .with { delay(30); "cart" }          // │
                 .with { delay(30); "wishlist" }      // ┘

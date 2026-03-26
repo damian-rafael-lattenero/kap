@@ -21,7 +21,7 @@ class TraverseSettledTest {
     fun `traverseSettled collects ALL results including failures`() = runTest {
         val results = Async {
             listOf(1, 2, 3, 4, 5).traverseSettled { i ->
-                Computation {
+                Effect {
                     if (i % 2 == 0) throw RuntimeException("fail-$i")
                     "ok-$i"
                 }
@@ -45,7 +45,7 @@ class TraverseSettledTest {
     fun `traverseSettled runs in parallel — proven by virtual time`() = runTest {
         val results = Async {
             (1..5).toList().traverseSettled { i ->
-                Computation {
+                Effect {
                     delay(50.milliseconds)
                     "done-$i"
                 }
@@ -62,7 +62,7 @@ class TraverseSettledTest {
 
         val results = Async {
             (1..5).toList().traverseSettled { i ->
-                Computation {
+                Effect {
                     delay(if (i == 1) 10.milliseconds else 50.milliseconds)
                     if (i == 1) throw RuntimeException("fast-fail")
                     synchronized(completed) { completed.add(i) }
@@ -82,7 +82,7 @@ class TraverseSettledTest {
     fun `traverseSettled with all success returns all Right`() = runTest {
         val results = Async {
             listOf("a", "b", "c").traverseSettled { s ->
-                Computation { s.uppercase() }
+                Effect { s.uppercase() }
             }
         }
 
@@ -96,7 +96,7 @@ class TraverseSettledTest {
     fun `traverseSettled with all failures returns all failures`() = runTest {
         val results = Async {
             listOf(1, 2, 3).traverseSettled { i ->
-                Computation<String> { throw RuntimeException("err-$i") }
+                Effect<String> { throw RuntimeException("err-$i") }
             }
         }
 
@@ -115,7 +115,7 @@ class TraverseSettledTest {
     fun `traverseSettled bounded respects concurrency limit`() = runTest {
         val results = Async {
             (1..9).toList().traverseSettled(3) { i ->
-                Computation {
+                Effect {
                     delay(30.milliseconds)
                     "ok-$i"
                 }
@@ -131,7 +131,7 @@ class TraverseSettledTest {
     fun `traverseSettled bounded collects failures without cancelling`() = runTest {
         val results = Async {
             (1..6).toList().traverseSettled(2) { i ->
-                Computation {
+                Effect {
                     delay(30.milliseconds)
                     if (i % 3 == 0) throw RuntimeException("fail-$i")
                     "ok-$i"
@@ -151,9 +151,9 @@ class TraverseSettledTest {
     @Test
     fun `sequenceSettled collects all results from pre-built computations`() = runTest {
         val computations = listOf(
-            Computation { "a" },
-            Computation<String> { throw RuntimeException("boom") },
-            Computation { "c" },
+            Effect { "a" },
+            Effect<String> { throw RuntimeException("boom") },
+            Effect { "c" },
         )
 
         val results = Async { computations.sequenceSettled() }
@@ -167,7 +167,7 @@ class TraverseSettledTest {
     @Test
     fun `sequenceSettled bounded respects concurrency`() = runTest {
         val computations = (1..8).map { i ->
-            Computation {
+            Effect {
                 delay(25.milliseconds)
                 "ok-$i"
             }
@@ -187,7 +187,7 @@ class TraverseSettledTest {
     @Test
     fun `settled wraps success in Result`() = runTest {
         val result = Async {
-            Computation { 42 }.settled()
+            Effect { 42 }.settled()
         }
 
         assertTrue(result.isSuccess)
@@ -200,7 +200,7 @@ class TraverseSettledTest {
 
         val result = Async {
             kap(::Dashboard)
-                .with { Computation<String> { throw RuntimeException("user-down") }.settled().await() }
+                .with { Effect<String> { throw RuntimeException("user-down") }.settled().await() }
                 .with { delay(50.milliseconds); "cart-ok" }
                 .with { delay(50.milliseconds); "config-ok" }
         }
@@ -219,7 +219,7 @@ class TraverseSettledTest {
             kap(::R)
                 .with {
                     delay(50.milliseconds)
-                    Computation<String> { throw RuntimeException("err") }.settled().await()
+                    Effect<String> { throw RuntimeException("err") }.settled().await()
                 }
                 .with { delay(50.milliseconds); "ok" }
         }

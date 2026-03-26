@@ -11,7 +11,7 @@ import kotlin.time.Duration.Companion.seconds
  *   - retry(schedule), retryOrElse, retryWithResult
  *   - CircuitBreaker + withCircuitBreaker
  *   - bracket / guarantee / guaranteeCase
- *   - Resource / Resource.zip / useComputation
+ *   - Resource / Resource.zip / useEffect
  *   - timeoutRace (parallel timeout with eager fallback)
  *   - raceQuorum (N-of-M quorum)
  *
@@ -105,9 +105,9 @@ suspend fun main() {
     val pricing = Async {
         raceQuorum(
             required = 2,
-            Computation { fetchPricingReplicaA() },
-            Computation { fetchPricingReplicaB() },
-            Computation { fetchPricingReplicaC() },
+            Effect { fetchPricingReplicaA() },
+            Effect { fetchPricingReplicaB() },
+            Effect { fetchPricingReplicaC() },
         )
     }
 
@@ -125,7 +125,7 @@ suspend fun main() {
         Schedule.exponential<Throwable>(50.milliseconds).jittered()
 
     val retryResult = Async {
-        Computation { fetchUserFlaky(userAttempt++) }
+        Effect { fetchUserFlaky(userAttempt++) }
             .retryWithResult(retryPolicy)
     }
 
@@ -147,7 +147,7 @@ suspend fun main() {
                     println("  Acquired: ${it.name}")
                 }
             },
-            use = { conn -> Computation { conn.query() } },
+            use = { conn -> Effect { conn.query() } },
             release = { conn ->
                 conn.close()
                 println("  Released: ${conn.name} (closed=${conn.closed})")
@@ -160,7 +160,7 @@ suspend fun main() {
     println("  (${elapsed()})\n")
 
     // ═══════════════════════════════════════════════════════════════════
-    //  4. Resource.zip + useComputation: composable resources
+    //  4. Resource.zip + useEffect: composable resources
     // ═══════════════════════════════════════════════════════════════════
     println("=== 4. Resource.zip: composable resource management ===\n")
 
@@ -192,8 +192,8 @@ suspend fun main() {
     println("=== 5. timeoutRace: slow source vs cache (200ms deadline) ===\n")
 
     val audit = Async {
-        Computation { fetchAuditLogSlow() }
-            .timeoutRace(200.milliseconds, Computation { fetchAuditLogCache() })
+        Effect { fetchAuditLogSlow() }
+            .timeoutRace(200.milliseconds, Effect { fetchAuditLogCache() })
     }
 
     println("  Audit log: ${audit.entries}")
@@ -215,7 +215,7 @@ suspend fun main() {
     repeat(5) { i ->
         val result = runCatching {
             Async {
-                Computation {
+                Effect {
                     cbAttempt++
                     if (cbAttempt <= 4) throw RuntimeException("Service down (call $cbAttempt)")
                     "recovered!"
@@ -236,7 +236,7 @@ suspend fun main() {
         Schedule.spaced<Throwable>(30.milliseconds)
 
     val graceful = Async {
-        Computation<String> { throw RuntimeException("Always fails") }
+        Effect<String> { throw RuntimeException("Always fails") }
             .retryOrElse(limitedPolicy) { err ->
                 "Fallback value (original error: ${err.message})"
             }
@@ -246,8 +246,8 @@ suspend fun main() {
     println("  (${elapsed()})\n")
 
     // ═══════════════════════════════════════════════════════════════════
-    //  8. Full pipeline: combine everything with kap+with+followedBy
-    //     ap(Computation<A>) overload accepts resilience-wrapped computations
+    //  8. Full pipeline: combine everything with kap+with+then
+    //     ap(Effect<A>) overload accepts resilience-wrapped computations
     // ═══════════════════════════════════════════════════════════════════
     println("=== 8. Full pipeline: all resilience features composed ===\n")
 
@@ -259,29 +259,29 @@ suspend fun main() {
             .with(
                 raceQuorum(
                     required = 2,
-                    Computation { fetchPricingReplicaA() },
-                    Computation { fetchPricingReplicaB() },
-                    Computation { fetchPricingReplicaC() },
+                    Effect { fetchPricingReplicaA() },
+                    Effect { fetchPricingReplicaB() },
+                    Effect { fetchPricingReplicaC() },
                 ).map { it.first() }
             )
             // Phase 2: resilient user fetch (retry with backoff)
             .with(run {
                 var att = 0
-                Computation { fetchUserFlaky(att++) }
+                Effect { fetchUserFlaky(att++) }
                     .retry(Schedule.times<Throwable>(3) and Schedule.exponential(20.milliseconds))
             })
             // Phase 3: bracketed config (sequential — needs user for auth)
-            .followedBy(
+            .then(
                 bracket(
                     acquire = { openDbConnection() },
-                    use = { conn -> Computation { conn.query() } },
+                    use = { conn -> Effect { conn.query() } },
                     release = { conn -> conn.close() },
                 )
             )
             // Phase 4: audit with timeout fallback
             .with(
-                Computation { fetchAuditLogSlow() }
-                    .timeoutRace(100.milliseconds, Computation { fetchAuditLogCache() })
+                Effect { fetchAuditLogSlow() }
+                    .timeoutRace(100.milliseconds, Effect { fetchAuditLogCache() })
             )
     }
 

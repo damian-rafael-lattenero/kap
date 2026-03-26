@@ -125,7 +125,7 @@ class Phase6Test {
         val log = mutableListOf<Int>()
         Async {
             (1..5).toList().traverseDiscard { i ->
-                Computation {
+                Effect {
                     delay(50.milliseconds)
                     synchronized(log) { log.add(i) }
                 }
@@ -141,7 +141,7 @@ class Phase6Test {
         val log = mutableListOf<Int>()
         Async {
             (1..6).toList().traverseDiscard(3) { i ->
-                Computation {
+                Effect {
                     delay(50.milliseconds)
                     synchronized(log) { log.add(i) }
                 }
@@ -155,10 +155,10 @@ class Phase6Test {
     @Test
     fun `sequence_ executes all side-effects`() = runTest {
         val log = mutableListOf<String>()
-        val computations: List<Computation<Unit>> = listOf(
-            Computation { delay(50.milliseconds); synchronized(log) { log.add("a") }; Unit },
-            Computation { delay(50.milliseconds); synchronized(log) { log.add("b") }; Unit },
-            Computation { delay(50.milliseconds); synchronized(log) { log.add("c") }; Unit },
+        val computations: List<Effect<Unit>> = listOf(
+            Effect { delay(50.milliseconds); synchronized(log) { log.add("a") }; Unit },
+            Effect { delay(50.milliseconds); synchronized(log) { log.add("b") }; Unit },
+            Effect { delay(50.milliseconds); synchronized(log) { log.add("c") }; Unit },
         )
         Async { computations.sequenceDiscard() }
         assertEquals(50, currentTime)
@@ -168,8 +168,8 @@ class Phase6Test {
     @Test
     fun `sequence_ with concurrency limit`() = runTest {
         val log = mutableListOf<String>()
-        val computations: List<Computation<Unit>> = (1..4).map { i ->
-            Computation { delay(50.milliseconds); synchronized(log) { log.add("$i") }; Unit }
+        val computations: List<Effect<Unit>> = (1..4).map { i ->
+            Effect { delay(50.milliseconds); synchronized(log) { log.add("$i") }; Unit }
         }
         Async { computations.sequenceDiscard(2) }
         // 4 items, concurrency 2 → 2 batches × 50ms = 100ms
@@ -184,7 +184,7 @@ class Phase6Test {
     @Test
     fun `memoize correctly caches null as a valid value`() = runTest {
         var callCount = 0
-        val comp = Computation<String?> {
+        val comp = Effect<String?> {
             callCount++
             null  // null is the actual result
         }.memoize()
@@ -202,7 +202,7 @@ class Phase6Test {
     @Test
     fun `memoizeOnSuccess correctly caches null as a valid value`() = runTest {
         var callCount = 0
-        val comp = Computation<String?> {
+        val comp = Effect<String?> {
             callCount++
             null
         }.memoizeOnSuccess()
@@ -218,7 +218,7 @@ class Phase6Test {
     @Test
     fun `memoize with null in parallel kap+with`() = runTest {
         var callCount = 0
-        val nullComp = Computation<String?> {
+        val nullComp = Effect<String?> {
             callCount++
             delay(50.milliseconds)
             null

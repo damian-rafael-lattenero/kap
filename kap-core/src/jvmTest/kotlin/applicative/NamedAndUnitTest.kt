@@ -16,26 +16,26 @@ import kotlin.test.assertTrue
 class NamedAndUnitTest {
 
     // ════════════════════════════════════════════════════════════════════════
-    // Computation.empty
+    // Effect.empty
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `Computation empty returns Unit`() = runTest {
-        val result = Async { Computation.empty }
+    fun `Effect empty returns Unit`() = runTest {
+        val result = Async { Effect.empty }
         assertEquals(Unit, result)
     }
 
     @Test
-    fun `Computation empty works as followedBy barrier value`() = runTest {
-        // Computation.empty is just Computation.of(Unit), usable as a barrier value in phase chains
+    fun `Effect empty works as then barrier value`() = runTest {
+        // Effect.empty is just Effect.of(Unit), usable as a barrier value in phase chains
         val result = Async {
             kap { a: String, _: Unit, b: Int -> "$a=$b" }
                 .with { delay(30); "hello" }
-                .followedBy(Computation.empty)
+                .then(Effect.empty)
                 .with { delay(30); 42 }
         }
         assertEquals("hello=42", result)
-        // phase 1: 30ms, barrier: 0ms (Computation.empty is instant), phase 2: 30ms
+        // phase 1: 30ms, barrier: 0ms (Effect.empty is instant), phase 2: 30ms
         assertEquals(60, currentTime)
     }
 
@@ -46,7 +46,7 @@ class NamedAndUnitTest {
     @Test
     fun `named sets CoroutineName in coroutineContext`() = runTest {
         val result = Async {
-            Computation {
+            Effect {
                 coroutineContext[CoroutineName]?.name ?: "missing"
             }.named("my-computation")
         }
@@ -57,13 +57,13 @@ class NamedAndUnitTest {
     fun `named composes with with - each branch has its own name`() = runTest {
         val result = Async {
             kap { a: String, b: String, c: String -> listOf(a, b, c) }
-                .with(Computation<String> {
+                .with(Effect<String> {
                     coroutineContext[CoroutineName]?.name ?: "missing"
                 }.named("branch-a"))
-                .with(Computation<String> {
+                .with(Effect<String> {
                     coroutineContext[CoroutineName]?.name ?: "missing"
                 }.named("branch-b"))
-                .with(Computation<String> {
+                .with(Effect<String> {
                     coroutineContext[CoroutineName]?.name ?: "missing"
                 }.named("branch-c"))
         }
@@ -73,7 +73,7 @@ class NamedAndUnitTest {
     @Test
     fun `named does not affect computation result`() = runTest {
         val result = Async {
-            Computation { delay(30); 42 }.named("answer")
+            Effect { delay(30); 42 }.named("answer")
         }
         assertEquals(42, result)
         assertEquals(30, currentTime)
@@ -82,10 +82,10 @@ class NamedAndUnitTest {
     @Test
     fun `named composes with traced`() = runTest {
         val events = mutableListOf<TraceEvent>()
-        val tracer = ComputationTracer { events += it }
+        val tracer = EffectTracer { events += it }
 
         val result = Async {
-            Computation.of(42).named("x").traced("x", tracer)
+            Effect.of(42).named("x").traced("x", tracer)
         }
 
         assertEquals(42, result)

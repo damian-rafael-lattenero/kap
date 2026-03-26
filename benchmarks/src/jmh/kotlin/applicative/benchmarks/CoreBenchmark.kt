@@ -6,7 +6,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.andThenMerge
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
 /**
  * JMH benchmarks for **kap-core** APIs.
  *
- * Covers: kap+with, followedBy, combine, zip, traverse, sequence,
+ * Covers: kap+with, then, combine, zip, traverse, sequence,
  * race, timeout, recover, memoize, computation{}, settled, Flow interop.
  *
  * Every KAP benchmark has a `raw_` baseline (and `arrow_` where applicable).
@@ -166,11 +166,11 @@ open class CoreBenchmark {
                 .with { networkCall("cart", 50) }
                 .with { networkCall("inventory", 50) }
                 .with { networkCall("address", 50) }
-                .followedBy { networkCall("validated", 30) }
+                .then { networkCall("validated", 30) }
                 .with { networkCall("shipping", 40) }
                 .with { networkCall("tax", 40) }
                 .with { networkCall("discount", 40) }
-                .followedBy { networkCall("payment", 60) }
+                .then { networkCall("payment", 60) }
         }
     }
 
@@ -274,7 +274,7 @@ open class CoreBenchmark {
     @Benchmark fun kap_traverse_unbounded_20(): String = runBlocking {
         Async {
             (1..20).toList().traverse { i ->
-                Computation { networkCall("item-$i", 30) }
+                Effect { networkCall("item-$i", 30) }
             }.map { it.joinToString("|") }
         }
     }
@@ -291,7 +291,7 @@ open class CoreBenchmark {
     @Benchmark fun kap_traverse_bounded_20_c5(): String = runBlocking {
         Async {
             (1..20).toList().traverse(concurrency = 5) { i ->
-                Computation { networkCall("item-$i", 30) }
+                Effect { networkCall("item-$i", 30) }
             }.map { it.joinToString("|") }
         }
     }
@@ -312,8 +312,8 @@ open class CoreBenchmark {
     @Benchmark fun kap_race_two(): String = runBlocking {
         Async {
             race(
-                Computation { networkCall("primary", 100) },
-                Computation { networkCall("replica", 50) },
+                Effect { networkCall("primary", 100) },
+                Effect { networkCall("replica", 50) },
             )
         }
     }
@@ -335,7 +335,7 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_timeout_with_default(): String = runBlocking {
         Async {
-            Computation { networkCall("slow", 200) }
+            Effect { networkCall("slow", 200) }
                 .timeout(kotlin.time.Duration.parse("100ms"), default = "cached")
         }
     }
@@ -357,7 +357,7 @@ open class CoreBenchmark {
     }
 
     @Benchmark fun kap_memoize_cold(): String = runBlocking {
-        val m = Computation { compute(1) }.memoize()
+        val m = Effect { compute(1) }.memoize()
         Async { m }
     }
 
@@ -365,8 +365,8 @@ open class CoreBenchmark {
         Async { warmMemoized }
     }
 
-    private val warmMemoized: Computation<String> = run {
-        val m = Computation { compute(1) }.memoize()
+    private val warmMemoized: Effect<String> = run {
+        val m = Effect { compute(1) }.memoize()
         runBlocking { Async { m } }
         m
     }
@@ -376,7 +376,7 @@ open class CoreBenchmark {
     // ════════════════════════════════════════════════════════════════════════
 
     @Benchmark fun kap_memoizeOnSuccess_cold(): String = runBlocking {
-        val m = Computation { compute(1) }.memoizeOnSuccess()
+        val m = Effect { compute(1) }.memoizeOnSuccess()
         Async { m }
     }
 
@@ -384,15 +384,15 @@ open class CoreBenchmark {
         Async { warmMemoizedOnSuccess }
     }
 
-    private val warmMemoizedOnSuccess: Computation<String> = run {
-        val m = Computation { compute(1) }.memoizeOnSuccess()
+    private val warmMemoizedOnSuccess: Effect<String> = run {
+        val m = Effect { compute(1) }.memoizeOnSuccess()
         runBlocking { Async { m } }
         m
     }
 
     @Benchmark fun kap_memoizeOnSuccess_failure_retry(): String = runBlocking {
         var calls = 0
-        val m = Computation {
+        val m = Effect {
             calls++
             if (calls == 1) error("transient")
             compute(1)
@@ -443,21 +443,21 @@ open class CoreBenchmark {
     // 12. FLATMAP CHAIN — comparison with computation builder
     // ════════════════════════════════════════════════════════════════════════
 
-    @Benchmark fun kap_flatMap_chain_overhead(): String = runBlocking {
+    @Benchmark fun kap_andThen_chain_overhead(): String = runBlocking {
         Async {
-            Computation.of(compute(1)).flatMap { a ->
-                Computation.of(compute(2)).flatMap { b ->
-                    Computation.of(compute(3)).map { c -> "$a|$b|$c" }
+            Effect.of(compute(1)).andThen { a ->
+                Effect.of(compute(2)).andThen { b ->
+                    Effect.of(compute(3)).map { c -> "$a|$b|$c" }
                 }
             }
         }
     }
 
-    @Benchmark fun kap_flatMap_chain_latency(): String = runBlocking {
+    @Benchmark fun kap_andThen_chain_latency(): String = runBlocking {
         Async {
-            Computation { networkCall("a", 50) }.flatMap { a ->
-                Computation { networkCall("b-${a.length}", 50) }.flatMap { b ->
-                    Computation { networkCall("c-${b.length}", 50) }.map { c -> "$a|$b|$c" }
+            Effect { networkCall("a", 50) }.andThen { a ->
+                Effect { networkCall("b-${a.length}", 50) }.andThen { b ->
+                    Effect { networkCall("c-${b.length}", 50) }.map { c -> "$a|$b|$c" }
                 }
             }
         }
@@ -476,17 +476,17 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_orElse_chain_overhead(): String = runBlocking {
         Async {
-            Computation<String> { error("fail-1") }
-                .orElse(Computation { error("fail-2") })
-                .orElse(Computation { compute(3) })
+            Effect<String> { error("fail-1") }
+                .orElse(Effect { error("fail-2") })
+                .orElse(Effect { compute(3) })
         }
     }
 
     @Benchmark fun kap_orElse_chain_latency(): String = runBlocking {
         Async {
-            Computation<String> { delay(10); error("fail-1") }
-                .orElse(Computation { delay(10); error("fail-2") })
-                .orElse(Computation { networkCall("ok", 10) })
+            Effect<String> { delay(10); error("fail-1") }
+                .orElse(Effect { delay(10); error("fail-2") })
+                .orElse(Effect { networkCall("ok", 10) })
         }
     }
 
@@ -510,8 +510,8 @@ open class CoreBenchmark {
     @Benchmark fun kap_firstSuccessOf_overhead(): String = runBlocking {
         Async {
             firstSuccessOf(
-                Computation { error("fail-1") }, Computation { error("fail-2") },
-                Computation { compute(3) }, Computation { compute(4) }, Computation { compute(5) },
+                Effect { error("fail-1") }, Effect { error("fail-2") },
+                Effect { compute(3) }, Effect { compute(4) }, Effect { compute(5) },
             )
         }
     }
@@ -519,11 +519,11 @@ open class CoreBenchmark {
     @Benchmark fun kap_firstSuccessOf_latency(): String = runBlocking {
         Async {
             firstSuccessOf(
-                Computation { delay(10); error("fail-1") },
-                Computation { delay(10); error("fail-2") },
-                Computation { networkCall("ok", 10) },
-                Computation { networkCall("unused", 10) },
-                Computation { networkCall("unused", 10) },
+                Effect { delay(10); error("fail-1") },
+                Effect { delay(10); error("fail-2") },
+                Effect { networkCall("ok", 10) },
+                Effect { networkCall("unused", 10) },
+                Effect { networkCall("unused", 10) },
             )
         }
     }
@@ -542,7 +542,7 @@ open class CoreBenchmark {
     @Benchmark fun kap_traverseSettled_10_pass(): List<Result<String>> = runBlocking {
         Async {
             (1..10).toList().traverseSettled { i ->
-                Computation { networkCall("item-$i", 30) }
+                Effect { networkCall("item-$i", 30) }
             }
         }
     }
@@ -550,7 +550,7 @@ open class CoreBenchmark {
     @Benchmark fun kap_traverseSettled_10_half_fail(): List<Result<String>> = runBlocking {
         Async {
             (1..10).toList().traverseSettled { i ->
-                Computation {
+                Effect {
                     delay(30)
                     if (i % 2 == 0) throw RuntimeException("fail-$i")
                     "ok-$i"
@@ -562,7 +562,7 @@ open class CoreBenchmark {
     @Benchmark fun kap_traverseSettled_bounded_20_c5(): List<Result<String>> = runBlocking {
         Async {
             (1..20).toList().traverseSettled(5) { i ->
-                Computation { networkCall("item-$i", 30) }
+                Effect { networkCall("item-$i", 30) }
             }
         }
     }
@@ -573,7 +573,7 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_settled_success(bh: Blackhole) = runBlocking {
         bh.consume(Async {
-            Computation { compute(1) }.settled()
+            Effect { compute(1) }.settled()
         })
     }
 
@@ -581,7 +581,7 @@ open class CoreBenchmark {
         data class R(val a: Result<String>, val b: String, val c: String)
         val result = Async {
             kap(::R)
-                .with(Computation<String> { throw RuntimeException("down") }.settled())
+                .with(Effect<String> { throw RuntimeException("down") }.settled())
                 .with { networkCall("b", 50) }
                 .with { networkCall("c", 50) }
         }
@@ -589,31 +589,31 @@ open class CoreBenchmark {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 17. FLOW INTEGRATION — mapComputation, filterComputation
+    // 17. FLOW INTEGRATION — mapEffect, filterEffect
     // ════════════════════════════════════════════════════════════════════════
 
-    @Benchmark fun raw_flow_flatMapMerge_10(): List<String> = runBlocking {
+    @Benchmark fun raw_flow_andThenMerge_10(): List<String> = runBlocking {
         flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-            .flatMapMerge(concurrency = 5) { n ->
+            .andThenMerge(concurrency = 5) { n ->
                 flow { emit(networkCall("item-$n", 30)) }
             }.toList()
     }
 
-    @Benchmark fun kap_flow_mapComputation_seq_10(): List<String> = runBlocking {
+    @Benchmark fun kap_flow_mapEffect_seq_10(): List<String> = runBlocking {
         flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-            .mapComputation { n -> Computation { networkCall("item-$n", 30) } }
+            .mapEffect { n -> Effect { networkCall("item-$n", 30) } }
             .toList()
     }
 
-    @Benchmark fun kap_flow_mapComputation_c5_10(): List<String> = runBlocking {
+    @Benchmark fun kap_flow_mapEffect_c5_10(): List<String> = runBlocking {
         flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-            .mapComputation(concurrency = 5) { n -> Computation { networkCall("item-$n", 30) } }
+            .mapEffect(concurrency = 5) { n -> Effect { networkCall("item-$n", 30) } }
             .toList()
     }
 
-    @Benchmark fun kap_flow_mapComputationOrdered_c5_10(): List<String> = runBlocking {
+    @Benchmark fun kap_flow_mapEffectOrdered_c5_10(): List<String> = runBlocking {
         flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-            .mapComputationOrdered(concurrency = 5) { n -> Computation { networkCall("item-$n", 30) } }
+            .mapEffectOrdered(concurrency = 5) { n -> Effect { networkCall("item-$n", 30) } }
             .toList()
     }
 
@@ -623,15 +623,15 @@ open class CoreBenchmark {
             .toList()
     }
 
-    @Benchmark fun kap_flow_mapComputation_overhead_10(): List<String> = runBlocking {
+    @Benchmark fun kap_flow_mapEffect_overhead_10(): List<String> = runBlocking {
         flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-            .mapComputation(concurrency = 5) { n -> Computation { compute(n) } }
+            .mapEffect(concurrency = 5) { n -> Effect { compute(n) } }
             .toList()
     }
 
-    @Benchmark fun kap_flow_filterComputation_10(): List<Int> = runBlocking {
+    @Benchmark fun kap_flow_filterEffect_10(): List<Int> = runBlocking {
         flowOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-            .filterComputation { n -> Computation { n % 2 == 0 } }
+            .filterEffect { n -> Effect { n % 2 == 0 } }
             .toList()
     }
 }

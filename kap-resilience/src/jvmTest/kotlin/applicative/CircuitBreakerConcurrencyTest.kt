@@ -25,7 +25,7 @@ class CircuitBreakerConcurrencyTest {
     @Test
     fun `concurrent failures correctly trip the breaker`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 1.seconds)
-        val failingComp = Computation<String> { throw IllegalStateException("fail") }
+        val failingComp = Effect<String> { throw IllegalStateException("fail") }
             .withCircuitBreaker(breaker)
 
         // Send many concurrent failures
@@ -67,7 +67,7 @@ class CircuitBreakerConcurrencyTest {
             timeSource = testTimeSource,
         )
 
-        val failingComp = Computation<String> {
+        val failingComp = Effect<String> {
             throw IllegalStateException("fail")
         }.withCircuitBreaker(breaker)
 
@@ -81,7 +81,7 @@ class CircuitBreakerConcurrencyTest {
         testTimeSource.now = 150
 
         // Next call should trigger half-open probe
-        val succeedingComp = Computation { "recovered" }.withCircuitBreaker(breaker)
+        val succeedingComp = Effect { "recovered" }.withCircuitBreaker(breaker)
 
         val result = Async { succeedingComp }
         assertEquals("recovered", result)
@@ -93,7 +93,7 @@ class CircuitBreakerConcurrencyTest {
         val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
 
         // 2 failures (below threshold)
-        val failComp = Computation<String> { throw IllegalStateException("fail") }
+        val failComp = Effect<String> { throw IllegalStateException("fail") }
             .withCircuitBreaker(breaker)
         repeat(2) {
             try { Async { failComp } } catch (_: Exception) {}
@@ -101,7 +101,7 @@ class CircuitBreakerConcurrencyTest {
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
 
         // 1 success resets the counter
-        val successComp = Computation { "ok" }.withCircuitBreaker(breaker)
+        val successComp = Effect { "ok" }.withCircuitBreaker(breaker)
         Async { successComp }
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
 
@@ -129,7 +129,7 @@ class CircuitBreakerConcurrencyTest {
             timeSource = testTimeSource,
         )
 
-        val failComp = Computation<String> { throw IllegalStateException("fail") }
+        val failComp = Effect<String> { throw IllegalStateException("fail") }
             .withCircuitBreaker(breaker)
 
         // Trip the breaker
@@ -141,7 +141,7 @@ class CircuitBreakerConcurrencyTest {
 
         // Advance past reset timeout and probe
         testTimeSource.now = 150
-        val successComp = Computation { "ok" }.withCircuitBreaker(breaker)
+        val successComp = Effect { "ok" }.withCircuitBreaker(breaker)
         Async { successComp }
 
         assertTrue(transitions.contains(CircuitBreaker.State.Open to CircuitBreaker.State.HalfOpen))
@@ -153,7 +153,7 @@ class CircuitBreakerConcurrencyTest {
         val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 1.seconds)
         val callCount = AtomicInteger(0)
 
-        val slowComp = Computation {
+        val slowComp = Effect {
             callCount.incrementAndGet()
             delay(1.seconds)
             "done"

@@ -11,14 +11,14 @@ import kotlin.time.TimeSource
  *
  * Schedules are descriptions -- they don't execute anything. Combine them with
  * [and] (both must agree) or [or] (either can continue), then pass to
- * [Computation.retry].
+ * [Effect.retry].
  *
  * ```
  * val policy = Schedule.times<Throwable>(5) and
  *     Schedule.exponential(100.milliseconds) and
  *     Schedule.doWhile { it is IOException }
  *
- * Computation { fetchUser() }.retry(policy)
+ * Effect { fetchUser() }.retry(policy)
  * ```
  */
 class Schedule<A>(
@@ -184,7 +184,7 @@ class Schedule<A>(
      *
      * **Statefulness warning:** This creates a stateful schedule — each instance
      * tracks its own start time. If you reuse the same instance across multiple
-     * [Computation.retry] calls, the timer carries over from the first invocation.
+     * [Effect.retry] calls, the timer carries over from the first invocation.
      * Use the `retry(scheduleFactory)` overload to get a fresh schedule each time:
      * ```
      * comp.retry { Schedule.exponential<Throwable>(100.ms).withMaxDuration(5.seconds) }

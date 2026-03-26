@@ -14,11 +14,11 @@ import kotlin.time.Duration
  * `max(min(this, duration), fallback)` instead of `duration + fallback`.
  *
  * ```
- * Computation { fetchFromSlowService() }
- *     .timeoutRace(200.milliseconds, Computation { fetchFromCache() })
+ * Effect { fetchFromSlowService() }
+ *     .timeoutRace(200.milliseconds, Effect { fetchFromCache() })
  * ```
  */
-fun <A> Computation<A>.timeoutRace(duration: Duration, fallback: Computation<A>): Computation<A> = Computation {
+fun <A> Effect<A>.timeoutRace(duration: Duration, fallback: Effect<A>): Effect<A> = Effect {
     val primary = this@timeoutRace
     with(race(
         primary.timeout(duration),
@@ -33,20 +33,20 @@ fun <A> Computation<A>.timeoutRace(duration: Duration, fallback: Computation<A>)
  *
  * ```
  * val policy = Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds)
- * Computation { fetchUser() }.retry(policy)
+ * Effect { fetchUser() }.retry(policy)
  * ```
  *
  * @param schedule composable retry policy
  * @param onRetry optional callback before each retry
  */
-fun <A> Computation<A>.retry(
+fun <A> Effect<A>.retry(
     schedule: Schedule<Throwable>,
     onRetry: suspend (attempt: Int, error: Throwable, nextDelay: Duration) -> Unit = { _, _, _ -> },
-): Computation<A> = Computation {
+): Effect<A> = Effect {
     var attempt = 0
     while (true) {
         try {
-            return@Computation with(this@retry) { execute() }
+            return@Effect with(this@retry) { execute() }
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
             when (val decision = schedule.decide(attempt, e)) {
@@ -78,10 +78,10 @@ fun <A> Computation<A>.retry(
  * comp.retry(policyFactory)  // fresh timer each time
  * ```
  */
-fun <A> Computation<A>.retry(
+fun <A> Effect<A>.retry(
     scheduleFactory: () -> Schedule<Throwable>,
     onRetry: suspend (attempt: Int, error: Throwable, nextDelay: Duration) -> Unit = { _, _, _ -> },
-): Computation<A> = retry(scheduleFactory(), onRetry)
+): Effect<A> = retry(scheduleFactory(), onRetry)
 
 // ── retryOrElse: fallback instead of throw on exhaustion ────────────
 
@@ -91,21 +91,21 @@ fun <A> Computation<A>.retry(
  *
  * ```
  * val policy = Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds)
- * Computation { fetchUser() }
+ * Effect { fetchUser() }
  *     .retryOrElse(policy) { err -> User.cached() }
  * ```
  *
  * @param schedule composable retry policy
  * @param orElse fallback invoked with the last error when the schedule says [Schedule.Decision.Done]
  */
-fun <A> Computation<A>.retryOrElse(
+fun <A> Effect<A>.retryOrElse(
     schedule: Schedule<Throwable>,
     orElse: suspend (Throwable) -> A,
-): Computation<A> = Computation {
+): Effect<A> = Effect {
     var attempt = 0
     while (true) {
         try {
-            return@Computation with(this@retryOrElse) { execute() }
+            return@Effect with(this@retryOrElse) { execute() }
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
             when (val decision = schedule.decide(attempt, e)) {
@@ -113,7 +113,7 @@ fun <A> Computation<A>.retryOrElse(
                     if (decision.delay > Duration.ZERO) delay(decision.delay)
                     attempt++
                 }
-                is Schedule.Decision.Done -> return@Computation orElse(e)
+                is Schedule.Decision.Done -> return@Effect orElse(e)
             }
         }
     }
@@ -144,21 +144,21 @@ data class RetryResult<out A>(
  *
  * ```
  * val (user, attempts, totalDelay) = Async {
- *     Computation { fetchUser() }
+ *     Effect { fetchUser() }
  *         .retryWithResult(Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds))
  * }
  * logger.info("Fetched user after $attempts retries (${totalDelay} delay)")
  * ```
  */
-fun <A> Computation<A>.retryWithResult(
+fun <A> Effect<A>.retryWithResult(
     schedule: Schedule<Throwable>,
-): Computation<RetryResult<A>> = Computation {
+): Effect<RetryResult<A>> = Effect {
     var attempt = 0
     var totalDelay = Duration.ZERO
     while (true) {
         try {
             val value = with(this@retryWithResult) { execute() }
-            return@Computation RetryResult(value, attempt, totalDelay)
+            return@Effect RetryResult(value, attempt, totalDelay)
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
             when (val decision = schedule.decide(attempt, e)) {

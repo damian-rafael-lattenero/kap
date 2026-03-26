@@ -21,12 +21,12 @@ import kotlin.time.TimeSource
  * [kotlinx.coroutines.CancellationException] is reported via [onError]
  * and re-thrown — cancellation always propagates.
  */
-fun <A> Computation<A>.traced(
+fun <A> Effect<A>.traced(
     name: String,
     onStart: (name: String) -> Unit = {},
     onSuccess: (name: String, duration: Duration) -> Unit = { _, _ -> },
     onError: (name: String, duration: Duration, error: Throwable) -> Unit = { _, _, _ -> },
-): Computation<A> = Computation {
+): Effect<A> = Effect {
     onStart(name)
     val mark = TimeSource.Monotonic.markNow()
     try {
@@ -39,15 +39,15 @@ fun <A> Computation<A>.traced(
     }
 }
 
-// ── ComputationTracer: structured observability ─────────────────────────
+// ── EffectTracer: structured observability ─────────────────────────
 
 /**
- * Structured observability interface for [Computation] tracing.
+ * Structured observability interface for [Effect] tracing.
  *
  * Implement this to integrate with your metrics/tracing system:
  *
  * ```
- * val tracer = ComputationTracer { event ->
+ * val tracer = EffectTracer { event ->
  *     when (event) {
  *         is TraceEvent.Started -> logger.info("${event.name} started")
  *         is TraceEvent.Succeeded -> metrics.timer(event.name).record(event.duration)
@@ -60,7 +60,7 @@ fun <A> Computation<A>.traced(
  *     .with { fetchCart().traced("cart", tracer) }
  * ```
  */
-fun interface ComputationTracer {
+fun interface EffectTracer {
     fun onEvent(event: TraceEvent)
 }
 
@@ -76,11 +76,11 @@ sealed class TraceEvent {
 }
 
 /**
- * Wraps this computation with a structured [ComputationTracer].
+ * Wraps this computation with a structured [EffectTracer].
  *
  * Convenience overload that delegates to the three-callback [traced] variant.
  */
-fun <A> Computation<A>.traced(name: String, tracer: ComputationTracer): Computation<A> =
+fun <A> Effect<A>.traced(name: String, tracer: EffectTracer): Effect<A> =
     traced(
         name = name,
         onStart = { tracer.onEvent(TraceEvent.Started(it)) },

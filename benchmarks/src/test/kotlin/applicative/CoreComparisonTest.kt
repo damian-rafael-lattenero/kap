@@ -87,7 +87,7 @@ class CoreComparisonTest {
     }
 
     @Test fun `map - kap`() = runTest {
-        val result = Async { Computation { fetchUser() }.map { it.copy(name = it.name.uppercase()) } }
+        val result = Async { Effect { fetchUser() }.map { it.copy(name = it.name.uppercase()) } }
         assertEquals("ALICE", result.name)
     }
 
@@ -100,17 +100,17 @@ class CoreComparisonTest {
         delay(50.milliseconds); return FriendList(listOf("Bob", "Charlie"))
     }
 
-    @Test fun `flatMap - raw`() = runTest {
+    @Test fun `andThen - raw`() = runTest {
         val user = fetchUser(); val friends = fetchFriends(user.id)
         assertEquals(listOf("Bob", "Charlie"), friends.friends)
     }
 
-    @Test fun `flatMap - kap - value-dependent then fan-out`() = runTest {
+    @Test fun `andThen - kap - value-dependent then fan-out`() = runTest {
         data class Result(val user: UserProfile, val friends: FriendList, val prefs: Preferences)
         val result = Async {
-            Computation { fetchUser() }.flatMap { user ->
+            Effect { fetchUser() }.andThen { user ->
                 kap(::Result)
-                    .with(Computation.of(user))
+                    .with(Effect.of(user))
                     .with { fetchFriends(user.id) }
                     .with { fetchPrefs() }
             }
@@ -137,7 +137,7 @@ class CoreComparisonTest {
     }
 
     @Test fun `zip - kap`() = runTest {
-        val result = Async { Computation { fetchUser() }.zip(Computation { fetchCart() }) }
+        val result = Async { Effect { fetchUser() }.zip(Effect { fetchCart() }) }
         assertEquals("Alice", result.first.name)
     }
 
@@ -213,7 +213,7 @@ class CoreComparisonTest {
         val result = Async {
             kap(::CheckoutPhased)
                 .with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }.with { fetchInventory() }
-                .followedBy { validateStock() }
+                .then { validateStock() }
                 .with { calcShipping() }.with { calcTax() }
         }
         assertEquals(expectedPhased, result)
@@ -251,9 +251,9 @@ class CoreComparisonTest {
         val result = Async {
             kap(::FullCheckout)
                 .with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }
-                .followedBy { validateStock() }
+                .then { validateStock() }
                 .with { calcShipping() }.with { calcTax() }
-                .followedBy { reservePayment() }
+                .then { reservePayment() }
         }
         assertEquals(expectedCheckout, result)
     }
@@ -269,13 +269,13 @@ class CoreComparisonTest {
     }
 
     @Test fun `traverse - kap`() = runTest {
-        val results = Async { listOf(1L, 2L, 3L).traverse { Computation { fetchById(it) } } }
+        val results = Async { listOf(1L, 2L, 3L).traverse { Effect { fetchById(it) } } }
         assertEquals(3, results.size)
     }
 
     @Test fun `traverse bounded - kap`() = runTest {
         val results = Async {
-            (1L..20L).toList().traverse(concurrency = 5) { Computation { fetchById(it) } }
+            (1L..20L).toList().traverse(concurrency = 5) { Effect { fetchById(it) } }
         }
         assertEquals(20, results.size)
     }
@@ -295,7 +295,7 @@ class CoreComparisonTest {
     @Test fun `sequence - kap`() = runTest {
         val results = Async {
             listOf(
-                Computation { fetchUser() }, Computation.of(UserProfile("Bob", 2)), Computation.of(UserProfile("Charlie", 3)),
+                Effect { fetchUser() }, Effect.of(UserProfile("Bob", 2)), Effect.of(UserProfile("Charlie", 3)),
             ).sequence()
         }
         assertEquals(3, results.size)
@@ -323,7 +323,7 @@ class CoreComparisonTest {
 
     @Test fun `race - kap`() = runTest {
         val result = Async {
-            race(Computation { fetchFromPrimary() }, Computation { fetchFromFallback() })
+            race(Effect { fetchFromPrimary() }, Effect { fetchFromFallback() })
         }
         assertEquals("fallback", result)
     }
@@ -331,9 +331,9 @@ class CoreComparisonTest {
     @Test fun `raceN - kap - three-way`() = runTest {
         val result = Async {
             raceN(
-                Computation { delay(300.milliseconds); "slow" },
-                Computation { delay(50.milliseconds); "fast" },
-                Computation { delay(200.milliseconds); "medium" },
+                Effect { delay(300.milliseconds); "slow" },
+                Effect { delay(50.milliseconds); "fast" },
+                Effect { delay(200.milliseconds); "medium" },
             )
         }
         assertEquals("fast", result)
@@ -349,15 +349,15 @@ class CoreComparisonTest {
 
     @Test fun `timeout - kap - with default`() = runTest {
         val result = Async {
-            Computation { fetchUserSlow() }.timeout(100.milliseconds, UserProfile("Default", 0))
+            Effect { fetchUserSlow() }.timeout(100.milliseconds, UserProfile("Default", 0))
         }
         assertEquals("Default", result.name)
     }
 
     @Test fun `timeout - kap - with fallback computation`() = runTest {
         val result = Async {
-            Computation { fetchUserSlow() }
-                .timeout(100.milliseconds, Computation { UserProfile("FromCache", 0) })
+            Effect { fetchUserSlow() }
+                .timeout(100.milliseconds, Effect { UserProfile("FromCache", 0) })
         }
         assertEquals("FromCache", result.name)
     }
@@ -373,7 +373,7 @@ class CoreComparisonTest {
 
     @Test fun `recover - kap`() = runTest {
         val result = Async {
-            Computation<UserProfile> { fetchUserFailing() }
+            Effect<UserProfile> { fetchUserFailing() }
                 .recover { UserProfile("Recovered: ${it.message}", 0) }
         }
         assertEquals("Recovered: network error", result.name)
@@ -381,16 +381,16 @@ class CoreComparisonTest {
 
     @Test fun `recoverWith - kap`() = runTest {
         val result = Async {
-            Computation<UserProfile> { fetchUserFailing() }
-                .recoverWith { Computation { UserProfile("FromFallbackService", 0) } }
+            Effect<UserProfile> { fetchUserFailing() }
+                .recoverWith { Effect { UserProfile("FromFallbackService", 0) } }
         }
         assertEquals("FromFallbackService", result.name)
     }
 
     @Test fun `fallback - kap`() = runTest {
         val result = Async {
-            Computation<UserProfile> { fetchUserFailing() }
-                .fallback(Computation.of(UserProfile("Default", 0)))
+            Effect<UserProfile> { fetchUserFailing() }
+                .fallback(Effect.of(UserProfile("Default", 0)))
         }
         assertEquals("Default", result.name)
     }
@@ -411,7 +411,7 @@ class CoreComparisonTest {
     @Test fun `retry - kap`() = runTest {
         attemptCount = 0
         val result = Async {
-            Computation { fetchUserFlaky() }
+            Effect { fetchUserFlaky() }
                 .retry(maxAttempts = 3, delay = 10.milliseconds, backoff = exponential)
         }
         assertEquals("Recovered", result.name)
@@ -421,22 +421,22 @@ class CoreComparisonTest {
     // INTEROP — Deferred, Flow, suspend
     // ═══════════════════════════════════════════════════════════════════════
 
-    @Test fun `interop - Deferred toComputation`() = runTest {
+    @Test fun `interop - Deferred toEffect`() = runTest {
         val result = coroutineScope {
             val d = async { fetchUser() }
-            Async { d.toComputation() }
+            Async { d.toEffect() }
         }
         assertEquals("Alice", result.name)
     }
 
-    @Test fun `interop - Flow firstAsComputation`() = runTest {
+    @Test fun `interop - Flow firstAsEffect`() = runTest {
         val f = flow { emit(UserProfile("FromFlow", 1)); emit(UserProfile("Second", 2)) }
-        assertEquals("FromFlow", Async { f.firstAsComputation() }.name)
+        assertEquals("FromFlow", Async { f.firstAsEffect() }.name)
     }
 
-    @Test fun `interop - suspend toComputation`() = runTest {
+    @Test fun `interop - suspend toEffect`() = runTest {
         val fn: suspend () -> UserProfile = { fetchUser() }
-        assertEquals("Alice", Async { fn.toComputation() }.name)
+        assertEquals("Alice", Async { fn.toEffect() }.name)
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -446,8 +446,8 @@ class CoreComparisonTest {
     @Test fun `on - kap - switch dispatcher`() = runTest {
         val result = Async {
             kap { a: UserProfile, b: ShoppingCart -> a.name to b.items }
-                .with(Computation { fetchUser() }.on(kotlinx.coroutines.Dispatchers.Default))
-                .with(Computation { fetchCart() }.on(kotlinx.coroutines.Dispatchers.Default))
+                .with(Effect { fetchUser() }.on(kotlinx.coroutines.Dispatchers.Default))
+                .with(Effect { fetchCart() }.on(kotlinx.coroutines.Dispatchers.Default))
         }
         assertEquals("Alice" to 3, result)
     }
@@ -472,22 +472,22 @@ class CoreComparisonTest {
         val events = mutableListOf<String>()
         val result = Async {
             kap { a: UserProfile, b: ShoppingCart -> a.name to b.items }
-                .with(Computation { fetchUser() }.traced("user",
+                .with(Effect { fetchUser() }.traced("user",
                     onStart = { events += "start:$it" }, onSuccess = { n, _ -> events += "done:$n" }))
-                .with(Computation { fetchCart() }.traced("cart",
+                .with(Effect { fetchCart() }.traced("cart",
                     onStart = { events += "start:$it" }, onSuccess = { n, _ -> events += "done:$n" }))
         }
         assertEquals("Alice" to 3, result)
         assertTrue("start:user" in events && "done:user" in events)
     }
 
-    @Test fun `traced - kap - ComputationTracer`() = runTest {
+    @Test fun `traced - kap - EffectTracer`() = runTest {
         val events = mutableListOf<TraceEvent>()
-        val tracer = ComputationTracer { events += it }
+        val tracer = EffectTracer { events += it }
         Async {
             kap { a: UserProfile, b: ShoppingCart -> a.name to b.items }
-                .with(Computation { fetchUser() }.traced("user", tracer))
-                .with(Computation { fetchCart() }.traced("cart", tracer))
+                .with(Effect { fetchUser() }.traced("user", tracer))
+                .with(Effect { fetchCart() }.traced("cart", tracer))
         }
         assertEquals(4, events.size)
     }
@@ -505,7 +505,7 @@ class CoreComparisonTest {
     }
 
     @Test fun `withOrNull - kap`() = runTest {
-        val insurance: Computation<InsurancePlan>? = null
+        val insurance: Effect<InsurancePlan>? = null
         val result = Async {
             kap { u: UserProfile, i: InsurancePlan? -> u.name to i?.provider }
                 .with { fetchUser() }.withOrNull(insurance)
@@ -540,7 +540,7 @@ class CoreComparisonTest {
         attemptCount = 0
         val events = mutableListOf<String>()
         val result = Async {
-            Computation { fetchUserFlaky() }
+            Effect { fetchUserFlaky() }
                 .timeout(200.milliseconds)
                 .retry(maxAttempts = 3, delay = 10.milliseconds, backoff = exponential)
                 .recover { UserProfile("Cache: ${it.message}", 0) }

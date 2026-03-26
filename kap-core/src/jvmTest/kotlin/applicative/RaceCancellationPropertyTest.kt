@@ -30,8 +30,8 @@ class RaceCancellationPropertyTest {
         checkAll(Arb.int(10..200), Arb.int(10..200)) { d1, d2 ->
             val result = Async {
                 race(
-                    Computation { delay(d1.toLong()); "A" },
-                    Computation { delay(d2.toLong()); "B" },
+                    Effect { delay(d1.toLong()); "A" },
+                    Effect { delay(d2.toLong()); "B" },
                 )
             }
             val expected = if (d1 <= d2) "A" else "B"
@@ -48,7 +48,7 @@ class RaceCancellationPropertyTest {
         checkAll(Arb.int(2..8)) { n ->
             val delays = (1..n).map { it * 10L } // 10, 20, 30, ...
             val computations = delays.mapIndexed { i, d ->
-                Computation { delay(d); "racer-$i" }
+                Effect { delay(d); "racer-$i" }
             }
             val result = Async { raceN(*computations.toTypedArray()) }
             assertEquals("racer-0", result, "fastest racer (10ms) should win")
@@ -62,7 +62,7 @@ class RaceCancellationPropertyTest {
 
         val n = 5
         val computations = (0 until n).map { i ->
-            Computation {
+            Effect {
                 running.incrementAndGet()
                 try {
                     delay(if (i == 0) 10 else 1000)
@@ -87,8 +87,8 @@ class RaceCancellationPropertyTest {
     fun `race succeeds if at least one computation succeeds`() = runTest {
         val result = Async {
             race(
-                Computation<String> { delay(10); throw RuntimeException("fail-A") },
-                Computation { delay(50); "B-wins" },
+                Effect<String> { delay(10); throw RuntimeException("fail-A") },
+                Effect { delay(50); "B-wins" },
             )
         }
         assertEquals("B-wins", result)
@@ -96,8 +96,8 @@ class RaceCancellationPropertyTest {
 
     @Test
     fun `race fails only when all computations fail`() = runTest {
-        val fa = Computation<String> { delay(10); throw RuntimeException("fail-A") }
-        val fb = Computation<String> { delay(20); throw RuntimeException("fail-B") }
+        val fa = Effect<String> { delay(10); throw RuntimeException("fail-A") }
+        val fb = Effect<String> { delay(20); throw RuntimeException("fail-B") }
         val result = runCatching { Async { race(fa, fb) } }
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is RuntimeException)
@@ -108,7 +108,7 @@ class RaceCancellationPropertyTest {
         checkAll(Arb.int(2..6)) { n ->
             // All fail except the last one
             val computations = (0 until n).map { i ->
-                Computation {
+                Effect {
                     delay((i + 1) * 10L)
                     if (i < n - 1) throw RuntimeException("fail-$i")
                     "survivor"
@@ -127,7 +127,7 @@ class RaceCancellationPropertyTest {
     fun `orElse chain returns first success`() = runTest {
         checkAll(Arb.int(1..8)) { successIdx ->
             val computations = (0 until 10).map { i ->
-                Computation<String> {
+                Effect<String> {
                     if (i < successIdx) throw RuntimeException("fail-$i")
                     "success-$i"
                 }
@@ -145,7 +145,7 @@ class RaceCancellationPropertyTest {
     fun `firstSuccessOf returns first success from vararg`() = runTest {
         checkAll(Arb.int(0..7)) { successIdx ->
             val computations = (0..7).map { i ->
-                Computation<String> {
+                Effect<String> {
                     if (i < successIdx) throw RuntimeException("fail-$i")
                     "success-$i"
                 }
@@ -157,9 +157,9 @@ class RaceCancellationPropertyTest {
 
     @Test
     fun `firstSuccessOf with all failures throws last error`() = runTest {
-        val c1 = Computation<String> { throw RuntimeException("e1") }
-        val c2 = Computation<String> { throw RuntimeException("e2") }
-        val c3 = Computation<String> { throw RuntimeException("e3") }
+        val c1 = Effect<String> { throw RuntimeException("e1") }
+        val c2 = Effect<String> { throw RuntimeException("e2") }
+        val c3 = Effect<String> { throw RuntimeException("e3") }
         val result = runCatching { Async { firstSuccessOf(c1, c2, c3) } }
         assertTrue(result.isFailure)
         // The last error is the primary exception

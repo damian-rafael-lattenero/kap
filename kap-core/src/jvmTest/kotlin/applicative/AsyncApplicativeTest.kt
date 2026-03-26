@@ -59,14 +59,14 @@ class AsyncApplicativeTest {
     }
 
     @Test
-    fun `followedBy enforces sequential execution order`() = runTest {
+    fun `then enforces sequential execution order`() = runTest {
         val order = mutableListOf<String>()
 
         val result = Async {
             kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with { order.add("first"); "A" }
-                .followedBy { order.add("second"); "B" }
-                .followedBy { order.add("third"); "C" }
+                .then { order.add("second"); "B" }
+                .then { order.add("third"); "C" }
         }
 
         assertEquals("A|B|C", result)
@@ -74,12 +74,12 @@ class AsyncApplicativeTest {
     }
 
     @Test
-    fun `followedBy then with fires concurrently - barrier proof`() = runTest {
+    fun `then then with fires concurrently - barrier proof`() = runTest {
         val apStarted = CompletableDeferred<Unit>()
 
         val result = Async {
             kap { a: String, b: String, c: String -> "$a|$b|$c" }
-                .followedBy { "A" }
+                .then { "A" }
                 .with {
                     // B cannot complete until C has started
                     apStarted.await()
@@ -141,40 +141,40 @@ class AsyncApplicativeTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // SECTION 2: MIXED COMPOSITION (kap+with+followedBy)
+    // SECTION 2: MIXED COMPOSITION (kap+with+then)
     //
     //   Complex dependency graphs with interleaved parallel and sequential.
-    //   followedBy enforces that earlier phases complete before the next begins.
+    //   then enforces that earlier phases complete before the next begins.
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `kap+with+followedBy - ordering is correct`() = runTest {
+    fun `kap+with+then - ordering is correct`() = runTest {
         val order = mutableListOf<String>()
 
         val result = Async {
             kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
                 .with { order.add("a"); "A" }
                 .with { order.add("b"); "B" }
-                .followedBy { order.add("c"); "C" }
-                .followedBy { order.add("d"); "D" }
-                .followedBy { order.add("e"); "E" }
+                .then { order.add("c"); "C" }
+                .then { order.add("d"); "D" }
+                .then { order.add("e"); "E" }
         }
 
         assertEquals("A|B|C|D|E", result)
 
-        // c must come after both a and b (followedBy barrier)
+        // c must come after both a and b (then barrier)
         val cIdx = order.indexOf("c")
-        assertTrue(order.indexOf("a") < cIdx, "a should precede followedBy c")
-        assertTrue(order.indexOf("b") < cIdx, "b should precede followedBy c")
+        assertTrue(order.indexOf("a") < cIdx, "a should precede then c")
+        assertTrue(order.indexOf("b") < cIdx, "b should precede then c")
 
         // e must come after c and d
         val eIdx = order.indexOf("e")
-        assertTrue(cIdx < eIdx, "c should precede followedBy e")
-        assertTrue(order.indexOf("d") < eIdx, "d should precede followedBy e")
+        assertTrue(cIdx < eIdx, "c should precede then e")
+        assertTrue(order.indexOf("d") < eIdx, "d should precede then e")
     }
 
     @Test
-    fun `e-commerce checkout - four phases with kap+with+followedBy`() = runTest {
+    fun `e-commerce checkout - four phases with kap+with+then`() = runTest {
         data class CheckoutSummary(
             val user: UserProfile,
             val cart: ShoppingCart,
@@ -204,10 +204,10 @@ class AsyncApplicativeTest {
                 .with { fetchCart() }
                 .with { fetchPromotions() }
                 .with { fetchInventory() }
-                .followedBy { validateStock() }
+                .then { validateStock() }
                 .with { calcShipping() }
                 .with { calcTax() }
-                .followedBy { reservePayment() }
+                .then { reservePayment() }
         }
 
         assertEquals(
@@ -248,13 +248,13 @@ class AsyncApplicativeTest {
     }
 
     @Test
-    fun `followedBy with null computation`() = runTest {
+    fun `then with null computation`() = runTest {
         val absent: (suspend () -> String)? = null
 
         val result = Async {
             kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
-                .followedBy { "A" }
-                .followedBy { absent?.invoke() }
+                .then { "A" }
+                .then { absent?.invoke() }
         }
 
         assertEquals("A|nil", result)
@@ -308,35 +308,35 @@ class AsyncApplicativeTest {
     }
 
     @Test
-    fun `exception in followedBy propagates correctly`() = runTest {
+    fun `exception in then propagates correctly`() = runTest {
         val result = runCatching {
             Async {
                 kap { a: String, b: String -> "$a|$b" }
-                    .followedBy { "ok" }
-                    .followedBy { throw RuntimeException("followedBy failed") }
+                    .then { "ok" }
+                    .then { throw RuntimeException("then failed") }
             }
         }
 
         assertTrue(result.isFailure)
-        assertEquals("followedBy failed", result.exceptionOrNull()?.message)
+        assertEquals("then failed", result.exceptionOrNull()?.message)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // SECTION 5: COMBINATORS — map, flatMap, zip, traverse, sequence, race
+    // SECTION 5: COMBINATORS — map, andThen, zip, traverse, sequence, race
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
     fun `map transforms computation result`() = runTest {
         val result = Async {
-            Computation.of(42).map { it * 2 }.map { "result=$it" }
+            Effect.of(42).map { it * 2 }.map { "result=$it" }
         }
         assertEquals("result=84", result)
     }
 
     @Test
-    fun `flatMap allows value-dependent continuation`() = runTest {
+    fun `andThen allows value-dependent continuation`() = runTest {
         val result = Async {
-            Computation.of(42).flatMap { n ->
+            Effect.of(42).andThen { n ->
                 kap { doubled: Int, label: String -> "$label=$doubled" }
                     .with { n * 2 }
                     .with { "result" }
@@ -346,16 +346,16 @@ class AsyncApplicativeTest {
     }
 
     @Test
-    fun `flatMap chains are sequential`() = runTest {
+    fun `andThen chains are sequential`() = runTest {
         val order = mutableListOf<String>()
 
         val result = Async {
-            Computation.of("hello").flatMap { greeting ->
+            Effect.of("hello").andThen { greeting ->
                 order.add("step1: $greeting")
-                Computation.of("$greeting world")
-            }.flatMap { msg ->
+                Effect.of("$greeting world")
+            }.andThen { msg ->
                 order.add("step2: $msg")
-                Computation.of(msg.uppercase())
+                Effect.of(msg.uppercase())
             }
         }
 
@@ -364,12 +364,12 @@ class AsyncApplicativeTest {
     }
 
     @Test
-    fun `flatMap mixes with kap+with - dependent fanout`() = runTest {
+    fun `andThen mixes with kap+with - dependent fanout`() = runTest {
         val latchB = CompletableDeferred<Unit>()
         val latchC = CompletableDeferred<Unit>()
 
         val result = Async {
-            Computation.of(10).flatMap { base ->
+            Effect.of(10).andThen { base ->
                 // After getting the base value, fan out in parallel
                 kap { b: Int, c: Int -> base + b + c }
                     .with { latchB.complete(Unit); latchC.await(); base * 2 }
@@ -387,8 +387,8 @@ class AsyncApplicativeTest {
         val latchB = CompletableDeferred<Unit>()
 
         val result = Async {
-            Computation { latchA.complete(Unit); latchB.await(); "A" }
-                .zip(Computation { latchB.complete(Unit); latchA.await(); "B" })
+            Effect { latchA.complete(Unit); latchB.await(); "A" }
+                .zip(Effect { latchB.complete(Unit); latchA.await(); "B" })
         }
 
         // Deadlock if sequential -> proves parallelism
@@ -401,8 +401,8 @@ class AsyncApplicativeTest {
         val latchB = CompletableDeferred<Unit>()
 
         val result = Async {
-            Computation<Int> { latchA.complete(Unit); latchB.await(); 21 }
-                .zip(Computation { latchB.complete(Unit); latchA.await(); 21 }) { a, b -> a + b }
+            Effect<Int> { latchA.complete(Unit); latchB.await(); 21 }
+                .zip(Effect { latchB.complete(Unit); latchA.await(); 21 }) { a, b -> a + b }
         }
 
         assertEquals(42, result)
@@ -414,7 +414,7 @@ class AsyncApplicativeTest {
 
         val result = Async {
             (0 until 5).toList().traverse { i ->
-                Computation {
+                Effect {
                     latches[i].complete(Unit)
                     latches.awaitOthers(i)
                     "v$i"
@@ -432,9 +432,9 @@ class AsyncApplicativeTest {
 
         val result = Async {
             listOf(
-                Computation<String> { latches[0].complete(Unit); latches.awaitOthers(0); "A" },
-                Computation { latches[1].complete(Unit); latches.awaitOthers(1); "B" },
-                Computation { latches[2].complete(Unit); latches.awaitOthers(2); "C" },
+                Effect<String> { latches[0].complete(Unit); latches.awaitOthers(0); "A" },
+                Effect { latches[1].complete(Unit); latches.awaitOthers(1); "B" },
+                Effect { latches[2].complete(Unit); latches.awaitOthers(2); "C" },
             ).sequence()
         }
 
@@ -448,7 +448,7 @@ class AsyncApplicativeTest {
 
         val result = Async {
             (0 until 10).toList().traverse(3) { i ->
-                Computation {
+                Effect {
                     concurrent++
                     if (concurrent > maxConcurrent) maxConcurrent = concurrent
                     delay(50)
@@ -465,7 +465,7 @@ class AsyncApplicativeTest {
     @Test
     fun `traverse on empty list returns empty list`() = runTest {
         val result = Async {
-            emptyList<Int>().traverse { Computation.of(it) }
+            emptyList<Int>().traverse { Effect.of(it) }
         }
         assertEquals(emptyList(), result)
     }
@@ -474,8 +474,8 @@ class AsyncApplicativeTest {
     fun `race returns the first computation to complete`() = runTest {
         val result = Async {
             race(
-                fa = Computation { delay(10_000); "slow" },
-                fb = Computation { "fast" }
+                fa = Effect { delay(10_000); "slow" },
+                fb = Effect { "fast" }
             )
         }
         assertEquals("fast", result)
@@ -487,7 +487,7 @@ class AsyncApplicativeTest {
 
         val result = Async {
             race(
-                fa = Computation {
+                fa = Effect {
                     try {
                         awaitCancellation()
                     } catch (e: kotlinx.coroutines.CancellationException) {
@@ -495,7 +495,7 @@ class AsyncApplicativeTest {
                         throw e
                     }
                 },
-                fb = Computation { "winner" }
+                fb = Effect { "winner" }
             )
         }
 
@@ -611,10 +611,10 @@ class AsyncApplicativeTest {
                 .with { fetchUser() }
                 .with { fetchCart() }
                 .with { fetchPromos() }
-                .followedBy { validateStock() }
+                .then { validateStock() }
                 .with { calcShipping() }
                 .with { calcTax() }
-                .followedBy { reservePayment() }
+                .then { reservePayment() }
         }
 
         assertEquals(traditional, dsl)
@@ -685,12 +685,12 @@ class AsyncApplicativeTest {
                 .with { fetchUser() }
                 .with { fetchPrefs() }
                 .with { fetchFlags() }
-                .followedBy { loadAuth() }
-                .followedBy { loadFeed() }
+                .then { loadAuth() }
+                .then { loadFeed() }
                 .with { loadNotifications() }
                 .with { loadMessages() }
                 .with { loadRecommendations() }
-                .followedBy { loadTrending() }
+                .then { loadTrending() }
         }
 
         assertEquals(traditional, dsl)

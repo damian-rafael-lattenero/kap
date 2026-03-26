@@ -13,7 +13,7 @@ class MemoizeOnSuccessTest {
     @Test
     fun `caches successful result`() = runTest {
         var callCount = 0
-        val comp = Computation { callCount++; "result" }.memoizeOnSuccess()
+        val comp = Effect { callCount++; "result" }.memoizeOnSuccess()
         assertEquals("result", Async { comp })
         assertEquals("result", Async { comp })
         assertEquals(1, callCount, "Should execute only once on success")
@@ -22,7 +22,7 @@ class MemoizeOnSuccessTest {
     @Test
     fun `retries after failure`() = runTest {
         var callCount = 0
-        val comp = Computation {
+        val comp = Effect {
             callCount++
             if (callCount < 3) throw RuntimeException("transient #$callCount")
             "success"
@@ -44,13 +44,13 @@ class MemoizeOnSuccessTest {
     @Test
     fun `memoize caches failure forever vs memoizeOnSuccess retries`() = runTest {
         var c1 = 0
-        val memoized = Computation { c1++; if (c1 == 1) throw RuntimeException("fail"); "ok" }.memoize()
+        val memoized = Effect { c1++; if (c1 == 1) throw RuntimeException("fail"); "ok" }.memoize()
         assertTrue(runCatching { Async { memoized } }.isFailure)
         assertTrue(runCatching { Async { memoized } }.isFailure) // cached failure
         assertEquals(1, c1)
 
         var c2 = 0
-        val retryable = Computation { c2++; if (c2 == 1) throw RuntimeException("fail"); "ok" }.memoizeOnSuccess()
+        val retryable = Effect { c2++; if (c2 == 1) throw RuntimeException("fail"); "ok" }.memoizeOnSuccess()
         assertTrue(runCatching { Async { retryable } }.isFailure)
         assertEquals("ok", Async { retryable }) // retried
         assertEquals(2, c2)
@@ -59,7 +59,7 @@ class MemoizeOnSuccessTest {
     @Test
     fun `parallel branches share cached result`() = runTest {
         var callCount = 0
-        val shared = Computation { callCount++; delay(50.milliseconds); "shared" }.memoizeOnSuccess()
+        val shared = Effect { callCount++; delay(50.milliseconds); "shared" }.memoizeOnSuccess()
 
         val a = shared
         val b = shared
@@ -72,15 +72,15 @@ class MemoizeOnSuccessTest {
     @Test
     fun `concurrent proof — latch barrier`() = runTest {
         var callCount = 0
-        val shared = Computation { callCount++; "data" }.memoizeOnSuccess()
+        val shared = Effect { callCount++; "data" }.memoizeOnSuccess()
         val latch1 = CompletableDeferred<Unit>()
         val latch2 = CompletableDeferred<Unit>()
 
-        val compA = Computation {
+        val compA = Effect {
             latch1.complete(Unit); latch2.await()
             with(shared) { execute() }
         }
-        val compB = Computation {
+        val compB = Effect {
             latch2.complete(Unit); latch1.await()
             with(shared) { execute() }
         }
@@ -93,7 +93,7 @@ class MemoizeOnSuccessTest {
     @Test
     fun `with retry — transient failure then cached`() = runTest {
         var callCount = 0
-        val comp = Computation {
+        val comp = Effect {
             callCount++; if (callCount < 2) throw RuntimeException("transient"); "ok"
         }.memoizeOnSuccess()
 

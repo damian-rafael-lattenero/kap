@@ -23,8 +23,8 @@ class RacePropertyTest {
     fun `race matrix — both succeed, faster wins`() = runTest {
         val result = Async {
             race(
-                Computation { delay(50.milliseconds); "slow" },
-                Computation { delay(10.milliseconds); "fast" },
+                Effect { delay(50.milliseconds); "slow" },
+                Effect { delay(10.milliseconds); "fast" },
             )
         }
         assertEquals("fast", result)
@@ -34,8 +34,8 @@ class RacePropertyTest {
     fun `race matrix — first succeeds fast, second fails slow`() = runTest {
         val result = Async {
             race(
-                Computation { delay(10.milliseconds); "fast success" },
-                Computation { delay(50.milliseconds); throw RuntimeException("slow fail") },
+                Effect { delay(10.milliseconds); "fast success" },
+                Effect { delay(50.milliseconds); throw RuntimeException("slow fail") },
             )
         }
         assertEquals("fast success", result)
@@ -45,11 +45,11 @@ class RacePropertyTest {
     fun `race matrix — first fails fast, second succeeds slow`() = runTest {
         val result = Async {
             race(
-                Computation {
+                Effect {
                     delay(10.milliseconds)
                     throw RuntimeException("fast fail")
                 },
-                Computation {
+                Effect {
                     delay(50.milliseconds)
                     "slow success"
                 },
@@ -60,9 +60,9 @@ class RacePropertyTest {
 
     @Test
     fun `race matrix — both fail, first error is primary`() = runTest {
-        val graph: Computation<String> = race(
-            Computation { delay(10.milliseconds); throw RuntimeException("first") },
-            Computation { delay(50.milliseconds); throw IllegalStateException("second") },
+        val graph: Effect<String> = race(
+            Effect { delay(10.milliseconds); throw RuntimeException("first") },
+            Effect { delay(50.milliseconds); throw IllegalStateException("second") },
         )
         val ex = assertFailsWith<RuntimeException> { val r = Async { graph } }
         assertEquals("first", ex.message)
@@ -74,11 +74,11 @@ class RacePropertyTest {
     fun `raceN — 5 racers, only one succeeds`() = runTest {
         val result = Async {
             raceN(
-                Computation<String> { delay(10.milliseconds); throw RuntimeException("a") },
-                Computation<String> { delay(20.milliseconds); throw RuntimeException("b") },
-                Computation { delay(30.milliseconds); "winner" },
-                Computation<String> { delay(40.milliseconds); throw RuntimeException("d") },
-                Computation<String> { delay(50.milliseconds); throw RuntimeException("e") },
+                Effect<String> { delay(10.milliseconds); throw RuntimeException("a") },
+                Effect<String> { delay(20.milliseconds); throw RuntimeException("b") },
+                Effect { delay(30.milliseconds); "winner" },
+                Effect<String> { delay(40.milliseconds); throw RuntimeException("d") },
+                Effect<String> { delay(50.milliseconds); throw RuntimeException("e") },
             )
         }
         assertEquals("winner", result)
@@ -88,11 +88,11 @@ class RacePropertyTest {
     fun `raceN — first two fail instantly, third survives`() = runTest {
         val result = Async {
             raceN(
-                Computation<String> { throw RuntimeException("instant-fail-1") },
-                Computation<String> { throw RuntimeException("instant-fail-2") },
-                Computation { delay(10.milliseconds); "survivor" },
-                Computation { delay(20.milliseconds); "slow" },
-                Computation { delay(30.milliseconds); "slower" },
+                Effect<String> { throw RuntimeException("instant-fail-1") },
+                Effect<String> { throw RuntimeException("instant-fail-2") },
+                Effect { delay(10.milliseconds); "survivor" },
+                Effect { delay(20.milliseconds); "slow" },
+                Effect { delay(30.milliseconds); "slower" },
             )
         }
         assertEquals("survivor", result)
@@ -100,11 +100,11 @@ class RacePropertyTest {
 
     @Test
     fun `raceN — all 4 fail, first error propagates`() = runTest {
-        val graph: Computation<String> = raceN(
-            Computation { delay(10.milliseconds); throw RuntimeException("e1") },
-            Computation { delay(20.milliseconds); throw IllegalStateException("e2") },
-            Computation { delay(30.milliseconds); throw UnsupportedOperationException("e3") },
-            Computation { delay(40.milliseconds); throw ArithmeticException("e4") },
+        val graph: Effect<String> = raceN(
+            Effect { delay(10.milliseconds); throw RuntimeException("e1") },
+            Effect { delay(20.milliseconds); throw IllegalStateException("e2") },
+            Effect { delay(30.milliseconds); throw UnsupportedOperationException("e3") },
+            Effect { delay(40.milliseconds); throw ArithmeticException("e4") },
         )
         val ex = assertFailsWith<RuntimeException> { val r = Async { graph } }
         assertEquals("e1", ex.message)
@@ -114,9 +114,9 @@ class RacePropertyTest {
     fun `raceN — success at position 0 (first)`() = runTest {
         val result = Async {
             raceN(
-                Computation { "first" },
-                Computation { delay(50.milliseconds); "second" },
-                Computation { delay(100.milliseconds); "third" },
+                Effect { "first" },
+                Effect { delay(50.milliseconds); "second" },
+                Effect { delay(100.milliseconds); "third" },
             )
         }
         assertEquals("first", result)
@@ -126,9 +126,9 @@ class RacePropertyTest {
     fun `raceN — success at last position`() = runTest {
         val result = Async {
             raceN(
-                Computation<String> { delay(10.milliseconds); throw RuntimeException("a") },
-                Computation<String> { delay(20.milliseconds); throw RuntimeException("b") },
-                Computation { delay(30.milliseconds); "last one standing" },
+                Effect<String> { delay(10.milliseconds); throw RuntimeException("a") },
+                Effect<String> { delay(20.milliseconds); throw RuntimeException("b") },
+                Effect { delay(30.milliseconds); "last one standing" },
             )
         }
         assertEquals("last one standing", result)
@@ -140,8 +140,8 @@ class RacePropertyTest {
     fun `race — total time is fastest success, not slowest`() = runTest {
         Async {
             race(
-                Computation { delay(100.milliseconds); "slow" },
-                Computation { delay(20.milliseconds); "fast" },
+                Effect { delay(100.milliseconds); "slow" },
+                Effect { delay(20.milliseconds); "fast" },
             )
         }
         assertTrue(currentTime <= 30, "Should complete in ~20ms, got ${currentTime}ms")
@@ -151,10 +151,10 @@ class RacePropertyTest {
     fun `raceN — total time is fastest success`() = runTest {
         Async {
             raceN(
-                Computation { delay(200.milliseconds); "very-slow" },
-                Computation { delay(150.milliseconds); "slow" },
-                Computation { delay(10.milliseconds); "fast" },
-                Computation { delay(300.milliseconds); "very-very-slow" },
+                Effect { delay(200.milliseconds); "very-slow" },
+                Effect { delay(150.milliseconds); "slow" },
+                Effect { delay(10.milliseconds); "fast" },
+                Effect { delay(300.milliseconds); "very-very-slow" },
             )
         }
         assertTrue(currentTime <= 20, "Should complete in ~10ms, got ${currentTime}ms")
@@ -164,11 +164,11 @@ class RacePropertyTest {
     fun `race — fast failure, slow success, total time is slow`() = runTest {
         val result = Async {
             race(
-                Computation {
+                Effect {
                     delay(10.milliseconds)
                     throw RuntimeException("quick fail")
                 },
-                Computation {
+                Effect {
                     delay(50.milliseconds)
                     "slow winner"
                 },
@@ -188,14 +188,14 @@ class RacePropertyTest {
             kap(::Result)
                 .with {
                     race(
-                        Computation { delay(100.milliseconds); "slow-a" },
-                        Computation { delay(10.milliseconds); "fast-a" },
+                        Effect { delay(100.milliseconds); "slow-a" },
+                        Effect { delay(10.milliseconds); "fast-a" },
                     ).await()
                 }
                 .with {
                     race(
-                        Computation { delay(10.milliseconds); "fast-b" },
-                        Computation { delay(100.milliseconds); "slow-b" },
+                        Effect { delay(10.milliseconds); "fast-b" },
+                        Effect { delay(100.milliseconds); "slow-b" },
                     ).await()
                 }
         }
@@ -208,9 +208,9 @@ class RacePropertyTest {
     @Test
     fun `raceAll — list of computations`() = runTest {
         val computations = listOf(
-            Computation { delay(50.milliseconds); "slow" },
-            Computation { delay(10.milliseconds); "fast" },
-            Computation { delay(100.milliseconds); "very slow" },
+            Effect { delay(50.milliseconds); "slow" },
+            Effect { delay(10.milliseconds); "fast" },
+            Effect { delay(100.milliseconds); "very slow" },
         )
         val result = Async { computations.raceAll() }
         assertEquals("fast", result)
@@ -218,7 +218,7 @@ class RacePropertyTest {
 
     @Test
     fun `raceAll — single element list`() = runTest {
-        val result = Async { listOf(Computation { "only" }).raceAll() }
+        val result = Async { listOf(Effect { "only" }).raceAll() }
         assertEquals("only", result)
     }
 }

@@ -13,9 +13,9 @@ import kotlinx.coroutines.supervisorScope
 /**
  * Shorthand typealias for a validated computation using Arrow types.
  *
- * `Validated<E, A>` = `Computation<Either<NonEmptyList<E>, A>>`
+ * `Validated<E, A>` = `Effect<Either<NonEmptyList<E>, A>>`
  */
-typealias Validated<E, A> = Computation<Either<NonEmptyList<E>, A>>
+typealias Validated<E, A> = Effect<Either<NonEmptyList<E>, A>>
 
 /**
  * Shorthand typealias for Arrow's NonEmptyList.
@@ -32,11 +32,11 @@ typealias Nel<A> = NonEmptyList<A>
  *
  * ```
  * val result: Either<Throwable, User> = Async {
- *     Computation { fetchUser() }.attempt()
+ *     Effect { fetchUser() }.attempt()
  * }
  * ```
  */
-fun <A> Computation<A>.attempt(): Computation<Either<Throwable, A>> = Computation {
+fun <A> Effect<A>.attempt(): Effect<Either<Throwable, A>> = Effect {
     try {
         Either.Right(with(this@attempt) { execute() })
     } catch (e: Throwable) {
@@ -58,14 +58,14 @@ fun <A> Computation<A>.attempt(): Computation<Either<Throwable, A>> = Computatio
  * ```
  * val result: Either<CachedData, FreshData> = Async {
  *     raceEither(
- *         fa = Computation { fetchFromCache() },
- *         fb = Computation { fetchFromNetwork() },
+ *         fa = Effect { fetchFromCache() },
+ *         fb = Effect { fetchFromNetwork() },
  *     )
  * }
  * ```
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-fun <A, B> raceEither(fa: Computation<A>, fb: Computation<B>): Computation<Either<A, B>> = Computation {
+fun <A, B> raceEither(fa: Effect<A>, fb: Effect<B>): Effect<Either<A, B>> = Effect {
     supervisorScope {
         val da = async { runCatching { with(fa) { execute() } } }
         val db = async { runCatching { with(fb) { execute() } } }
@@ -137,28 +137,28 @@ fun <E, A> Either<E, A>.toResult(mapError: (E) -> Throwable): Result<A> = when (
 }
 
 /**
- * Wraps a [kotlin.Result] into a validated [Computation], mapping failures with [onError].
+ * Wraps a [kotlin.Result] into a validated [Effect], mapping failures with [onError].
  */
-fun <E, A> Result<A>.toValidated(onError: (Throwable) -> E): Computation<Either<NonEmptyList<E>, A>> =
+fun <E, A> Result<A>.toValidated(onError: (Throwable) -> E): Effect<Either<NonEmptyList<E>, A>> =
     fold(
         onSuccess = { valid(it) },
         onFailure = { invalid(onError(it)) },
     )
 
-// ── Arrow parZip result → Computation ──────────────────────────────────
+// ── Arrow parZip result → Effect ──────────────────────────────────
 
 /**
- * Wraps a suspend lambda (typically calling Arrow's `parZip` or `parMap`) into a [Computation].
+ * Wraps a suspend lambda (typically calling Arrow's `parZip` or `parMap`) into a [Effect].
  */
-fun <A> fromArrow(block: suspend () -> A): Computation<A> = Computation { block() }
+fun <A> fromArrow(block: suspend () -> A): Effect<A> = Effect { block() }
 
-// ── Computation → Arrow's suspend world ────────────────────────────────
+// ── Effect → Arrow's suspend world ────────────────────────────────
 
 /**
- * Executes this [Computation] and returns the result as an Arrow [Either],
+ * Executes this [Effect] and returns the result as an Arrow [Either],
  * catching non-cancellation exceptions into [Either.Left].
  */
-suspend fun <A> Computation<A>.runCatchingArrow(
+suspend fun <A> Effect<A>.runCatchingArrow(
     scope: kotlinx.coroutines.CoroutineScope,
 ): Either<Throwable, A> =
     try {

@@ -32,8 +32,8 @@ class RaceFixTest {
     fun `race returns faster successful result`() = runTest {
         val result = Async {
             race(
-                Computation { delay(100); "slow" },
-                Computation { delay(20); "fast" },
+                Effect { delay(100); "slow" },
+                Effect { delay(20); "fast" },
             )
         }
 
@@ -45,8 +45,8 @@ class RaceFixTest {
     fun `race returns second if first fails`() = runTest {
         val result = Async {
             race(
-                Computation<String> { delay(10); throw RuntimeException("first-fail") },
-                Computation { delay(50); "second-ok" },
+                Effect<String> { delay(10); throw RuntimeException("first-fail") },
+                Effect { delay(50); "second-ok" },
             )
         }
 
@@ -59,8 +59,8 @@ class RaceFixTest {
         val result = runCatching {
             Async {
                 race(
-                    Computation<String> { delay(10); throw RuntimeException("err-A") },
-                    Computation<String> { delay(20); throw RuntimeException("err-B") },
+                    Effect<String> { delay(10); throw RuntimeException("err-A") },
+                    Effect<String> { delay(20); throw RuntimeException("err-B") },
                 )
             }
         }
@@ -86,8 +86,8 @@ class RaceFixTest {
         // old code awaits db correctly. But the fix is more robust.
         val result = Async {
             race(
-                Computation<String> { delay(10); throw RuntimeException("fail-fast") },
-                Computation { delay(30); "success-slow" },
+                Effect<String> { delay(10); throw RuntimeException("fail-fast") },
+                Effect { delay(30); "success-slow" },
             )
         }
 
@@ -101,11 +101,11 @@ class RaceFixTest {
         // Race should wait for B and return its success.
         val result = Async {
             race(
-                Computation<String> {
+                Effect<String> {
                     delay(10)
                     throw RuntimeException("concurrent-fail")
                 },
-                Computation {
+                Effect {
                     delay(30)
                     "concurrent-success"
                 },
@@ -124,10 +124,10 @@ class RaceFixTest {
     fun `raceN picks fastest success among mixed results`() = runTest {
         val result = Async {
             raceN(
-                Computation<String> { delay(10); throw RuntimeException("err-1") },
-                Computation<String> { delay(20); throw RuntimeException("err-2") },
-                Computation { delay(30); "winner" },
-                Computation { delay(40); "slow-ok" },
+                Effect<String> { delay(10); throw RuntimeException("err-1") },
+                Effect<String> { delay(20); throw RuntimeException("err-2") },
+                Effect { delay(30); "winner" },
+                Effect { delay(40); "slow-ok" },
             )
         }
 
@@ -140,9 +140,9 @@ class RaceFixTest {
         val result = runCatching {
             Async {
                 raceN(
-                    Computation<String> { delay(10); throw RuntimeException("e1") },
-                    Computation<String> { delay(20); throw RuntimeException("e2") },
-                    Computation<String> { delay(30); throw RuntimeException("e3") },
+                    Effect<String> { delay(10); throw RuntimeException("e1") },
+                    Effect<String> { delay(20); throw RuntimeException("e2") },
+                    Effect<String> { delay(30); throw RuntimeException("e3") },
                 )
             }
         }
@@ -156,9 +156,9 @@ class RaceFixTest {
     fun `raceN - first two fail, third succeeds - timing proof`() = runTest {
         val result = Async {
             raceN(
-                Computation<String> { delay(10); throw RuntimeException("fast-fail") },
-                Computation<String> { delay(20); throw RuntimeException("medium-fail") },
-                Computation { delay(50); "late-success" },
+                Effect<String> { delay(10); throw RuntimeException("fast-fail") },
+                Effect<String> { delay(20); throw RuntimeException("medium-fail") },
+                Effect { delay(50); "late-success" },
             )
         }
 
@@ -173,8 +173,8 @@ class RaceFixTest {
 
         val result = Async {
             raceN(
-                Computation { delay(20); "winner" },
-                Computation {
+                Effect { delay(20); "winner" },
+                Effect {
                     try {
                         delay(Long.MAX_VALUE)
                         "never"
@@ -200,14 +200,14 @@ class RaceFixTest {
             kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with {
                     with(race(
-                        Computation { delay(100); "primary-A" },
-                        Computation { delay(20); "cache-A" },
+                        Effect { delay(100); "primary-A" },
+                        Effect { delay(20); "cache-A" },
                     )) { execute() }
                 }
                 .with {
                     with(race(
-                        Computation { delay(15); "primary-B" },
-                        Computation { delay(80); "cache-B" },
+                        Effect { delay(15); "primary-B" },
+                        Effect { delay(80); "cache-B" },
                     )) { execute() }
                 }
                 .with { delay(30); "direct-C" }
@@ -222,9 +222,9 @@ class RaceFixTest {
     @Test
     fun `raceAll on iterable`() = runTest {
         val computations = listOf(
-            Computation { delay(100); "slow" },
-            Computation { delay(10); "fast" },
-            Computation { delay(50); "medium" },
+            Effect { delay(100); "slow" },
+            Effect { delay(10); "fast" },
+            Effect { delay(50); "medium" },
         )
 
         val result = Async { computations.raceAll() }

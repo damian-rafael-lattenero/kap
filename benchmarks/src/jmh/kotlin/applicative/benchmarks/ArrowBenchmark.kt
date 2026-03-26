@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
  * JMH benchmarks for **kap-arrow** APIs.
  *
  * Covers: kapV+withV, zipV, traverseV, raceEither, ensureV,
- * attempt, catching, validated{}, flatMapV.
+ * attempt, catching, validated{}, andThenV.
  *
  * Every KAP benchmark has a `raw_` and/or `arrow_` baseline where applicable.
  */
@@ -106,7 +106,7 @@ open class ArrowBenchmark {
         if (errors.isEmpty()) {
             results.map { (it as Either.Right).value }.joinToString("|")
         } else {
-            "errors:${errors.flatMap { it.value }}"
+            "errors:${errors.andThen { it.value }}"
         }
     }
 
@@ -169,7 +169,7 @@ open class ArrowBenchmark {
     @Benchmark fun kap_traverseV_10_all_pass(): String = runBlocking {
         val result = Async {
             (1..10).toList().traverseV { i ->
-                Computation<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = true) }
+                Effect<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = true) }
             }
         }
         when (result) {
@@ -181,7 +181,7 @@ open class ArrowBenchmark {
     @Benchmark fun kap_traverseV_10_half_fail(): String = runBlocking {
         val result = Async {
             (1..10).toList().traverseV { i ->
-                Computation<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = i % 2 == 0) }
+                Effect<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = i % 2 == 0) }
             }
         }
         when (result) {
@@ -197,7 +197,7 @@ open class ArrowBenchmark {
     @Benchmark fun kap_traverseV_bounded_20_c5_pass(): String = runBlocking {
         val result = Async {
             (1..20).toList().traverseV(concurrency = 5) { i ->
-                Computation<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = true) }
+                Effect<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = true) }
             }
         }
         when (result) {
@@ -209,7 +209,7 @@ open class ArrowBenchmark {
     @Benchmark fun kap_traverseV_bounded_20_c5_half_fail(): String = runBlocking {
         val result = Async {
             (1..20).toList().traverseV(concurrency = 5) { i ->
-                Computation<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = i % 2 == 0) }
+                Effect<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = i % 2 == 0) }
             }
         }
         when (result) {
@@ -245,8 +245,8 @@ open class ArrowBenchmark {
     @Benchmark fun kap_raceEither_latency(): String = runBlocking {
         val result = Async {
             raceEither(
-                Computation { networkCall("cache", 30) },
-                Computation { networkCall("network", 100) },
+                Effect { networkCall("cache", 30) },
+                Effect { networkCall("network", 100) },
             )
         }
         when (result) {
@@ -258,8 +258,8 @@ open class ArrowBenchmark {
     @Benchmark fun kap_race_homogeneous_overhead(): String = runBlocking {
         Async {
             race(
-                Computation { compute(1) },
-                Computation { compute(2) },
+                Effect { compute(1) },
+                Effect { compute(2) },
             )
         }
     }
@@ -267,8 +267,8 @@ open class ArrowBenchmark {
     @Benchmark fun kap_raceEither_heterogeneous_overhead(): String = runBlocking {
         val result = Async {
             raceEither(
-                Computation { compute(1) },
-                Computation { 42 },
+                Effect { compute(1) },
+                Effect { 42 },
             )
         }
         when (result) {
@@ -283,7 +283,7 @@ open class ArrowBenchmark {
 
     @Benchmark fun kap_ensureV_pass(): String = runBlocking {
         val result = Async {
-            Computation { 25 }.ensureV({ "too young" }) { it >= 18 }
+            Effect { 25 }.ensureV({ "too young" }) { it >= 18 }
         }
         when (result) {
             is Either.Right -> "ok:${result.value}"
@@ -293,7 +293,7 @@ open class ArrowBenchmark {
 
     @Benchmark fun kap_ensureV_fail(): String = runBlocking {
         val result = Async {
-            Computation { 15 }.ensureV({ "too young" }) { it >= 18 }
+            Effect { 15 }.ensureV({ "too young" }) { it >= 18 }
         }
         when (result) {
             is Either.Right -> "ok:${result.value}"
@@ -339,7 +339,7 @@ open class ArrowBenchmark {
 
     @Benchmark fun kap_attempt_success(): String = runBlocking {
         val result = Async {
-            Computation { compute(1) }.attempt()
+            Effect { compute(1) }.attempt()
         }
         when (result) {
             is Either.Right -> result.value
@@ -349,7 +349,7 @@ open class ArrowBenchmark {
 
     @Benchmark fun kap_attempt_failure(): String = runBlocking {
         val result = Async {
-            Computation<String> { error("boom") }.attempt()
+            Effect<String> { error("boom") }.attempt()
         }
         when (result) {
             is Either.Right -> result.value
@@ -363,7 +363,7 @@ open class ArrowBenchmark {
 
     @Benchmark fun kap_catching_success(): String = runBlocking {
         val result = Async {
-            Computation { compute(1) }.catching { "caught: ${it.message}" }
+            Effect { compute(1) }.catching { "caught: ${it.message}" }
         }
         when (result) {
             is Either.Right -> result.value
@@ -373,7 +373,7 @@ open class ArrowBenchmark {
 
     @Benchmark fun kap_catching_failure(): String = runBlocking {
         val result = Async {
-            Computation<String> { error("boom") }.catching { "caught: ${it.message}" }
+            Effect<String> { error("boom") }.catching { "caught: ${it.message}" }
         }
         when (result) {
             is Either.Right -> result.value
@@ -402,9 +402,9 @@ open class ArrowBenchmark {
     @Benchmark fun kap_validated_builder(): String = runBlocking {
         val result = Async {
             validated<String, String> {
-                val name = Computation<Either<NonEmptyList<String>, String>> { Either.Right("Alice") }.bindV()
-                val email = Computation<Either<NonEmptyList<String>, String>> { Either.Right("alice@example.com") }.bindV()
-                val age = Computation<Either<NonEmptyList<String>, Int>> { Either.Right(25) }.bindV()
+                val name = Effect<Either<NonEmptyList<String>, String>> { Either.Right("Alice") }.bindV()
+                val email = Effect<Either<NonEmptyList<String>, String>> { Either.Right("alice@example.com") }.bindV()
+                val age = Effect<Either<NonEmptyList<String>, Int>> { Either.Right(25) }.bindV()
                 "$name|$email|$age"
             }
         }
@@ -432,14 +432,14 @@ open class ArrowBenchmark {
         }
     }
 
-    @Benchmark fun kap_flatMapV_phased(): String = runBlocking {
+    @Benchmark fun kap_andThenV_phased(): String = runBlocking {
         val result = Async {
             zipV(
                 { validate("name", 40, true) },
                 { validate("email", 40, true) },
             ) { n, e -> n to e }
-            .flatMapV { (name, email) ->
-                Computation { validate("age", 40, true) }
+            .andThenV { (name, email) ->
+                Effect { validate("age", 40, true) }
                     .mapV { age -> "$name|$email|$age" }
             }
         }

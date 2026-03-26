@@ -34,7 +34,7 @@ class BracketTest {
 
         val computation = bracket<String, String>(
             acquire = { events.add("acquire"); "resource" },
-            use = { r -> Computation { events.add("use:$r"); delay(50); "result-of-$r" } },
+            use = { r -> Effect { events.add("use:$r"); delay(50); "result-of-$r" } },
             release = { r -> events.add("release:$r") },
         )
 
@@ -54,7 +54,7 @@ class BracketTest {
 
         val computation = bracket<String, String>(
             acquire = { "conn" },
-            use = { _ -> Computation { delay(30); throw IllegalStateException("boom") } },
+            use = { _ -> Effect { delay(30); throw IllegalStateException("boom") } },
             release = { _ -> released.set(true) },
         )
 
@@ -77,7 +77,7 @@ class BracketTest {
 
         val computation = bracket<String, String>(
             acquire = { "handle" },
-            use = { _ -> Computation { started.complete(Unit); awaitCancellation() } },
+            use = { _ -> Effect { started.complete(Unit); awaitCancellation() } },
             release = { r -> released.complete("released:$r") },
         )
 
@@ -105,7 +105,7 @@ class BracketTest {
 
         val branchA = bracket<String, String>(
             acquire = { "connA" },
-            use = { r -> Computation {
+            use = { r -> Effect {
                 barrierA.complete(Unit)
                 barrierB.await(); barrierC.await()
                 delay(100); r
@@ -115,7 +115,7 @@ class BracketTest {
 
         val branchB = bracket<String, String>(
             acquire = { "connB" },
-            use = { r -> Computation {
+            use = { r -> Effect {
                 barrierB.complete(Unit)
                 barrierA.await(); barrierC.await()
                 delay(100); r
@@ -125,7 +125,7 @@ class BracketTest {
 
         val branchC = bracket<String, String>(
             acquire = { "connC" },
-            use = { _ -> Computation {
+            use = { _ -> Effect {
                 barrierC.complete(Unit)
                 barrierA.await(); barrierB.await()
                 throw RuntimeException("branch C explodes")
@@ -165,7 +165,7 @@ class BracketTest {
         val events = CopyOnWriteArrayList<String>()
 
         // ── Success case ──
-        val successComp = Computation { delay(30); "ok" }
+        val successComp = Effect { delay(30); "ok" }
             .guarantee { events.add("finalizer:success") }
         val successResult = Async { successComp }
 
@@ -174,7 +174,7 @@ class BracketTest {
 
         // ── Failure case ──
         events.clear()
-        val failComp = Computation<String> { delay(20); throw ArithmeticException("div/0") }
+        val failComp = Effect<String> { delay(20); throw ArithmeticException("div/0") }
             .guarantee { events.add("finalizer:failure") }
 
         val failResult = runCatching { Async { failComp } }
@@ -194,7 +194,7 @@ class BracketTest {
         val cases = CopyOnWriteArrayList<ExitCase>()
 
         // ── Completed ──
-        val completedComp = Computation { delay(10); 42 }
+        val completedComp = Effect { delay(10); 42 }
             .guaranteeCase { cases.add(it) }
         val result = Async { completedComp }
 
@@ -205,7 +205,7 @@ class BracketTest {
 
         // ── Failed ──
         cases.clear()
-        val failedComp = Computation<Int> { throw IllegalArgumentException("bad arg") }
+        val failedComp = Effect<Int> { throw IllegalArgumentException("bad arg") }
             .guaranteeCase { cases.add(it) }
 
         val failResult = runCatching { Async { failedComp } }
@@ -225,7 +225,7 @@ class BracketTest {
         val exitCaseRef = CompletableDeferred<ExitCase>()
         val started = CompletableDeferred<Unit>()
 
-        val comp = Computation<String> { started.complete(Unit); awaitCancellation() }
+        val comp = Effect<String> { started.complete(Unit); awaitCancellation() }
             .guaranteeCase { exitCaseRef.complete(it) }
 
         val job = launch { Async.invoke<String> { comp } }
@@ -252,19 +252,19 @@ class BracketTest {
 
         val dbBracket = bracket<String, String>(
             acquire = { acquireOrder.add("db"); "db-conn" },
-            use = { conn -> Computation { delay(40); "data-from-$conn" } },
+            use = { conn -> Effect { delay(40); "data-from-$conn" } },
             release = { r -> releases.add("release:$r") },
         )
 
         val cacheBracket = bracket<String, String>(
             acquire = { acquireOrder.add("cache"); "cache-conn" },
-            use = { conn -> Computation { delay(40); "data-from-$conn" } },
+            use = { conn -> Effect { delay(40); "data-from-$conn" } },
             release = { r -> releases.add("release:$r") },
         )
 
         val apiBracket = bracket<String, String>(
             acquire = { acquireOrder.add("api"); "api-conn" },
-            use = { conn -> Computation { delay(40); "data-from-$conn" } },
+            use = { conn -> Effect { delay(40); "data-from-$conn" } },
             release = { r -> releases.add("release:$r") },
         )
 
@@ -276,8 +276,8 @@ class BracketTest {
                     .with(cacheBracket)
                     .with(apiBracket)
                     // Phase 2: use the combined result - this fails
-                    .flatMap { triple ->
-                        Computation {
+                    .andThen { triple ->
+                        Effect {
                             val msg = "phase 2 failed: ${triple.first}, ${triple.second}, ${triple.third}"
                             throw RuntimeException(msg)
                         }
@@ -309,7 +309,7 @@ class BracketTest {
             use = { outer ->
                 bracket<String, String>(
                     acquire = { events.add("acquire:inner"); "inner" },
-                    use = { inner -> Computation {
+                    use = { inner -> Effect {
                         events.add("use:$outer+$inner")
                         delay(30)
                         "$outer+$inner"
@@ -347,7 +347,7 @@ class BracketTest {
 
         val computation = bracket<String, String>(
             acquire = { "resource" },
-            use = { _ -> Computation { started.complete(Unit); delay(100); awaitCancellation() } },
+            use = { _ -> Effect { started.complete(Unit); delay(100); awaitCancellation() } },
             release = { _ ->
                 // Release runs in NonCancellable during cancellation cleanup.
                 // It should NOT advance the virtual clock because it happens

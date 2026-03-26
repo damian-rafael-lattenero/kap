@@ -23,7 +23,7 @@ import kotlin.time.TimeSource
  *     resetTimeout = 30.seconds,
  * )
  *
- * Computation { callExternalService() }
+ * Effect { callExternalService() }
  *     .withCircuitBreaker(breaker)
  *     .recover { cachedResponse() }
  * ```
@@ -131,9 +131,9 @@ class CircuitBreakerOpenException(
  * }
  * ```
  */
-fun <A> Computation<A>.withCircuitBreaker(breaker: CircuitBreaker): Computation<A> {
+fun <A> Effect<A>.withCircuitBreaker(breaker: CircuitBreaker): Effect<A> {
     val self = this
-    return Computation {
+    return Effect {
         breaker.mutex.withLock {
             if (!breaker.shouldAttempt()) {
                 throw CircuitBreakerOpenException()

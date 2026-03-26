@@ -12,7 +12,7 @@ import kotlin.time.Duration
  * Fails with [kotlinx.coroutines.TimeoutCancellationException] if this
  * computation does not complete within [duration].
  */
-fun <A> Computation<A>.timeout(duration: Duration): Computation<A> = Computation {
+fun <A> Effect<A>.timeout(duration: Duration): Effect<A> = Effect {
     withTimeout(duration) { with(this@timeout) { execute() } }
 }
 
@@ -23,7 +23,7 @@ fun <A> Computation<A>.timeout(duration: Duration): Computation<A> = Computation
  * computations that return `null` as a valid value — a `null` result is never
  * confused with a timeout.
  */
-fun <A> Computation<A>.timeout(duration: Duration, default: A): Computation<A> = Computation {
+fun <A> Effect<A>.timeout(duration: Duration, default: A): Effect<A> = Effect {
     var completed = false
     val result = withTimeoutOrNull(duration) {
         with(this@timeout) { execute() }.also { completed = true }
@@ -43,7 +43,7 @@ fun <A> Computation<A>.timeout(duration: Duration, default: A): Computation<A> =
  * computations that return `null` as a valid value — a `null` result is never
  * confused with a timeout.
  */
-fun <A> Computation<A>.timeout(duration: Duration, fallback: Computation<A>): Computation<A> = Computation {
+fun <A> Effect<A>.timeout(duration: Duration, fallback: Effect<A>): Effect<A> = Effect {
     var completed = false
     val result = withTimeoutOrNull(duration) {
         with(this@timeout) { execute() }.also { completed = true }
@@ -64,7 +64,7 @@ fun <A> Computation<A>.timeout(duration: Duration, fallback: Computation<A>): Co
  * [CancellationException] is never caught — structured concurrency
  * cancellation always propagates.
  */
-inline fun <A> Computation<A>.recover(crossinline f: suspend (Throwable) -> A): Computation<A> = Computation {
+inline fun <A> Effect<A>.recover(crossinline f: suspend (Throwable) -> A): Effect<A> = Effect {
     try {
         with(this@recover) { execute() }
     } catch (e: Throwable) {
@@ -76,7 +76,7 @@ inline fun <A> Computation<A>.recover(crossinline f: suspend (Throwable) -> A): 
 /**
  * Catches non-cancellation exceptions and switches to a recovery computation.
  */
-inline fun <A> Computation<A>.recoverWith(crossinline f: suspend (Throwable) -> Computation<A>): Computation<A> = Computation {
+inline fun <A> Effect<A>.recoverWith(crossinline f: suspend (Throwable) -> Effect<A>): Effect<A> = Effect {
     try {
         with(this@recoverWith) { execute() }
     } catch (e: Throwable) {
@@ -90,7 +90,7 @@ inline fun <A> Computation<A>.recoverWith(crossinline f: suspend (Throwable) -> 
 /**
  * On failure, runs [other] instead. Shorthand for `recoverWith { other }`.
  */
-infix fun <A> Computation<A>.fallback(other: Computation<A>): Computation<A> =
+infix fun <A> Effect<A>.fallback(other: Effect<A>): Effect<A> =
     recoverWith { other }
 
 // ── retry ────────────────────────────────────────────────────────────────
@@ -108,20 +108,20 @@ infix fun <A> Computation<A>.fallback(other: Computation<A>): Computation<A> =
  *        the exception, and the delay before the next attempt.
  *        Useful for logging and metrics.
  */
-fun <A> Computation<A>.retry(
+fun <A> Effect<A>.retry(
     maxAttempts: Int,
     delay: Duration = Duration.ZERO,
     backoff: (Duration) -> Duration = { it },
     shouldRetry: (Throwable) -> Boolean = { true },
     onRetry: suspend (attempt: Int, error: Throwable, nextDelay: Duration) -> Unit = { _, _, _ -> },
-): Computation<A> {
+): Effect<A> {
     require(maxAttempts >= 1) { "maxAttempts must be >= 1, was $maxAttempts" }
-    return Computation {
+    return Effect {
         var currentDelay = delay
         var lastException: Throwable? = null
         repeat(maxAttempts) { attempt ->
             try {
-                return@Computation with(this@retry) { execute() }
+                return@Effect with(this@retry) { execute() }
             } catch (e: Throwable) {
                 if (e is CancellationException) throw e
                 if (!shouldRetry(e)) throw e
@@ -146,15 +146,15 @@ fun <A> Computation<A>.retry(
  * Useful for short-circuit guards inside computation chains:
  *
  * ```
- * Computation { fetchUser(id) }
+ * Effect { fetchUser(id) }
  *     .ensure({ InactiveUserException(id) }) { it.isActive }
- *     .flatMap { user -> buildDashboard(user) }
+ *     .andThen { user -> buildDashboard(user) }
  * ```
  */
-fun <A> Computation<A>.ensure(
+fun <A> Effect<A>.ensure(
     error: () -> Throwable,
     predicate: (A) -> Boolean,
-): Computation<A> = Computation {
+): Effect<A> = Effect {
     val a = with(this@ensure) { execute() }
     if (predicate(a)) a else throw error()
 }
@@ -166,15 +166,15 @@ fun <A> Computation<A>.ensure(
  * Avoids nested null checks in computation chains:
  *
  * ```
- * Computation { fetchUser(id) }
+ * Effect { fetchUser(id) }
  *     .ensureNotNull({ ProfileMissing(id) }) { it.profile }
- *     .flatMap { profile -> loadPreferences(profile) }
+ *     .andThen { profile -> loadPreferences(profile) }
  * ```
  */
-fun <A, B : Any> Computation<A>.ensureNotNull(
+fun <A, B : Any> Effect<A>.ensureNotNull(
     error: () -> Throwable,
     extract: (A) -> B?,
-): Computation<B> = Computation {
+): Effect<B> = Effect {
     val a = with(this@ensureNotNull) { execute() }
     extract(a) ?: throw error()
 }
@@ -192,13 +192,13 @@ fun <A, B : Any> Computation<A>.ensureNotNull(
  *
  * ```
  * val user = Async {
- *     Computation { fetchFromPrimary() }
- *         .orElse(Computation { fetchFromReplica() })
- *         .orElse(Computation { User.cached() })
+ *     Effect { fetchFromPrimary() }
+ *         .orElse(Effect { fetchFromReplica() })
+ *         .orElse(Effect { User.cached() })
  * }
  * ```
  */
-infix fun <A> Computation<A>.orElse(other: Computation<A>): Computation<A> = Computation {
+infix fun <A> Effect<A>.orElse(other: Effect<A>): Effect<A> = Effect {
     try {
         with(this@orElse) { execute() }
     } catch (e: Throwable) {
@@ -219,21 +219,21 @@ infix fun <A> Computation<A>.orElse(other: Computation<A>): Computation<A> = Com
  * ```
  * val data = Async {
  *     firstSuccessOf(
- *         Computation { fetchFromPrimary() },
- *         Computation { fetchFromSecondary() },
- *         Computation { fetchFromCache() },
+ *         Effect { fetchFromPrimary() },
+ *         Effect { fetchFromSecondary() },
+ *         Effect { fetchFromCache() },
  *     )
  * }
  * ```
  */
-fun <A> firstSuccessOf(vararg computations: Computation<A>): Computation<A> {
+fun <A> firstSuccessOf(vararg computations: Effect<A>): Effect<A> {
     require(computations.isNotEmpty()) { "firstSuccessOf requires at least one computation" }
     if (computations.size == 1) return computations[0]
-    return Computation {
+    return Effect {
         val errors = mutableListOf<Throwable>()
         for (c in computations) {
             try {
-                return@Computation with(c) { execute() }
+                return@Effect with(c) { execute() }
             } catch (e: Throwable) {
                 if (e is CancellationException) throw e
                 errors.add(e)
@@ -248,7 +248,7 @@ fun <A> firstSuccessOf(vararg computations: Computation<A>): Computation<A> {
 /**
  * Tries each computation in this collection sequentially; returns the first to succeed.
  */
-fun <A> Iterable<Computation<A>>.firstSuccess(): Computation<A> =
+fun <A> Iterable<Effect<A>>.firstSuccess(): Effect<A> =
     firstSuccessOf(*toList().toTypedArray())
 
 // ── backoff strategies ───────────────────────────────────────────────────

@@ -21,7 +21,7 @@ class StressTest {
     fun `traverse 100 parallel computations completes correctly`() = runTest {
         val results = Async {
             (1..100).toList().traverse { i ->
-                Computation { delay(50); "item-$i" }
+                Effect { delay(50); "item-$i" }
             }
         }
         assertEquals(100, results.size)
@@ -34,7 +34,7 @@ class StressTest {
     fun `traverse 500 parallel computations with bounded concurrency`() = runTest {
         val results = Async {
             (1..500).toList().traverse(concurrency = 50) { i ->
-                Computation { delay(30); i }
+                Effect { delay(30); i }
             }
         }
         assertEquals(500, results.size)
@@ -47,7 +47,7 @@ class StressTest {
     fun `traverse 200 with single failure cancels all siblings`() = runTest {
         val started = java.util.concurrent.atomic.AtomicInteger(0)
         val comp = (1..200).toList().traverse { i ->
-            Computation<String> {
+            Effect<String> {
                 started.incrementAndGet()
                 delay(50)
                 if (i == 1) error("first fails fast")
@@ -64,7 +64,7 @@ class StressTest {
     @Test
     fun `sequence 150 computations all complete`() = runTest {
         val computations = (1..150).map { i ->
-            Computation { delay(40); "v$i" }
+            Effect { delay(40); "v$i" }
         }
         val results = Async { computations.sequence() }
         assertEquals(150, results.size)
@@ -73,23 +73,23 @@ class StressTest {
         assertEquals(40, currentTime)
     }
 
-    // ── deeply nested flatMap chains ────────────────────────────────────
+    // ── deeply nested andThen chains ────────────────────────────────────
 
     @Test
-    fun `flatMap chain depth 50 completes without stack overflow`() = runTest {
-        var computation: Computation<Int> = Computation.of(0)
+    fun `andThen chain depth 50 completes without stack overflow`() = runTest {
+        var computation: Effect<Int> = Effect.of(0)
         repeat(50) {
-            computation = computation.flatMap { n -> Computation.of(n + 1) }
+            computation = computation.andThen { n -> Effect.of(n + 1) }
         }
         val result = Async { computation }
         assertEquals(50, result)
     }
 
     @Test
-    fun `flatMap chain depth 200 with defer completes without stack overflow`() = runTest {
-        fun chain(depth: Int, current: Int): Computation<Int> =
-            if (depth <= 0) Computation.of(current)
-            else Computation.defer { chain(depth - 1, current + 1) }
+    fun `andThen chain depth 200 with defer completes without stack overflow`() = runTest {
+        fun chain(depth: Int, current: Int): Effect<Int> =
+            if (depth <= 0) Effect.of(current)
+            else Effect.defer { chain(depth - 1, current + 1) }
 
         val result = Async { chain(200, 0) }
         assertEquals(200, result)
@@ -144,7 +144,7 @@ class StressTest {
     @Test
     fun `raceN with 20 computations - fastest wins`() = runTest {
         val computations = (1..20).map { i ->
-            Computation { delay(i.toLong() * 10); "winner-$i" }
+            Effect { delay(i.toLong() * 10); "winner-$i" }
         }
         val result = Async { raceN(*computations.toTypedArray()) }
         assertEquals("winner-1", result, "Fastest (10ms) should win")
@@ -154,7 +154,7 @@ class StressTest {
     @Test
     fun `raceN with 20 computations - 19 fail, 1 succeeds`() = runTest {
         val computations = (1..20).map { i ->
-            Computation {
+            Effect {
                 delay(i.toLong() * 5)
                 if (i < 20) error("fail-$i")
                 "survivor"
@@ -169,14 +169,14 @@ class StressTest {
     @Test
     fun `memoize with 50 concurrent consumers executes only once`() = runTest {
         val executions = java.util.concurrent.atomic.AtomicInteger(0)
-        val memoized = Computation {
+        val memoized = Effect {
             executions.incrementAndGet()
             delay(50)
             "computed"
         }.memoize()
 
         val results = Async {
-            (1..50).toList().traverse { Computation { memoized.await() } }
+            (1..50).toList().traverse { Effect { memoized.await() } }
         }
         assertEquals(50, results.size)
         assertTrue(results.all { it == "computed" })
@@ -187,11 +187,11 @@ class StressTest {
 
     @Test
     fun `orElse chain of 10 - last one succeeds`() = runTest {
-        var chain: Computation<String> = Computation { error("fail-1") }
+        var chain: Effect<String> = Effect { error("fail-1") }
         for (i in 2..9) {
-            chain = chain.orElse(Computation { error("fail-$i") })
+            chain = chain.orElse(Effect { error("fail-$i") })
         }
-        chain = chain.orElse(Computation { "success-10" })
+        chain = chain.orElse(Effect { "success-10" })
         val result = Async { chain }
         assertEquals("success-10", result)
     }
@@ -199,7 +199,7 @@ class StressTest {
     @Test
     fun `firstSuccessOf with 10 computations - 3rd succeeds`() = runTest {
         val computations = (1..10).map { i ->
-            Computation<String> {
+            Effect<String> {
                 if (i < 3) error("fail-$i")
                 "success-$i"
             }
@@ -217,7 +217,7 @@ class StressTest {
                 {
                     // Branch 1: flaky, succeeds on 2nd try
                     var attempts = 0
-                    Computation {
+                    Effect {
                         attempts++
                         if (attempts < 2) error("flaky")
                         "stable"
@@ -225,13 +225,13 @@ class StressTest {
                 },
                 {
                     // Branch 2: slow, falls back to cached
-                    Computation { delay(500); "slow" }
+                    Effect { delay(500); "slow" }
                         .timeout(kotlin.time.Duration.parse("100ms"), default = "cached")
                         .await()
                 },
                 {
                     // Branch 3: always fails, recovered
-                    Computation<String> { error("down") }
+                    Effect<String> { error("down") }
                         .recover { "fallback" }
                         .await()
                 },

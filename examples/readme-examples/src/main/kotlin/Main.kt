@@ -72,11 +72,11 @@ suspend fun heroCheckout() {
             .with { fetchCart() }               // ├─ phase 1: parallel
             .with { fetchPromos() }             // │
             .with { fetchInventory() }          // ┘
-            .followedBy { validateStock() }     // ── phase 2: barrier
+            .then { validateStock() }     // ── phase 2: barrier
             .with { calcShipping() }            // ┐
             .with { calcTax() }                 // ├─ phase 3: parallel
             .with { calcDiscounts() }           // ┘
-            .followedBy { reservePayment() }    // ── phase 4: barrier
+            .then { reservePayment() }    // ── phase 4: barrier
             .with { generateConfirmation() }    // ┐ phase 5: parallel
             .with { sendEmail() }               // ┘
     }
@@ -169,7 +169,7 @@ suspend fun constructorIsAFunction() {
 suspend fun nothingRunsUntilAsync() {
     println("=== Nothing runs until Async {} ===\n")
 
-    val plan: Computation<Dashboard> = kap(::Dashboard)
+    val plan: Effect<Dashboard> = kap(::Dashboard)
         .with { fetchDashUser() }
         .with { fetchDashCart() }
         .with { fetchDashPromos() }
@@ -232,15 +232,15 @@ suspend fun threePrimitiveWith() {
 }
 
 suspend fun threePrimitiveFollowedBy() {
-    println("=== Primitive: .followedBy (barrier) ===\n")
+    println("=== Primitive: .then (barrier) ===\n")
 
     val result = Async {
         kap(::R3)
             .with { fetchA() }             // ┐ parallel
             .with { fetchB() }             // ┘
-            .followedBy { validate() }     // waits for A and B
+            .then { validate() }     // waits for A and B
     }
-    println("  .followedBy result: $result\n")
+    println("  .then result: $result\n")
 }
 
 data class UserContext(val profile: String, val prefs: String, val tier: String)
@@ -254,7 +254,7 @@ suspend fun fetchPromotions(tier: String): String { delay(30); return "promos-$t
 suspend fun fetchTrending(prefs: String): String { delay(20); return "trending-$prefs" }
 
 suspend fun threePrimitiveFlatMap() {
-    println("=== Primitive: .flatMap (value-dependent phases) ===\n")
+    println("=== Primitive: .andThen (value-dependent phases) ===\n")
 
     val userId = "user-1"
     val dashboard = Async {
@@ -262,14 +262,14 @@ suspend fun threePrimitiveFlatMap() {
             .with { fetchProfile(userId) }       // ┐ phase 1: parallel
             .with { fetchPreferences(userId) }   // │
             .with { fetchLoyaltyTier(userId) }   // ┘
-            .flatMap { ctx ->                     // ── barrier: phase 2 NEEDS ctx
+            .andThen { ctx ->                     // ── barrier: phase 2 NEEDS ctx
                 kap(::PersonalizedDashboard)
                     .with { fetchRecommendations(ctx.profile) }   // ┐ phase 2: parallel
                     .with { fetchPromotions(ctx.tier) }           // │
                     .with { fetchTrending(ctx.prefs) }            // ┘
             }
     }
-    println("  .flatMap result: $dashboard\n")
+    println("  .andThen result: $dashboard\n")
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -316,7 +316,7 @@ suspend fun phasedFlatMapRaw() {
 }
 
 suspend fun phasedFlatMapKap() {
-    println("=== Phase Dependencies: KAP flatMap ===\n")
+    println("=== Phase Dependencies: KAP andThen ===\n")
     val userId = "user-42"
 
     val dashboard: FinalDashboard = Async {
@@ -324,13 +324,13 @@ suspend fun phasedFlatMapKap() {
             .with { fetchProfile(userId) }
             .with { fetchPreferences(userId) }
             .with { fetchLoyaltyTier(userId) }
-            .flatMap { ctx ->
+            .andThen { ctx ->
                 kap(::EnrichedContent)
                     .with { fetchRecommendations(ctx.profile) }
                     .with { fetchPromotions(ctx.tier) }
                     .with { fetchTrending(ctx.prefs) }
                     .with { fetchHistory(ctx.profile) }
-                    .flatMap { enriched ->
+                    .andThen { enriched ->
                         kap(::FinalDashboard)
                             .with { renderLayout(ctx, enriched) }
                             .with { trackAnalytics(ctx, enriched) }
@@ -372,11 +372,11 @@ suspend fun quickStartResilience() {
 
     val result = Async {
         kap(::Dashboard)
-            .with(Computation { fetchDashUser() }
+            .with(Effect { fetchDashUser() }
                 .withCircuitBreaker(breaker)
                 .retry(retryPolicy))
-            .with(Computation { fetchFromSlowApi() }
-                .timeoutRace(100.milliseconds, Computation { fetchFromCache() }))
+            .with(Effect { fetchFromSlowApi() }
+                .timeoutRace(100.milliseconds, Effect { fetchFromCache() }))
             .with { fetchDashPromos() }
     }
     println("  Resilient dashboard: $result\n")
@@ -478,12 +478,12 @@ suspend fun chooseYourStyle() {
     }
     println("  combine:   $s2")
 
-    // Style 3: combine with pre-built Computations
+    // Style 3: combine with pre-built Effects
     val s3 = Async {
         combine(
-            Computation { fetchDashUser() },
-            Computation { fetchDashCart() },
-            Computation { fetchDashPromos() },
+            Effect { fetchDashUser() },
+            Effect { fetchDashCart() },
+            Effect { fetchDashPromos() },
         ) { user: String, cart: String, promos: String -> Dashboard(user, cart, promos) }
     }
     println("  zip:       $s3")
@@ -510,7 +510,7 @@ suspend fun featureSettled() {
         kap { user: Result<String>, cart: String, config: String ->
             PartialDashboard(user.getOrDefault("anonymous"), cart, config)
         }
-            .with(Computation { fetchUserMayFail() }.settled())
+            .with(Effect { fetchUserMayFail() }.settled())
             .with { fetchCartAlways() }
             .with { fetchConfigAlways() }
     }
@@ -520,7 +520,7 @@ suspend fun featureSettled() {
     val ids = listOf(1, 2, 3, 4, 5)
     val results: List<Result<String>> = Async {
         ids.traverseSettled { id ->
-            Computation {
+            Effect {
                 if (id % 2 == 0) throw RuntimeException("fail-$id")
                 "user-$id"
             }
@@ -543,8 +543,8 @@ suspend fun featureTimeoutRace() {
 
     val start = System.currentTimeMillis()
     val result = Async {
-        Computation { fetchFromPrimary() }
-            .timeoutRace(100.milliseconds, Computation { fetchFromFallback() })
+        Effect { fetchFromPrimary() }
+            .timeoutRace(100.milliseconds, Effect { fetchFromFallback() })
     }
     val elapsed = System.currentTimeMillis() - start
     println("  timeoutRace: $result (${elapsed}ms — fallback won)\n")
@@ -569,7 +569,7 @@ suspend fun featureRetrySchedule() {
         Schedule.doWhile<Throwable> { it is RuntimeException }
 
     val result = Async {
-        Computation { flakyService() }.retry(policy)
+        Effect { flakyService() }.retry(policy)
     }
     println("  Result: $result")
 
@@ -579,7 +579,7 @@ suspend fun featureRetrySchedule() {
     val result2 = Async {
         kap { user: String, service: String -> RetryResult(user, service) }
             .with { fetchDashUser() }
-            .with(Computation { flakyService() }
+            .with(Effect { flakyService() }
                 .retry(3, delay = 10.milliseconds))
     }
     println("  Inline:  $result2\n")
@@ -608,17 +608,17 @@ suspend fun featureResourceSafety() {
         kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
             .with(bracket(
                 acquire = { openDbConnection() },
-                use = { conn -> Computation { conn.query("SELECT 1") } },
+                use = { conn -> Effect { conn.query("SELECT 1") } },
                 release = { conn -> conn.close() },
             ))
             .with(bracket(
                 acquire = { openCacheConnection() },
-                use = { conn -> Computation { conn.get("key") } },
+                use = { conn -> Effect { conn.get("key") } },
                 release = { conn -> conn.close() },
             ))
             .with(bracket(
                 acquire = { openHttpClient() },
-                use = { client -> Computation { client.get("/api") } },
+                use = { client -> Effect { client.get("/api") } },
                 release = { client -> client.close() },
             ))
     }
@@ -634,7 +634,7 @@ suspend fun featureResourceSafety() {
     ) { db, cache, http -> Triple(db, cache, http) }
 
     val result2 = Async {
-        infra.useComputation { (db, cache, http) ->
+        infra.useEffect { (db, cache, http) ->
             kap(::DashboardData)
                 .with { db.query("SELECT 1") }
                 .with { cache.get("user:prefs") }
@@ -647,7 +647,7 @@ suspend fun featureResourceSafety() {
     val result3 = Async {
         bracketCase(
             acquire = { openDbConnection() },
-            use = { tx -> Computation { tx.query("INSERT 1") } },
+            use = { tx -> Effect { tx.query("INSERT 1") } },
             release = { tx, case ->
                 when (case) {
                     is ExitCase.Completed<*> -> println("    bracketCase: commit")
@@ -673,9 +673,9 @@ suspend fun featureRacing() {
 
     val fastest = Async {
         raceN(
-            Computation { fetchFromRegionUS() },
-            Computation { fetchFromRegionEU() },
-            Computation { fetchFromRegionAP() },
+            Effect { fetchFromRegionUS() },
+            Effect { fetchFromRegionEU() },
+            Effect { fetchFromRegionAP() },
         )
     }
     println("  raceN winner: $fastest")
@@ -683,8 +683,8 @@ suspend fun featureRacing() {
     // raceEither with different types
     val raceResult: Either<String, Int> = Async {
         raceEither(
-            fa = Computation { delay(30); "fast-string" },
-            fb = Computation { delay(100); 42 },
+            fa = Effect { delay(30); "fast-string" },
+            fb = Effect { delay(100); 42 },
         )
     }
     println("  raceEither: $raceResult\n")
@@ -701,7 +701,7 @@ suspend fun featureTraverse() {
 
     val results = Async {
         userIds.traverse(concurrency = 3) { id ->
-            Computation { delay(20); "user-$id" }
+            Effect { delay(20); "user-$id" }
         }
     }
     println("  traverse(c=3): ${results.size} users fetched\n")
@@ -721,9 +721,9 @@ suspend fun featureRaceQuorum() {
     val quorum: List<String> = Async {
         raceQuorum(
             required = 2,
-            Computation { fetchReplicaA() },
-            Computation { fetchReplicaB() },
-            Computation { fetchReplicaC() },
+            Effect { fetchReplicaA() },
+            Effect { fetchReplicaB() },
+            Effect { fetchReplicaC() },
         )
     }
     println("  raceQuorum(2 of 3): $quorum\n")
@@ -739,7 +739,7 @@ suspend fun featureCircuitBreaker() {
     val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
     val result = Async {
-        Computation { fetchDashUser() }
+        Effect { fetchDashUser() }
             .timeout(500.milliseconds)
             .withCircuitBreaker(breaker)
             .retry(Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds))
@@ -756,7 +756,7 @@ suspend fun featureMemoize() {
     println("=== Feature: Memoization ===\n")
 
     var callCount = 0
-    val fetchOnce = Computation { callCount++; delay(30); "expensive-result" }.memoizeOnSuccess()
+    val fetchOnce = Effect { callCount++; delay(30); "expensive-result" }.memoizeOnSuccess()
 
     val a = Async { fetchOnce }
     val b = Async { fetchOnce }
@@ -851,12 +851,12 @@ suspend fun featureAttempt() {
     println("=== Feature: attempt() ===\n")
 
     val success: Either<Throwable, String> = Async {
-        Computation { "hello" }.attempt()
+        Effect { "hello" }.attempt()
     }
     println("  attempt success: $success")
 
     val failure: Either<Throwable, String> = Async {
-        Computation<String> { throw RuntimeException("boom") }.attempt()
+        Effect<String> { throw RuntimeException("boom") }.attempt()
     }
     println("  attempt failure: $failure\n")
 }
@@ -869,16 +869,16 @@ suspend fun featureFallbacks() {
     println("=== Feature: firstSuccessOf & orElse ===\n")
 
     val result = Async {
-        Computation<String> { throw RuntimeException("fail-1") }
-            .orElse(Computation { "fallback-ok" })
+        Effect<String> { throw RuntimeException("fail-1") }
+            .orElse(Effect { "fallback-ok" })
     }
     println("  orElse: $result")
 
     val result2 = Async {
         firstSuccessOf(
-            Computation { throw RuntimeException("fail-1") },
-            Computation { throw RuntimeException("fail-2") },
-            Computation { "third-wins" },
+            Effect { throw RuntimeException("fail-1") },
+            Effect { throw RuntimeException("fail-2") },
+            Effect { "third-wins" },
         )
     }
     println("  firstSuccessOf: $result2\n")
@@ -888,13 +888,13 @@ suspend fun featureFallbacks() {
 //  Feature: computation {} builder (kap-core)
 // ═══════════════════════════════════════════════════════════════════════
 
-suspend fun featureComputationBuilder() {
+suspend fun featureEffectBuilder() {
     println("=== Feature: computation {} builder ===\n")
 
     val result = Async {
         computation {
-            val user = Computation { fetchDashUser() }.bind()
-            val cart = Computation { fetchDashCart() }.bind()
+            val user = Effect { fetchDashUser() }.bind()
+            val cart = Effect { fetchDashCart() }.bind()
             "$user has $cart"
         }
     }
@@ -902,7 +902,7 @@ suspend fun featureComputationBuilder() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-//  Feature: Execution Model — followedBy vs thenValue
+//  Feature: Execution Model — then vs thenValue
 // ═══════════════════════════════════════════════════════════════════════
 
 fun combineThree(a: String, b: String, c: String): String = "$a+$b+$c"
@@ -980,8 +980,8 @@ suspend fun bffMobileApp() {
     println("=== BFF: Mobile Home Page ===\n")
 
     val homePage: MobileHomePage = Async {
-        Computation { fetchSession("tok-abc") }         // phase 1: authenticate
-            .flatMap { session ->                        // ── barrier: session ready
+        Effect { fetchSession("tok-abc") }         // phase 1: authenticate
+            .andThen { session ->                        // ── barrier: session ready
                 combine(                                 // phase 2: fan-out (all parallel)
                     { fetchProductFeed(session.prefs) },
                     { fetchSponsored(session.tier) },
@@ -1052,7 +1052,7 @@ suspend fun main() {
     featurePhasedValidation()
     featureAttempt()
     featureFallbacks()
-    featureComputationBuilder()
+    featureEffectBuilder()
     executionModel()
 
     // Reordered execution

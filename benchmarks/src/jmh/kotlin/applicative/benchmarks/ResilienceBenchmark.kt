@@ -62,7 +62,7 @@ open class ResilienceBenchmark {
 
     @Benchmark fun kap_retry_schedule_times(): String = runBlocking {
         Async {
-            Computation { networkCall("service", 30) }
+            Effect { networkCall("service", 30) }
                 .retry(Schedule.times<Throwable>(3) and Schedule.spaced(kotlin.time.Duration.parse("10ms")))
                 .recover { "fallback" }
         }
@@ -70,7 +70,7 @@ open class ResilienceBenchmark {
 
     @Benchmark fun kap_retry_schedule_exponential(): String = runBlocking {
         Async {
-            Computation { networkCall("service", 30) }
+            Effect { networkCall("service", 30) }
                 .retry(
                     Schedule.times<Throwable>(3)
                         .and(Schedule.exponential(kotlin.time.Duration.parse("1ms")))
@@ -89,7 +89,7 @@ open class ResilienceBenchmark {
             .fold(0) { count, _ -> count + 1 }
         var attempts = 0
         Async {
-            Computation {
+            Effect {
                 attempts++
                 if (attempts < 3) error("flaky")
                 "ok"
@@ -114,7 +114,7 @@ open class ResilienceBenchmark {
         Async {
             bracket(
                 acquire = { "resource" },
-                use = { r -> Computation { "$r-used" } },
+                use = { r -> Effect { "$r-used" } },
                 release = { },
             )
         }
@@ -170,7 +170,7 @@ open class ResilienceBenchmark {
         Async {
             bracketCase(
                 acquire = { "resource" },
-                use = { r -> Computation { "$r-used" } },
+                use = { r -> Effect { "$r-used" } },
                 release = { _, case ->
                     when (case) {
                         is ExitCase.Completed<*> -> {}
@@ -210,13 +210,13 @@ open class ResilienceBenchmark {
 
     @Benchmark fun kap_guarantee_overhead(): String = runBlocking {
         Async {
-            Computation { compute(1) }.guarantee { }
+            Effect { compute(1) }.guarantee { }
         }
     }
 
     @Benchmark fun kap_guaranteeCase_overhead(): String = runBlocking {
         Async {
-            Computation { compute(1) }.guaranteeCase { case ->
+            Effect { compute(1) }.guaranteeCase { case ->
                 when (case) {
                     is ExitCase.Completed<*> -> {}
                     is ExitCase.Failed -> {}
@@ -276,11 +276,11 @@ open class ResilienceBenchmark {
     }
 
     @Benchmark fun kap_circuitBreaker_closed_overhead(): String = runBlocking {
-        Async { Computation { compute(1) }.withCircuitBreaker(closedBreaker) }
+        Async { Effect { compute(1) }.withCircuitBreaker(closedBreaker) }
     }
 
     @Benchmark fun kap_circuitBreaker_closed_latency(): String = runBlocking {
-        Async { Computation { networkCall("service", 50) }.withCircuitBreaker(closedBreaker) }
+        Async { Effect { networkCall("service", 50) }.withCircuitBreaker(closedBreaker) }
     }
 
     @Benchmark fun kap_circuitBreaker_halfOpen_probe(): String = runBlocking {
@@ -289,10 +289,10 @@ open class ResilienceBenchmark {
             resetTimeout = kotlin.time.Duration.parse("1ms"),
         )
         runCatching {
-            Async { Computation<String> { error("trip") }.withCircuitBreaker(breaker) }
+            Async { Effect<String> { error("trip") }.withCircuitBreaker(breaker) }
         }
         delay(2)
-        Async { Computation { compute(1) }.withCircuitBreaker(breaker) }
+        Async { Effect { compute(1) }.withCircuitBreaker(breaker) }
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -310,8 +310,8 @@ open class ResilienceBenchmark {
 
     @Benchmark fun kap_timeoutRace_primary_wins(): String = runBlocking {
         Async {
-            Computation { networkCall("primary", 30) }
-                .timeoutRace(kotlin.time.Duration.parse("100ms"), Computation { networkCall("fallback", 80) })
+            Effect { networkCall("primary", 30) }
+                .timeoutRace(kotlin.time.Duration.parse("100ms"), Effect { networkCall("fallback", 80) })
         }
     }
 
@@ -329,15 +329,15 @@ open class ResilienceBenchmark {
 
     @Benchmark fun kap_timeoutRace_fallback_wins(): String = runBlocking {
         Async {
-            Computation { networkCall("primary", 200) }
-                .timeoutRace(kotlin.time.Duration.parse("50ms"), Computation { networkCall("fallback", 30) })
+            Effect { networkCall("primary", 200) }
+                .timeoutRace(kotlin.time.Duration.parse("50ms"), Effect { networkCall("fallback", 30) })
         }
     }
 
     @Benchmark fun kap_timeoutRace_vs_timeout(): String = runBlocking {
         Async {
-            Computation { networkCall("primary", 200) }
-                .timeout(kotlin.time.Duration.parse("50ms"), Computation { networkCall("fallback", 30) })
+            Effect { networkCall("primary", 200) }
+                .timeout(kotlin.time.Duration.parse("50ms"), Effect { networkCall("fallback", 30) })
         }
     }
 
@@ -366,11 +366,11 @@ open class ResilienceBenchmark {
         Async {
             raceQuorum(
                 required = 2,
-                Computation { networkCall("replica-1", 50) },
-                Computation { networkCall("replica-2", 30) },
-                Computation { networkCall("replica-3", 100) },
-                Computation { networkCall("replica-4", 40) },
-                Computation { networkCall("replica-5", 80) },
+                Effect { networkCall("replica-1", 50) },
+                Effect { networkCall("replica-2", 30) },
+                Effect { networkCall("replica-3", 100) },
+                Effect { networkCall("replica-4", 40) },
+                Effect { networkCall("replica-5", 80) },
             )
         }
     }
@@ -379,11 +379,11 @@ open class ResilienceBenchmark {
         Async {
             raceQuorum(
                 required = 3,
-                Computation { networkCall("replica-1", 50) },
-                Computation { networkCall("replica-2", 30) },
-                Computation { networkCall("replica-3", 100) },
-                Computation { networkCall("replica-4", 40) },
-                Computation { networkCall("replica-5", 80) },
+                Effect { networkCall("replica-1", 50) },
+                Effect { networkCall("replica-2", 30) },
+                Effect { networkCall("replica-3", 100) },
+                Effect { networkCall("replica-4", 40) },
+                Effect { networkCall("replica-5", 80) },
             )
         }
     }
@@ -392,9 +392,9 @@ open class ResilienceBenchmark {
         Async {
             raceQuorum(
                 required = 2,
-                Computation { compute(1) },
-                Computation { compute(2) },
-                Computation { compute(3) },
+                Effect { compute(1) },
+                Effect { compute(2) },
+                Effect { compute(3) },
             )
         }
     }

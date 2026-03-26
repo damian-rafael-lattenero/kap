@@ -15,7 +15,7 @@ import kotlin.time.Duration.Companion.milliseconds
 /**
  * Tests for improvement plan items (core-only):
  *
- * 2. Computation.await() ergonomic extension
+ * 2. Effect.await() ergonomic extension
  * 4. PhaseBarrier signal safety on exception
  * 6. Alternative: orElse / firstSuccessOf
  */
@@ -23,14 +23,14 @@ import kotlin.time.Duration.Companion.milliseconds
 class ImprovementPlanTest {
 
     // ════════════════════════════════════════════════════════════════════════
-    // ITEM 2: Computation.await() — ergonomic execution inside with lambdas
+    // ITEM 2: Effect.await() — ergonomic execution inside with lambdas
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
     fun `await executes computation and returns result`() = runTest {
         val result = Async {
             kap { a: String, b: String -> "$a|$b" }
-                .with { Computation { delay(30); "fast" }.timeout(100.milliseconds, "timeout").await() }
+                .with { Effect { delay(30); "fast" }.timeout(100.milliseconds, "timeout").await() }
                 .with { delay(30); "other" }
         }
 
@@ -43,7 +43,7 @@ class ImprovementPlanTest {
         val result = Async {
             kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with { delay(30); "A" }
-                .with { Computation { delay(500); "slow-B" }.timeout(50.milliseconds, "timeout-B").await() }
+                .with { Effect { delay(500); "slow-B" }.timeout(50.milliseconds, "timeout-B").await() }
                 .with { delay(30); "C" }
         }
 
@@ -57,7 +57,7 @@ class ImprovementPlanTest {
         val result = Async {
             kap { a: String, b: String -> "$a|$b" }
                 .with {
-                    Computation {
+                    Effect {
                         attempts++
                         if (attempts < 3) throw RuntimeException("flaky")
                         delay(20); "recovered"
@@ -76,7 +76,7 @@ class ImprovementPlanTest {
         val result = Async {
             kap { a: String, b: String -> "$a|$b" }
                 .with {
-                    Computation<String> { throw RuntimeException("boom") }
+                    Effect<String> { throw RuntimeException("boom") }
                         .recover { "recovered" }
                         .await()
                 }
@@ -92,7 +92,7 @@ class ImprovementPlanTest {
         val result = runCatching {
             Async {
                 kap { a: String, b: String -> "$a|$b" }
-                    .with { Computation<String> { throw RuntimeException("crash") }.await() }
+                    .with { Effect<String> { throw RuntimeException("crash") }.await() }
                     .with { delay(1000); "never" }
             }
         }
@@ -113,7 +113,7 @@ class ImprovementPlanTest {
             Async {
                 kap { a: String, b: String, c: String -> "$a|$b|$c" }
                     .with { delay(30); "A" }
-                    .followedBy { throw RuntimeException("barrier-crash") }
+                    .then { throw RuntimeException("barrier-crash") }
                     .with { delay(30); "C" }  // gated — should NOT hang
             }
         }
@@ -129,8 +129,8 @@ class ImprovementPlanTest {
         val result = Async {
             kap { a: String, b: String -> "$a|$b" }
                 .with { delay(20); "A" }
-                .followedBy {
-                    with(Computation<String> { throw RuntimeException("barrier-fail") }
+                .then {
+                    with(Effect<String> { throw RuntimeException("barrier-fail") }
                         .recover { "recovered" }) { execute() }
                 }
         }
@@ -145,8 +145,8 @@ class ImprovementPlanTest {
     @Test
     fun `orElse returns primary on success`() = runTest {
         val result = Async {
-            Computation { "primary" }
-                .orElse(Computation { "fallback" })
+            Effect { "primary" }
+                .orElse(Effect { "fallback" })
         }
 
         assertEquals("primary", result)
@@ -155,8 +155,8 @@ class ImprovementPlanTest {
     @Test
     fun `orElse returns fallback on primary failure`() = runTest {
         val result = Async {
-            Computation<String> { throw RuntimeException("primary-fail") }
-                .orElse(Computation { delay(30); "fallback" })
+            Effect<String> { throw RuntimeException("primary-fail") }
+                .orElse(Effect { delay(30); "fallback" })
         }
 
         assertEquals("fallback", result)
@@ -166,9 +166,9 @@ class ImprovementPlanTest {
     @Test
     fun `orElse chains three levels`() = runTest {
         val result = Async {
-            Computation<String> { throw RuntimeException("fail1") }
-                .orElse(Computation { throw RuntimeException("fail2") })
-                .orElse(Computation { "last-resort" })
+            Effect<String> { throw RuntimeException("fail1") }
+                .orElse(Effect { throw RuntimeException("fail2") })
+                .orElse(Effect { "last-resort" })
         }
 
         assertEquals("last-resort", result)
@@ -178,8 +178,8 @@ class ImprovementPlanTest {
     fun `orElse propagates CancellationException`() = runTest {
         val result = runCatching {
             Async {
-                Computation<String> { throw CancellationException("cancel") }
-                    .orElse(Computation { "should-not-reach" })
+                Effect<String> { throw CancellationException("cancel") }
+                    .orElse(Effect { "should-not-reach" })
             }
         }
 
@@ -190,8 +190,8 @@ class ImprovementPlanTest {
     @Test
     fun `orElse is sequential not concurrent - timing proof`() = runTest {
         val result = Async {
-            Computation<String> { delay(20); throw RuntimeException("fail") }
-                .orElse(Computation { delay(30); "fallback" })
+            Effect<String> { delay(20); throw RuntimeException("fail") }
+                .orElse(Effect { delay(30); "fallback" })
         }
 
         assertEquals("fallback", result)
@@ -202,10 +202,10 @@ class ImprovementPlanTest {
     fun `firstSuccessOf returns first successful computation`() = runTest {
         val result = Async {
             firstSuccessOf(
-                Computation { throw RuntimeException("fail1") },
-                Computation { throw RuntimeException("fail2") },
-                Computation { delay(30); "third" },
-                Computation { delay(30); "fourth" }, // never tried
+                Effect { throw RuntimeException("fail1") },
+                Effect { throw RuntimeException("fail2") },
+                Effect { delay(30); "third" },
+                Effect { delay(30); "fourth" }, // never tried
             )
         }
 
@@ -217,9 +217,9 @@ class ImprovementPlanTest {
         val result = runCatching {
             Async {
                 firstSuccessOf(
-                    Computation<String> { throw RuntimeException("err1") },
-                    Computation { throw RuntimeException("err2") },
-                    Computation { throw RuntimeException("err3") },
+                    Effect<String> { throw RuntimeException("err1") },
+                    Effect { throw RuntimeException("err2") },
+                    Effect { throw RuntimeException("err3") },
                 )
             }
         }
@@ -235,9 +235,9 @@ class ImprovementPlanTest {
         // Test suppressed exceptions directly without Async wrapper
         val errors = mutableListOf<Throwable>()
         val computations = arrayOf(
-            Computation<String> { throw RuntimeException("err1") },
-            Computation { throw RuntimeException("err2") },
-            Computation { throw RuntimeException("err3") },
+            Effect<String> { throw RuntimeException("err1") },
+            Effect { throw RuntimeException("err2") },
+            Effect { throw RuntimeException("err3") },
         )
 
         // Execute directly within coroutineScope to verify addSuppressed works
@@ -255,8 +255,8 @@ class ImprovementPlanTest {
     fun `firstSuccessOf is sequential - timing proof`() = runTest {
         val result = Async {
             firstSuccessOf(
-                Computation { delay(20); throw RuntimeException("fail") },
-                Computation { delay(30); "success" },
+                Effect { delay(20); throw RuntimeException("fail") },
+                Effect { delay(30); "success" },
             )
         }
 
@@ -267,8 +267,8 @@ class ImprovementPlanTest {
     @Test
     fun `firstSuccess on iterable`() = runTest {
         val computations = listOf(
-            Computation<String> { throw RuntimeException("fail") },
-            Computation { "success" },
+            Effect<String> { throw RuntimeException("fail") },
+            Effect { "success" },
         )
         val result = Async { computations.firstSuccess() }
 
@@ -285,8 +285,8 @@ class ImprovementPlanTest {
             kap { a: String, b: String -> "$a|$b" }
                 .with {
                     firstSuccessOf(
-                        Computation { delay(20); throw RuntimeException("primary-down") },
-                        Computation { delay(30); "replica-data" },
+                        Effect { delay(20); throw RuntimeException("primary-down") },
+                        Effect { delay(30); "replica-data" },
                     ).await()
                 }
                 .with { delay(60); "other" }

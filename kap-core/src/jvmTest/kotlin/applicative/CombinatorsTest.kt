@@ -22,7 +22,7 @@ class CombinatorsTest {
     @Test
     fun `timeout returns result when computation completes in time`() = runTest {
         val result = Async {
-            Computation.of(42).timeout(1.seconds)
+            Effect.of(42).timeout(1.seconds)
         }
         assertEquals(42, result)
     }
@@ -31,7 +31,7 @@ class CombinatorsTest {
     fun `timeout throws when computation exceeds duration`() = runTest {
         val result = runCatching {
             Async {
-                Computation<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds)
+                Effect<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds)
             }
         }
         assertTrue(result.isFailure)
@@ -40,7 +40,7 @@ class CombinatorsTest {
     @Test
     fun `timeout with default returns default on timeout`() = runTest {
         val result = Async {
-            Computation<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds, default = -1)
+            Effect<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds, default = -1)
         }
         assertEquals(-1, result)
     }
@@ -48,7 +48,7 @@ class CombinatorsTest {
     @Test
     fun `timeout with default returns result when fast enough`() = runTest {
         val result = Async {
-            Computation.of(42).timeout(1.seconds, default = -1)
+            Effect.of(42).timeout(1.seconds, default = -1)
         }
         assertEquals(42, result)
     }
@@ -56,8 +56,8 @@ class CombinatorsTest {
     @Test
     fun `timeout with fallback computation runs fallback on timeout`() = runTest {
         val result = Async {
-            Computation<String> { delay(10.seconds); "slow" }
-                .timeout(100.milliseconds, Computation.of("fallback"))
+            Effect<String> { delay(10.seconds); "slow" }
+                .timeout(100.milliseconds, Effect.of("fallback"))
         }
         assertEquals("fallback", result)
     }
@@ -69,7 +69,7 @@ class CombinatorsTest {
     @Test
     fun `recover catches exception and maps to value`() = runTest {
         val result = Async {
-            Computation<String> { throw RuntimeException("boom") }
+            Effect<String> { throw RuntimeException("boom") }
                 .recover { "recovered: ${it.message}" }
         }
         assertEquals("recovered: boom", result)
@@ -78,7 +78,7 @@ class CombinatorsTest {
     @Test
     fun `recover passes through successful computation`() = runTest {
         val result = Async {
-            Computation.of("ok").recover { "recovered" }
+            Effect.of("ok").recover { "recovered" }
         }
         assertEquals("ok", result)
     }
@@ -87,7 +87,7 @@ class CombinatorsTest {
     fun `recover does not catch CancellationException`() = runTest {
         val result = runCatching {
             Async {
-                Computation<String> { throw CancellationException("cancelled") }
+                Effect<String> { throw CancellationException("cancelled") }
                     .recover { "recovered" }
             }
         }
@@ -98,8 +98,8 @@ class CombinatorsTest {
     @Test
     fun `recoverWith switches to recovery computation`() = runTest {
         val result = Async {
-            Computation<String> { throw RuntimeException("boom") }
-                .recoverWith { Computation.of("recovered from: ${it.message}") }
+            Effect<String> { throw RuntimeException("boom") }
+                .recoverWith { Effect.of("recovered from: ${it.message}") }
         }
         assertEquals("recovered from: boom", result)
     }
@@ -111,7 +111,7 @@ class CombinatorsTest {
     @Test
     fun `fallback switches to alternative on failure`() = runTest {
         val result = Async {
-            Computation<String> { throw RuntimeException("boom") } fallback Computation.of("backup")
+            Effect<String> { throw RuntimeException("boom") } fallback Effect.of("backup")
         }
         assertEquals("backup", result)
     }
@@ -119,7 +119,7 @@ class CombinatorsTest {
     @Test
     fun `fallback returns primary on success`() = runTest {
         val result = Async {
-            Computation.of("primary") fallback Computation.of("backup")
+            Effect.of("primary") fallback Effect.of("backup")
         }
         assertEquals("primary", result)
     }
@@ -132,7 +132,7 @@ class CombinatorsTest {
     fun `retry succeeds on first attempt`() = runTest {
         var attempts = 0
         val result = Async {
-            Computation<String> { attempts++; "ok" }.retry(3)
+            Effect<String> { attempts++; "ok" }.retry(3)
         }
         assertEquals("ok", result)
         assertEquals(1, attempts)
@@ -142,7 +142,7 @@ class CombinatorsTest {
     fun `retry succeeds on later attempt`() = runTest {
         var attempts = 0
         val result = Async {
-            Computation<String> {
+            Effect<String> {
                 attempts++
                 if (attempts < 3) throw RuntimeException("fail #$attempts")
                 "ok"
@@ -157,7 +157,7 @@ class CombinatorsTest {
         var attempts = 0
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw RuntimeException("fail #$attempts")
                 }.retry(3)
@@ -173,7 +173,7 @@ class CombinatorsTest {
         var attempts = 0
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw CancellationException("cancelled")
                 }.retry(3)
@@ -186,7 +186,7 @@ class CombinatorsTest {
     @Test
     fun `retry composes with kap+with`() = runTest {
         var attempts = 0
-        val retryable = Computation<String> {
+        val retryable = Effect<String> {
             attempts++
             if (attempts < 2) throw RuntimeException("fail")
             "retried"
@@ -207,7 +207,7 @@ class CombinatorsTest {
     @Test
     fun `timeout with default plus recover compose naturally`() = runTest {
         val result = Async {
-            Computation<String> { delay(10.seconds); "slow" }
+            Effect<String> { delay(10.seconds); "slow" }
                 .timeout(100.milliseconds, "timed-out")
         }
         assertEquals("timed-out", result)
@@ -216,8 +216,8 @@ class CombinatorsTest {
     @Test
     fun `timeout exception plus fallback compose naturally`() = runTest {
         val result = Async {
-            Computation<String> { delay(10.seconds); "slow" }
-                .timeout(100.milliseconds, Computation.of("fallback-value"))
+            Effect<String> { delay(10.seconds); "slow" }
+                .timeout(100.milliseconds, Effect.of("fallback-value"))
         }
         assertEquals("fallback-value", result)
     }
@@ -226,7 +226,7 @@ class CombinatorsTest {
     fun `retry plus timeout compose naturally`() = runTest {
         var attempts = 0
         val result = Async {
-            Computation<String> {
+            Effect<String> {
                 attempts++
                 if (attempts < 3) throw RuntimeException("fail")
                 "ok"
@@ -243,7 +243,7 @@ class CombinatorsTest {
     @Test
     fun `timeout with default preserves null as a valid result`() = runTest {
         val result = Async {
-            Computation<String?> { null }.timeout(1.seconds, default = "fallback")
+            Effect<String?> { null }.timeout(1.seconds, default = "fallback")
         }
         // The computation completed with null — should NOT fall through to default
         assertEquals(null, result)
@@ -252,7 +252,7 @@ class CombinatorsTest {
     @Test
     fun `timeout with fallback preserves null as a valid result`() = runTest {
         val result = Async {
-            Computation<String?> { null }.timeout(1.seconds, Computation.of("fallback"))
+            Effect<String?> { null }.timeout(1.seconds, Effect.of("fallback"))
         }
         assertEquals(null, result)
     }
@@ -260,7 +260,7 @@ class CombinatorsTest {
     @Test
     fun `timeout with default still returns default on actual timeout`() = runTest {
         val result = Async {
-            Computation<String?> { delay(10.seconds); null }.timeout(100.milliseconds, default = "timed-out")
+            Effect<String?> { delay(10.seconds); null }.timeout(100.milliseconds, default = "timed-out")
         }
         assertEquals("timed-out", result)
     }
@@ -273,21 +273,21 @@ class CombinatorsTest {
     @Test
     fun `memoize runs computation only once across multiple executions`() = runTest {
         val counter = AtomicInteger(0)
-        val expensive = Computation { counter.incrementAndGet(); "result" }.memoize()
+        val expensive = Effect { counter.incrementAndGet(); "result" }.memoize()
 
         val result1 = Async { expensive }
         val result2 = Async { expensive }
 
         assertEquals("result", result1)
         assertEquals("result", result2)
-        assertEquals(1, counter.get(), "Computation should execute only once")
+        assertEquals(1, counter.get(), "Effect should execute only once")
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `memoize shares result across parallel with branches`() = runTest {
         val counter = AtomicInteger(0)
-        val expensive = Computation {
+        val expensive = Effect {
             delay(50)
             counter.incrementAndGet()
             "data"
@@ -307,7 +307,7 @@ class CombinatorsTest {
     @Test
     fun `memoize propagates exception to all waiters`() = runTest {
         val counter = AtomicInteger(0)
-        val failing = Computation<String> {
+        val failing = Effect<String> {
             counter.incrementAndGet()
             throw RuntimeException("boom")
         }.memoize()

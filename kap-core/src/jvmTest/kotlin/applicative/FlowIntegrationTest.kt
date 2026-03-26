@@ -15,53 +15,53 @@ import kotlin.time.Duration.Companion.milliseconds
 class FlowIntegrationTest {
 
     // ════════════════════════════════════════════════════════════════════════
-    // Computation.toFlow
+    // Effect.toFlow
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
     fun `toFlow emits single value`() = runTest {
-        val flow = Computation { "hello" }.toFlow()
+        val flow = Effect { "hello" }.toFlow()
         val collected = flow.toList()
         assertEquals(listOf("hello"), collected)
     }
 
     @Test
     fun `toFlow propagates exceptions`() = runTest {
-        val flow = Computation<String> { throw RuntimeException("boom") }.toFlow()
+        val flow = Effect<String> { throw RuntimeException("boom") }.toFlow()
         val result = runCatching { flow.toList() }
         assertTrue(result.isFailure)
         assertEquals("boom", result.exceptionOrNull()?.message)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Flow.collectAsComputation
+    // Flow.collectAsEffect
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `collectAsComputation collects all emissions`() = runTest {
+    fun `collectAsEffect collects all emissions`() = runTest {
         val result = Async {
-            flowOf(1, 2, 3).collectAsComputation()
+            flowOf(1, 2, 3).collectAsEffect()
         }
         assertEquals(listOf(1, 2, 3), result)
     }
 
     @Test
-    fun `collectAsComputation handles empty flow`() = runTest {
+    fun `collectAsEffect handles empty flow`() = runTest {
         val result = Async {
-            flowOf<Int>().collectAsComputation()
+            flowOf<Int>().collectAsEffect()
         }
         assertEquals(emptyList(), result)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Flow.mapComputation — sequential (concurrency = 1)
+    // Flow.mapEffect — sequential (concurrency = 1)
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `mapComputation sequential processes elements in order`() = runTest {
+    fun `mapEffect sequential processes elements in order`() = runTest {
         val result = flowOf(1, 2, 3)
-            .mapComputation { n ->
-                Computation {
+            .mapEffect { n ->
+                Effect {
                     delay(10.milliseconds)
                     n * 10
                 }
@@ -73,14 +73,14 @@ class FlowIntegrationTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Flow.mapComputation — concurrent
+    // Flow.mapEffect — concurrent
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `mapComputation concurrent processes in parallel`() = runTest {
+    fun `mapEffect concurrent processes in parallel`() = runTest {
         val result = flowOf(1, 2, 3, 4, 5, 6)
-            .mapComputation(concurrency = 3) { n ->
-                Computation {
+            .mapEffect(concurrency = 3) { n ->
+                Effect {
                     delay(30.milliseconds)
                     n * 10
                 }
@@ -91,23 +91,23 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `mapComputation rejects concurrency less than 1`() = runTest {
+    fun `mapEffect rejects concurrency less than 1`() = runTest {
         val result = runCatching {
-            flowOf(1).mapComputation(concurrency = 0) { n -> Computation { n } }.toList()
+            flowOf(1).mapEffect(concurrency = 0) { n -> Effect { n } }.toList()
         }
         assertTrue(result.isFailure)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Flow.mapComputationOrdered — preserves upstream order
+    // Flow.mapEffectOrdered — preserves upstream order
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `mapComputationOrdered preserves order despite varying completion times`() = runTest {
+    fun `mapEffectOrdered preserves order despite varying completion times`() = runTest {
         // Elements have reverse delay: first element is slowest
         val result = flowOf(1, 2, 3, 4, 5)
-            .mapComputationOrdered(concurrency = 5) { n ->
-                Computation {
+            .mapEffectOrdered(concurrency = 5) { n ->
+                Effect {
                     // Element 1 takes 50ms, element 5 takes 10ms
                     delay((60L - n * 10).milliseconds)
                     n * 10
@@ -119,10 +119,10 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `mapComputationOrdered runs in parallel — proven by virtual time`() = runTest {
+    fun `mapEffectOrdered runs in parallel — proven by virtual time`() = runTest {
         val result = flowOf(1, 2, 3, 4, 5)
-            .mapComputationOrdered(concurrency = 5) { n ->
-                Computation {
+            .mapEffectOrdered(concurrency = 5) { n ->
+                Effect {
                     delay(50.milliseconds)
                     n * 10
                 }
@@ -134,10 +134,10 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `mapComputationOrdered respects concurrency bound`() = runTest {
+    fun `mapEffectOrdered respects concurrency bound`() = runTest {
         val result = flowOf(1, 2, 3, 4, 5, 6)
-            .mapComputationOrdered(concurrency = 2) { n ->
-                Computation {
+            .mapEffectOrdered(concurrency = 2) { n ->
+                Effect {
                     delay(30.milliseconds)
                     n * 10
                 }
@@ -150,10 +150,10 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `mapComputationOrdered sequential fallback when concurrency is 1`() = runTest {
+    fun `mapEffectOrdered sequential fallback when concurrency is 1`() = runTest {
         val result = flowOf(1, 2, 3)
-            .mapComputationOrdered(concurrency = 1) { n ->
-                Computation {
+            .mapEffectOrdered(concurrency = 1) { n ->
+                Effect {
                     delay(10.milliseconds)
                     n * 10
                 }
@@ -165,11 +165,11 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `mapComputationOrdered propagates exception`() = runTest {
+    fun `mapEffectOrdered propagates exception`() = runTest {
         val result = runCatching {
             flowOf(1, 2, 3)
-                .mapComputationOrdered(concurrency = 3) { n ->
-                    Computation<Int> {
+                .mapEffectOrdered(concurrency = 3) { n ->
+                    Effect<Int> {
                         delay(10.milliseconds)
                         if (n == 2) throw RuntimeException("boom")
                         n * 10
@@ -183,28 +183,28 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `mapComputationOrdered rejects concurrency less than 1`() = runTest {
+    fun `mapEffectOrdered rejects concurrency less than 1`() = runTest {
         val result = runCatching {
-            flowOf(1).mapComputationOrdered(concurrency = 0) { n -> Computation { n } }.toList()
+            flowOf(1).mapEffectOrdered(concurrency = 0) { n -> Effect { n } }.toList()
         }
         assertTrue(result.isFailure)
     }
 
     @Test
-    fun `mapComputationOrdered handles empty flow`() = runTest {
+    fun `mapEffectOrdered handles empty flow`() = runTest {
         val result = flowOf<Int>()
-            .mapComputationOrdered(concurrency = 5) { n -> Computation { n } }
+            .mapEffectOrdered(concurrency = 5) { n -> Effect { n } }
             .toList()
 
         assertEquals(emptyList(), result)
     }
 
     @Test
-    fun `mapComputationOrdered vs mapComputation — order guarantee comparison`() = runTest {
-        // With reverse delays, unordered mapComputation may reorder
+    fun `mapEffectOrdered vs mapEffect — order guarantee comparison`() = runTest {
+        // With reverse delays, unordered mapEffect may reorder
         val ordered = flowOf(1, 2, 3, 4, 5)
-            .mapComputationOrdered(concurrency = 5) { n ->
-                Computation {
+            .mapEffectOrdered(concurrency = 5) { n ->
+                Effect {
                     delay((60L - n * 10).milliseconds)
                     n
                 }
@@ -216,16 +216,16 @@ class FlowIntegrationTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Flow.filterComputation
+    // Flow.filterEffect
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `mapComputationOrdered cancels pending on intermediate failure`() = runTest {
+    fun `mapEffectOrdered cancels pending on intermediate failure`() = runTest {
         val completed = java.util.concurrent.atomic.AtomicInteger(0)
         val result = runCatching {
             flowOf(1, 2, 3, 4, 5)
-                .mapComputationOrdered(concurrency = 5) { n ->
-                    Computation<Int> {
+                .mapEffectOrdered(concurrency = 5) { n ->
+                    Effect<Int> {
                         if (n == 3) {
                             delay(10.milliseconds)
                             throw RuntimeException("boom at 3")
@@ -243,10 +243,10 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `filterComputation filters based on computation predicate`() = runTest {
+    fun `filterEffect filters based on computation predicate`() = runTest {
         val result = flowOf(1, 2, 3, 4, 5)
-            .filterComputation { n ->
-                Computation { n % 2 == 0 }
+            .filterEffect { n ->
+                Effect { n % 2 == 0 }
             }
             .toList()
 
@@ -254,10 +254,10 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `filterComputation with async predicate`() = runTest {
+    fun `filterEffect with async predicate`() = runTest {
         val result = flowOf("admin", "user", "admin", "guest")
-            .filterComputation { role ->
-                Computation {
+            .filterEffect { role ->
+                Effect {
                     delay(10.milliseconds)
                     role == "admin"
                 }
@@ -268,39 +268,39 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `filterComputation handles empty flow`() = runTest {
+    fun `filterEffect handles empty flow`() = runTest {
         val result = flowOf<Int>()
-            .filterComputation { Computation { true } }
+            .filterEffect { Effect { true } }
             .toList()
 
         assertEquals(emptyList(), result)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Integration: Flow + Computation pipeline
+    // Integration: Flow + Effect pipeline
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `full pipeline - toFlow, mapComputation, filterComputation, collectAsComputation`() = runTest {
+    fun `full pipeline - toFlow, mapEffect, filterEffect, collectAsEffect`() = runTest {
         val result = Async {
             flowOf(1, 2, 3, 4, 5)
-                .mapComputation { n -> Computation { n * 10 } }
-                .filterComputation { n -> Computation { n > 20 } }
-                .collectAsComputation()
+                .mapEffect { n -> Effect { n * 10 } }
+                .filterEffect { n -> Effect { n > 20 } }
+                .collectAsEffect()
         }
 
         assertEquals(listOf(30, 40, 50), result)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // mapComputation — concurrent edge cases
+    // mapEffect — concurrent edge cases
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `mapComputation concurrent with concurrency exceeding element count`() = runTest {
+    fun `mapEffect concurrent with concurrency exceeding element count`() = runTest {
         val result = flowOf(1, 2, 3)
-            .mapComputation(concurrency = 10) { n ->
-                Computation {
+            .mapEffect(concurrency = 10) { n ->
+                Effect {
                     delay(20.milliseconds)
                     n * 10
                 }
@@ -313,11 +313,11 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `mapComputation sequential exception propagates`() = runTest {
+    fun `mapEffect sequential exception propagates`() = runTest {
         val result = runCatching {
             flowOf(1, 2, 3)
-                .mapComputation { n ->
-                    Computation<Int> {
+                .mapEffect { n ->
+                    Effect<Int> {
                         if (n == 2) throw RuntimeException("boom at $n")
                         n * 10
                     }
@@ -330,11 +330,11 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `mapComputation concurrent exception propagates`() = runTest {
+    fun `mapEffect concurrent exception propagates`() = runTest {
         val result = runCatching {
             flowOf(1, 2, 3, 4, 5)
-                .mapComputation(concurrency = 3) { n ->
-                    Computation<Int> {
+                .mapEffect(concurrency = 3) { n ->
+                    Effect<Int> {
                         delay(10.milliseconds)
                         if (n == 3) throw RuntimeException("boom at $n")
                         n * 10
@@ -348,11 +348,11 @@ class FlowIntegrationTest {
     }
 
     @Test
-    fun `filterComputation exception propagates`() = runTest {
+    fun `filterEffect exception propagates`() = runTest {
         val result = runCatching {
             flowOf(1, 2, 3)
-                .filterComputation { n ->
-                    Computation<Boolean> {
+                .filterEffect { n ->
+                    Effect<Boolean> {
                         if (n == 2) throw RuntimeException("filter boom")
                         true
                     }

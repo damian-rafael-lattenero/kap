@@ -22,7 +22,7 @@ class ResilienceCompositionTest {
         val schedule = Schedule.times<Throwable>(2)
         var attempts = 0
         val result = Async {
-            Computation<String> {
+            Effect<String> {
                 attempts++
                 error("always fails")
             }.retryOrElse(schedule) { err -> "fallback: ${err.message}" }
@@ -36,7 +36,7 @@ class ResilienceCompositionTest {
         val schedule = Schedule.times<Throwable>(5)
         var attempts = 0
         val result = Async {
-            Computation {
+            Effect {
                 attempts++
                 if (attempts < 3) error("retry me")
                 "success"
@@ -49,7 +49,7 @@ class ResilienceCompositionTest {
     @Test
     fun `retryOrElse propagates CancellationException without fallback`() = runTest {
         val schedule = Schedule.times<Throwable>(3)
-        val comp = Computation<String> {
+        val comp = Effect<String> {
             throw CancellationException("cancel")
         }.retryOrElse(schedule) { "should not reach" }
         assertFailsWith<CancellationException> { val r = Async { comp } }
@@ -59,7 +59,7 @@ class ResilienceCompositionTest {
     fun `retryOrElse with zero retries goes directly to fallback`() = runTest {
         val schedule = Schedule.times<Throwable>(0)
         val result = Async {
-            Computation<String> { error("fail") }
+            Effect<String> { error("fail") }
                 .retryOrElse(schedule) { "fallback" }
         }
         assertEquals("fallback", result)
@@ -72,7 +72,7 @@ class ResilienceCompositionTest {
         val schedule = Schedule.times<Throwable>(5) and Schedule.spaced(10.milliseconds)
         var attempts = 0
         val result = Async {
-            Computation {
+            Effect {
                 attempts++
                 if (attempts < 4) error("retry")
                 "value"
@@ -87,7 +87,7 @@ class ResilienceCompositionTest {
     fun `retryWithResult with immediate success has zero retries`() = runTest {
         val schedule = Schedule.times<Throwable>(5)
         val result = Async {
-            Computation { "immediate" }.retryWithResult(schedule)
+            Effect { "immediate" }.retryWithResult(schedule)
         }
         assertEquals("immediate", result.value)
         assertEquals(0, result.attempts)
@@ -97,7 +97,7 @@ class ResilienceCompositionTest {
     @Test
     fun `retryWithResult throws when schedule exhausted`() = runTest {
         val schedule = Schedule.times<Throwable>(2)
-        val comp = Computation<String> { error("always fails") }
+        val comp = Effect<String> { error("always fails") }
             .retryWithResult(schedule)
         assertFailsWith<IllegalStateException> { val r = Async { comp } }
     }
@@ -108,9 +108,9 @@ class ResilienceCompositionTest {
     fun `firstSuccessOf returns first success value`() = runTest {
         val result = Async {
             firstSuccessOf(
-                Computation<String> { error("fail-1") },
-                Computation { "success-2" },
-                Computation { "success-3" },
+                Effect<String> { error("fail-1") },
+                Effect { "success-2" },
+                Effect { "success-3" },
             )
         }
         assertEquals("success-2", result)
@@ -119,9 +119,9 @@ class ResilienceCompositionTest {
     @Test
     fun `firstSuccessOf all fail throws last error`() = runTest {
         val comp = firstSuccessOf(
-            Computation<String> { error("fail-1") },
-            Computation<String> { error("fail-2") },
-            Computation<String> { error("fail-3") },
+            Effect<String> { error("fail-1") },
+            Effect<String> { error("fail-2") },
+            Effect<String> { error("fail-3") },
         )
         val ex = assertFailsWith<IllegalStateException> { val r = Async { comp } }
         // The last error is the one that propagates
@@ -131,7 +131,7 @@ class ResilienceCompositionTest {
     @Test
     fun `firstSuccessOf single computation delegates`() = runTest {
         val result = Async {
-            firstSuccessOf(Computation { "only" })
+            firstSuccessOf(Effect { "only" })
         }
         assertEquals("only", result)
     }
@@ -139,8 +139,8 @@ class ResilienceCompositionTest {
     @Test
     fun `firstSuccessOf propagates CancellationException immediately`() = runTest {
         val comp = firstSuccessOf(
-            Computation<String> { throw CancellationException("cancel") },
-            Computation { "should not reach" },
+            Effect<String> { throw CancellationException("cancel") },
+            Effect { "should not reach" },
         )
         assertFailsWith<CancellationException> { val r = Async { comp } }
     }
@@ -155,9 +155,9 @@ class ResilienceCompositionTest {
     @Test
     fun `Iterable firstSuccess works`() = runTest {
         val computations = listOf(
-            Computation<String> { error("1") },
-            Computation<String> { error("2") },
-            Computation { "third" },
+            Effect<String> { error("1") },
+            Effect<String> { error("2") },
+            Effect { "third" },
         )
         val result = Async { computations.firstSuccess() }
         assertEquals("third", result)
@@ -168,8 +168,8 @@ class ResilienceCompositionTest {
     @Test
     fun `orElse runs fallback on failure`() = runTest {
         val result = Async {
-            Computation<String> { error("primary down") }
-                .orElse(Computation { "replica" })
+            Effect<String> { error("primary down") }
+                .orElse(Effect { "replica" })
         }
         assertEquals("replica", result)
     }
@@ -178,8 +178,8 @@ class ResilienceCompositionTest {
     fun `orElse does not run fallback on success`() = runTest {
         var fallbackRan = false
         val result = Async {
-            Computation { "primary" }
-                .orElse(Computation { fallbackRan = true; "replica" })
+            Effect { "primary" }
+                .orElse(Effect { fallbackRan = true; "replica" })
         }
         assertEquals("primary", result)
         assertEquals(false, fallbackRan)
@@ -187,17 +187,17 @@ class ResilienceCompositionTest {
 
     @Test
     fun `orElse propagates CancellationException`() = runTest {
-        val comp = Computation<String> { throw CancellationException("cancel") }
-            .orElse(Computation { "should not reach" })
+        val comp = Effect<String> { throw CancellationException("cancel") }
+            .orElse(Effect { "should not reach" })
         assertFailsWith<CancellationException> { val r = Async { comp } }
     }
 
     @Test
     fun `orElse chain 3 deep - middle succeeds`() = runTest {
         val result = Async {
-            Computation<String> { error("fail-1") }
-                .orElse(Computation { "success-2" })
-                .orElse(Computation { "should not reach" })
+            Effect<String> { error("fail-1") }
+                .orElse(Effect { "success-2" })
+                .orElse(Effect { "should not reach" })
         }
         assertEquals("success-2", result)
     }
@@ -207,9 +207,9 @@ class ResilienceCompositionTest {
     @Test
     fun `ensure inside orElse chain`() = runTest {
         val result = Async {
-            Computation { -1 }
+            Effect { -1 }
                 .ensure({ IllegalStateException("negative") }) { it > 0 }
-                .orElse(Computation.of(42))
+                .orElse(Effect.of(42))
         }
         assertEquals(42, result)
     }
@@ -218,7 +218,7 @@ class ResilienceCompositionTest {
     fun `ensureNotNull inside retry`() = runTest {
         var attempts = 0
         val result = Async {
-            Computation {
+            Effect {
                 attempts++
                 if (attempts < 3) null else "found"
             }.ensureNotNull({ IllegalStateException("null") }) { it }
@@ -236,7 +236,7 @@ class ResilienceCompositionTest {
         var attempts = 0
 
         val result = Async {
-            Computation {
+            Effect {
                 attempts++
                 if (attempts <= 2) error("transient")
                 "recovered"
@@ -255,14 +255,14 @@ class ResilienceCompositionTest {
     fun `liftA with individual branch resilience`() = runTest {
         val result = Async {
             combine(
-                { Computation { "user" }.retry(2).await() },
+                { Effect { "user" }.retry(2).await() },
                 {
-                    Computation<String> { error("down") }
+                    Effect<String> { error("down") }
                         .recover { "cached-cart" }
                         .await()
                 },
                 {
-                    Computation { delay(200); "slow-promos" }
+                    Effect { delay(200); "slow-promos" }
                         .timeout(50.milliseconds, default = "cached-promos")
                         .await()
                 },
@@ -276,7 +276,7 @@ class ResilienceCompositionTest {
         val schedule = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
         var attempts = 0
         val result = Async {
-            Computation<String> {
+            Effect<String> {
                 attempts++
                 error("fail $attempts")
             }.retryOrElse(schedule) { err -> "gave up after $attempts: ${err.message}" }

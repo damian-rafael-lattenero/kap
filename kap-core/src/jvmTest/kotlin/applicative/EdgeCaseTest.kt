@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
  * in production but are easy to miss in happy-path testing.
  *
  * Categories:
- * 1. Barrier failure propagation — followedBy throws, post-barrier with cancelled
+ * 1. Barrier failure propagation — then throws, post-barrier with cancelled
  * 2. Memoize — caching, failure caching, and retry-on-failure
  * 3. Race + CancellationException — internal timeout in a racer
  * 4. PhaseBarrier signal lifecycle — chained barriers, signal on exception
@@ -27,16 +27,16 @@ import kotlin.test.assertTrue
 class EdgeCaseTest {
 
     // ════════════════════════════════════════════════════════════════════════
-    // 1. BARRIER FAILURE: followedBy throws → structured concurrency cleanup
+    // 1. BARRIER FAILURE: then throws → structured concurrency cleanup
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `followedBy failure propagates the barrier exception`() = runTest {
+    fun `then failure propagates the barrier exception`() = runTest {
         val result = runCatching {
             Async {
                 kap<String, String, String, String> { a, b, c -> "$a|$b|$c" }
                     .with { delay(10); "A" }
-                    .followedBy(Computation<String> { throw RuntimeException("barrier failed") })
+                    .then(Effect<String> { throw RuntimeException("barrier failed") })
                     .with { delay(10); "C" }
             }
         }
@@ -45,14 +45,14 @@ class EdgeCaseTest {
     }
 
     @Test
-    fun `followedBy failure with concurrent with - exception propagates cleanly`() = runTest {
+    fun `then failure with concurrent with - exception propagates cleanly`() = runTest {
         // Proves that when a barrier fails, the whole computation fails
         // even if there are concurrent with branches running.
         val result = runCatching {
             Async {
                 kap<String, String, String, String> { a, b, c -> "$a|$b|$c" }
                     .with { delay(200); "A" }
-                    .followedBy(Computation<String> { delay(10); throw RuntimeException("boom") })
+                    .then(Effect<String> { delay(10); throw RuntimeException("boom") })
                     .with { delay(100); "C" }
             }
         }
@@ -68,7 +68,7 @@ class EdgeCaseTest {
     @Test
     fun `memoize - second caller reuses cached result`() = runTest {
         var callCount = 0
-        val comp: Computation<String> = Computation {
+        val comp: Effect<String> = Effect {
             callCount++
             delay(10)
             "result-$callCount"
@@ -86,7 +86,7 @@ class EdgeCaseTest {
     @Test
     fun `memoizeOnSuccess - retries after failure, caches after success`() = runTest {
         var callCount = 0
-        val comp: Computation<String> = Computation {
+        val comp: Effect<String> = Effect {
             callCount++
             if (callCount == 1) throw RuntimeException("transient failure")
             "success-$callCount"
@@ -110,7 +110,7 @@ class EdgeCaseTest {
     @Test
     fun `memoize caches failure - subsequent calls get same error`() = runTest {
         var callCount = 0
-        val comp: Computation<Nothing> = Computation {
+        val comp: Effect<Nothing> = Effect {
             callCount++
             throw RuntimeException("permanent failure #$callCount")
         }.memoize()
@@ -127,7 +127,7 @@ class EdgeCaseTest {
     @Test
     fun `memoize used in parallel with branches executes only once`() = runTest {
         var callCount = 0
-        val shared: Computation<String> = Computation {
+        val shared: Effect<String> = Effect {
             callCount++
             delay(50)
             "shared-$callCount"
@@ -150,10 +150,10 @@ class EdgeCaseTest {
     fun `race - slow racer with internal timeout loses to fast racer`() = runTest {
         val result = Async {
             race(
-                Computation {
+                Effect {
                     withTimeout(10) { delay(100); "slow" }
                 },
-                Computation { delay(5); "fast" },
+                Effect { delay(5); "fast" },
             )
         }
         assertEquals("fast", result)
@@ -165,8 +165,8 @@ class EdgeCaseTest {
         val result = runCatching {
             Async {
                 race(
-                    Computation { delay(10); throw RuntimeException("err-A") },
-                    Computation { delay(20); throw RuntimeException("err-B") },
+                    Effect { delay(10); throw RuntimeException("err-A") },
+                    Effect { delay(20); throw RuntimeException("err-B") },
                 )
             }
         }
@@ -179,9 +179,9 @@ class EdgeCaseTest {
     fun `raceN - one succeeds among multiple failures`() = runTest {
         val result = Async {
             raceN(
-                Computation { delay(10); throw RuntimeException("fail-1") },
-                Computation { delay(20); throw RuntimeException("fail-2") },
-                Computation { delay(15); "winner" },
+                Effect { delay(10); throw RuntimeException("fail-1") },
+                Effect { delay(20); throw RuntimeException("fail-2") },
+                Effect { delay(15); "winner" },
             )
         }
         assertEquals("winner", result)
@@ -193,16 +193,16 @@ class EdgeCaseTest {
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `multiple followedBy barriers chain correctly`() = runTest {
+    fun `multiple then barriers chain correctly`() = runTest {
         val result = Async {
             kap { a: String, b: String, c: String, d: String, e: String ->
                 "$a|$b|$c|$d|$e"
             }
                 .with { delay(20); "A" }
-                .followedBy { delay(10); "B" }
-                .followedBy { delay(10); "C" }
-                .followedBy { delay(10); "D" }
-                .followedBy { delay(10); "E" }
+                .then { delay(10); "B" }
+                .then { delay(10); "C" }
+                .then { delay(10); "D" }
+                .then { delay(10); "E" }
         }
         assertEquals("A|B|C|D|E", result)
         assertEquals(60, currentTime, "Sequential barriers: 20+10+10+10+10=60ms")
@@ -213,8 +213,8 @@ class EdgeCaseTest {
         val result = Async {
             kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
                 .with { delay(20); "A" }
-                .followedBy { delay(20); "B" }
-                .followedBy { delay(20); "C" }
+                .then { delay(20); "B" }
+                .then { delay(20); "C" }
                 .with { delay(20); "D" }
         }
         assertEquals("A|B|C|D", result)

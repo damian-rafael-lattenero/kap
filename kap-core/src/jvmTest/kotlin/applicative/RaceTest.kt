@@ -19,9 +19,9 @@ class RaceTest {
     fun `raceN with three computations returns fastest`() = runTest {
         val result = Async {
             raceN(
-                Computation { delay(10_000); "slow1" },
-                Computation { "fast" },
-                Computation { delay(10_000); "slow2" },
+                Effect { delay(10_000); "slow1" },
+                Effect { "fast" },
+                Effect { delay(10_000); "slow2" },
             )
         }
         assertEquals("fast", result)
@@ -34,14 +34,14 @@ class RaceTest {
 
         val result = Async {
             raceN(
-                Computation {
+                Effect {
                     try { awaitCancellation() }
                     catch (e: kotlinx.coroutines.CancellationException) {
                         cancelled1.complete(true); throw e
                     }
                 },
-                Computation { "winner" },
-                Computation {
+                Effect { "winner" },
+                Effect {
                     try { awaitCancellation() }
                     catch (e: kotlinx.coroutines.CancellationException) {
                         cancelled2.complete(true); throw e
@@ -57,7 +57,7 @@ class RaceTest {
 
     @Test
     fun `raceN with single computation returns it`() = runTest {
-        val result = Async { raceN(Computation.of(42)) }
+        val result = Async { raceN(Effect.of(42)) }
         assertEquals(42, result)
     }
 
@@ -78,9 +78,9 @@ class RaceTest {
     fun `raceAll on list returns fastest`() = runTest {
         val result = Async {
             listOf(
-                Computation { delay(10_000); "slow" },
-                Computation { "fast" },
-                Computation { delay(10_000); "slower" },
+                Effect { delay(10_000); "slow" },
+                Effect { "fast" },
+                Effect { delay(10_000); "slower" },
             ).raceAll()
         }
         assertEquals("fast", result)
@@ -94,8 +94,8 @@ class RaceTest {
     fun `race returns second when first fails`() = runTest {
         val result = Async {
             race(
-                Computation<String> { throw RuntimeException("boom") },
-                Computation { delay(100); "fallback" },
+                Effect<String> { throw RuntimeException("boom") },
+                Effect { delay(100); "fallback" },
             )
         }
         assertEquals("fallback", result)
@@ -105,8 +105,8 @@ class RaceTest {
     fun `race returns first when second fails`() = runTest {
         val result = Async {
             race(
-                Computation { delay(100); "primary" },
-                Computation<String> { throw RuntimeException("boom") },
+                Effect { delay(100); "primary" },
+                Effect<String> { throw RuntimeException("boom") },
             )
         }
         assertEquals("primary", result)
@@ -117,8 +117,8 @@ class RaceTest {
         val result = runCatching {
             Async {
                 race(
-                    Computation<String> { throw RuntimeException("boom1") },
-                    Computation<String> { throw RuntimeException("boom2") },
+                    Effect<String> { throw RuntimeException("boom1") },
+                    Effect<String> { throw RuntimeException("boom2") },
                 )
             }
         }
@@ -129,9 +129,9 @@ class RaceTest {
     fun `raceN skips failed racers and picks first success`() = runTest {
         val result = Async {
             raceN(
-                Computation<String> { throw RuntimeException("fail1") },
-                Computation<String> { throw RuntimeException("fail2") },
-                Computation { delay(100); "winner" },
+                Effect<String> { throw RuntimeException("fail1") },
+                Effect<String> { throw RuntimeException("fail2") },
+                Effect { delay(100); "winner" },
             )
         }
         assertEquals("winner", result)
@@ -142,8 +142,8 @@ class RaceTest {
         val result = runCatching {
             Async {
                 raceN(
-                    Computation<String> { throw RuntimeException("fail1") },
-                    Computation<String> { throw RuntimeException("fail2") },
+                    Effect<String> { throw RuntimeException("fail1") },
+                    Effect<String> { throw RuntimeException("fail2") },
                 )
             }
         }
@@ -159,8 +159,8 @@ class RaceTest {
         // Both complete nearly simultaneously — failure must not shadow success
         val result = Async {
             race(
-                Computation { "success" },
-                Computation<String> { throw RuntimeException("concurrent-fail") },
+                Effect { "success" },
+                Effect<String> { throw RuntimeException("concurrent-fail") },
             )
         }
         assertEquals("success", result)
@@ -171,8 +171,8 @@ class RaceTest {
         val result = runCatching {
             Async {
                 race(
-                    Computation<String> { throw RuntimeException("first") },
-                    Computation<String> { delay(50); throw RuntimeException("second") },
+                    Effect<String> { throw RuntimeException("first") },
+                    Effect<String> { delay(50); throw RuntimeException("second") },
                 )
             }
         }
@@ -187,9 +187,9 @@ class RaceTest {
         val result = runCatching {
             Async {
                 raceN(
-                    Computation<String> { throw RuntimeException("r1") },
-                    Computation<String> { delay(50); throw RuntimeException("r2") },
-                    Computation<String> { delay(100); throw RuntimeException("r3") },
+                    Effect<String> { throw RuntimeException("r1") },
+                    Effect<String> { delay(50); throw RuntimeException("r2") },
+                    Effect<String> { delay(100); throw RuntimeException("r3") },
                 )
             }
         }

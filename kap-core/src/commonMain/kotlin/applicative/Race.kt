@@ -24,13 +24,13 @@ import kotlinx.coroutines.supervisorScope
  *
  * ```
  * race(
- *     fa = Computation { fetchFromPrimary() },
- *     fb = Computation { fetchFromFallback() }
+ *     fa = Effect { fetchFromPrimary() },
+ *     fb = Effect { fetchFromFallback() }
  * )
  * ```
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-fun <A> race(fa: Computation<A>, fb: Computation<A>): Computation<A> = Computation {
+fun <A> race(fa: Effect<A>, fb: Effect<A>): Effect<A> = Effect {
     supervisorScope {
         val da = async { runCatching { with(fa) { execute() } } }
         val db = async { runCatching { with(fb) { execute() } } }
@@ -67,10 +67,10 @@ fun <A> race(fa: Computation<A>, fb: Computation<A>): Computation<A> = Computati
  * race conditions between completion detection and list mutation.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-fun <A> raceN(vararg computations: Computation<A>): Computation<A> {
+fun <A> raceN(vararg computations: Effect<A>): Effect<A> {
     require(computations.isNotEmpty()) { "raceN requires at least one computation" }
     if (computations.size == 1) return computations[0]
-    return Computation {
+    return Effect {
         supervisorScope {
             val deferreds: List<Deferred<Result<A>>> =
                 computations.map { c -> async { runCatching { with(c) { execute() } } } }
@@ -100,7 +100,7 @@ fun <A> raceN(vararg computations: Computation<A>): Computation<A> {
 /**
  * Races all computations in this collection; the first to complete wins.
  */
-fun <A> Iterable<Computation<A>>.raceAll(): Computation<A> =
+fun <A> Iterable<Effect<A>>.raceAll(): Effect<A> =
     raceN(*toList().toTypedArray())
 
 // ── extension: race as instance method ──────────────────────────────────
@@ -112,9 +112,9 @@ fun <A> Iterable<Computation<A>>.raceAll(): Computation<A> =
  * Extension sugar for `race(this, other)`.
  *
  * ```
- * Computation { fetchFromPrimary() }
- *     .raceAgainst(Computation { fetchFromReplica() })
+ * Effect { fetchFromPrimary() }
+ *     .raceAgainst(Effect { fetchFromReplica() })
  * ```
  */
-fun <A> Computation<A>.raceAgainst(other: Computation<A>): Computation<A> =
+fun <A> Effect<A>.raceAgainst(other: Effect<A>): Effect<A> =
     race(this, other)

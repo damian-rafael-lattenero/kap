@@ -26,7 +26,7 @@ class CancellationPropertyTest {
     @Test
     fun `recover never catches CancellationException`() = runTest {
         val recovered = AtomicBoolean(false)
-        val comp = Computation<String> {
+        val comp = Effect<String> {
             delay(1.seconds)
             "done"
         }.recover {
@@ -44,7 +44,7 @@ class CancellationPropertyTest {
 
     @Test
     fun `settled never catches CancellationException`() = runTest {
-        val comp = Computation<String> {
+        val comp = Effect<String> {
             delay(1.seconds)
             "done"
         }.settled()
@@ -59,7 +59,7 @@ class CancellationPropertyTest {
     @Test
     fun `retry never retries on CancellationException`() = runTest {
         val attemptCount = AtomicInteger(0)
-        val comp = Computation<String> {
+        val comp = Effect<String> {
             attemptCount.incrementAndGet()
             delay(1.seconds)
             "done"
@@ -76,10 +76,10 @@ class CancellationPropertyTest {
     @Test
     fun `orElse never falls through on CancellationException`() = runTest {
         val fallbackCalled = AtomicBoolean(false)
-        val comp = Computation<String> {
+        val comp = Effect<String> {
             delay(1.seconds)
             "done"
-        } orElse Computation {
+        } orElse Effect {
             fallbackCalled.set(true)
             "fallback"
         }
@@ -121,7 +121,7 @@ class CancellationPropertyTest {
     @Test
     fun `memoize does not cache CancellationException`() = runTest {
         val attemptCount = AtomicInteger(0)
-        val comp = Computation {
+        val comp = Effect {
             attemptCount.incrementAndGet()
             delay(1.seconds)
             "done"

@@ -26,9 +26,9 @@ import kotlinx.coroutines.supervisorScope
  * val (fast1, fast2) = Async {
  *     raceQuorum(
  *         required = 2,
- *         Computation { fetchFromReplicaA() },
- *         Computation { fetchFromReplicaB() },
- *         Computation { fetchFromReplicaC() },
+ *         Effect { fetchFromReplicaA() },
+ *         Effect { fetchFromReplicaB() },
+ *         Effect { fetchFromReplicaC() },
  *     )
  * }
  * ```
@@ -38,19 +38,19 @@ import kotlinx.coroutines.supervisorScope
  * @return list of exactly [required] successful results (in completion order)
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-fun <A> raceQuorum(required: Int, vararg computations: Computation<A>): Computation<List<A>> {
+fun <A> raceQuorum(required: Int, vararg computations: Effect<A>): Effect<List<A>> {
     require(computations.isNotEmpty()) { "raceQuorum requires at least one computation" }
     require(required in 1..computations.size) {
         "required must be in 1..${computations.size}, was $required"
     }
     if (required == computations.size) {
         return computations.toList().map { c -> c }.let { list ->
-            Computation {
+            Effect {
                 list.map { c -> async { with(c) { execute() } } }.map { it.await() }
             }
         }
     }
-    return Computation {
+    return Effect {
         supervisorScope {
             val deferreds: List<Deferred<Result<A>>> =
                 computations.map { c -> async { runCatching { with(c) { execute() } } } }
@@ -93,5 +93,5 @@ fun <A> raceQuorum(required: Int, vararg computations: Computation<A>): Computat
  *
  * @see raceQuorum
  */
-fun <A> Iterable<Computation<A>>.raceQuorum(required: Int): Computation<List<A>> =
+fun <A> Iterable<Effect<A>>.raceQuorum(required: Int): Effect<List<A>> =
     raceQuorum(required, *toList().toTypedArray())

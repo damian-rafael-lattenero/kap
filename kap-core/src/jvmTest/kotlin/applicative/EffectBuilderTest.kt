@@ -5,14 +5,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-class ComputationBuilderTest {
+class EffectBuilderTest {
 
     @Test
     fun `bind executes computation and returns value`() = runTest {
         val result = Async {
             computation {
-                val a = Computation.of(1).bind()
-                val b = Computation.of(2).bind()
+                val a = Effect.of(1).bind()
+                val b = Effect.of(2).bind()
                 a + b
             }
         }
@@ -23,9 +23,9 @@ class ComputationBuilderTest {
     fun `bind is sequential — later steps depend on earlier values`() = runTest {
         val result = Async {
             computation {
-                val x = Computation.of(10).bind()
-                val y = Computation.of(x * 2).bind()  // depends on x
-                val z = Computation.of(y + 5).bind()  // depends on y
+                val x = Effect.of(10).bind()
+                val y = Effect.of(x * 2).bind()  // depends on x
+                val z = Effect.of(y + 5).bind()  // depends on y
                 z
             }
         }
@@ -37,8 +37,8 @@ class ComputationBuilderTest {
         val error = try {
             Async {
                 computation {
-                    val a = Computation.of(1).bind()
-                    val b = Computation<Int> { throw IllegalStateException("boom") }.bind()
+                    val a = Effect.of(1).bind()
+                    val b = Effect<Int> { throw IllegalStateException("boom") }.bind()
                     a + b
                 }
             }
@@ -53,7 +53,7 @@ class ComputationBuilderTest {
     fun `computation composes with with — sequential then parallel`() = runTest {
         val result = Async {
             computation {
-                val userId = Computation.of("user-1").bind()
+                val userId = Effect.of("user-1").bind()
                 // Now use the value in a parallel phase via bind
                 val dashboard = (kap { name: String, cart: String -> "$name|$cart" }
                     .with { "Name-$userId" }
@@ -65,11 +65,11 @@ class ComputationBuilderTest {
     }
 
     @Test
-    fun `computation works with flatMap interop`() = runTest {
+    fun `computation works with andThen interop`() = runTest {
         val result = Async {
-            Computation.of(5).flatMap { x ->
+            Effect.of(5).andThen { x ->
                 computation {
-                    val y = Computation.of(x * 3).bind()
+                    val y = Effect.of(x * 3).bind()
                     y + 1
                 }
             }

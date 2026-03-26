@@ -90,18 +90,18 @@ class ResourceTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // flatMap
+    // andThen
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `flatMap composes resources and releases inner then outer`() = runTest {
+    fun `andThen composes resources and releases inner then outer`() = runTest {
         val events = CopyOnWriteArrayList<String>()
 
         val outer = Resource(
             acquire = { events.add("acquire:outer"); "outer" },
             release = { events.add("release:$it") },
         )
-        val composed = outer.flatMap { o ->
+        val composed = outer.andThen { o ->
             Resource(
                 acquire = { events.add("acquire:inner"); "$o+inner" },
                 release = { events.add("release:$it") },
@@ -154,11 +154,11 @@ class ResourceTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Integration with Computation
+    // Integration with Effect
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `use with Computation integrates with with chains`() = runTest {
+    fun `use with Effect integrates with with chains`() = runTest {
         val releases = CopyOnWriteArrayList<String>()
 
         val dbResource = Resource({ "db-conn" }, { releases.add("release:$it") })
@@ -167,7 +167,7 @@ class ResourceTest {
         val combined = Resource.zip(dbResource, cacheResource) { db, cache -> db to cache }
 
         val result = Async {
-            combined.useComputation { (db, cache) ->
+            combined.useEffect { (db, cache) ->
                 kap { a: String, b: String -> "$a|$b" }
                     .with { delay(40); "data-from-$db" }
                     .with { delay(40); "data-from-$cache" }
@@ -236,13 +236,13 @@ class ResourceTest {
     }
 
     @Test
-    fun `use with Computation releases on with failure`() = runTest {
+    fun `use with Effect releases on with failure`() = runTest {
         val releases = CopyOnWriteArrayList<String>()
         val resource = Resource({ "conn" }, { releases.add("release:$it") })
 
         val result = runCatching {
             Async {
-                resource.useComputation { _ ->
+                resource.useEffect { _ ->
                     kap { a: String, b: String -> "$a|$b" }
                         .with { "ok" }
                         .with { throw RuntimeException("branch failed") }

@@ -7,11 +7,11 @@ package applicative
 import kotlinx.coroutines.async
 
 fun <A, B, C, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
     combine: (A, B, C) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -19,12 +19,12 @@ fun <A, B, C, R> zip(
 }
 
 fun <A, B, C, D, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
     combine: (A, B, C, D) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -33,13 +33,13 @@ fun <A, B, C, D, R> zip(
 }
 
 fun <A, B, C, D, E, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
     combine: (A, B, C, D, E) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -49,14 +49,14 @@ fun <A, B, C, D, E, R> zip(
 }
 
 fun <A, B, C, D, E, F, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
     combine: (A, B, C, D, E, F) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -67,15 +67,15 @@ fun <A, B, C, D, E, F, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
     combine: (A, B, C, D, E, F, G) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -87,16 +87,16 @@ fun <A, B, C, D, E, F, G, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
     combine: (A, B, C, D, E, F, G, H) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -109,17 +109,17 @@ fun <A, B, C, D, E, F, G, H, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
     combine: (A, B, C, D, E, F, G, H, I) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -133,18 +133,18 @@ fun <A, B, C, D, E, F, G, H, I, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
     combine: (A, B, C, D, E, F, G, H, I, J) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -159,19 +159,19 @@ fun <A, B, C, D, E, F, G, H, I, J, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
     combine: (A, B, C, D, E, F, G, H, I, J, K) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -187,20 +187,20 @@ fun <A, B, C, D, E, F, G, H, I, J, K, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
     combine: (A, B, C, D, E, F, G, H, I, J, K, L) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -217,21 +217,21 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
     combine: (A, B, C, D, E, F, G, H, I, J, K, L, M) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -249,22 +249,22 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
     combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -283,23 +283,23 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
     combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -319,24 +319,24 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
     combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -357,25 +357,25 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
     combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -397,26 +397,26 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
-    c18: Computation<S>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
+    c18: Effect<S>,
     combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -439,27 +439,27 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
-    c18: Computation<S>,
-    c19: Computation<T>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
+    c18: Effect<S>,
+    c19: Effect<T>,
     combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -483,28 +483,28 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
-    c18: Computation<S>,
-    c19: Computation<T>,
-    c20: Computation<U>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
+    c18: Effect<S>,
+    c19: Effect<T>,
+    c20: Effect<U>,
     combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -529,29 +529,29 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
-    c18: Computation<S>,
-    c19: Computation<T>,
-    c20: Computation<U>,
-    c21: Computation<V>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
+    c18: Effect<S>,
+    c19: Effect<T>,
+    c20: Effect<U>,
+    c21: Effect<V>,
     combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -577,30 +577,30 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> zip(
 }
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> zip(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
-    c18: Computation<S>,
-    c19: Computation<T>,
-    c20: Computation<U>,
-    c21: Computation<V>,
-    c22: Computation<W>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
+    c18: Effect<S>,
+    c19: Effect<T>,
+    c20: Effect<U>,
+    c21: Effect<V>,
+    c22: Effect<W>,
     combine: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val d1 = async { with(c1) { execute() } }
     val d2 = async { with(c2) { execute() } }
     val d3 = async { with(c3) { execute() } }
@@ -627,337 +627,337 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> zip(
 }
 
 fun <A, B, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
+    c1: Effect<A>,
+    c2: Effect<B>,
     f: (A, B) -> R,
-): Computation<R> = c1.zip(c2, f)
+): Effect<R> = c1.zip(c2, f)
 
 fun <A, B, C, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
     f: (A, B, C) -> R,
-): Computation<R> = zip(c1, c2, c3, f)
+): Effect<R> = zip(c1, c2, c3, f)
 
 fun <A, B, C, D, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
     f: (A, B, C, D) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, f)
+): Effect<R> = zip(c1, c2, c3, c4, f)
 
 fun <A, B, C, D, E, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
     f: (A, B, C, D, E) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, f)
 
 fun <A, B, C, D, E, F, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
     f: (A, B, C, D, E, F) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, f)
 
 fun <A, B, C, D, E, F, G, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
     f: (A, B, C, D, E, F, G) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, f)
 
 fun <A, B, C, D, E, F, G, H, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
     f: (A, B, C, D, E, F, G, H) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, f)
 
 fun <A, B, C, D, E, F, G, H, I, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
     f: (A, B, C, D, E, F, G, H, I) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
     f: (A, B, C, D, E, F, G, H, I, J) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
     f: (A, B, C, D, E, F, G, H, I, J, K) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
     f: (A, B, C, D, E, F, G, H, I, J, K, L) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
     f: (A, B, C, D, E, F, G, H, I, J, K, L, M) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
     f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
     f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
     f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
     f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
-    c18: Computation<S>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
+    c18: Effect<S>,
     f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
-    c18: Computation<S>,
-    c19: Computation<T>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
+    c18: Effect<S>,
+    c19: Effect<T>,
     f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
-    c18: Computation<S>,
-    c19: Computation<T>,
-    c20: Computation<U>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
+    c18: Effect<S>,
+    c19: Effect<T>,
+    c20: Effect<U>,
     f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
-    c18: Computation<S>,
-    c19: Computation<T>,
-    c20: Computation<U>,
-    c21: Computation<V>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
+    c18: Effect<S>,
+    c19: Effect<T>,
+    c20: Effect<U>,
+    c21: Effect<V>,
     f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, f)
 
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> combine(
-    c1: Computation<A>,
-    c2: Computation<B>,
-    c3: Computation<C>,
-    c4: Computation<D>,
-    c5: Computation<E>,
-    c6: Computation<F>,
-    c7: Computation<G>,
-    c8: Computation<H>,
-    c9: Computation<I>,
-    c10: Computation<J>,
-    c11: Computation<K>,
-    c12: Computation<L>,
-    c13: Computation<M>,
-    c14: Computation<N>,
-    c15: Computation<O>,
-    c16: Computation<P>,
-    c17: Computation<Q>,
-    c18: Computation<S>,
-    c19: Computation<T>,
-    c20: Computation<U>,
-    c21: Computation<V>,
-    c22: Computation<W>,
+    c1: Effect<A>,
+    c2: Effect<B>,
+    c3: Effect<C>,
+    c4: Effect<D>,
+    c5: Effect<E>,
+    c6: Effect<F>,
+    c7: Effect<G>,
+    c8: Effect<H>,
+    c9: Effect<I>,
+    c10: Effect<J>,
+    c11: Effect<K>,
+    c12: Effect<L>,
+    c13: Effect<M>,
+    c14: Effect<N>,
+    c15: Effect<O>,
+    c16: Effect<P>,
+    c17: Effect<Q>,
+    c18: Effect<S>,
+    c19: Effect<T>,
+    c20: Effect<U>,
+    c21: Effect<V>,
+    c22: Effect<W>,
     f: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W) -> R,
-): Computation<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, f)
+): Effect<R> = zip(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, f)

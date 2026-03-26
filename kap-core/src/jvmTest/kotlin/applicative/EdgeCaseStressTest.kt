@@ -28,7 +28,7 @@ class EdgeCaseStressTest {
     @Test
     fun `memoize — cancellation of first caller does not poison cache`() = runTest {
         var executionCount = 0
-        val computation = Computation<String> {
+        val computation = Effect<String> {
             executionCount++
             if (executionCount == 1) {
                 throw CancellationException("first caller cancelled")
@@ -51,7 +51,7 @@ class EdgeCaseStressTest {
     @Test
     fun `memoize — non-cancellation failure IS cached`() = runTest {
         var executionCount = 0
-        val computation = Computation<String> {
+        val computation = Effect<String> {
             executionCount++
             throw IllegalStateException("boom #$executionCount")
         }.memoize()
@@ -71,7 +71,7 @@ class EdgeCaseStressTest {
     @Test
     fun `memoize — success is cached across concurrent callers`() = runTest {
         var executionCount = 0
-        val computation = Computation<Int> {
+        val computation = Effect<Int> {
             executionCount++
             delay(50.milliseconds)
             42
@@ -91,7 +91,7 @@ class EdgeCaseStressTest {
     fun `memoize — cancellation then success from another coroutine`() = runTest {
         var executionCount = 0
         val latch = CompletableDeferred<Unit>()
-        val computation = Computation<String> {
+        val computation = Effect<String> {
             executionCount++
             latch.await()
             "result-$executionCount"
@@ -110,13 +110,13 @@ class EdgeCaseStressTest {
         assertEquals("result-2", result)
     }
 
-    // ── mapComputation concurrency fix ──────────────────────────────────────
+    // ── mapEffect concurrency fix ──────────────────────────────────────
 
     @Test
-    fun `mapComputation — concurrency greater than 1 actually parallelizes`() = runTest {
+    fun `mapEffect — concurrency greater than 1 actually parallelizes`() = runTest {
         val results = (1..6).asFlow()
-            .mapComputation(concurrency = 3) { i ->
-                Computation {
+            .mapEffect(concurrency = 3) { i ->
+                Effect {
                     delay(50.milliseconds)
                     i * 10
                 }
@@ -129,10 +129,10 @@ class EdgeCaseStressTest {
     }
 
     @Test
-    fun `mapComputation — concurrency 1 is sequential`() = runTest {
+    fun `mapEffect — concurrency 1 is sequential`() = runTest {
         val results = (1..3).asFlow()
-            .mapComputation(concurrency = 1) { i ->
-                Computation {
+            .mapEffect(concurrency = 1) { i ->
+                Effect {
                     delay(50.milliseconds)
                     i * 10
                 }
@@ -144,14 +144,14 @@ class EdgeCaseStressTest {
     }
 
     @Test
-    fun `mapComputation — concurrency bounds are respected`() = runTest {
+    fun `mapEffect — concurrency bounds are respected`() = runTest {
         var maxConcurrent = 0
         var currentConcurrent = 0
         val lock = Mutex()
 
         val results = (1..10).asFlow()
-            .mapComputation(concurrency = 3) { i ->
-                Computation {
+            .mapEffect(concurrency = 3) { i ->
+                Effect {
                     lock.withLock {
                         currentConcurrent++
                         if (currentConcurrent > maxConcurrent) maxConcurrent = currentConcurrent
@@ -171,9 +171,9 @@ class EdgeCaseStressTest {
 
     @Test
     fun `race — both fail, first error propagates`() = runTest {
-        val graph: Computation<String> = race(
-            Computation { delay(10.milliseconds); throw RuntimeException("first") },
-            Computation { delay(20.milliseconds); throw IllegalStateException("second") },
+        val graph: Effect<String> = race(
+            Effect { delay(10.milliseconds); throw RuntimeException("first") },
+            Effect { delay(20.milliseconds); throw IllegalStateException("second") },
         )
         val ex = assertFailsWith<RuntimeException> { val r = Async { graph } }
         assertEquals("first", ex.message)
@@ -181,10 +181,10 @@ class EdgeCaseStressTest {
 
     @Test
     fun `raceN — all fail, first error propagates`() = runTest {
-        val graph: Computation<String> = raceN(
-            Computation { delay(10.milliseconds); throw RuntimeException("a") },
-            Computation { delay(20.milliseconds); throw IllegalStateException("b") },
-            Computation { delay(30.milliseconds); throw UnsupportedOperationException("c") },
+        val graph: Effect<String> = raceN(
+            Effect { delay(10.milliseconds); throw RuntimeException("a") },
+            Effect { delay(20.milliseconds); throw IllegalStateException("b") },
+            Effect { delay(30.milliseconds); throw UnsupportedOperationException("c") },
         )
         val ex = assertFailsWith<RuntimeException> { val r = Async { graph } }
         assertEquals("a", ex.message)
@@ -194,11 +194,11 @@ class EdgeCaseStressTest {
     fun `race — fast failure, slow success wins`() = runTest {
         val result = Async {
             race(
-                Computation {
+                Effect {
                     delay(10.milliseconds)
                     throw RuntimeException("fast fail")
                 },
-                Computation {
+                Effect {
                     delay(50.milliseconds)
                     "slow success"
                 },
@@ -209,7 +209,7 @@ class EdgeCaseStressTest {
 
     @Test
     fun `raceN — single computation returns directly`() = runTest {
-        val result = Async { raceN(Computation { "only one" }) }
+        val result = Async { raceN(Effect { "only one" }) }
         assertEquals("only one", result)
     }
 
@@ -217,10 +217,10 @@ class EdgeCaseStressTest {
     fun `raceN — many racers, fastest success wins`() = runTest {
         val result = Async {
             raceN(
-                Computation { delay(200.milliseconds); "slow1" },
-                Computation { delay(300.milliseconds); "slow2" },
-                Computation { delay(10.milliseconds); "fast winner" },
-                Computation { delay(400.milliseconds); "slow3" },
+                Effect { delay(200.milliseconds); "slow1" },
+                Effect { delay(300.milliseconds); "slow2" },
+                Effect { delay(10.milliseconds); "fast winner" },
+                Effect { delay(400.milliseconds); "slow3" },
             )
         }
         assertEquals("fast winner", result)
@@ -232,8 +232,8 @@ class EdgeCaseStressTest {
         // the other racer gets a chance to succeed. Only scope-level cancellation propagates.
         val result = Async {
             race(
-                Computation<String> { throw CancellationException("one racer cancelled") },
-                Computation { delay(10.milliseconds); "survivor" },
+                Effect<String> { throw CancellationException("one racer cancelled") },
+                Effect { delay(10.milliseconds); "survivor" },
             )
         }
         assertEquals("survivor", result)
@@ -242,27 +242,27 @@ class EdgeCaseStressTest {
     // ── PhaseBarrier edge cases ────────────────────────────────────────────
 
     @Test
-    fun `followedBy — barrier signal fires even on failure`() = runTest {
-        val failing: Computation<Int> = Computation { throw RuntimeException("barrier failed") }
+    fun `then — barrier signal fires even on failure`() = runTest {
+        val failing: Effect<Int> = Effect { throw RuntimeException("barrier failed") }
         val graph = kap { a: Int, b: Int, c: Int -> a + b + c }
             .with { 1 }
-            .followedBy(failing)
+            .then(failing)
             .with { 3 }
         val ex = assertFailsWith<RuntimeException> { val r = Async { graph } }
         assertEquals("barrier failed", ex.message)
     }
 
     @Test
-    fun `followedBy — multiple barriers in sequence`() = runTest {
+    fun `then — multiple barriers in sequence`() = runTest {
         val order = mutableListOf<String>()
         val result = Async {
             kap { a: String, b: String, c: String, d: String, e: String ->
                 "$a|$b|$c|$d|$e"
             }
                 .with { order.add("a"); "a" }
-                .followedBy { order.add("b"); "b" }
+                .then { order.add("b"); "b" }
                 .with { order.add("c"); "c" }
-                .followedBy { order.add("d"); "d" }
+                .then { order.add("d"); "d" }
                 .with { order.add("e"); "e" }
         }
         assertEquals("a|b|c|d|e", result)
@@ -274,8 +274,8 @@ class EdgeCaseStressTest {
 
     @Test
     fun `orElse — CancellationException propagates, does not fall through`() = runTest {
-        val graph = Computation<String> { throw CancellationException("cancel") }
-            .orElse(Computation { "fallback" })
+        val graph = Effect<String> { throw CancellationException("cancel") }
+            .orElse(Effect { "fallback" })
         assertFailsWith<CancellationException> {
             coroutineScope { with(graph) { execute() } }
         }
@@ -285,9 +285,9 @@ class EdgeCaseStressTest {
     fun `orElse — chains three computations, first two fail`() = runTest {
         val calls = mutableListOf<String>()
         val result = Async {
-            Computation { calls.add("primary"); throw RuntimeException("p") }
-                .orElse(Computation { calls.add("secondary"); throw RuntimeException("s") })
-                .orElse(Computation { calls.add("tertiary"); "success" })
+            Effect { calls.add("primary"); throw RuntimeException("p") }
+                .orElse(Effect { calls.add("secondary"); throw RuntimeException("s") })
+                .orElse(Effect { calls.add("tertiary"); "success" })
         }
         assertEquals("success", result)
         assertEquals(listOf("primary", "secondary", "tertiary"), calls)
@@ -295,10 +295,10 @@ class EdgeCaseStressTest {
 
     @Test
     fun `firstSuccessOf — all fail, last error thrown`() = runTest {
-        val graph: Computation<String> = firstSuccessOf(
-            Computation { throw RuntimeException("a") },
-            Computation { throw IllegalStateException("b") },
-            Computation { throw UnsupportedOperationException("c") },
+        val graph: Effect<String> = firstSuccessOf(
+            Effect { throw RuntimeException("a") },
+            Effect { throw IllegalStateException("b") },
+            Effect { throw UnsupportedOperationException("c") },
         )
         val ex = assertFailsWith<UnsupportedOperationException> { val r = Async { graph } }
         assertEquals("c", ex.message)
@@ -308,10 +308,10 @@ class EdgeCaseStressTest {
 
     @Test
     fun `ensure — predicate failure throws, success passes through`() = runTest {
-        val passGraph = Computation.of(42).ensure({ IllegalStateException("too small") }) { it > 10 }
+        val passGraph = Effect.of(42).ensure({ IllegalStateException("too small") }) { it > 10 }
         assertEquals(42, Async { passGraph })
 
-        val failGraph = Computation.of(5).ensure({ IllegalStateException("too small") }) { it > 10 }
+        val failGraph = Effect.of(5).ensure({ IllegalStateException("too small") }) { it > 10 }
         assertFailsWith<IllegalStateException> { val r = Async { failGraph } }
     }
 
@@ -319,11 +319,11 @@ class EdgeCaseStressTest {
     fun `ensureNotNull — null extraction throws`() = runTest {
         data class Wrapper(val inner: String?)
 
-        val passGraph = Computation.of(Wrapper("hello"))
+        val passGraph = Effect.of(Wrapper("hello"))
             .ensureNotNull({ IllegalStateException("null!") }) { it.inner }
         assertEquals("hello", Async { passGraph })
 
-        val failGraph = Computation.of(Wrapper(null))
+        val failGraph = Effect.of(Wrapper(null))
             .ensureNotNull({ IllegalStateException("null!") }) { it.inner }
         assertFailsWith<IllegalStateException> { val r = Async { failGraph } }
     }
@@ -334,7 +334,7 @@ class EdgeCaseStressTest {
     fun `memoizeOnSuccess — cancellation does not poison cache`() = runTest {
         var executionCount = 0
         val latch = CompletableDeferred<Unit>()
-        val computation = Computation<String> {
+        val computation = Effect<String> {
             executionCount++
             latch.await()
             "result-$executionCount"
@@ -352,22 +352,22 @@ class EdgeCaseStressTest {
         assertEquals("result-2", result)
     }
 
-    // ── Computation.defer edge cases ───────────────────────────────────────
+    // ── Effect.defer edge cases ───────────────────────────────────────
 
     @Test
     fun `defer — lazy construction prevents eager stack overflow`() = runTest {
-        fun countdown(n: Int): Computation<Int> =
-            if (n <= 0) Computation.of(0)
-            else Computation.defer { countdown(n - 1).map { it + 1 } }
+        fun countdown(n: Int): Effect<Int> =
+            if (n <= 0) Effect.of(0)
+            else Effect.defer { countdown(n - 1).map { it + 1 } }
 
         assertEquals(100, Async { countdown(100) })
     }
 
-    // ── Computation.failed edge cases ──────────────────────────────────────
+    // ── Effect.failed edge cases ──────────────────────────────────────
 
     @Test
     fun `failed — throws immediately, composes with recover`() = runTest {
-        val graph = Computation.failed(RuntimeException("boom"))
+        val graph = Effect.failed(RuntimeException("boom"))
             .recover { "recovered" }
         assertEquals("recovered", Async { graph })
     }
@@ -376,7 +376,7 @@ class EdgeCaseStressTest {
 
     @Test
     fun `timeout with default — null result not confused with timeout`() = runTest {
-        val graph = Computation<String?> {
+        val graph = Effect<String?> {
             delay(10.milliseconds)
             null
         }.timeout(100.milliseconds, "default")
@@ -387,10 +387,10 @@ class EdgeCaseStressTest {
 
     @Test
     fun `timeout with computation fallback — fallback runs on timeout`() = runTest {
-        val graph = Computation {
+        val graph = Effect {
             delay(200.milliseconds)
             "slow"
-        }.timeout(50.milliseconds, Computation { "fast fallback" })
+        }.timeout(50.milliseconds, Effect { "fast fallback" })
 
         assertEquals("fast fallback", Async { graph })
     }

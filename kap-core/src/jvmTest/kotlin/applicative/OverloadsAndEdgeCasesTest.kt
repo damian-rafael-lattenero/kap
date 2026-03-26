@@ -23,7 +23,7 @@ class OverloadsAndEdgeCasesTest {
         var maxConcurrent = 0
 
         val computations = (0 until 8).map { i ->
-            Computation {
+            Effect {
                 concurrent++
                 if (concurrent > maxConcurrent) maxConcurrent = concurrent
                 delay(50)
@@ -47,25 +47,25 @@ class OverloadsAndEdgeCasesTest {
     }
 
     @Test
-    fun `ap with Computation overload works the same as suspend lambda`() = runTest {
-        val comp = Computation { "from-computation" }
+    fun `ap with Effect overload works the same as suspend lambda`() = runTest {
+        val comp = Effect { "from-computation" }
 
         val result = Async {
             kap { a: String, b: String -> "$a|$b" }
                 .with(comp)
-                .with(Computation { "also-computation" })
+                .with(Effect { "also-computation" })
         }
 
         assertEquals("from-computation|also-computation", result)
     }
 
     @Test
-    fun `followedBy with Computation overload`() = runTest {
-        val comp = Computation { "barrier" }
+    fun `then with Effect overload`() = runTest {
+        val comp = Effect { "barrier" }
 
         val result = Async {
             kap { a: String, b: String -> "$a|$b" }
-                .followedBy(comp)
+                .then(comp)
                 .with { "after" }
         }
 
@@ -77,11 +77,11 @@ class OverloadsAndEdgeCasesTest {
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `timeout with fallback Computation runs fallback on timeout`() = runTest {
-        val fallback = Computation { "fallback-value" }
+    fun `timeout with fallback Effect runs fallback on timeout`() = runTest {
+        val fallback = Effect { "fallback-value" }
 
         val result = Async {
-            Computation<String> { delay(10.seconds); "too-slow" }
+            Effect<String> { delay(10.seconds); "too-slow" }
                 .timeout(50.milliseconds, fallback)
         }
 
@@ -89,11 +89,11 @@ class OverloadsAndEdgeCasesTest {
     }
 
     @Test
-    fun `timeout with fallback Computation returns original on success`() = runTest {
-        val fallback = Computation { "fallback-value" }
+    fun `timeout with fallback Effect returns original on success`() = runTest {
+        val fallback = Effect { "fallback-value" }
 
         val result = Async {
-            Computation.of("fast").timeout(1.seconds, fallback)
+            Effect.of("fast").timeout(1.seconds, fallback)
         }
 
         assertEquals("fast", result)
@@ -102,8 +102,8 @@ class OverloadsAndEdgeCasesTest {
     @Test
     fun `recoverWith switches to recovery computation`() = runTest {
         val result = Async {
-            Computation<String> { throw RuntimeException("boom") }
-                .recoverWith { e -> Computation.of("recovered: ${e.message}") }
+            Effect<String> { throw RuntimeException("boom") }
+                .recoverWith { e -> Effect.of("recovered: ${e.message}") }
         }
 
         assertEquals("recovered: boom", result)
@@ -112,7 +112,7 @@ class OverloadsAndEdgeCasesTest {
     @Test
     fun `recoverWith passes through on success`() = runTest {
         val result = Async {
-            Computation.of("ok").recoverWith { Computation.of("should-not-reach") }
+            Effect.of("ok").recoverWith { Effect.of("should-not-reach") }
         }
 
         assertEquals("ok", result)
@@ -139,7 +139,7 @@ class OverloadsAndEdgeCasesTest {
         var attempts = 0
 
         val result = Async {
-            Computation {
+            Effect {
                 attempts++
                 if (attempts < 3) throw RuntimeException("fail #$attempts")
                 "success on attempt $attempts"
@@ -158,8 +158,8 @@ class OverloadsAndEdgeCasesTest {
     fun `race returns winner even if loser fails`() = runTest {
         val result = Async {
             race(
-                Computation { "fast-winner" },
-                Computation<String> { delay(100); throw RuntimeException("loser-error") },
+                Effect { "fast-winner" },
+                Effect<String> { delay(100); throw RuntimeException("loser-error") },
             )
         }
         assertEquals("fast-winner", result)
@@ -169,9 +169,9 @@ class OverloadsAndEdgeCasesTest {
     fun `raceN returns winner even if other fails`() = runTest {
         val result = Async {
             raceN(
-                Computation { "winner" },
-                Computation<String> { delay(100); throw RuntimeException("boom") },
-                Computation<String> { delay(100); throw RuntimeException("boom2") },
+                Effect { "winner" },
+                Effect<String> { delay(100); throw RuntimeException("boom") },
+                Effect<String> { delay(100); throw RuntimeException("boom2") },
             )
         }
         assertEquals("winner", result)
@@ -185,7 +185,7 @@ class OverloadsAndEdgeCasesTest {
     fun `on switches dispatcher for a specific computation`() = runTest {
         val result = Async {
             kap { a: String, b: String -> "$a|$b" }
-                .with(Computation { "io-task" }.on(Dispatchers.IO))
+                .with(Effect { "io-task" }.on(Dispatchers.IO))
                 .with { "default-task" }
         }
         assertEquals("io-task|default-task", result)

@@ -4,7 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 
 /**
  * Scope for the [computation] builder, providing [bind] for sequential
- * monadic composition inside a [Computation].
+ * monadic composition inside a [Effect].
  *
  * This is the sequential counterpart to `kap+with` — use it when later
  * steps depend on earlier values:
@@ -19,18 +19,18 @@ import kotlinx.coroutines.CoroutineScope
  * }
  * ```
  */
-class ComputationScope @PublishedApi internal constructor(
+class EffectScope @PublishedApi internal constructor(
     @PublishedApi internal val scope: CoroutineScope,
 ) {
     /**
-     * Executes this [Computation] within the current scope and returns the result.
-     * Equivalent to chaining with [flatMap], but with imperative syntax.
+     * Executes this [Effect] within the current scope and returns the result.
+     * Equivalent to chaining with [andThen], but with imperative syntax.
      */
-    suspend fun <A> Computation<A>.bind(): A = with(this@bind) { scope.execute() }
+    suspend fun <A> Effect<A>.bind(): A = with(this@bind) { scope.execute() }
 
     /**
-     * Executes a suspend block as a [Computation] and returns the result.
-     * Shorthand for `Computation { block() }.bind()`.
+     * Executes a suspend block as a [Effect] and returns the result.
+     * Shorthand for `Effect { block() }.bind()`.
      *
      * ```
      * computation {
@@ -44,10 +44,10 @@ class ComputationScope @PublishedApi internal constructor(
 }
 
 /**
- * Builds a [Computation] using imperative syntax with [ComputationScope.bind].
+ * Builds a [Effect] using imperative syntax with [EffectScope.bind].
  *
  * Each [bind] call executes its computation sequentially — use `kap+with`
  * when branches are independent and can run in parallel.
  */
-inline fun <A> computation(crossinline block: suspend ComputationScope.() -> A): Computation<A> =
-    Computation { ComputationScope(this).block() }
+inline fun <A> computation(crossinline block: suspend EffectScope.() -> A): Effect<A> =
+    Effect { EffectScope(this).block() }

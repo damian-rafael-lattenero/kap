@@ -320,7 +320,7 @@ class KtorIntegrationTest {
     }
 
     @Test
-    fun `POST register - duplicate email rejected via flatMapV`() = testApplication {
+    fun `POST register - duplicate email rejected via andThenV`() = testApplication {
         application { module() }
         val client = jsonClient()
 

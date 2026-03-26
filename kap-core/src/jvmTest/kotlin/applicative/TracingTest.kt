@@ -16,7 +16,7 @@ class TracingTest {
         val events = mutableListOf<String>()
 
         val result = Async {
-            Computation.of(42).traced(
+            Effect.of(42).traced(
                 name = "compute",
                 onStart = { events += "start:$it" },
                 onSuccess = { name, _ -> events += "success:$name" },
@@ -34,7 +34,7 @@ class TracingTest {
 
         val result = runCatching {
             Async {
-                Computation<String> { throw IllegalStateException("boom") }
+                Effect<String> { throw IllegalStateException("boom") }
                     .traced(
                         name = "failing",
                         onStart = { events += "start:$it" },
@@ -55,7 +55,7 @@ class TracingTest {
 
         val result = runCatching {
             Async {
-                Computation<String> { throw CancellationException("cancelled") }
+                Effect<String> { throw CancellationException("cancelled") }
                     .traced(
                         name = "cancelled-op",
                         onStart = { events += "start:$it" },
@@ -75,7 +75,7 @@ class TracingTest {
         var recordedDuration: kotlin.time.Duration? = null
 
         Async {
-            Computation { delay(10.milliseconds); "done" }.traced(
+            Effect { delay(10.milliseconds); "done" }.traced(
                 name = "timed",
                 onSuccess = { _, duration -> recordedDuration = duration },
             )
@@ -85,12 +85,12 @@ class TracingTest {
     }
 
     @Test
-    fun `ComputationTracer interface receives all events in order`() = runTest {
+    fun `EffectTracer interface receives all events in order`() = runTest {
         val events = mutableListOf<TraceEvent>()
-        val tracer = ComputationTracer { events += it }
+        val tracer = EffectTracer { events += it }
 
         val result = Async {
-            Computation.of(99).traced("op", tracer)
+            Effect.of(99).traced("op", tracer)
         }
 
         assertEquals(99, result)
@@ -102,13 +102,13 @@ class TracingTest {
     }
 
     @Test
-    fun `ComputationTracer reports failure event`() = runTest {
+    fun `EffectTracer reports failure event`() = runTest {
         val events = mutableListOf<TraceEvent>()
-        val tracer = ComputationTracer { events += it }
+        val tracer = EffectTracer { events += it }
 
         val result = runCatching {
             Async {
-                Computation<String> { throw RuntimeException("fail") }
+                Effect<String> { throw RuntimeException("fail") }
                     .traced("broken", tracer)
             }
         }
@@ -128,8 +128,8 @@ class TracingTest {
 
         val result = Async {
             kap { a: Int, b: Int -> a + b }
-                .with(Computation.of(10).traced("left", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
-                .with(Computation.of(20).traced("right", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
+                .with(Effect.of(10).traced("left", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
+                .with(Effect.of(20).traced("right", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
         }
 
         assertEquals(30, result)

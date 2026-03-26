@@ -22,12 +22,12 @@ class NullableTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // .withOrNull(comp) where comp: Computation<A>?
+    // .withOrNull(comp) where comp: Effect<A>?
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `withOrNull with nullable Computation - non-null executes`() = runTest {
-        val comp: Computation<String>? = Computation.of("yes")
+    fun `withOrNull with nullable Effect - non-null executes`() = runTest {
+        val comp: Effect<String>? = Effect.of("yes")
 
         val result = Async {
             kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
@@ -38,8 +38,8 @@ class NullableTest {
     }
 
     @Test
-    fun `withOrNull with nullable Computation - null passes null`() = runTest {
-        val comp: Computation<String>? = null
+    fun `withOrNull with nullable Effect - null passes null`() = runTest {
+        val comp: Effect<String>? = null
 
         val result = Async {
             kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
@@ -55,8 +55,8 @@ class NullableTest {
 
     @Test
     fun `mixed chain with nullable and non-null`() = runTest {
-        val present: Computation<String>? = Computation.of("yes")
-        val absent: Computation<String>? = null
+        val present: Effect<String>? = Effect.of("yes")
+        val absent: Effect<String>? = null
 
         val result = Async {
             kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
@@ -70,7 +70,7 @@ class NullableTest {
 
     @Test
     fun `chain with literal null and nullable variable`() = runTest {
-        val present: Computation<String>? = Computation.of("yes")
+        val present: Effect<String>? = Effect.of("yes")
 
         val result = Async {
             kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
@@ -95,7 +95,7 @@ class NullableTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // withOrNull with real parallelism + followedBy + flatMap
+    // withOrNull with real parallelism + then + andThen
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
@@ -103,12 +103,12 @@ class NullableTest {
         val latchA = CompletableDeferred<Unit>()
         val latchB = CompletableDeferred<Unit>()
 
-        val compA: Computation<String>? = Computation {
+        val compA: Effect<String>? = Effect {
             latchA.complete(Unit)
             latchB.await()
             "A"
         }
-        val compB: Computation<String>? = Computation {
+        val compB: Effect<String>? = Effect {
             latchB.complete(Unit)
             latchA.await()
             "B"
@@ -126,9 +126,9 @@ class NullableTest {
     }
 
     @Test
-    fun `withOrNull integrates with followedBy and flatMap`() = runTest {
-        val optionalDiscount: Computation<Discount>? = Computation.of(Discount("SUMMER20", 20))
-        val noInsurance: Computation<InsurancePlan>? = null
+    fun `withOrNull integrates with then and andThen`() = runTest {
+        val optionalDiscount: Effect<Discount>? = Effect.of(Discount("SUMMER20", 20))
+        val noInsurance: Effect<InsurancePlan>? = null
 
         data class BookingDetails(
             val user: UserProfile,
@@ -144,7 +144,7 @@ class NullableTest {
                 .with { CartSummary(3) }
                 .withOrNull(optionalDiscount)
                 .withOrNull(noInsurance)
-                .followedBy { OrderTotal(42.0) }
+                .then { OrderTotal(42.0) }
         }
 
         assertEquals(BookingDetails(

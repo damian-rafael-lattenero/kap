@@ -111,15 +111,15 @@ suspend fun main() {
     }
 
     // ── Scenario 3: Phased validation (validate fields, then check availability) ──
-    println("\n=== Scenario 3: Phased validation with flatMapV ===\n")
+    println("\n=== Scenario 3: Phased validation with andThenV ===\n")
 
     val result3 = Async {
         kapV<RegError, ValidName, ValidEmail, ValidAge, Triple<ValidName, ValidEmail, ValidAge>>(::Triple)
             .withV { validateName("Bob") }
             .withV { validateEmail("bob@test.com") }
             .withV { validateAge(25) }
-            .flatMapV { (name, email, age) ->
-                Computation { checkUsernameAvailable("alice") }.mapV { username ->
+            .andThenV { (name, email, age) ->
+                Effect { checkUsernameAvailable("alice") }.mapV { username ->
                     User(name, email, age, username)
                 }
             }

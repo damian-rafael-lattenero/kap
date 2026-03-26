@@ -13,13 +13,13 @@ import kotlinx.coroutines.sync.withPermit
 // ── entry points ─────────────────────────────────────────────────────────
 
 /** Wraps a success value into a validated computation. */
-fun <E, A> valid(a: A): Computation<Either<NonEmptyList<E>, A>> = Computation.of(Either.Right(a))
+fun <E, A> valid(a: A): Effect<Either<NonEmptyList<E>, A>> = Effect.of(Either.Right(a))
 
 /** Wraps a single error into a validated computation. */
-fun <E, A> invalid(e: E): Computation<Either<NonEmptyList<E>, A>> = Computation.of(Either.Left(nonEmptyListOf(e)))
+fun <E, A> invalid(e: E): Effect<Either<NonEmptyList<E>, A>> = Effect.of(Either.Left(nonEmptyListOf(e)))
 
 /** Wraps multiple errors into a validated computation. */
-fun <E, A> invalidAll(errors: NonEmptyList<E>): Computation<Either<NonEmptyList<E>, A>> = Computation.of(Either.Left(errors))
+fun <E, A> invalidAll(errors: NonEmptyList<E>): Effect<Either<NonEmptyList<E>, A>> = Effect.of(Either.Left(errors))
 
 // ── withV: parallel applicative apply with error accumulation ────────────
 
@@ -27,13 +27,13 @@ fun <E, A> invalidAll(errors: NonEmptyList<E>): Computation<Either<NonEmptyList<
  * Validated parallel apply — runs both sides in parallel,
  * **accumulating** errors from both if both fail.
  */
-infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.withV(
-    fa: Computation<Either<NonEmptyList<E>, A>>,
-): Computation<Either<NonEmptyList<E>, B>> {
+infix fun <E, A, B> Effect<Either<NonEmptyList<E>, (A) -> B>>.withV(
+    fa: Effect<Either<NonEmptyList<E>, A>>,
+): Effect<Either<NonEmptyList<E>, B>> {
     val self = this
     return if (self is PhaseBarrier) {
         val signal = self.signal
-        PhaseBarrier(Computation {
+        PhaseBarrier(Effect {
             val deferredA = async {
                 signal.await()
                 with(fa) { execute() }
@@ -43,7 +43,7 @@ infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.withV(
             combineValidated(ef, ea)
         }, signal)
     } else {
-        Computation {
+        Effect {
             val deferredA = async { with(fa) { execute() } }
             val ef = with(self) { execute() }
             val ea = deferredA.await()
@@ -63,11 +63,11 @@ private fun <E, A, B> combineValidated(
 }
 
 /** Convenience overload that wraps a suspend lambda returning [Either]. */
-infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.withV(
+infix fun <E, A, B> Effect<Either<NonEmptyList<E>, (A) -> B>>.withV(
     fa: suspend () -> Either<NonEmptyList<E>, A>,
-): Computation<Either<NonEmptyList<E>, B>> = withV(Computation { fa() })
+): Effect<Either<NonEmptyList<E>, B>> = withV(Effect { fa() })
 
-// ── followedByV: true phase barrier with short-circuit ──────────────────
+// ── thenV: true phase barrier with short-circuit ──────────────────
 
 /**
  * True phase barrier for validated computations — awaits the left side,
@@ -76,12 +76,12 @@ infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.withV(
  *
  * Short-circuits: if the left side is [Either.Left], the right side is **not** executed.
  */
-infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.followedByV(
-    fa: Computation<Either<NonEmptyList<E>, A>>,
-): Computation<Either<NonEmptyList<E>, B>> {
+infix fun <E, A, B> Effect<Either<NonEmptyList<E>, (A) -> B>>.thenV(
+    fa: Effect<Either<NonEmptyList<E>, A>>,
+): Effect<Either<NonEmptyList<E>, B>> {
     val self = this
     val signal = CompletableDeferred<Unit>()
-    return PhaseBarrier(Computation {
+    return PhaseBarrier(Effect {
         when (val ef = with(self) { execute() }) {
             is Either.Left -> ef
             is Either.Right -> when (val ea = with(fa) { execute() }) {
@@ -93,9 +93,9 @@ infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.followedByV(
 }
 
 /** Convenience overload that wraps a suspend lambda returning [Either]. */
-infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.followedByV(
+infix fun <E, A, B> Effect<Either<NonEmptyList<E>, (A) -> B>>.thenV(
     fa: suspend () -> Either<NonEmptyList<E>, A>,
-): Computation<Either<NonEmptyList<E>, B>> = followedByV(Computation { fa() })
+): Effect<Either<NonEmptyList<E>, B>> = thenV(Effect { fa() })
 
 // ── thenValueV: sequential value fill without barrier ────────────────────
 
@@ -103,9 +103,9 @@ infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.followedByV(
  * Sequential validated value fill — awaits the left side, then runs [fa].
  * Short-circuits on [Either.Left]. Does **not** create a phase barrier.
  */
-infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.thenValueV(
-    fa: Computation<Either<NonEmptyList<E>, A>>,
-): Computation<Either<NonEmptyList<E>, B>> = Computation {
+infix fun <E, A, B> Effect<Either<NonEmptyList<E>, (A) -> B>>.thenValueV(
+    fa: Effect<Either<NonEmptyList<E>, A>>,
+): Effect<Either<NonEmptyList<E>, B>> = Effect {
     when (val ef = with(this@thenValueV) { execute() }) {
         is Either.Left -> ef
         is Either.Right -> when (val ea = with(fa) { execute() }) {
@@ -116,18 +116,18 @@ infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.thenValueV(
 }
 
 /** Convenience overload that wraps a suspend lambda returning [Either]. */
-infix fun <E, A, B> Computation<Either<NonEmptyList<E>, (A) -> B>>.thenValueV(
+infix fun <E, A, B> Effect<Either<NonEmptyList<E>, (A) -> B>>.thenValueV(
     fa: suspend () -> Either<NonEmptyList<E>, A>,
-): Computation<Either<NonEmptyList<E>, B>> = thenValueV(Computation { fa() })
+): Effect<Either<NonEmptyList<E>, B>> = thenValueV(Effect { fa() })
 
 // ── catching: bridge from exception world to validated world ─────────────
 
 /**
- * Converts a [Computation] into a validated computation by catching
+ * Converts a [Effect] into a validated computation by catching
  * non-cancellation exceptions and mapping them to errors via [toError].
  */
-fun <E, A> Computation<A>.catching(toError: (Throwable) -> E): Computation<Either<NonEmptyList<E>, A>> =
-    Computation {
+fun <E, A> Effect<A>.catching(toError: (Throwable) -> E): Effect<Either<NonEmptyList<E>, A>> =
+    Effect {
         try {
             Either.Right(with(this@catching) { execute() })
         } catch (e: Throwable) {
@@ -143,8 +143,8 @@ fun <E, A> Computation<A>.catching(toError: (Throwable) -> E): Computation<Eithe
  * If [toError] returns null, the value passes validation.
  * If [toError] returns a non-null error, it becomes an [Either.Left].
  */
-fun <E, A> Computation<A>.validate(toError: (A) -> E?): Computation<Either<NonEmptyList<E>, A>> =
-    Computation {
+fun <E, A> Effect<A>.validate(toError: (A) -> E?): Effect<Either<NonEmptyList<E>, A>> =
+    Effect {
         val a = with(this@validate) { execute() }
         val error = toError(a)
         if (error == null) Either.Right(a) else Either.Left(nonEmptyListOf(error))
@@ -156,10 +156,10 @@ fun <E, A> Computation<A>.validate(toError: (A) -> E?): Computation<Either<NonEm
  * Validates the result against [predicate].
  * If it passes, wraps in [Either.Right]. If it fails, wraps [error] in [Either.Left].
  */
-fun <E, A> Computation<A>.ensureV(
+fun <E, A> Effect<A>.ensureV(
     error: (A) -> E,
     predicate: (A) -> Boolean,
-): Computation<Either<NonEmptyList<E>, A>> = Computation {
+): Effect<Either<NonEmptyList<E>, A>> = Effect {
     val a = with(this@ensureV) { execute() }
     if (predicate(a)) Either.Right(a) else Either.Left(nonEmptyListOf(error(a)))
 }
@@ -167,10 +167,10 @@ fun <E, A> Computation<A>.ensureV(
 /**
  * Like [ensureV] but allows returning multiple errors when the predicate fails.
  */
-fun <E, A> Computation<A>.ensureVAll(
+fun <E, A> Effect<A>.ensureVAll(
     errors: (A) -> NonEmptyList<E>,
     predicate: (A) -> Boolean,
-): Computation<Either<NonEmptyList<E>, A>> = Computation {
+): Effect<Either<NonEmptyList<E>, A>> = Effect {
     val a = with(this@ensureVAll) { execute() }
     if (predicate(a)) Either.Right(a) else Either.Left(errors(a))
 }
@@ -181,8 +181,8 @@ fun <E, A> Computation<A>.ensureVAll(
  * Applies [f] to each element in parallel, accumulating all errors.
  */
 fun <E, A, B> Iterable<A>.traverseV(
-    f: (A) -> Computation<Either<NonEmptyList<E>, B>>,
-): Computation<Either<NonEmptyList<E>, List<B>>> = Computation {
+    f: (A) -> Effect<Either<NonEmptyList<E>, B>>,
+): Effect<Either<NonEmptyList<E>, List<B>>> = Effect {
     val results = map { a -> async { with(f(a)) { execute() } } }.awaitAll()
     val errors = results.filterIsInstance<Either.Left<NonEmptyList<E>>>()
     if (errors.isEmpty()) {
@@ -197,8 +197,8 @@ fun <E, A, B> Iterable<A>.traverseV(
  */
 fun <E, A, B> Iterable<A>.traverseV(
     concurrency: Int,
-    f: (A) -> Computation<Either<NonEmptyList<E>, B>>,
-): Computation<Either<NonEmptyList<E>, List<B>>> = Computation {
+    f: (A) -> Effect<Either<NonEmptyList<E>, B>>,
+): Effect<Either<NonEmptyList<E>, List<B>>> = Effect {
     val semaphore = Semaphore(concurrency)
     val results = map { a ->
         async { semaphore.withPermit { with(f(a)) { execute() } } }
@@ -216,26 +216,26 @@ fun <E, A, B> Iterable<A>.traverseV(
 /**
  * Executes all validated computations in parallel, accumulating all errors.
  */
-fun <E, A> Iterable<Computation<Either<NonEmptyList<E>, A>>>.sequenceV(): Computation<Either<NonEmptyList<E>, List<A>>> =
+fun <E, A> Iterable<Effect<Either<NonEmptyList<E>, A>>>.sequenceV(): Effect<Either<NonEmptyList<E>, List<A>>> =
     traverseV { it }
 
 /**
  * Like [sequenceV] but limits the number of concurrent computations.
  */
-fun <E, A> Iterable<Computation<Either<NonEmptyList<E>, A>>>.sequenceV(
+fun <E, A> Iterable<Effect<Either<NonEmptyList<E>, A>>>.sequenceV(
     concurrency: Int,
-): Computation<Either<NonEmptyList<E>, List<A>>> =
+): Effect<Either<NonEmptyList<E>, List<A>>> =
     traverseV(concurrency) { it }
 
-// ── flatMapV: monadic bind for validated computations ────────────────────
+// ── andThenV: monadic bind for validated computations ────────────────────
 
 /**
  * Monadic bind for validated computations — sequential, short-circuits on error.
  */
-inline fun <E, A, B> Computation<Either<NonEmptyList<E>, A>>.flatMapV(
-    crossinline f: (A) -> Computation<Either<NonEmptyList<E>, B>>,
-): Computation<Either<NonEmptyList<E>, B>> = Computation {
-    when (val ea = with(this@flatMapV) { execute() }) {
+inline fun <E, A, B> Effect<Either<NonEmptyList<E>, A>>.andThenV(
+    crossinline f: (A) -> Effect<Either<NonEmptyList<E>, B>>,
+): Effect<Either<NonEmptyList<E>, B>> = Effect {
+    when (val ea = with(this@andThenV) { execute() }) {
         is Either.Left -> ea
         is Either.Right -> with(f(ea.value)) { execute() }
     }
@@ -247,9 +247,9 @@ inline fun <E, A, B> Computation<Either<NonEmptyList<E>, A>>.flatMapV(
  * Catches non-cancellation exceptions thrown during a validated computation
  * and converts them into validation errors via [f].
  */
-fun <E, A> Computation<Either<NonEmptyList<E>, A>>.recoverV(
+fun <E, A> Effect<Either<NonEmptyList<E>, A>>.recoverV(
     f: (Throwable) -> E,
-): Computation<Either<NonEmptyList<E>, A>> = Computation {
+): Effect<Either<NonEmptyList<E>, A>> = Effect {
     try {
         with(this@recoverV) { execute() }
     } catch (e: Throwable) {
@@ -272,7 +272,7 @@ class ValidationException(val errors: NonEmptyList<*>) : RuntimeException(
  * Unwraps a validated computation: returns the value on [Either.Right],
  * throws [ValidationException] on [Either.Left].
  */
-fun <E, A> Computation<Either<NonEmptyList<E>, A>>.orThrow(): Computation<A> = map {
+fun <E, A> Effect<Either<NonEmptyList<E>, A>>.orThrow(): Effect<A> = map {
     when (it) {
         is Either.Right -> it.value
         is Either.Left -> throw ValidationException(it.value)
@@ -284,7 +284,7 @@ fun <E, A> Computation<Either<NonEmptyList<E>, A>>.orThrow(): Computation<A> = m
 /**
  * Transforms the success value inside a validated computation.
  */
-fun <E, A, B> Computation<Either<NonEmptyList<E>, A>>.mapV(f: (A) -> B): Computation<Either<NonEmptyList<E>, B>> =
+fun <E, A, B> Effect<Either<NonEmptyList<E>, A>>.mapV(f: (A) -> B): Effect<Either<NonEmptyList<E>, B>> =
     map { it.map(f) }
 
 // ── mapError: transform the error type ───────────────────────────────────
@@ -292,7 +292,7 @@ fun <E, A, B> Computation<Either<NonEmptyList<E>, A>>.mapV(f: (A) -> B): Computa
 /**
  * Transforms the error type inside a validated computation.
  */
-fun <E, F, A> Computation<Either<NonEmptyList<E>, A>>.mapError(f: (E) -> F): Computation<Either<NonEmptyList<F>, A>> =
+fun <E, F, A> Effect<Either<NonEmptyList<E>, A>>.mapError(f: (E) -> F): Effect<Either<NonEmptyList<F>, A>> =
     map { either ->
         when (either) {
             is Either.Right -> either
@@ -322,10 +322,10 @@ class ValidatedScope<E> @PublishedApi internal constructor(
     }
 
     /**
-     * Executes a validated [Computation] and unwraps the result — returns the
+     * Executes a validated [Effect] and unwraps the result — returns the
      * [Right][Either.Right] value or short-circuits with the [Left][Either.Left] errors.
      */
-    suspend fun <A> Computation<Either<NonEmptyList<E>, A>>.bindV(): A =
+    suspend fun <A> Effect<Either<NonEmptyList<E>, A>>.bindV(): A =
         with(this@bindV) { scope.execute() }.bind()
 
     /**
@@ -341,8 +341,8 @@ class ValidatedScope<E> @PublishedApi internal constructor(
  * short-circuit on [Either.Left].
  */
 @Suppress("UNCHECKED_CAST")
-fun <E, A> validated(block: suspend ValidatedScope<E>.() -> A): Computation<Either<NonEmptyList<E>, A>> =
-    Computation {
+fun <E, A> validated(block: suspend ValidatedScope<E>.() -> A): Effect<Either<NonEmptyList<E>, A>> =
+    Effect {
         try {
             Either.Right(ValidatedScope<E>(this).block())
         } catch (e: ValidatedShortCircuit) {
@@ -355,5 +355,5 @@ fun <E, A> validated(block: suspend ValidatedScope<E>.() -> A): Computation<Eith
  * sequential short-circuit between phases.
  */
 @Suppress("UNCHECKED_CAST")
-fun <E, A> accumulate(block: suspend ValidatedScope<E>.() -> A): Computation<Either<NonEmptyList<E>, A>> =
+fun <E, A> accumulate(block: suspend ValidatedScope<E>.() -> A): Effect<Either<NonEmptyList<E>, A>> =
     validated(block)

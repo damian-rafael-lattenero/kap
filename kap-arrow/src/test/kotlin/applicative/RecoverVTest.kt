@@ -24,7 +24,7 @@ class RecoverVTest {
     @Test
     fun `recoverV converts exception to validation error`() = runTest {
         val result = Async {
-            Computation<Either<NonEmptyList<String>, Int>> {
+            Effect<Either<NonEmptyList<String>, Int>> {
                 throw RuntimeException("boom")
             }.recoverV { e -> "caught: ${e.message}" }
         }
@@ -41,7 +41,7 @@ class RecoverVTest {
     @Test
     fun `recoverV preserves success`() = runTest {
         val result = Async {
-            Computation<Either<NonEmptyList<String>, Int>> {
+            Effect<Either<NonEmptyList<String>, Int>> {
                 Either.Right(42)
             }.recoverV { e -> "should not happen: ${e.message}" }
         }
@@ -57,7 +57,7 @@ class RecoverVTest {
     fun `recoverV does not catch CancellationException`() = runTest {
         val result = runCatching {
             Async {
-                Computation<Either<NonEmptyList<String>, Int>> {
+                Effect<Either<NonEmptyList<String>, Int>> {
                     throw CancellationException("cancelled")
                 }.recoverV { "should not catch" }
             }
@@ -78,19 +78,19 @@ class RecoverVTest {
         val started = (0 until 3).map { CompletableDeferred<Unit>() }
 
         val result = Async {
-            // Build each branch as a Computation so we can apply recoverV to branch B
-            val branchA = Computation<Either<NonEmptyList<String>, String>> {
+            // Build each branch as a Effect so we can apply recoverV to branch B
+            val branchA = Effect<Either<NonEmptyList<String>, String>> {
                 started[0].complete(Unit)
                 started[1].await(); started[2].await()
                 Either.Left(nonEmptyListOf("err-A"))
             }
-            val branchB = Computation<Either<NonEmptyList<String>, String>> {
+            val branchB = Effect<Either<NonEmptyList<String>, String>> {
                 started[1].complete(Unit)
                 started[0].await(); started[2].await()
                 throw RuntimeException("err-B")
             }.recoverV { e -> "recovered: ${e.message}" }
 
-            val branchC = Computation<Either<NonEmptyList<String>, String>> {
+            val branchC = Effect<Either<NonEmptyList<String>, String>> {
                 started[2].complete(Unit)
                 started[0].await(); started[1].await()
                 Either.Left(nonEmptyListOf("err-C"))
@@ -118,16 +118,16 @@ class RecoverVTest {
     @Test
     fun `recoverV inside zipV - timing proof that siblings are not cancelled`() = runTest {
         val result = Async {
-            val branchA = Computation<Either<NonEmptyList<String>, String>> {
+            val branchA = Effect<Either<NonEmptyList<String>, String>> {
                 delay(50)
                 Either.Left(nonEmptyListOf("timeout-A"))
             }
-            val branchB = Computation<Either<NonEmptyList<String>, String>> {
+            val branchB = Effect<Either<NonEmptyList<String>, String>> {
                 delay(50)
                 throw RuntimeException("crash-B")
             }.recoverV { e -> "recovered: ${e.message}" }
 
-            val branchC = Computation<Either<NonEmptyList<String>, String>> {
+            val branchC = Effect<Either<NonEmptyList<String>, String>> {
                 delay(50)
                 Either.Left(nonEmptyListOf("timeout-C"))
             }
@@ -159,16 +159,16 @@ class RecoverVTest {
     @Test
     fun `recoverV with liftV+apV chain - exception in one branch accumulates with validation errors from others`() = runTest {
         val result = Async {
-            val branchA = Computation<Either<NonEmptyList<String>, String>> {
+            val branchA = Effect<Either<NonEmptyList<String>, String>> {
                 Either.Left(nonEmptyListOf("validation-err-A"))
             }
 
             // This branch throws, but recoverV converts it to a validation error
-            val branchB = Computation<Either<NonEmptyList<String>, String>> {
+            val branchB = Effect<Either<NonEmptyList<String>, String>> {
                 throw IllegalStateException("service unavailable")
             }.recoverV { e -> "exception: ${e.message}" }
 
-            val branchC = Computation<Either<NonEmptyList<String>, String>> {
+            val branchC = Effect<Either<NonEmptyList<String>, String>> {
                 Either.Left(nonEmptyListOf("validation-err-C"))
             }
 
@@ -201,7 +201,7 @@ class RecoverVTest {
     @Test
     fun `recoverV maps exception to domain error type`() = runTest {
         val result = Async {
-            Computation<Either<NonEmptyList<DomainError>, String>> {
+            Effect<Either<NonEmptyList<DomainError>, String>> {
                 throw java.net.SocketTimeoutException("Connection timed out after 5000ms")
             }.recoverV { e ->
                 // Verify we receive the actual exception and can inspect it
@@ -222,17 +222,17 @@ class RecoverVTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 8. recoverV with flatMapV - exception in phase 2 short-circuits
+    // 8. recoverV with andThenV - exception in phase 2 short-circuits
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `recoverV with flatMapV - exception in phase 2 short-circuits correctly`() = runTest {
+    fun `recoverV with andThenV - exception in phase 2 short-circuits correctly`() = runTest {
         val result = Async {
             // Phase 1: succeeds with a validated value
             valid<String, Int>(42)
-                // Phase 2: flatMapV chains into a computation that throws
-                .flatMapV { n ->
-                    Computation<Either<NonEmptyList<String>, String>> {
+                // Phase 2: andThenV chains into a computation that throws
+                .andThenV { n ->
+                    Effect<Either<NonEmptyList<String>, String>> {
                         throw RuntimeException("phase 2 failed for n=$n")
                     }.recoverV { e -> "phase2-error: ${e.message}" }
                 }

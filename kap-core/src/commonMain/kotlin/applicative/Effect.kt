@@ -20,81 +20,81 @@ annotation class AsyncDsl
 /**
  * A lazy computation that produces [A] when executed inside a [CoroutineScope].
  *
- * Computations are descriptions — they don't run until [Async.invoke] executes them.
- * They can be composed outside the DSL using [map], [with], [followedBy], [flatMap], [zip],
+ * Effects are descriptions — they don't run until [Async.invoke] executes them.
+ * They can be composed outside the DSL using [map], [with], [then], [andThen], [zip],
  * and other top-level combinators, then executed via `Async { computation }`.
  *
  * ## Design note: `suspend fun CoroutineScope.execute()`
  *
  * This signature intentionally combines a [CoroutineScope] receiver with `suspend`.
  * The Kotlin coroutines convention separates them (`suspend fun` = suspends,
- * `CoroutineScope.fun` = launches coroutines), but [Computation] requires both:
+ * `CoroutineScope.fun` = launches coroutines), but [Effect] requires both:
  *
  * - **CoroutineScope** — operators like [with] and [race] call `async {}` to launch
  *   parallel branches within the caller's scope (structured concurrency).
  * - **suspend** — branches call `await()`, `withContext()`, `withTimeout()`, etc.
  *
  * This is safe because **users never call [execute] directly** — they compose
- * via [with], [followedBy], [flatMap], and execute via [Async.invoke].
+ * via [with], [then], [andThen], and execute via [Async.invoke].
  * The dual contract is an internal implementation detail, not a public API concern.
  *
  * This mirrors `kotlinx.coroutines.async {}` and `launch {}`, whose blocks are
  * also `suspend CoroutineScope.() -> T`.
  */
-fun interface Computation<out A> {
+fun interface Effect<out A> {
     suspend fun CoroutineScope.execute(): A
 
     companion object {
         /**
-         * Creates a [Computation] that immediately throws [error] when executed.
+         * Creates a [Effect] that immediately throws [error] when executed.
          *
          * Useful for lifting a known failure into the computation graph
          * without wrapping in a lambda:
          *
          * ```
-         * val fail: Computation<Nothing> = Computation.failed(IllegalStateException("boom"))
+         * val fail: Effect<Nothing> = Effect.failed(IllegalStateException("boom"))
          * ```
          */
-        fun failed(error: Throwable): Computation<Nothing> = Computation { throw error }
+        fun failed(error: Throwable): Effect<Nothing> = Effect { throw error }
 
         /**
-         * Lazily constructs a [Computation] by deferring [block] evaluation
+         * Lazily constructs a [Effect] by deferring [block] evaluation
          * until execution time.
          *
          * Useful for recursive or self-referential composition where
          * eagerly building the computation graph would cause a stack overflow:
          *
          * ```
-         * fun retryForever(c: Computation<Int>): Computation<Int> =
-         *     Computation.defer {
-         *         c.settled().flatMap { result ->
+         * fun retryForever(c: Effect<Int>): Effect<Int> =
+         *     Effect.defer {
+         *         c.settled().andThen { result ->
          *             result.fold(
-         *                 onSuccess = { Computation.of(it) },
+         *                 onSuccess = { Effect.of(it) },
          *                 onFailure = { retryForever(c) },
          *             )
          *         }
          *     }
          * ```
          */
-        fun <A> defer(block: () -> Computation<A>): Computation<A> = Computation {
+        fun <A> defer(block: () -> Effect<A>): Effect<A> = Effect {
             with(block()) { execute() }
         }
     }
 }
 
 /**
- * A [Computation] that acts as a phase barrier. When subsequent [with] calls
+ * A [Effect] that acts as a phase barrier. When subsequent [with] calls
  * are chained on a PhaseBarrier, their right-side launches are gated until
  * the barrier completes. All gated launches proceed in parallel once the
  * barrier's signal fires.
  *
  * This is an internal implementation detail — users interact through
- * [followedBy] which creates barriers, and [with] which respects them.
+ * [then] which creates barriers, and [with] which respects them.
  */
 class PhaseBarrier<out A>(
-    val inner: Computation<A>,
+    val inner: Effect<A>,
     val signal: CompletableDeferred<Unit>,
-) : Computation<A> {
+) : Effect<A> {
     override suspend fun CoroutineScope.execute(): A {
         try {
             val result = with(inner) { execute() }
@@ -111,16 +111,16 @@ class PhaseBarrier<out A>(
     }
 }
 
-// ── Computation.of: wrap a value ────────────────────────────────────────
+// ── Effect.of: wrap a value ────────────────────────────────────────
 
 /**
- * Wraps a value into a [Computation] that immediately returns it.
+ * Wraps a value into a [Effect] that immediately returns it.
  *
  * ```
- * val answer: Computation<Int> = Computation.of(42)
+ * val answer: Effect<Int> = Effect.of(42)
  * ```
  */
-fun <A> Computation.Companion.of(a: A): Computation<A> = Computation { a }
+fun <A> Effect.Companion.of(a: A): Effect<A> = Effect { a }
 
 // ── map: transform the result ───────────────────────────────────────────
 
@@ -128,10 +128,10 @@ fun <A> Computation.Companion.of(a: A): Computation<A> = Computation { a }
  * Transforms the result of this computation by applying [f].
  *
  * ```
- * Computation.of(42).map { it * 2 }  // Computation producing 84
+ * Effect.of(42).map { it * 2 }  // Effect producing 84
  * ```
  */
-inline fun <A, B> Computation<A>.map(crossinline f: (A) -> B): Computation<B> = Computation {
+inline fun <A, B> Effect<A>.map(crossinline f: (A) -> B): Effect<B> = Effect {
     f(with(this@map) { execute() })
 }
 
@@ -156,11 +156,11 @@ inline fun <A, B> Computation<A>.map(crossinline f: (A) -> B): Computation<B> = 
  * ```
  *
  */
-infix fun <A, B> Computation<(A) -> B>.with(fa: Computation<A>): Computation<B> {
+infix fun <A, B> Effect<(A) -> B>.with(fa: Effect<A>): Effect<B> {
     val self = this
     return if (self is PhaseBarrier) {
         val signal = self.signal
-        PhaseBarrier(Computation {
+        PhaseBarrier(Effect {
             val deferredA = async {
                 signal.await()          // gate: wait for barrier to complete
                 with(fa) { execute() }
@@ -169,7 +169,7 @@ infix fun <A, B> Computation<(A) -> B>.with(fa: Computation<A>): Computation<B> 
             f(deferredA.await())
         }, signal)
     } else {
-        Computation {
+        Effect {
             val deferredA = async { with(fa) { execute() } }
             val f = with(self) { execute() }
             f(deferredA.await())
@@ -177,9 +177,9 @@ infix fun <A, B> Computation<(A) -> B>.with(fa: Computation<A>): Computation<B> 
     }
 }
 
-/** Convenience overload that wraps a suspend lambda into a [Computation]. */
-infix fun <A, B> Computation<(A) -> B>.with(fa: suspend () -> A): Computation<B> =
-    with(Computation { fa() })
+/** Convenience overload that wraps a suspend lambda into a [Effect]. */
+infix fun <A, B> Effect<(A) -> B>.with(fa: suspend () -> A): Effect<B> =
+    with(Effect { fa() })
 
 /**
  * Provides a nullable argument in parallel — when the curried function
@@ -189,7 +189,7 @@ infix fun <A, B> Computation<(A) -> B>.with(fa: suspend () -> A): Computation<B>
  * When [fa] is null (literal or variable), passes `null` to the function immediately.
  *
  * ```
- * val insurance: Computation<String>? = null
+ * val insurance: Effect<String>? = null
  *
  * kap { flight: String, hotel: String, ins: String? -> buildBooking(flight, hotel, ins) }
  *     .with { fetchFlight() }
@@ -202,11 +202,11 @@ infix fun <A, B> Computation<(A) -> B>.with(fa: suspend () -> A): Computation<B>
  *     .withOrNull(null)
  * ```
  */
-infix fun <A : Any, B> Computation<(A?) -> B>.withOrNull(fa: Computation<A>?): Computation<B> {
+infix fun <A : Any, B> Effect<(A?) -> B>.withOrNull(fa: Effect<A>?): Effect<B> {
     val self = this
     return if (self is PhaseBarrier) {
         val signal = self.signal
-        PhaseBarrier(Computation {
+        PhaseBarrier(Effect {
             val deferredA = if (fa != null) async {
                 signal.await()
                 with(fa) { execute() }
@@ -215,7 +215,7 @@ infix fun <A : Any, B> Computation<(A?) -> B>.withOrNull(fa: Computation<A>?): C
             f(deferredA?.await())
         }, signal)
     } else {
-        Computation {
+        Effect {
             val deferredA = if (fa != null) async { with(fa) { execute() } } else null
             val f = with(self) { execute() }
             f(deferredA?.await())
@@ -223,17 +223,17 @@ infix fun <A : Any, B> Computation<(A?) -> B>.withOrNull(fa: Computation<A>?): C
     }
 }
 
-// ── followedBy: true phase barrier ─────────────────────────────────────
+// ── then: true phase barrier ─────────────────────────────────────
 
 /**
  * True phase barrier — awaits the left side, runs [fa], and **gates** all
  * subsequent [with] calls until the barrier completes.
  *
- * Unlike [with], [followedBy] enforces ordering: the right side does **not** start
- * until the left side completes. Unlike [flatMap], the right side does
+ * Unlike [with], [then] enforces ordering: the right side does **not** start
+ * until the left side completes. Unlike [andThen], the right side does
  * **not** receive the left side's value.
  *
- * **Phase semantics:** Any [with] chained after a [followedBy] will not launch
+ * **Phase semantics:** Any [with] chained after a [then] will not launch
  * its right-side coroutine until the barrier completes. This means the code
  * structure honestly reflects the execution phases:
  *
@@ -241,35 +241,35 @@ infix fun <A : Any, B> Computation<(A?) -> B>.withOrNull(fa: Computation<A>?): C
  * kap(::build)
  *     .with { fetchA() }             // phase 1: parallel
  *     .with { fetchB() }             //
- *     .followedBy { validate() }     // barrier: waits for phase 1
+ *     .then { validate() }     // barrier: waits for phase 1
  *     .with { calcC() }              // phase 2: parallel (starts AFTER barrier)
  *     .with { calcD() }              //
  * ```
  */
-infix fun <A, B> Computation<(A) -> B>.followedBy(fa: Computation<A>): Computation<B> {
+infix fun <A, B> Effect<(A) -> B>.then(fa: Effect<A>): Effect<B> {
     val self = this
     val signal = CompletableDeferred<Unit>()
-    return PhaseBarrier(Computation {
+    return PhaseBarrier(Effect {
         val f = with(self) { execute() }
         val a = with(fa) { execute() }
         f(a)
     }, signal)
 }
 
-/** Convenience overload that wraps a suspend lambda into a [Computation]. */
-infix fun <A, B> Computation<(A) -> B>.followedBy(fa: suspend () -> A): Computation<B> =
-    followedBy(Computation { fa() })
+/** Convenience overload that wraps a suspend lambda into a [Effect]. */
+infix fun <A, B> Effect<(A) -> B>.then(fa: suspend () -> A): Effect<B> =
+    then(Effect { fa() })
 
 // ── thenValue: sequential value fill (no barrier) ─────────────────────
 
 /**
  * Sequential value fill — awaits the left side, then runs [fa].
  *
- * Unlike [followedBy], [thenValue] does **not** create a phase barrier.
+ * Unlike [then], [thenValue] does **not** create a phase barrier.
  * Subsequent [with] calls will still launch eagerly at t=0.
  * The sequencing only affects the value assembly order, not the launch timing.
  *
- * Use [followedBy] when subsequent [with] calls should wait for the barrier.
+ * Use [then] when subsequent [with] calls should wait for the barrier.
  * Use [thenValue] when subsequent [with] calls are truly independent and
  * should overlap with the sequential computation for maximum performance.
  *
@@ -280,35 +280,35 @@ infix fun <A, B> Computation<(A) -> B>.followedBy(fa: suspend () -> A): Computat
  *     .with { independentWork() }    // launched at t=0 (overlaps!)
  * ```
  */
-infix fun <A, B> Computation<(A) -> B>.thenValue(fa: Computation<A>): Computation<B> = Computation {
+infix fun <A, B> Effect<(A) -> B>.thenValue(fa: Effect<A>): Effect<B> = Effect {
     val f = with(this@thenValue) { execute() }
     val a = with(fa) { execute() }
     f(a)
 }
 
-/** Convenience overload that wraps a suspend lambda into a [Computation]. */
-infix fun <A, B> Computation<(A) -> B>.thenValue(fa: suspend () -> A): Computation<B> =
-    thenValue(Computation { fa() })
+/** Convenience overload that wraps a suspend lambda into a [Effect]. */
+infix fun <A, B> Effect<(A) -> B>.thenValue(fa: suspend () -> A): Effect<B> =
+    thenValue(Effect { fa() })
 
-// ── flatMap: monadic bind (sequential, value-dependent) ─────────────────
+// ── andThen: monadic bind (sequential, value-dependent) ─────────────────
 
 /**
  * Monadic bind — sequential, value-dependent composition.
  *
- * Unlike [followedBy], the continuation [f] receives the left-hand result and
+ * Unlike [then], the continuation [f] receives the left-hand result and
  * decides what to compute next. This breaks the static dependency-graph
- * property; prefer [with]/[followedBy] when the right side is independent.
+ * property; prefer [with]/[then] when the right side is independent.
  *
  * ```
- * Computation.of(userId).flatMap { id ->
+ * Effect.of(userId).andThen { id ->
  *     kap(::buildProfile)
  *         .with { fetchUser(id) }
  *         .with { fetchAvatar(id) }
  * }
  * ```
  */
-inline fun <A, B> Computation<A>.flatMap(crossinline f: (A) -> Computation<B>): Computation<B> = Computation {
-    val a = with(this@flatMap) { execute() }
+inline fun <A, B> Effect<A>.andThen(crossinline f: (A) -> Effect<B>): Effect<B> = Effect {
+    val a = with(this@andThen) { execute() }
     with(f(a)) { execute() }
 }
 
@@ -323,21 +323,21 @@ inline fun <A, B> Computation<A>.flatMap(crossinline f: (A) -> Computation<B>): 
  *     .with { compute().on(Dispatchers.Default) }
  * ```
  */
-fun <A> Computation<A>.on(context: CoroutineContext): Computation<A> = Computation {
+fun <A> Effect<A>.on(context: CoroutineContext): Effect<A> = Effect {
     withContext(context) { with(this@on) { execute() } }
 }
 
 // ── context: read the current CoroutineContext ─────────────────────────
 
 /**
- * A [Computation] that captures the current [kotlin.coroutines.CoroutineContext].
+ * A [Effect] that captures the current [kotlin.coroutines.CoroutineContext].
  *
  * Useful for propagating trace IDs, MDC, or other context elements
  * into computation chains:
  *
  * ```
  * Async {
- *     context.flatMap { ctx ->
+ *     context.andThen { ctx ->
  *         val traceId = ctx[TraceKey]
  *         kap(::build)
  *             .with { fetchUser(traceId) }
@@ -346,12 +346,12 @@ fun <A> Computation<A>.on(context: CoroutineContext): Computation<A> = Computati
  * }
  * ```
  */
-val context: Computation<CoroutineContext> = Computation { coroutineContext }
+val context: Effect<CoroutineContext> = Effect { coroutineContext }
 
-// ── Computation.empty: convenience for Computation.of(Unit) ─────────────
+// ── Effect.empty: convenience for Effect.of(Unit) ─────────────
 
-/** A [Computation] that immediately returns [Unit]. */
-val Computation.Companion.empty: Computation<Unit> get() = Computation { }
+/** A [Effect] that immediately returns [Unit]. */
+val Effect.Companion.empty: Effect<Unit> get() = Effect { }
 
 // ── named: CoroutineName for debugger/logging ───────────────────────────
 
@@ -366,7 +366,7 @@ val Computation.Companion.empty: Computation<Unit> get() = Computation { }
  *     .with { fetchPromos().named("fetchPromos") }
  * ```
  */
-fun <A> Computation<A>.named(name: String): Computation<A> = Computation {
+fun <A> Effect<A>.named(name: String): Effect<A> = Effect {
     withContext(CoroutineName(name)) { with(this@named) { execute() } }
 }
 
@@ -376,10 +376,10 @@ fun <A> Computation<A>.named(name: String): Computation<A> = Computation {
  * Discards the result of this computation, returning [Unit].
  *
  * ```
- * Computation { sendEmail() }.discard()  // Computation<Unit>
+ * Effect { sendEmail() }.discard()  // Effect<Unit>
  * ```
  */
-fun <A> Computation<A>.discard(): Computation<Unit> = map { }
+fun <A> Effect<A>.discard(): Effect<Unit> = map { }
 
 // ── peek: side-effect without changing value ─────────────────────────────
 
@@ -387,11 +387,11 @@ fun <A> Computation<A>.discard(): Computation<Unit> = map { }
  * Executes a side-effect [f] with the result, then returns the original value unchanged.
  *
  * ```
- * Computation { fetchUser() }
+ * Effect { fetchUser() }
  *     .peek { user -> logger.info("fetched $user") }
  * ```
  */
-inline fun <A> Computation<A>.peek(crossinline f: suspend (A) -> Unit): Computation<A> = Computation {
+inline fun <A> Effect<A>.peek(crossinline f: suspend (A) -> Unit): Effect<A> = Effect {
     val a = with(this@peek) { execute() }
     f(a)
     a
@@ -404,11 +404,11 @@ inline fun <A> Computation<A>.peek(crossinline f: suspend (A) -> Unit): Computat
  * Both must succeed; if either fails, the other is cancelled.
  *
  * ```
- * Computation { fetchUser() }
- *     .keepFirst(Computation { logAccess() })  // returns User, logAccess runs in parallel
+ * Effect { fetchUser() }
+ *     .keepFirst(Effect { logAccess() })  // returns User, logAccess runs in parallel
  * ```
  */
-fun <A, B> Computation<A>.keepFirst(other: Computation<B>): Computation<A> = Computation {
+fun <A, B> Effect<A>.keepFirst(other: Effect<B>): Effect<A> = Effect {
     val da = async { with(this@keepFirst) { execute() } }
     val db = async { with(other) { execute() } }
     db.await()
@@ -420,11 +420,11 @@ fun <A, B> Computation<A>.keepFirst(other: Computation<B>): Computation<A> = Com
  * Both must succeed; if either fails, the other is cancelled.
  *
  * ```
- * Computation { logAccess() }
- *     .keepSecond(Computation { fetchUser() })  // returns User
+ * Effect { logAccess() }
+ *     .keepSecond(Effect { fetchUser() })  // returns User
  * ```
  */
-fun <A, B> Computation<A>.keepSecond(other: Computation<B>): Computation<B> = Computation {
+fun <A, B> Effect<A>.keepSecond(other: Effect<B>): Effect<B> = Effect {
     val da = async { with(this@keepSecond) { execute() } }
     val db = async { with(other) { execute() } }
     da.await()
@@ -445,7 +445,7 @@ fun <A, B> Computation<A>.keepSecond(other: Computation<B>): Computation<B> = Co
  * CancellationException never poisons the cache.
  *
  * ```
- * val expensive = Computation { fetchExpensiveData() }.memoize()
+ * val expensive = Effect { fetchExpensiveData() }.memoize()
  *
  * Async {
  *     kap(::combine)
@@ -454,10 +454,10 @@ fun <A, B> Computation<A>.keepSecond(other: Computation<B>): Computation<B> = Co
  * }
  * ```
  */
-fun <A> Computation<A>.memoize(): Computation<A> =
+fun <A> Effect<A>.memoize(): Effect<A> =
     Memoized(this)
 
-private class Memoized<A>(private val original: Computation<A>) : Computation<A> {
+private class Memoized<A>(private val original: Effect<A>) : Effect<A> {
     private val lock = kotlinx.coroutines.sync.Mutex()
     @kotlin.concurrent.Volatile private var cached: Any? = UNSET
     @kotlin.concurrent.Volatile private var cachedError: Throwable? = null
@@ -521,7 +521,7 @@ private class Memoized<A>(private val original: Computation<A>) : Computation<A>
  * executes the original computation at a time.
  *
  * ```
- * val config = Computation { fetchRemoteConfig() }.memoizeOnSuccess()
+ * val config = Effect { fetchRemoteConfig() }.memoizeOnSuccess()
  *
  * Async {
  *     kap(::combine)
@@ -530,10 +530,10 @@ private class Memoized<A>(private val original: Computation<A>) : Computation<A>
  * }
  * ```
  */
-fun <A> Computation<A>.memoizeOnSuccess(): Computation<A> =
+fun <A> Effect<A>.memoizeOnSuccess(): Effect<A> =
     MemoizedOnSuccess(this)
 
-private class MemoizedOnSuccess<A>(private val original: Computation<A>) : Computation<A> {
+private class MemoizedOnSuccess<A>(private val original: Effect<A>) : Effect<A> {
     private val lock = kotlinx.coroutines.sync.Mutex()
     @kotlin.concurrent.Volatile private var cached: Any? = UNSET
 
@@ -563,10 +563,10 @@ private class MemoizedOnSuccess<A>(private val original: Computation<A>) : Compu
     }
 }
 
-// ── await: execute a Computation from any suspend context ────────────────
+// ── await: execute a Effect from any suspend context ────────────────
 
 /**
- * Executes this [Computation] from any suspend context, creating a
+ * Executes this [Effect] from any suspend context, creating a
  * [coroutineScope] for structured concurrency.
  *
  * This is the ergonomic bridge for using combinators like [timeout],
@@ -577,21 +577,21 @@ private class MemoizedOnSuccess<A>(private val original: Computation<A>) : Compu
  * // Before (verbose):
  * kap(::Dashboard)
  *     .with {
- *         with(Computation { fetchUser() }
+ *         with(Effect { fetchUser() }
  *             .timeout(200.milliseconds, User.cached())) { execute() }
  *     }
  *     .with { fetchCart() }
  *
  * // After (clean):
  * kap(::Dashboard)
- *     .with { Computation { fetchUser() }.timeout(200.milliseconds, User.cached()).await() }
+ *     .with { Effect { fetchUser() }.timeout(200.milliseconds, User.cached()).await() }
  *     .with { fetchCart() }
  * ```
  *
  * **Note:** Creates a [coroutineScope] internally, which correctly maintains
  * structured concurrency guarantees. For top-level execution, use [Async] instead.
  */
-suspend fun <A> Computation<A>.await(): A =
+suspend fun <A> Effect<A>.await(): A =
     coroutineScope { with(this@await) { execute() } }
 
 // ── settled: capture result without cancelling siblings ──────────────────
@@ -616,7 +616,7 @@ suspend fun <A> Computation<A>.await(): A =
  * [CancellationException] is never caught — structured concurrency cancellation
  * always propagates.
  */
-fun <A> Computation<A>.settled(): Computation<Result<A>> = Computation {
+fun <A> Effect<A>.settled(): Effect<Result<A>> = Effect {
     try {
         Result.success(with(this@settled) { execute() })
     } catch (e: Throwable) {
@@ -630,7 +630,7 @@ fun <A> Computation<A>.settled(): Computation<Result<A>> = Computation {
 /**
  * Declarative dependency-graph DSL for Kotlin coroutines.
  *
- * Executes the [Computation] built inside [block] within a [coroutineScope],
+ * Executes the [Effect] built inside [block] within a [coroutineScope],
  * providing structured concurrency guarantees: if any computation fails,
  * all siblings are automatically cancelled.
  *
@@ -639,7 +639,7 @@ fun <A> Computation<A>.settled(): Computation<Result<A>> = Computation {
  *     kap(::buildDashboard)
  *         .with { fetchUser() }              // parallel
  *         .with { fetchConfig() }            // parallel
- *         .followedBy { validate() }         // sequential barrier
+ *         .then { validate() }         // sequential barrier
  *         .with { calcShipping() }           // parallel again
  * }
  * ```
@@ -647,7 +647,7 @@ fun <A> Computation<A>.settled(): Computation<Result<A>> = Computation {
 @AsyncDsl
 object Async {
 
-    suspend operator fun <A> invoke(block: Async.() -> Computation<A>): A =
+    suspend operator fun <A> invoke(block: Async.() -> Effect<A>): A =
         coroutineScope { with(block()) { execute() } }
 
     /**
@@ -659,6 +659,6 @@ object Async {
      */
     suspend operator fun <A> invoke(
         context: CoroutineContext,
-        block: Async.() -> Computation<A>,
+        block: Async.() -> Effect<A>,
     ): A = withContext(context) { coroutineScope { with(block()) { execute() } } }
 }

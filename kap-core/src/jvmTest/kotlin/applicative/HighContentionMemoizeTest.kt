@@ -24,7 +24,7 @@ class HighContentionMemoizeTest {
     @Test
     fun `memoize executes original exactly once under 100 concurrent callers`() = runTest {
         val executionCount = AtomicInteger(0)
-        val comp = Computation {
+        val comp = Effect {
             executionCount.incrementAndGet()
             delay(10)
             42
@@ -43,7 +43,7 @@ class HighContentionMemoizeTest {
     @Test
     fun `memoizeOnSuccess executes original exactly once under 100 concurrent callers`() = runTest {
         val executionCount = AtomicInteger(0)
-        val comp = Computation {
+        val comp = Effect {
             executionCount.incrementAndGet()
             delay(10)
             "result"
@@ -62,7 +62,7 @@ class HighContentionMemoizeTest {
     @Test
     fun `memoize caches failure and rethrows to all concurrent callers`() = runTest {
         val executionCount = AtomicInteger(0)
-        val comp = Computation<String> {
+        val comp = Effect<String> {
             executionCount.incrementAndGet()
             delay(10)
             throw IllegalStateException("boom")
@@ -88,7 +88,7 @@ class HighContentionMemoizeTest {
     @Test
     fun `memoizeOnSuccess retries after failure under contention`() = runTest {
         val attemptCount = AtomicInteger(0)
-        val comp = Computation {
+        val comp = Effect {
             val attempt = attemptCount.incrementAndGet()
             delay(5)
             if (attempt == 1) throw IllegalStateException("transient")
@@ -121,7 +121,7 @@ class HighContentionMemoizeTest {
     @Test
     fun `memoize with null value correctly caches null`() = runTest {
         val executionCount = AtomicInteger(0)
-        val comp = Computation<String?> {
+        val comp = Effect<String?> {
             executionCount.incrementAndGet()
             delay(10)
             null
@@ -140,7 +140,7 @@ class HighContentionMemoizeTest {
     @Test
     fun `memoize survives cancellation of first caller — second caller executes successfully`() = runTest {
         val executionCount = AtomicInteger(0)
-        val comp = Computation {
+        val comp = Effect {
             executionCount.incrementAndGet()
             delay(100)
             "result"
@@ -164,7 +164,7 @@ class HighContentionMemoizeTest {
     @Test
     fun `memoizeOnSuccess survives cancellation of first caller`() = runTest {
         val executionCount = AtomicInteger(0)
-        val comp = Computation {
+        val comp = Effect {
             executionCount.incrementAndGet()
             delay(100)
             "result"
@@ -183,7 +183,7 @@ class HighContentionMemoizeTest {
     @Test
     fun `memoize concurrent access after cache is populated uses fast path`() = runTest {
         val executionCount = AtomicInteger(0)
-        val comp = Computation {
+        val comp = Effect {
             executionCount.incrementAndGet()
             "cached"
         }.memoize()

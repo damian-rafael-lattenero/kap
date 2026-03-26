@@ -14,7 +14,7 @@ import kotlin.test.assertTrue
 
 /**
  * Tests for [ValidatedScope.bindV] — the shorthand that executes a validated
- * [Computation] and unwraps the result inside [validated] blocks, eliminating
+ * [Effect] and unwraps the result inside [validated] blocks, eliminating
  * the need for nested [Async] calls.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

@@ -158,7 +158,7 @@ class ValidatedTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Sequential validation via flatMap chaining
+    // Sequential validation via andThen chaining
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
@@ -176,13 +176,13 @@ class ValidatedTest {
     }
 
     @Test
-    fun `sequential followedByV enforces order`() = runTest {
+    fun `sequential thenV enforces order`() = runTest {
         val order = mutableListOf<String>()
 
         val result = Async {
             kapV<String, String, String, Pair<String, String>> { a, b -> a to b }
                 .withV { order.add("first"); Either.Right("A") as Either<NonEmptyList<String>, String> }
-                .followedByV { order.add("second"); Either.Right("B") as Either<NonEmptyList<String>, String> }
+                .thenV { order.add("second"); Either.Right("B") as Either<NonEmptyList<String>, String> }
         }
 
         assertEquals(Either.Right("A" to "B"), result)
@@ -190,13 +190,13 @@ class ValidatedTest {
     }
 
     @Test
-    fun `followedByV short-circuits on left error - does not execute right side`() = runTest {
+    fun `thenV short-circuits on left error - does not execute right side`() = runTest {
         val secondCalled = CompletableDeferred<Boolean>()
 
         val result = Async {
             kapV<String, String, String, Pair<String, String>> { a, b -> a to b }
                 .withV { Either.Left(nonEmptyListOf("left failed")) as Either<NonEmptyList<String>, String> }
-                .followedByV {
+                .thenV {
                     secondCalled.complete(true)
                     Either.Right("should not run") as Either<NonEmptyList<String>, String>
                 }
@@ -235,7 +235,7 @@ class ValidatedTest {
     @Test
     fun `catching wraps exception as Left`() = runTest {
         val result = Async {
-            Computation<String> { throw RuntimeException("boom") }
+            Effect<String> { throw RuntimeException("boom") }
                 .catching { it.message ?: "unknown" }
         }
 
@@ -246,7 +246,7 @@ class ValidatedTest {
     @Test
     fun `catching wraps success as Right`() = runTest {
         val result = Async {
-            Computation.of("ok").catching { it.message ?: "unknown" }
+            Effect.of("ok").catching { it.message ?: "unknown" }
         }
 
         assertEquals(Either.Right("ok"), result)
@@ -256,7 +256,7 @@ class ValidatedTest {
     fun `catching does not catch CancellationException`() = runTest {
         val result = runCatching {
             Async {
-                Computation<String> { throw CancellationException("cancelled") }
+                Effect<String> { throw CancellationException("cancelled") }
                     .catching { "caught" }
             }
         }
@@ -290,7 +290,7 @@ class ValidatedTest {
     @Test
     fun `validate passes when predicate returns null`() = runTest {
         val result = Async {
-            Computation.of(42).validate<String, Int> { if (it > 0) null else "must be positive" }
+            Effect.of(42).validate<String, Int> { if (it > 0) null else "must be positive" }
         }
         assertEquals(Either.Right(42), result)
     }
@@ -298,7 +298,7 @@ class ValidatedTest {
     @Test
     fun `validate fails when predicate returns error`() = runTest {
         val result = Async {
-            Computation.of(-1).validate<String, Int> { if (it > 0) null else "must be positive" }
+            Effect.of(-1).validate<String, Int> { if (it > 0) null else "must be positive" }
         }
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("must be positive"), result.value.toList())
@@ -335,7 +335,7 @@ class ValidatedTest {
 
         val result = Async {
             (0 until 3).toList().traverseV<String, Int, String> { i ->
-                Computation {
+                Effect {
                     latches[i].complete(Unit)
                     latches.awaitOthers(i)
                     Either.Right("v$i")
@@ -416,7 +416,7 @@ class ValidatedTest {
         val latches = (0 until 3).map { CompletableDeferred<Unit>() }
 
         val computations = (0 until 3).map { i ->
-            Computation<Either<NonEmptyList<String>, String>> {
+            Effect<Either<NonEmptyList<String>, String>> {
                 latches[i].complete(Unit)
                 latches.awaitOthers(i)
                 Either.Right("v$i")
@@ -428,25 +428,25 @@ class ValidatedTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // flatMapV — monadic bind for validated (short-circuit)
+    // andThenV — monadic bind for validated (short-circuit)
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `flatMapV chains on success`() = runTest {
+    fun `andThenV chains on success`() = runTest {
         val result = Async {
             valid<String, Int>(42)
-                .flatMapV { n -> valid<String, String>("result=$n") }
+                .andThenV { n -> valid<String, String>("result=$n") }
         }
         assertEquals(Either.Right("result=42"), result)
     }
 
     @Test
-    fun `flatMapV short-circuits on first error`() = runTest {
+    fun `andThenV short-circuits on first error`() = runTest {
         val secondCalled = CompletableDeferred<Boolean>()
 
         val result = Async {
             invalid<String, Int>("first error")
-                .flatMapV { n ->
+                .andThenV { n ->
                     secondCalled.complete(true)
                     valid<String, String>("result=$n")
                 }
@@ -459,10 +459,10 @@ class ValidatedTest {
     }
 
     @Test
-    fun `flatMapV propagates error from second step`() = runTest {
+    fun `andThenV propagates error from second step`() = runTest {
         val result = Async {
             valid<String, Int>(42)
-                .flatMapV { invalid<String, String>("second error") }
+                .andThenV { invalid<String, String>("second error") }
         }
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
@@ -470,23 +470,23 @@ class ValidatedTest {
     }
 
     @Test
-    fun `flatMapV chains multiple steps`() = runTest {
+    fun `andThenV chains multiple steps`() = runTest {
         val result = Async {
             valid<String, Int>(10)
-                .flatMapV { n -> valid<String, Int>(n + 1) }
-                .flatMapV { n -> valid<String, Int>(n * 2) }
-                .flatMapV { n -> valid<String, String>("final=$n") }
+                .andThenV { n -> valid<String, Int>(n + 1) }
+                .andThenV { n -> valid<String, Int>(n * 2) }
+                .andThenV { n -> valid<String, String>("final=$n") }
         }
         assertEquals(Either.Right("final=22"), result)
     }
 
     @Test
-    fun `flatMapV composes with apV - dependent validation after parallel`() = runTest {
-        fun validateName(name: String): Computation<Either<NonEmptyList<String>, String>> =
+    fun `andThenV composes with apV - dependent validation after parallel`() = runTest {
+        fun validateName(name: String): Effect<Either<NonEmptyList<String>, String>> =
             if (name.length >= 2) valid(name) else invalid("name too short")
-        fun validateEmail(email: String): Computation<Either<NonEmptyList<String>, String>> =
+        fun validateEmail(email: String): Effect<Either<NonEmptyList<String>, String>> =
             if ("@" in email) valid(email) else invalid("invalid email")
-        fun checkNotTaken(name: String, email: String): Computation<Either<NonEmptyList<String>, Pair<String, String>>> =
+        fun checkNotTaken(name: String, email: String): Effect<Either<NonEmptyList<String>, Pair<String, String>>> =
             valid(name to email) // pretend it's available
 
         val result = Async {
@@ -495,7 +495,7 @@ class ValidatedTest {
                 .withV(validateName("Alice"))
                 .withV(validateEmail("alice@test.com"))
                 // Phase 2: sequential check depending on phase 1 values
-                .flatMapV { (name, email) -> checkNotTaken(name, email) }
+                .andThenV { (name, email) -> checkNotTaken(name, email) }
         }
 
         assertEquals(Either.Right("Alice" to "alice@test.com"), result)
@@ -802,7 +802,7 @@ class ValidatedTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // zipV + flatMapV — phased validation with type inference
+    // zipV + andThenV — phased validation with type inference
     //
     // Phase 1: validate identity fields (parallel, accumulate)
     // Phase 2: validate address fields (parallel, accumulate)
@@ -823,7 +823,7 @@ class ValidatedTest {
     private data class FullRegistration(val identity: IdentityInfo, val address: AddressInfo, val taxId: ValidTaxId, val terms: AcceptedTerms)
 
     @Test
-    fun `zipV + flatMapV - phased validation - both phases pass`() = runTest {
+    fun `zipV + andThenV - phased validation - both phases pass`() = runTest {
         val result = Async {
             // Phase 1: identity (6 parallel validations)
             zipV(
@@ -835,7 +835,7 @@ class ValidatedTest {
                 { valBirthDate("1990-05-15") },
             ) { fn, ln, em, ph, pw, bd -> IdentityInfo(fn, ln, em, ph, pw, bd) }
             // Phase 2: address + extras (4 parallel validations, only if phase 1 passes)
-            .flatMapV { identity ->
+            .andThenV { identity ->
                 zipV(
                     { valCountry("AR") },
                     { valCity("Buenos Aires") },
@@ -853,7 +853,7 @@ class ValidatedTest {
     }
 
     @Test
-    fun `zipV + flatMapV - phase 1 fails - phase 2 never runs`() = runTest {
+    fun `zipV + andThenV - phase 1 fails - phase 2 never runs`() = runTest {
         var phase2Ran = false
 
         val result = Async {
@@ -865,7 +865,7 @@ class ValidatedTest {
                 { valPassword("weak") },      // FAIL
                 { valBirthDate("nope") },     // FAIL
             ) { fn, ln, em, ph, pw, bd -> IdentityInfo(fn, ln, em, ph, pw, bd) }
-            .flatMapV { identity ->
+            .andThenV { identity ->
                 phase2Ran = true
                 zipV(
                     { valCountry("AR") },
@@ -884,7 +884,7 @@ class ValidatedTest {
     }
 
     @Test
-    fun `zipV + flatMapV - phase 1 passes - phase 2 fails and accumulates`() = runTest {
+    fun `zipV + andThenV - phase 1 passes - phase 2 fails and accumulates`() = runTest {
         val result = Async {
             zipV(
                 { valFirstName("Alice") },
@@ -894,7 +894,7 @@ class ValidatedTest {
                 { valPassword("s3cur3p@ss") },
                 { valBirthDate("1990-05-15") },
             ) { fn, ln, em, ph, pw, bd -> IdentityInfo(fn, ln, em, ph, pw, bd) }
-            .flatMapV { identity ->
+            .andThenV { identity ->
                 zipV(
                     { valCountry("ARG") },   // FAIL — not ISO 2-letter
                     { valCity("") },          // FAIL — blank

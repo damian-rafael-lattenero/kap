@@ -13,19 +13,19 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * Tests for the kap-arrow extensions that bridge between kap-core Computations
+ * Tests for the kap-arrow extensions that bridge between kap-core Effects
  * and Arrow types (Either, NonEmptyList).
  */
 class ArrowInteropTest {
 
     // ════════════════════════════════════════════════════════════════════════
-    // attempt — Computation<A> → Computation<Either<Throwable, A>>
+    // attempt — Effect<A> → Effect<Either<Throwable, A>>
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
     fun `attempt wraps success in Right`() = runTest {
         val result = Async {
-            Computation.of(42).attempt()
+            Effect.of(42).attempt()
         }
         assertEquals(Either.Right(42), result)
     }
@@ -33,7 +33,7 @@ class ArrowInteropTest {
     @Test
     fun `attempt wraps exception in Left`() = runTest {
         val result = Async {
-            Computation<Int> { throw RuntimeException("boom") }.attempt()
+            Effect<Int> { throw RuntimeException("boom") }.attempt()
         }
         assertIs<Either.Left<Throwable>>(result)
         assertEquals("boom", result.value.message)
@@ -43,7 +43,7 @@ class ArrowInteropTest {
     fun `attempt does not catch CancellationException`() = runTest {
         val result = runCatching {
             Async {
-                Computation<Int> { throw CancellationException("cancelled") }.attempt()
+                Effect<Int> { throw CancellationException("cancelled") }.attempt()
             }
         }
         assertTrue(result.isFailure)
@@ -54,8 +54,8 @@ class ArrowInteropTest {
     fun `attempt composes with validated operations via catching`() = runTest {
         val result = Async {
             kapV<String, Int, Int, Int> { a, b -> a + b }
-                .withV(Computation { 1 }.catching { it.message ?: "unknown" })
-                .withV(Computation { 2 }.catching { it.message ?: "unknown" })
+                .withV(Effect { 1 }.catching { it.message ?: "unknown" })
+                .withV(Effect { 2 }.catching { it.message ?: "unknown" })
         }
         assertEquals(Either.Right(3), result)
     }
@@ -68,8 +68,8 @@ class ArrowInteropTest {
     fun `raceEither returns Left when first computation wins`() = runTest {
         val result = Async {
             raceEither(
-                fa = Computation.of("fast"),
-                fb = Computation { delay(10_000); 42 },
+                fa = Effect.of("fast"),
+                fb = Effect { delay(10_000); 42 },
             )
         }
         assertEquals(Either.Left("fast"), result)
@@ -79,8 +79,8 @@ class ArrowInteropTest {
     fun `raceEither returns Right when second computation wins`() = runTest {
         val result = Async {
             raceEither(
-                fa = Computation { delay(10_000); "slow" },
-                fb = Computation.of(42),
+                fa = Effect { delay(10_000); "slow" },
+                fb = Effect.of(42),
             )
         }
         assertEquals(Either.Right(42), result)
@@ -160,11 +160,11 @@ class ArrowInteropTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // fromArrow — wraps suspend lambda into Computation
+    // fromArrow — wraps suspend lambda into Effect
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `fromArrow wraps suspend lambda into Computation`() = runTest {
+    fun `fromArrow wraps suspend lambda into Effect`() = runTest {
         val result = Async {
             fromArrow { 42 }
         }
@@ -182,19 +182,19 @@ class ArrowInteropTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // runCatchingArrow — execute Computation and return Arrow Either
+    // runCatchingArrow — execute Effect and return Arrow Either
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
     fun `runCatchingArrow returns Right on success`() = runTest {
-        val computation = Computation.of(42)
+        val computation = Effect.of(42)
         val result = computation.runCatchingArrow(this)
         assertEquals(Either.Right(42), result)
     }
 
     @Test
     fun `runCatchingArrow returns Left on failure`() = runTest {
-        val computation = Computation<Int> { throw RuntimeException("boom") }
+        val computation = Effect<Int> { throw RuntimeException("boom") }
         val result = computation.runCatchingArrow(this)
         assertIs<Either.Left<Throwable>>(result)
         assertEquals("boom", result.value.message)
@@ -202,7 +202,7 @@ class ArrowInteropTest {
 
     @Test
     fun `runCatchingArrow does not catch CancellationException`() = runTest {
-        val computation = Computation<Int> { throw CancellationException("cancelled") }
+        val computation = Effect<Int> { throw CancellationException("cancelled") }
         val result = runCatching { computation.runCatchingArrow(this@runTest) }
         assertTrue(result.isFailure)
         assertIs<CancellationException>(result.exceptionOrNull())

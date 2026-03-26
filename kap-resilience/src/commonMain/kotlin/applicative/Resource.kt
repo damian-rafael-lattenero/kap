@@ -9,7 +9,7 @@ import kotlin.time.Duration
  * A composable resource with guaranteed cleanup.
  *
  * Unlike [bracket] which requires nesting for multiple resources, [Resource]
- * supports flat composition via [map], [flatMap], and [zip]:
+ * supports flat composition via [map], [andThen], and [zip]:
  *
  * ```
  * val combined = Resource.zip(
@@ -19,8 +19,8 @@ import kotlin.time.Duration
  *
  * combined.use { (db, cache) ->
  *     kap(::Result)
- *         .with { Computation { db.query("...") } }
- *         .with { Computation { cache.get("key") } }
+ *         .with { Effect { db.query("...") } }
+ *         .with { Effect { cache.get("key") } }
  * }
  * ```
  *
@@ -70,7 +70,7 @@ class Resource<out A> @PublishedApi internal constructor(
     }
 
     /** Composes resources sequentially. Both are released in reverse order. */
-    fun <B> flatMap(f: (A) -> Resource<B>): Resource<B> = Resource { use ->
+    fun <B> andThen(f: (A) -> Resource<B>): Resource<B> = Resource { use ->
         this@Resource.bind { a -> f(a).bind(use) }
     }
 
@@ -102,19 +102,19 @@ class Resource<out A> @PublishedApi internal constructor(
     }
 
     /**
-     * Terminal operation returning a [Computation] — integrates with [with] chains.
+     * Terminal operation returning a [Effect] — integrates with [with] chains.
      *
      * ```
      * val result = Async {
      *     dbResource.use { conn ->
      *         kap(::Result)
-     *             .with { Computation { conn.query("...") } }
-     *             .with { Computation { conn.fetchMeta() } }
+     *             .with { Effect { conn.query("...") } }
+     *             .with { Effect { conn.fetchMeta() } }
      *     }
      * }
      * ```
      */
-    fun <B> useComputation(f: (A) -> Computation<B>): Computation<B> = Computation {
+    fun <B> useEffect(f: (A) -> Effect<B>): Effect<B> = Effect {
         var result: B? = null
         var completed = false
         this@Resource.bind { a ->

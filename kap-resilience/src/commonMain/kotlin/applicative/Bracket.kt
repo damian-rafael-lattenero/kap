@@ -7,7 +7,7 @@ import kotlinx.coroutines.withContext
 // ── bracket: resource-safe computation ──────────────────────────────────
 
 /**
- * Acquires a resource, uses it in a [Computation], and guarantees [release]
+ * Acquires a resource, uses it in a [Effect], and guarantees [release]
  * runs even on failure or cancellation.
  *
  * [release] runs in [NonCancellable] context so it cannot be interrupted.
@@ -29,15 +29,15 @@ import kotlinx.coroutines.withContext
  *
  * @param acquire suspending function that acquires the resource.
  *        Runs once before [use]. If it throws, [release] is NOT called.
- * @param use function that builds a [Computation] from the acquired resource.
+ * @param use function that builds a [Effect] from the acquired resource.
  * @param release suspending function that releases the resource.
  *        Called exactly once: on success, failure, or cancellation.
  */
 fun <R, A> bracket(
     acquire: suspend () -> R,
-    use: (R) -> Computation<A>,
+    use: (R) -> Effect<A>,
     release: suspend (R) -> Unit,
-): Computation<A> = Computation {
+): Effect<A> = Effect {
     val resource = acquire()
     try {
         with(use(resource)) { execute() }
@@ -55,11 +55,11 @@ fun <R, A> bracket(
  * [finalizer] runs in [NonCancellable] context so it cannot be interrupted.
  *
  * ```
- * Computation { fetchUser() }
+ * Effect { fetchUser() }
  *     .guarantee { releaseConnection() }
  * ```
  */
-fun <A> Computation<A>.guarantee(finalizer: suspend () -> Unit): Computation<A> = Computation {
+fun <A> Effect<A>.guarantee(finalizer: suspend () -> Unit): Effect<A> = Effect {
     try {
         with(this@guarantee) { execute() }
     } finally {
@@ -73,13 +73,13 @@ fun <A> Computation<A>.guarantee(finalizer: suspend () -> Unit): Computation<A> 
  * Outcome of a computation, passed to [guaranteeCase]'s finalizer.
  */
 sealed class ExitCase {
-    /** Computation completed successfully. */
+    /** Effect completed successfully. */
     data class Completed<out A>(val value: A) : ExitCase()
 
-    /** Computation failed with an exception. */
+    /** Effect failed with an exception. */
     data class Failed(val error: Throwable) : ExitCase()
 
-    /** Computation was cancelled. */
+    /** Effect was cancelled. */
     data object Cancelled : ExitCase()
 }
 
@@ -88,7 +88,7 @@ sealed class ExitCase {
  * react differently to success, failure, or cancellation.
  *
  * ```
- * Computation { fetchUser() }
+ * Effect { fetchUser() }
  *     .guaranteeCase { case ->
  *         when (case) {
  *             is ExitCase.Completed -> metrics.recordSuccess()
@@ -98,7 +98,7 @@ sealed class ExitCase {
  *     }
  * ```
  */
-fun <A> Computation<A>.guaranteeCase(finalizer: suspend (ExitCase) -> Unit): Computation<A> = Computation {
+fun <A> Effect<A>.guaranteeCase(finalizer: suspend (ExitCase) -> Unit): Effect<A> = Effect {
     try {
         val result = with(this@guaranteeCase) { execute() }
         withContext(NonCancellable) { finalizer(ExitCase.Completed(result)) }
@@ -121,7 +121,7 @@ fun <A> Computation<A>.guaranteeCase(finalizer: suspend (ExitCase) -> Unit): Com
  * ```
  * bracketCase(
  *     acquire = { openConnection() },
- *     use = { conn -> Computation { conn.query("SELECT ...") } },
+ *     use = { conn -> Effect { conn.query("SELECT ...") } },
  *     release = { conn, case ->
  *         when (case) {
  *             is ExitCase.Completed -> conn.commit()
@@ -134,9 +134,9 @@ fun <A> Computation<A>.guaranteeCase(finalizer: suspend (ExitCase) -> Unit): Com
  */
 fun <R, A> bracketCase(
     acquire: suspend () -> R,
-    use: (R) -> Computation<A>,
+    use: (R) -> Effect<A>,
     release: suspend (R, ExitCase) -> Unit,
-): Computation<A> = Computation {
+): Effect<A> = Effect {
     val resource = acquire()
     try {
         val result = with(use(resource)) { execute() }

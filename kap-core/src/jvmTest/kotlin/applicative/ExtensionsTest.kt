@@ -21,14 +21,14 @@ class ExtensionsTest {
 
     @Test
     fun `void discards result and returns Unit`() = runTest {
-        val result = Async { Computation { 42 }.discard() }
+        val result = Async { Effect { 42 }.discard() }
         assertEquals(Unit, result)
     }
 
     @Test
     fun `void propagates failure`() = runTest {
         val result = runCatching {
-            Async { Computation<Int> { throw RuntimeException("boom") }.discard() }
+            Async { Effect<Int> { throw RuntimeException("boom") }.discard() }
         }
         assertTrue(result.isFailure)
         assertEquals("boom", result.exceptionOrNull()?.message)
@@ -40,7 +40,7 @@ class ExtensionsTest {
 
     @Test
     fun `settled wraps success in Result success`() = runTest {
-        val result = Async { Computation { 42 }.settled() }
+        val result = Async { Effect { 42 }.settled() }
         assertTrue(result.isSuccess)
         assertEquals(42, result.getOrNull())
     }
@@ -48,7 +48,7 @@ class ExtensionsTest {
     @Test
     fun `settled wraps failure in Result failure`() = runTest {
         val result = Async {
-            Computation<Int> { throw IllegalStateException("bad") }.settled()
+            Effect<Int> { throw IllegalStateException("bad") }.settled()
         }
         assertTrue(result.isFailure)
         assertEquals("bad", result.exceptionOrNull()?.message)
@@ -57,7 +57,7 @@ class ExtensionsTest {
     @Test
     fun `settled does not catch CancellationException`() = runTest {
         val started = CompletableDeferred<Unit>()
-        val comp = Computation<Int> {
+        val comp = Effect<Int> {
             started.complete(Unit)
             awaitCancellation()
         }.settled()
@@ -76,7 +76,7 @@ class ExtensionsTest {
     fun `tap executes side-effect and returns original value`() = runTest {
         val sideEffects = mutableListOf<String>()
         val result = Async {
-            Computation { "hello" }
+            Effect { "hello" }
                 .peek { sideEffects.add("saw: $it") }
         }
         assertEquals("hello", result)
@@ -87,7 +87,7 @@ class ExtensionsTest {
     fun `tap failure in side-effect propagates`() = runTest {
         val result = runCatching {
             Async {
-                Computation { "hello" }
+                Effect { "hello" }
                     .peek { throw RuntimeException("side-effect failed") }
             }
         }
@@ -102,8 +102,8 @@ class ExtensionsTest {
     @Test
     fun `zipLeft runs both in parallel and returns left result`() = runTest {
         val result = Async {
-            Computation { delay(50); "left" }
-                .keepFirst(Computation { delay(50); "right" })
+            Effect { delay(50); "left" }
+                .keepFirst(Effect { delay(50); "right" })
         }
         assertEquals("left", result)
         assertEquals(50, currentTime, "Both should run in parallel (50ms, not 100ms)")
@@ -112,8 +112,8 @@ class ExtensionsTest {
     @Test
     fun `zipRight runs both in parallel and returns right result`() = runTest {
         val result = Async {
-            Computation { delay(50); "left" }
-                .keepSecond(Computation { delay(50); "right" })
+            Effect { delay(50); "left" }
+                .keepSecond(Effect { delay(50); "right" })
         }
         assertEquals("right", result)
         assertEquals(50, currentTime, "Both should run in parallel (50ms, not 100ms)")
@@ -123,8 +123,8 @@ class ExtensionsTest {
     fun `zipLeft propagates failure from right side`() = runTest {
         val result = runCatching {
             Async {
-                Computation { delay(100); "left" }
-                    .keepFirst(Computation<String> { throw RuntimeException("right failed") })
+                Effect { delay(100); "left" }
+                    .keepFirst(Effect<String> { throw RuntimeException("right failed") })
             }
         }
         assertTrue(result.isFailure)
@@ -135,8 +135,8 @@ class ExtensionsTest {
     fun `zipRight propagates failure from left side`() = runTest {
         val result = runCatching {
             Async {
-                Computation<String> { throw RuntimeException("left failed") }
-                    .keepSecond(Computation { delay(100); "right" })
+                Effect<String> { throw RuntimeException("left failed") }
+                    .keepSecond(Effect { delay(100); "right" })
             }
         }
         assertTrue(result.isFailure)
@@ -148,8 +148,8 @@ class ExtensionsTest {
         val cancelled = CompletableDeferred<Boolean>()
         val result = runCatching {
             Async {
-                Computation<String> { delay(10); throw RuntimeException("boom") }
-                    .keepFirst(Computation {
+                Effect<String> { delay(10); throw RuntimeException("boom") }
+                    .keepFirst(Effect {
                         try { awaitCancellation() }
                         catch (e: CancellationException) { cancelled.complete(true); throw e }
                     })

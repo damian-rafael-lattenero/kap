@@ -2,19 +2,19 @@
 
 Unlike most Kotlin libraries, every algebraic law is **property-based tested** with random inputs via Kotest. This means refactoring with these combinators is provably safe — the laws guarantee substitutability.
 
-## `Computation` satisfies Functor, Applicative, and Monad laws
+## `Effect` satisfies Functor, Applicative, and Monad laws
 
 | Law | Property | What it guarantees |
 |---|---|---|
 | Functor Identity | `fa.map { it } == fa` | `map` with identity is a no-op |
 | Functor Composition | `fa.map(g).map(f) == fa.map { f(g(it)) }` | Fusing two maps is safe |
-| Applicative Identity | `Computation.of(id) with fa == fa` | Lifting identity does nothing |
-| Applicative Homomorphism | `Computation.of(f) with Computation.of(x) == Computation.of(f(x))` | Pure values compose purely |
-| Applicative Interchange | `u with Computation.of(y) == Computation.of { f -> f(y) } with u` | Order of pure application doesn't matter |
-| Applicative Composition | `Computation.of(compose) with u with v with w == u with (v with w)` | Composition is associative |
-| Monad Left Identity | `Computation.of(a).flatMap(f) == f(a)` | Wrapping then flatMap is same as direct call |
-| Monad Right Identity | `m.flatMap { Computation.of(it) } == m` | flatMap with wrap is identity |
-| Monad Associativity | `(m.flatMap(f)).flatMap(g) == m.flatMap { f(it).flatMap(g) }` | flatMap chains are associative |
+| Applicative Identity | `Effect.of(id) with fa == fa` | Lifting identity does nothing |
+| Applicative Homomorphism | `Effect.of(f) with Effect.of(x) == Effect.of(f(x))` | Pure values compose purely |
+| Applicative Interchange | `u with Effect.of(y) == Effect.of { f -> f(y) } with u` | Order of pure application doesn't matter |
+| Applicative Composition | `Effect.of(compose) with u with v with w == u with (v with w)` | Composition is associative |
+| Monad Left Identity | `Effect.of(a).andThen(f) == f(a)` | Wrapping then andThen is same as direct call |
+| Monad Right Identity | `m.andThen { Effect.of(it) } == m` | andThen with wrap is identity |
+| Monad Associativity | `(m.andThen(f)).andThen(g) == m.andThen { f(it).andThen(g) }` | andThen chains are associative |
 
 ## `Validated` (withV/zipV) satisfies Applicative laws
 

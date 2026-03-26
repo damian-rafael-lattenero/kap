@@ -34,7 +34,7 @@ class NewCombinatorsTest {
         val result = Async {
             bracketCase(
                 acquire = { events.add("acquire"); "conn" },
-                use = { r -> Computation { delay(50); "result-$r" } },
+                use = { r -> Effect { delay(50); "result-$r" } },
                 release = { r, case ->
                     assertIs<ExitCase.Completed<*>>(case)
                     events.add("release:$r:completed")
@@ -54,7 +54,7 @@ class NewCombinatorsTest {
             Async {
                 bracketCase(
                     acquire = { events.add("acquire"); "conn" },
-                    use = { _ -> Computation { throw RuntimeException("boom") } },
+                    use = { _ -> Effect { throw RuntimeException("boom") } },
                     release = { r, case ->
                         assertIs<ExitCase.Failed>(case)
                         assertEquals("boom", (case as ExitCase.Failed).error.message)
@@ -75,7 +75,7 @@ class NewCombinatorsTest {
             Async {
                 bracketCase(
                     acquire = { events.add("acquire"); "conn" },
-                    use = { _ -> Computation { awaitCancellation() } },
+                    use = { _ -> Effect { awaitCancellation() } },
                     release = { r, case ->
                         assertIs<ExitCase.Cancelled>(case)
                         events.add("release:$r:cancelled")
@@ -99,7 +99,7 @@ class NewCombinatorsTest {
         Async {
             bracketCase(
                 acquire = { "tx" },
-                use = { Computation { "ok" } },
+                use = { Effect { "ok" } },
                 release = { _, case ->
                     when (case) {
                         is ExitCase.Completed<*> -> events.add("commit")
@@ -114,7 +114,7 @@ class NewCombinatorsTest {
             Async {
                 bracketCase(
                     acquire = { "tx" },
-                    use = { Computation { error("fail") } },
+                    use = { Effect { error("fail") } },
                     release = { _, case ->
                         when (case) {
                             is ExitCase.Completed<*> -> events.add("commit")
@@ -174,7 +174,7 @@ class NewCombinatorsTest {
             .and(Schedule.times(4))
             .and(Schedule.spaced(10.milliseconds))
 
-        val failing: Computation<String> = Computation { attempts++; throw RuntimeException("fail") }
+        val failing: Effect<String> = Effect { attempts++; throw RuntimeException("fail") }
         assertFailsWith<RuntimeException> {
             Async<String> { failing.retry(schedule) }
         }

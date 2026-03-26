@@ -9,11 +9,11 @@ import kotlinx.coroutines.async
 // Choose your style:
 //   kap+with:  kap(::Dashboard).with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }
 //   combine:   combine({ fetchUser() }, { fetchCart() }, { fetchPromos() }) { u, c, p -> Dashboard(u, c, p) }
-//   combine(Computation): combine(Computation { fetchUser() }, Computation { fetchCart() }) { u, c -> ... }
+//   combine(Effect): combine(Effect { fetchUser() }, Effect { fetchCart() }) { u, c -> ... }
 //
 // kap+with gives compile-time parameter order safety via curried types.
 // combine (suspend lambdas) gives parZip-like ergonomics.
-// combine (Computations) takes pre-built Computations (useful when computations are reused).
+// combine (Effects) takes pre-built Effects (useful when computations are reused).
 
 /**
  * Runs two suspend lambdas in parallel and combines their results.
@@ -31,7 +31,7 @@ fun <A, B, R> combine(
     fa: suspend () -> A,
     fb: suspend () -> B,
     f: (A, B) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     f(da.await(), db.await())
@@ -55,7 +55,7 @@ fun <A, B, C, R> combine(
     fb: suspend () -> B,
     fc: suspend () -> C,
     f: (A, B, C) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -71,7 +71,7 @@ fun <A, B, C, D, R> combine(
     fc: suspend () -> C,
     fd: suspend () -> D,
     f: (A, B, C, D) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -89,7 +89,7 @@ fun <A, B, C, D, E, R> combine(
     fd: suspend () -> D,
     fe: suspend () -> E,
     f: (A, B, C, D, E) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -112,7 +112,7 @@ fun <A, B, C, D, E, R> combine(
 fun <A, B> pair(
     fa: suspend () -> A,
     fb: suspend () -> B,
-): Computation<Pair<A, B>> = combine(fa, fb, ::Pair)
+): Effect<Pair<A, B>> = combine(fa, fb, ::Pair)
 
 /**
  * Runs three suspend lambdas in parallel and returns their results as a [Triple].
@@ -127,7 +127,7 @@ fun <A, B, C> triple(
     fa: suspend () -> A,
     fb: suspend () -> B,
     fc: suspend () -> C,
-): Computation<Triple<A, B, C>> = combine(fa, fb, fc, ::Triple)
+): Effect<Triple<A, B, C>> = combine(fa, fb, fc, ::Triple)
 
 /**
  * Runs six suspend lambdas in parallel and combines their results.
@@ -140,7 +140,7 @@ fun <A, B, C, D, E, F, R> combine(
     fe: suspend () -> E,
     ff: suspend () -> F,
     f: (A, B, C, D, E, F) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -162,7 +162,7 @@ fun <A, B, C, D, E, F, G, R> combine(
     ff: suspend () -> F,
     fg: suspend () -> G,
     f: (A, B, C, D, E, F, G) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -186,7 +186,7 @@ fun <A, B, C, D, E, F, G, H, R> combine(
     fg: suspend () -> G,
     fh: suspend () -> H,
     f: (A, B, C, D, E, F, G, H) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -215,7 +215,7 @@ fun <A, B, C, D, E, F, G, H, I, R> combine(
     fh: suspend () -> H,
     fi: suspend () -> I,
     f: (A, B, C, D, E, F, G, H, I) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -229,4 +229,4 @@ fun <A, B, C, D, E, F, G, H, I, R> combine(
 }
 
 // For arities > 9 or dynamic collections, use traverse/sequence.
-// For arities 10-22, use kap+with or combine(Computation) (auto-generated).
+// For arities 10-22, use kap+with or combine(Effect) (auto-generated).

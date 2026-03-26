@@ -20,7 +20,7 @@ class ContextTest {
     @Test
     fun `Async with context runs on specified dispatcher`() = runTest {
         val threadName = Async(Dispatchers.Default) {
-            Computation { Thread.currentThread().name }
+            Effect { Thread.currentThread().name }
         }
         // Default dispatcher uses "DefaultDispatcher-worker-N" threads
         assertTrue(threadName.contains("DefaultDispatcher"), "Expected DefaultDispatcher thread, got: $threadName")
@@ -29,7 +29,7 @@ class ContextTest {
     @Test
     fun `Async without context still works`() = runTest {
         val result = Async {
-            Computation.of(42)
+            Effect.of(42)
         }
         assertEquals(42, result)
     }
@@ -41,7 +41,7 @@ class ContextTest {
     @Test
     fun `on switches computation to specified context`() = runTest {
         val threadName = Async {
-            Computation { Thread.currentThread().name }.on(Dispatchers.Default)
+            Effect { Thread.currentThread().name }.on(Dispatchers.Default)
         }
         assertTrue(threadName.contains("DefaultDispatcher"), "Expected DefaultDispatcher thread, got: $threadName")
     }
@@ -51,13 +51,13 @@ class ContextTest {
         val latchA = CompletableDeferred<Unit>()
         val latchB = CompletableDeferred<Unit>()
 
-        val compA = Computation<String> {
+        val compA = Effect<String> {
             latchA.complete(Unit)
             latchB.await()
             "A"
         }.on(Dispatchers.Default)
 
-        val compB = Computation<String> {
+        val compB = Effect<String> {
             latchB.complete(Unit)
             latchA.await()
             "B"
@@ -76,7 +76,7 @@ class ContextTest {
     @Test
     fun `on does not affect other computations in the chain`() = runTest {
         // One computation on Default, rest inherit parent context
-        val compA = Computation { 21 }.on(Dispatchers.Default)
+        val compA = Effect { 21 }.on(Dispatchers.Default)
         val result = Async {
             kap { a: Int, b: Int -> a + b }
                 .with { with(compA) { execute() } }
@@ -99,9 +99,9 @@ class ContextTest {
     }
 
     @Test
-    fun `context composes with flatMap for trace propagation`() = runTest {
+    fun `context composes with andThen for trace propagation`() = runTest {
         val result = Async(CoroutineName("trace-123")) {
-            context.flatMap { ctx ->
+            context.andThen { ctx ->
                 val traceName = ctx[CoroutineName]?.name ?: "unknown"
                 kap { a: String, b: String -> "$a|$b|trace=$traceName" }
                     .with { "user" }

@@ -68,7 +68,7 @@ class ResourceZipBoundaryTest {
     }
 
     @Test
-    fun `Resource useComputation works with with chains inside`() = runTest {
+    fun `Resource useEffect works with with chains inside`() = runTest {
         val releaseOrder = mutableListOf<String>()
 
         val infra = Resource.zip(
@@ -77,10 +77,10 @@ class ResourceZipBoundaryTest {
         ) { db, cache -> db to cache }
 
         val result = Async {
-            infra.useComputation { (db, cache) ->
+            infra.useEffect { (db, cache) ->
                 kap { a: String, b: String -> "$a|$b" }
-                    .with(Computation { "query:$db" })
-                    .with(Computation { "get:$cache" })
+                    .with(Effect { "query:$db" })
+                    .with(Effect { "get:$cache" })
             }
         }
 
@@ -115,13 +115,13 @@ class ResourceZipBoundaryTest {
     }
 
     @Test
-    fun `Resource flatMap composes and releases both in reverse`() = runTest {
+    fun `Resource andThen composes and releases both in reverse`() = runTest {
         val releaseOrder = mutableListOf<String>()
 
         val result = Resource(
             acquire = { "outer" },
             release = { releaseOrder.add("outer") },
-        ).flatMap { outer ->
+        ).andThen { outer ->
             Resource(
                 acquire = { "$outer+inner" },
                 release = { releaseOrder.add("inner") },

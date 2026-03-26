@@ -13,7 +13,7 @@ fun <E, A, B, R> zipV(
     fa: suspend () -> Either<NonEmptyList<E>, A>,
     fb: suspend () -> Either<NonEmptyList<E>, B>,
     combine: (A, B) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val ea = da.await()
@@ -34,7 +34,7 @@ fun <E, A, B, C, R> zipV(
     fb: suspend () -> Either<NonEmptyList<E>, B>,
     fc: suspend () -> Either<NonEmptyList<E>, C>,
     combine: (A, B, C) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -59,7 +59,7 @@ fun <E, A, B, C, D, R> zipV(
     fc: suspend () -> Either<NonEmptyList<E>, C>,
     fd: suspend () -> Either<NonEmptyList<E>, D>,
     combine: (A, B, C, D) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -88,7 +88,7 @@ fun <E, A, B, C, D, F, R> zipV(
     fd: suspend () -> Either<NonEmptyList<E>, D>,
     ff: suspend () -> Either<NonEmptyList<E>, F>,
     combine: (A, B, C, D, F) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -121,7 +121,7 @@ fun <E, A, B, C, D, F, G, R> zipV(
     ff: suspend () -> Either<NonEmptyList<E>, F>,
     fg: suspend () -> Either<NonEmptyList<E>, G>,
     combine: (A, B, C, D, F, G) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -158,7 +158,7 @@ fun <E, A, B, C, D, F, G, H, R> zipV(
     fg: suspend () -> Either<NonEmptyList<E>, G>,
     fh: suspend () -> Either<NonEmptyList<E>, H>,
     combine: (A, B, C, D, F, G, H) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -199,7 +199,7 @@ fun <E, A, B, C, D, F, G, H, I, R> zipV(
     fh: suspend () -> Either<NonEmptyList<E>, H>,
     fi: suspend () -> Either<NonEmptyList<E>, I>,
     combine: (A, B, C, D, F, G, H, I) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -244,7 +244,7 @@ fun <E, A, B, C, D, F, G, H, I, J, R> zipV(
     fi: suspend () -> Either<NonEmptyList<E>, I>,
     fj: suspend () -> Either<NonEmptyList<E>, J>,
     combine: (A, B, C, D, F, G, H, I, J) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -293,7 +293,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, R> zipV(
     fj: suspend () -> Either<NonEmptyList<E>, J>,
     fk: suspend () -> Either<NonEmptyList<E>, K>,
     combine: (A, B, C, D, F, G, H, I, J, K) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -346,7 +346,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, R> zipV(
     fk: suspend () -> Either<NonEmptyList<E>, K>,
     fl: suspend () -> Either<NonEmptyList<E>, L>,
     combine: (A, B, C, D, F, G, H, I, J, K, L) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -403,7 +403,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, R> zipV(
     fl: suspend () -> Either<NonEmptyList<E>, L>,
     fm: suspend () -> Either<NonEmptyList<E>, M>,
     combine: (A, B, C, D, F, G, H, I, J, K, L, M) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -464,7 +464,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, R> zipV(
     fm: suspend () -> Either<NonEmptyList<E>, M>,
     fn: suspend () -> Either<NonEmptyList<E>, N>,
     combine: (A, B, C, D, F, G, H, I, J, K, L, M, N) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -529,7 +529,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, R> zipV(
     fn: suspend () -> Either<NonEmptyList<E>, N>,
     fO: suspend () -> Either<NonEmptyList<E>, O>,
     combine: (A, B, C, D, F, G, H, I, J, K, L, M, N, O) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -598,7 +598,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, R> zipV(
     fO: suspend () -> Either<NonEmptyList<E>, O>,
     fp: suspend () -> Either<NonEmptyList<E>, P>,
     combine: (A, B, C, D, F, G, H, I, J, K, L, M, N, O, P) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -671,7 +671,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, R> zipV(
     fp: suspend () -> Either<NonEmptyList<E>, P>,
     fq: suspend () -> Either<NonEmptyList<E>, Q>,
     combine: (A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -748,7 +748,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> zipV(
     fq: suspend () -> Either<NonEmptyList<E>, Q>,
     fs: suspend () -> Either<NonEmptyList<E>, S>,
     combine: (A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -829,7 +829,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> zipV(
     fs: suspend () -> Either<NonEmptyList<E>, S>,
     ft: suspend () -> Either<NonEmptyList<E>, T>,
     combine: (A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -914,7 +914,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> zipV(
     ft: suspend () -> Either<NonEmptyList<E>, T>,
     fu: suspend () -> Either<NonEmptyList<E>, U>,
     combine: (A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -1003,7 +1003,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> zipV(
     fu: suspend () -> Either<NonEmptyList<E>, U>,
     fv: suspend () -> Either<NonEmptyList<E>, V>,
     combine: (A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -1096,7 +1096,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> zipV(
     fv: suspend () -> Either<NonEmptyList<E>, V>,
     fw: suspend () -> Either<NonEmptyList<E>, W>,
     combine: (A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -1193,7 +1193,7 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, X, R> zip
     fw: suspend () -> Either<NonEmptyList<E>, W>,
     fx: suspend () -> Either<NonEmptyList<E>, X>,
     combine: (A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, X) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     val da = async { fa() }
     val db = async { fb() }
     val dc = async { fc() }
@@ -1269,65 +1269,65 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, X, R> zip
     }
 }
 
-fun <E, P1, P2, R> kapV(f: (P1, P2) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, R> kapV(f: (P1, P2) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, R> kapV(f: (P1, P2, P3) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, R> kapV(f: (P1, P2, P3) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, R> kapV(f: (P1, P2, P3, P4) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, R> kapV(f: (P1, P2, P3, P4) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, R> kapV(f: (P1, P2, P3, P4, P5) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, R> kapV(f: (P1, P2, P3, P4, P5) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, R> kapV(f: (P1, P2, P3, P4, P5, P6) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, R> kapV(f: (P1, P2, P3, P4, P5, P6) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> (P21) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> (P21) -> R>> =
+    Effect.of(Either.Right(f.curried()))
 
-fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22) -> R): Computation<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> (P21) -> (P22) -> R>> =
-    Computation.of(Either.Right(f.curried()))
+fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22) -> R): Effect<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> (P21) -> (P22) -> R>> =
+    Effect.of(Either.Right(f.curried()))

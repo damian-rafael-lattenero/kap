@@ -14,10 +14,10 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * The existing tests verify each combinator in isolation. These tests verify
  * the production usage pattern: timeout, retry, recover, traced, race, and
- * flatMap used INSIDE ap/followedBy chains — the whole point of the library.
+ * andThen used INSIDE ap/then chains — the whole point of the library.
  *
  * Categories:
- * 1. flatMap creates a TRUE phase boundary (vs followedBy's eager launch)
+ * 1. andThen creates a TRUE phase boundary (vs then's eager launch)
  * 2. timeout inside with chains
  * 3. retry inside with chains
  * 4. recover inside with chains (error isolation)
@@ -29,22 +29,22 @@ import kotlin.time.Duration.Companion.milliseconds
 class CompositionProofTest {
 
     // ════════════════════════════════════════════════════════════════════════
-    // 1. flatMap creates a TRUE phase boundary
+    // 1. andThen creates a TRUE phase boundary
     //
-    //    Unlike followedBy (where with right sides launch eagerly), flatMap
-    //    constructs the next Computation INSIDE its lambda — so subsequent
-    //    with calls can't launch until flatMap's lambda has run.
+    //    Unlike then (where with right sides launch eagerly), andThen
+    //    constructs the next Effect INSIDE its lambda — so subsequent
+    //    with calls can't launch until andThen's lambda has run.
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `flatMap prevents eager launch - post-flatMap with waits for flatMap result`() = runTest {
-        // With followedBy, the ap{D@30} would launch at t=0.
-        // With flatMap, the ap{D@30} cannot exist until flatMap's lambda runs (t=80).
+    fun `andThen prevents eager launch - post-andThen with waits for andThen result`() = runTest {
+        // With then, the ap{D@30} would launch at t=0.
+        // With andThen, the ap{D@30} cannot exist until andThen's lambda runs (t=80).
         val result = Async {
             kap { a: String, b: String -> "$a|$b" }
                 .with { delay(30); "A" }
                 .with { delay(30); "B" }
-                .flatMap { ab ->
+                .andThen { ab ->
                     // This lambda runs at t=30 (after A and B complete).
                     // The next ap{C@50} launches INSIDE this lambda.
                     kap { c: String, d: String -> "$ab|$c|$d" }
@@ -54,44 +54,44 @@ class CompositionProofTest {
         }
 
         assertEquals("A|B|C|D", result)
-        // t=0: A, B launch. t=30: A, B done, flatMap lambda runs, C+D launch.
+        // t=0: A, B launch. t=30: A, B done, andThen lambda runs, C+D launch.
         // t=80: C, D done. Total: 30 + 50 = 80ms.
         assertEquals(80, currentTime,
-            "flatMap creates true boundary: 30ms (A,B) + 50ms (C,D) = 80ms. Got ${currentTime}ms")
+            "andThen creates true boundary: 30ms (A,B) + 50ms (C,D) = 80ms. Got ${currentTime}ms")
     }
 
     @Test
-    fun `followedBy and flatMap both create true phase boundaries`() = runTest {
-        // followedBy version: C waits for barrier (true phase boundary)
-        val followedByResult = Async {
+    fun `then and andThen both create true phase boundaries`() = runTest {
+        // then version: C waits for barrier (true phase boundary)
+        val thenResult = Async {
             kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with { delay(30); "A" }
-                .followedBy { delay(50); "B" }  // barrier
+                .then { delay(50); "B" }  // barrier
                 .with { delay(30); "C" }          // waits for barrier, launches at t=80
         }
-        val followedByTime = currentTime  // 30 + 50 + 30 = 110ms
+        val thenTime = currentTime  // 30 + 50 + 30 = 110ms
 
-        // flatMap version: same timing, but passes value
+        // andThen version: same timing, but passes value
         Async {
-            Computation.of(Unit).flatMap {
+            Effect.of(Unit).andThen {
                 kap { a: String, b: String -> "$a|$b" }
                     .with { delay(30); "A" }
                     .with { delay(30); "B" }
-            }.flatMap { ab ->
+            }.andThen { ab ->
                 kap { c: String, d: String -> "$ab|$c|$d" }
                     .with { delay(50); "C" }
                     .with { delay(50); "D" }
             }
         }
-        val flatMapTime = currentTime - followedByTime  // 30 + 50 = 80ms
+        val andThenTime = currentTime - thenTime  // 30 + 50 = 80ms
 
-        assertEquals("A|B|C", followedByResult)
-        assertEquals(110, followedByTime, "followedBy: 30+50+30=110 (C waits for barrier)")
-        assertEquals(80, flatMapTime, "flatMap: 30+50=80 (C,D wait then parallel)")
+        assertEquals("A|B|C", thenResult)
+        assertEquals(110, thenTime, "then: 30+50+30=110 (C waits for barrier)")
+        assertEquals(80, andThenTime, "andThen: 30+50=80 (C,D wait then parallel)")
     }
 
     @Test
-    fun `thenValue vs followedBy - thenValue allows eager launch`() = runTest {
+    fun `thenValue vs then - thenValue allows eager launch`() = runTest {
         // thenValue: C launches eagerly at t=0 (old behavior)
         val thenValueResult = Async {
             kap { a: String, b: String, c: String -> "$a|$b|$c" }
@@ -106,9 +106,9 @@ class CompositionProofTest {
     }
 
     @Test
-    fun `flatMap enables value-dependent parallel fan-out with timing proof`() = runTest {
+    fun `andThen enables value-dependent parallel fan-out with timing proof`() = runTest {
         val result = Async {
-            Computation { delay(20); 10 }.flatMap { base ->
+            Effect { delay(20); 10 }.andThen { base ->
                 // base is available here — fan out with computed values
                 kap { a: Int, b: Int, c: Int -> a + b + c }
                     .with { delay(30); base * 2 }  // 20
@@ -120,7 +120,7 @@ class CompositionProofTest {
         assertEquals(90, result) // 20 + 30 + 40
         // t=0-20: compute base. t=20-50: three parallel multiplications. Total: 50ms
         assertEquals(50, currentTime,
-            "flatMap(20ms) then 3 parallel(30ms) = 50ms. Got ${currentTime}ms")
+            "andThen(20ms) then 3 parallel(30ms) = 50ms. Got ${currentTime}ms")
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -133,7 +133,7 @@ class CompositionProofTest {
             kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with { delay(30); "fast-A" }
                 .with {
-                    with(Computation { delay(500); "slow-B" }
+                    with(Effect { delay(500); "slow-B" }
                         .timeout(50.milliseconds, "timeout-B")) { execute() }
                 }
                 .with { delay(30); "fast-C" }
@@ -150,7 +150,7 @@ class CompositionProofTest {
         val result = Async {
             kap { a: String, b: String -> "$a|$b" }
                 .with {
-                    with(Computation { delay(20); "fast" }
+                    with(Effect { delay(20); "fast" }
                         .timeout(100.milliseconds, "timeout")) { execute() }
                 }
                 .with { delay(30); "other" }
@@ -171,7 +171,7 @@ class CompositionProofTest {
         val result = Async {
             kap { a: String, b: String -> "$a|$b" }
                 .with {
-                    with(Computation {
+                    with(Effect {
                         attempts++
                         if (attempts < 3) throw RuntimeException("flaky")
                         delay(20); "recovered-B"
@@ -199,7 +199,7 @@ class CompositionProofTest {
             kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with { delay(30); "A" }
                 .with {
-                    with(Computation<String> { throw RuntimeException("boom") }
+                    with(Effect<String> { throw RuntimeException("boom") }
                         .recover { "recovered" }) { execute() }
                 }
                 .with { delay(30); "C" }
@@ -218,7 +218,7 @@ class CompositionProofTest {
             Async {
                 kap { a: String, b: String -> "$a|$b" }
                     .with {
-                        with(Computation<String> { throw RuntimeException("A-error") }
+                        with(Effect<String> { throw RuntimeException("A-error") }
                             .recover { "A-recovered" }) { execute() }
                     }
                     .with {
@@ -239,8 +239,8 @@ class CompositionProofTest {
     fun `race completes in min time not max`() = runTest {
         val result = Async {
             race(
-                Computation { delay(100); "slow" },
-                Computation { delay(20); "fast" },
+                Effect { delay(100); "slow" },
+                Effect { delay(20); "fast" },
             )
         }
 
@@ -253,10 +253,10 @@ class CompositionProofTest {
     fun `raceN with 4 branches completes in fastest time`() = runTest {
         val result = Async {
             raceN(
-                Computation { delay(100); "a" },
-                Computation { delay(200); "b" },
-                Computation { delay(10); "c" },
-                Computation { delay(150); "d" },
+                Effect { delay(100); "a" },
+                Effect { delay(200); "b" },
+                Effect { delay(10); "c" },
+                Effect { delay(150); "d" },
             )
         }
 
@@ -271,8 +271,8 @@ class CompositionProofTest {
             kap { a: String, b: String -> "$a|$b" }
                 .with {
                     with(race(
-                        Computation { delay(100); "primary-A" },
-                        Computation { delay(20); "cache-A" },
+                        Effect { delay(100); "primary-A" },
+                        Effect { delay(20); "cache-A" },
                     )) { execute() }
                 }
                 .with { delay(30); "B" }
@@ -300,7 +300,7 @@ class CompositionProofTest {
                 .with { delay(20); "user-data" }
                 // Branch 2: flaky service with retry
                 .with {
-                    with(Computation {
+                    with(Effect {
                         fetchAttempts++
                         if (fetchAttempts < 2) throw RuntimeException("flaky")
                         delay(20); "cart-data"
@@ -308,14 +308,14 @@ class CompositionProofTest {
                 }
                 // Branch 3: slow service with timeout + fallback
                 .with {
-                    with(Computation { delay(500); "promos-fresh" }
+                    with(Effect { delay(500); "promos-fresh" }
                         .timeout(40.milliseconds, "promos-cached")) { execute() }
                 }
                 // Branch 4: race between primary and cache
                 .with {
                     with(race(
-                        Computation { delay(100); "shipping-api" },
-                        Computation { delay(15); "shipping-cache" },
+                        Effect { delay(100); "shipping-api" },
+                        Effect { delay(15); "shipping-cache" },
                     )) { execute() }
                 }
         }
@@ -336,13 +336,13 @@ class CompositionProofTest {
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `consecutive followedBy barriers are strictly sequential`() = runTest {
+    fun `consecutive then barriers are strictly sequential`() = runTest {
         val result = Async {
             kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
-                .followedBy { delay(20); "A" }
-                .followedBy { delay(30); "B" }
-                .followedBy { delay(40); "C" }
-                .followedBy { delay(10); "D" }
+                .then { delay(20); "A" }
+                .then { delay(30); "B" }
+                .then { delay(40); "C" }
+                .then { delay(10); "D" }
         }
 
         assertEquals("A|B|C|D", result)
@@ -355,10 +355,10 @@ class CompositionProofTest {
     fun `sequence unbounded completes in max element time`() = runTest {
         val result = Async {
             listOf(
-                Computation { delay(30); "A" },
-                Computation { delay(50); "B" },
-                Computation { delay(20); "C" },
-                Computation { delay(40); "D" },
+                Effect { delay(30); "A" },
+                Effect { delay(50); "B" },
+                Effect { delay(20); "C" },
+                Effect { delay(40); "D" },
             ).sequence()
         }
 
@@ -368,7 +368,7 @@ class CompositionProofTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 8. Laziness: Computation is a description, not an execution
+    // 8. Laziness: Effect is a description, not an execution
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
@@ -377,16 +377,16 @@ class CompositionProofTest {
 
         // Build a full computation graph — should NOT run anything yet
         val graph = kap { a: String, b: String, c: String -> "$a|$b|$c" }
-            .with(Computation { executed = true; "A" })
-            .with(Computation { "B" })
-            .with(Computation { "C" })
+            .with(Effect { executed = true; "A" })
+            .with(Effect { "B" })
+            .with(Effect { "C" })
 
         // Verify nothing happened
-        assertEquals(false, executed, "Computation should NOT execute during construction")
+        assertEquals(false, executed, "Effect should NOT execute during construction")
 
         // Now execute
         val result = Async { graph }
-        assertEquals(true, executed, "Computation should execute inside Async {}")
+        assertEquals(true, executed, "Effect should execute inside Async {}")
         assertEquals("A|B|C", result)
     }
 
@@ -394,7 +394,7 @@ class CompositionProofTest {
     fun `same computation can be executed multiple times`() = runTest {
         var counter = 0
 
-        val graph = Computation { ++counter }
+        val graph = Effect { ++counter }
 
         val r1 = Async { graph }
         val r2 = Async { graph }
@@ -403,7 +403,7 @@ class CompositionProofTest {
         assertEquals(1, r1)
         assertEquals(2, r2)
         assertEquals(3, r3)
-        assertEquals(3, counter, "Computation executed 3 times, once per Async call")
+        assertEquals(3, counter, "Effect executed 3 times, once per Async call")
     }
 
 }

@@ -11,7 +11,7 @@ import kotlinx.coroutines.sync.withPermit
 /**
  * Runs this computation and [fb] in parallel, returning both results as a [Pair].
  */
-fun <A, B> Computation<A>.zip(fb: Computation<B>): Computation<Pair<A, B>> = Computation {
+fun <A, B> Effect<A>.zip(fb: Effect<B>): Effect<Pair<A, B>> = Effect {
     val da = async { with(this@zip) { execute() } }
     val db = async { with(fb) { execute() } }
     da.await() to db.await()
@@ -20,7 +20,7 @@ fun <A, B> Computation<A>.zip(fb: Computation<B>): Computation<Pair<A, B>> = Com
 /**
  * Runs this computation and [fb] in parallel, combining results with [f].
  */
-fun <A, B, C> Computation<A>.zip(fb: Computation<B>, f: (A, B) -> C): Computation<C> = Computation {
+fun <A, B, C> Effect<A>.zip(fb: Effect<B>, f: (A, B) -> C): Effect<C> = Effect {
     val da = async { with(this@zip) { execute() } }
     val db = async { with(fb) { execute() } }
     f(da.await(), db.await())
@@ -38,10 +38,10 @@ fun <A, B, C> Computation<A>.zip(fb: Computation<B>, f: (A, B) -> C): Computatio
  * parameter to avoid overwhelming downstream services or running out of resources.
  *
  * ```
- * listOf(1, 2, 3).traverse { id -> Computation { fetchUser(id) } }
+ * listOf(1, 2, 3).traverse { id -> Effect { fetchUser(id) } }
  * ```
  */
-fun <A, B> Iterable<A>.traverse(f: (A) -> Computation<B>): Computation<List<B>> = Computation {
+fun <A, B> Iterable<A>.traverse(f: (A) -> Effect<B>): Effect<List<B>> = Effect {
     map { a -> async { with(f(a)) { execute() } } }.awaitAll()
 }
 
@@ -50,7 +50,7 @@ fun <A, B> Iterable<A>.traverse(f: (A) -> Computation<B>): Computation<List<B>> 
  *
  * @param concurrency maximum number of computations running simultaneously
  */
-fun <A, B> Iterable<A>.traverse(concurrency: Int, f: (A) -> Computation<B>): Computation<List<B>> = Computation {
+fun <A, B> Iterable<A>.traverse(concurrency: Int, f: (A) -> Effect<B>): Effect<List<B>> = Effect {
     val semaphore = Semaphore(concurrency)
     map { a -> async { semaphore.withPermit { with(f(a)) { execute() } } } }.awaitAll()
 }
@@ -61,7 +61,7 @@ fun <A, B> Iterable<A>.traverse(concurrency: Int, f: (A) -> Computation<B>): Com
  * **Concurrency warning:** this launches one coroutine per element with no upper bound.
  * For large or unbounded collections, prefer the [sequence] overload with a `concurrency` parameter.
  */
-fun <A> Iterable<Computation<A>>.sequence(): Computation<List<A>> = Computation {
+fun <A> Iterable<Effect<A>>.sequence(): Effect<List<A>> = Effect {
     map { c -> async { with(c) { execute() } } }.awaitAll()
 }
 
@@ -70,7 +70,7 @@ fun <A> Iterable<Computation<A>>.sequence(): Computation<List<A>> = Computation 
  *
  * @param concurrency maximum number of computations running simultaneously
  */
-fun <A> Iterable<Computation<A>>.sequence(concurrency: Int): Computation<List<A>> = Computation {
+fun <A> Iterable<Effect<A>>.sequence(concurrency: Int): Effect<List<A>> = Effect {
     val semaphore = Semaphore(concurrency)
     map { c -> async { semaphore.withPermit { with(c) { execute() } } } }.awaitAll()
 }
@@ -82,29 +82,29 @@ fun <A> Iterable<Computation<A>>.sequence(concurrency: Int): Computation<List<A>
  * metrics, notifications) where you need parallelism but don't need the output.
  *
  * ```
- * userIds.traverseDiscard { id -> Computation { notifyUser(id) } }
+ * userIds.traverseDiscard { id -> Effect { notifyUser(id) } }
  * ```
  */
-fun <A> Iterable<A>.traverseDiscard(f: (A) -> Computation<Unit>): Computation<Unit> =
+fun <A> Iterable<A>.traverseDiscard(f: (A) -> Effect<Unit>): Effect<Unit> =
     traverse(f).map { }
 
 /**
  * Like [traverseDiscard] but limits the number of concurrent computations.
  */
-fun <A> Iterable<A>.traverseDiscard(concurrency: Int, f: (A) -> Computation<Unit>): Computation<Unit> =
+fun <A> Iterable<A>.traverseDiscard(concurrency: Int, f: (A) -> Effect<Unit>): Effect<Unit> =
     traverse(concurrency, f).map { }
 
 /**
  * Like [sequence] but discards results. Executes all computations for
  * their side-effects only.
  */
-fun Iterable<Computation<Unit>>.sequenceDiscard(): Computation<Unit> =
+fun Iterable<Effect<Unit>>.sequenceDiscard(): Effect<Unit> =
     sequence().map { }
 
 /**
  * Like [sequenceDiscard] but limits the number of concurrent computations.
  */
-fun Iterable<Computation<Unit>>.sequenceDiscard(concurrency: Int): Computation<Unit> =
+fun Iterable<Effect<Unit>>.sequenceDiscard(concurrency: Int): Effect<Unit> =
     sequence(concurrency).map { }
 
 // ── traverseSettled / sequenceSettled: collect ALL results (no cancellation) ──
@@ -121,7 +121,7 @@ fun Iterable<Computation<Unit>>.sequenceDiscard(concurrency: Int): Computation<U
  *
  * ```
  * val results: List<Result<User>> = Async {
- *     userIds.traverseSettled { id -> Computation { fetchUser(id) } }
+ *     userIds.traverseSettled { id -> Effect { fetchUser(id) } }
  * }
  * val successes = results.filter { it.isSuccess }.map { it.getOrThrow() }
  * val failures = results.filter { it.isFailure }.map { it.exceptionOrNull()!! }
@@ -130,7 +130,7 @@ fun Iterable<Computation<Unit>>.sequenceDiscard(concurrency: Int): Computation<U
  * **Concurrency warning:** launches one coroutine per element with no upper bound.
  * For bounded concurrency, use the overload with a `concurrency` parameter.
  */
-fun <A, B> Iterable<A>.traverseSettled(f: (A) -> Computation<B>): Computation<List<Result<B>>> = Computation {
+fun <A, B> Iterable<A>.traverseSettled(f: (A) -> Effect<B>): Effect<List<Result<B>>> = Effect {
     kotlinx.coroutines.supervisorScope {
         map { a -> async { runCatching { with(f(a)) { execute() } } } }.awaitAll()
     }
@@ -141,7 +141,7 @@ fun <A, B> Iterable<A>.traverseSettled(f: (A) -> Computation<B>): Computation<Li
  *
  * @param concurrency maximum number of computations running simultaneously
  */
-fun <A, B> Iterable<A>.traverseSettled(concurrency: Int, f: (A) -> Computation<B>): Computation<List<Result<B>>> = Computation {
+fun <A, B> Iterable<A>.traverseSettled(concurrency: Int, f: (A) -> Effect<B>): Effect<List<Result<B>>> = Effect {
     val semaphore = Semaphore(concurrency)
     kotlinx.coroutines.supervisorScope {
         map { a -> async { semaphore.withPermit { runCatching { with(f(a)) { execute() } } } } }.awaitAll()
@@ -154,13 +154,13 @@ fun <A, B> Iterable<A>.traverseSettled(concurrency: Int, f: (A) -> Computation<B
  * Returns a list of [Result] values — every computation runs to completion
  * regardless of whether siblings fail.
  */
-fun <A> Iterable<Computation<A>>.sequenceSettled(): Computation<List<Result<A>>> =
+fun <A> Iterable<Effect<A>>.sequenceSettled(): Effect<List<Result<A>>> =
     traverseSettled { it }
 
 /**
  * Like [sequenceSettled] but limits the number of concurrent computations.
  */
-fun <A> Iterable<Computation<A>>.sequenceSettled(concurrency: Int): Computation<List<Result<A>>> =
+fun <A> Iterable<Effect<A>>.sequenceSettled(concurrency: Int): Effect<List<Result<A>>> =
     traverseSettled(concurrency) { it }
 
 // ── Why no parMap? ──────────────────────────────────────────────────────

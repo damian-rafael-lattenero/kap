@@ -342,7 +342,7 @@ class NonEmptyListTest {
         val nel = nonEmptyListOf(1, 2, 3, 4, 5)
         val results = Async {
             nel.traverseSettled { i ->
-                Computation {
+                Effect {
                     if (i % 2 == 0) throw RuntimeException("fail-$i")
                     "ok-$i"
                 }
@@ -364,7 +364,7 @@ class NonEmptyListTest {
     fun `traverseSettled runs in parallel — proven by virtual time`() = runTest {
         val results = Async {
             nonEmptyListOf(1, 2, 3, 4, 5).traverseSettled { i ->
-                Computation {
+                Effect {
                     delay(50.milliseconds)
                     "done-$i"
                 }
@@ -382,7 +382,7 @@ class NonEmptyListTest {
 
         val results = Async {
             nonEmptyListOf(1, 2, 3).traverseSettled { i ->
-                Computation {
+                Effect {
                     delay(if (i == 1) 10.milliseconds else 50.milliseconds)
                     if (i == 1) throw RuntimeException("fast-fail")
                     synchronized(completed) { completed.add(i) }
@@ -402,7 +402,7 @@ class NonEmptyListTest {
     fun `traverseSettled bounded respects concurrency limit`() = runTest {
         val results = Async {
             nonEmptyListOf(1, 2, 3, 4, 5, 6).traverseSettled(2) { i ->
-                Computation {
+                Effect {
                     delay(30.milliseconds)
                     "ok-$i"
                 }
@@ -418,7 +418,7 @@ class NonEmptyListTest {
     fun `traverseSettled on single element`() = runTest {
         val results = Async {
             nonEmptyListOf(42).traverseSettled { i ->
-                Computation { i * 2 }
+                Effect { i * 2 }
             }
         }
 
@@ -430,9 +430,9 @@ class NonEmptyListTest {
     @Test
     fun `sequenceSettled collects all results from pre-built computations`() = runTest {
         val computations = listOf(
-            Computation { "a" },
-            Computation<String> { throw RuntimeException("boom") },
-            Computation { "c" },
+            Effect { "a" },
+            Effect<String> { throw RuntimeException("boom") },
+            Effect { "c" },
         )
 
         val results = Async { computations.sequenceSettled() }
@@ -447,10 +447,10 @@ class NonEmptyListTest {
     @Test
     fun `sequenceSettled bounded respects concurrency`() = runTest {
         val computations = listOf(
-            Computation { delay(25.milliseconds); "a" },
-            Computation { delay(25.milliseconds); "b" },
-            Computation { delay(25.milliseconds); "c" },
-            Computation { delay(25.milliseconds); "d" },
+            Effect { delay(25.milliseconds); "a" },
+            Effect { delay(25.milliseconds); "b" },
+            Effect { delay(25.milliseconds); "c" },
+            Effect { delay(25.milliseconds); "d" },
         )
 
         val results = Async { computations.sequenceSettled(2) }

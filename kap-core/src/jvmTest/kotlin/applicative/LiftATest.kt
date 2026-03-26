@@ -173,14 +173,14 @@ class LiftATest {
     // ── composition with other combinators ──────────────────────────────
 
     @Test
-    fun `combine (3) composes with flatMap for phased execution`() = runTest {
+    fun `combine (3) composes with andThen for phased execution`() = runTest {
         val result = Async {
             combine(
                 { delay(50); "user" },
                 { delay(50); "prefs" },
                 { delay(50); "tier" },
             ) { u, p, t -> Triple(u, p, t) }
-            .flatMap { (user, prefs, tier) ->
+            .andThen { (user, prefs, tier) ->
                 combine(
                     { delay(50); "recs for $user" },
                     { delay(50); "promos for $tier" },
@@ -199,7 +199,7 @@ class LiftATest {
                 { "stable" },
                 {
                     // Retry inside the branch, not outside combine (2)
-                    Computation {
+                    Effect {
                         attempts++
                         if (attempts < 3) error("flaky")
                         "recovered"
@@ -271,15 +271,15 @@ class LiftATest {
     // ── deadlock detection (barrier proof) ──────────────────────────────
 
     @Test
-    fun `combine (3) does not deadlock with barrier from follow-up flatMap`() = runTest {
+    fun `combine (3) does not deadlock with barrier from follow-up andThen`() = runTest {
         val result = Async {
             combine(
                 { delay(30); 1 },
                 { delay(30); 2 },
                 { delay(30); 3 },
             ) { a, b, c -> a + b + c }
-            .flatMap { sum ->
-                Computation.of(sum * 10)
+            .andThen { sum ->
+                Effect.of(sum * 10)
             }
         }
         assertEquals(60, result)

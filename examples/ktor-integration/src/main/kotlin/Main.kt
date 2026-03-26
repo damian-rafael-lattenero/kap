@@ -3,7 +3,7 @@
  * kap-core, kap-resilience, and kap-arrow in a realistic e-commerce BFF.
  *
  * ── kap-core: Parallel orchestration ──────────────────────────────────────
- *   GET  /dashboard/{userId}         kap/with/followedBy/flatMap, named, traced, memoize
+ *   GET  /dashboard/{userId}         kap/with/then/andThen, named, traced, memoize
  *   GET  /products                   traverse, traverse(concurrency), traverseSettled
  *   GET  /search?q=…                 computation{} DSL with bind, ensure, ensureNotNull
  *   GET  /compare?ids=…              zip, combine, race, raceAgainst, settled
@@ -14,7 +14,7 @@
  *   GET  /health                     Resource.zip, bracket, guarantee, guaranteeCase
  *
  * ── kap-arrow: Typed error handling ───────────────────────────────────────
- *   POST /register                   validated{} DSL, kapV/withV, flatMapV, traverseV, mapV, mapError
+ *   POST /register                   validated{} DSL, kapV/withV, andThenV, traverseV, mapV, mapError
  *   POST /validate-batch             traverseV(concurrency), sequenceV, ensureV
  *
  * ── Combined: All three modules ───────────────────────────────────────────
@@ -297,7 +297,7 @@ val userCircuitBreaker = CircuitBreaker(
     onStateChange = { old, new -> println("  [CircuitBreaker] User API: $old -> $new") },
 )
 
-val tracer = ComputationTracer { event ->
+val tracer = EffectTracer { event ->
     when (event) {
         is TraceEvent.Started -> println("  [Trace] ${event.name} started")
         is TraceEvent.Succeeded -> println("  [Trace] ${event.name} succeeded in ${event.duration}")
@@ -342,29 +342,29 @@ fun Routing.coreRoutes() {
     //  Phase 2 (barrier):  authorize (needs user context)
     //  Phase 3 (parallel): recommendations (needs user.tier) + notifications
     //
-    //  APIs: kap, with, followedBy, flatMap, named, traced, on
+    //  APIs: kap, with, then, andThen, named, traced, on
     get("/dashboard/{userId}") {
         val userId = call.parameters["userId"]!!
 
         val dashboard = Async {
             kap(::Dashboard)
                 .with(
-                    Computation { Services.fetchUserProfile(userId) }
+                    Effect { Services.fetchUserProfile(userId) }
                         .named("fetchProfile")
                         .traced("profile", tracer)
                 )
                 .with(
-                    Computation { Services.fetchCart(userId) }
+                    Effect { Services.fetchCart(userId) }
                         .named("fetchCart")
                         .traced("cart", tracer)
                 )
                 .with(
-                    Computation { Services.fetchRecentOrders(userId) }
+                    Effect { Services.fetchRecentOrders(userId) }
                         .on(Dispatchers.IO)
                         .traced("recentOrders", tracer)
                 )
-                .followedBy(
-                    Computation { Services.authorize(userId) }
+                .then(
+                    Effect { Services.authorize(userId) }
                         .traced("authorize", tracer)
                 )
                 .with { Services.fetchRecommendations("Gold") }
@@ -386,18 +386,18 @@ fun Routing.coreRoutes() {
 
         if (call.request.queryParameters["settled"] == "true") {
             val results = Async {
-                ids.traverseSettled { id -> Computation { Services.fetchProduct(id) } }
+                ids.traverseSettled { id -> Effect { Services.fetchProduct(id) } }
             }
             products = results.filter { it.isSuccess }.map { it.getOrThrow() }
             failures = results.filter { it.isFailure }.map { "${it.exceptionOrNull()?.message}" }
         } else if (concurrency != null) {
             products = Async {
-                ids.traverse(concurrency) { id -> Computation { Services.fetchProduct(id) } }
+                ids.traverse(concurrency) { id -> Effect { Services.fetchProduct(id) } }
             }
             failures = emptyList()
         } else {
             products = Async {
-                ids.traverse { id -> Computation { Services.fetchProduct(id) } }
+                ids.traverse { id -> Effect { Services.fetchProduct(id) } }
             }
             failures = emptyList()
         }
@@ -416,11 +416,11 @@ fun Routing.coreRoutes() {
                     query ?: throw IllegalArgumentException("Query parameter 'q' is required")
                 }
 
-                Computation { q }
+                Effect { q }
                     .ensure({ IllegalArgumentException("Query must be at least 2 characters") }) { it.length >= 2 }
                     .bind()
 
-                val rawProducts = Computation { Services.searchProducts(q) }.bind()
+                val rawProducts = Effect { Services.searchProducts(q) }.bind()
 
                 val filtered = if (minPrice != null) {
                     rawProducts.filter { it.price >= minPrice }
@@ -440,12 +440,12 @@ fun Routing.coreRoutes() {
         val ids = call.request.queryParameters["ids"]?.split(",")
             ?: throw IllegalArgumentException("'ids' parameter required (comma-separated)")
 
-        val memoizedExpensive = Computation { Services.fetchProduct("EXPENSIVE") }.memoizeOnSuccess()
+        val memoizedExpensive = Effect { Services.fetchProduct("EXPENSIVE") }.memoizeOnSuccess()
 
         val result = Async {
             computation {
                 val settledResults = ids.traverseSettled { id ->
-                    Computation { Services.fetchProduct(id) }
+                    Effect { Services.fetchProduct(id) }
                 }.bind()
 
                 val products = settledResults.map { r -> r.getOrNull() }
@@ -455,8 +455,8 @@ fun Routing.coreRoutes() {
 
                 val cheapest = if (ids.size >= 2) {
                     race(
-                        Computation { Services.fetchProduct(ids[0]) },
-                        Computation { Services.fetchProduct(ids[1]) },
+                        Effect { Services.fetchProduct(ids[0]) },
+                        Effect { Services.fetchProduct(ids[1]) },
                     ).bind()
                 } else null
 
@@ -493,9 +493,9 @@ fun Routing.resilienceRoutes() {
                 val quotes = Async {
                     raceQuorum(
                         required = 2,
-                        Computation { Services.fetchPricingReplicaA(itemId) },
-                        Computation { Services.fetchPricingReplicaB(itemId) },
-                        Computation { Services.fetchPricingReplicaC(itemId) },
+                        Effect { Services.fetchPricingReplicaA(itemId) },
+                        Effect { Services.fetchPricingReplicaB(itemId) },
+                        Effect { Services.fetchPricingReplicaC(itemId) },
                     )
                 }
                 pricing = quotes.first()
@@ -503,26 +503,26 @@ fun Routing.resilienceRoutes() {
             }
             "timeout-race" -> {
                 pricing = Async {
-                    Computation { Services.fetchPricingLive(itemId) }
-                        .timeoutRace(100.milliseconds, Computation { Services.fetchPricingCache(itemId) })
+                    Effect { Services.fetchPricingLive(itemId) }
+                        .timeoutRace(100.milliseconds, Effect { Services.fetchPricingCache(itemId) })
                 }
                 strategyUsed = "timeout-race (100ms deadline, source: ${pricing.source})"
             }
             "fallback-chain" -> {
                 pricing = Async {
                     firstSuccessOf(
-                        Computation { Services.fetchPricingPrimary(itemId) },
-                        Computation { Services.fetchPricingSecondary(itemId) },
-                        Computation { Services.fetchPricingFallback(itemId) },
+                        Effect { Services.fetchPricingPrimary(itemId) },
+                        Effect { Services.fetchPricingSecondary(itemId) },
+                        Effect { Services.fetchPricingFallback(itemId) },
                     )
                 }
                 strategyUsed = "fallback-chain (source: ${pricing.source})"
             }
             "orElse" -> {
                 pricing = Async {
-                    Computation { Services.fetchPricingPrimary(itemId) }
-                        .orElse(Computation { Services.fetchPricingSecondary(itemId) })
-                        .orElse(Computation { Services.fetchPricingFallback(itemId) })
+                    Effect { Services.fetchPricingPrimary(itemId) }
+                        .orElse(Effect { Services.fetchPricingSecondary(itemId) })
+                        .orElse(Effect { Services.fetchPricingFallback(itemId) })
                 }
                 strategyUsed = "orElse-chain (source: ${pricing.source})"
             }
@@ -547,7 +547,7 @@ fun Routing.resilienceRoutes() {
                     Schedule.exponential<Throwable>(30.milliseconds).jittered()
 
                 val retryResult = Async {
-                    Computation { Services.fetchUserFlaky(userId) }
+                    Effect { Services.fetchUserFlaky(userId) }
                         .withCircuitBreaker(userCircuitBreaker)
                         .retryWithResult(policy)
                 }
@@ -559,7 +559,7 @@ fun Routing.resilienceRoutes() {
                     Schedule.spaced<Throwable>(10.milliseconds)
 
                 val user = Async {
-                    Computation { Services.fetchUserFlaky(userId) }
+                    Effect { Services.fetchUserFlaky(userId) }
                         .withCircuitBreaker(userCircuitBreaker)
                         .retryOrElse(policy) {
                             UserProfile(userId, "Cached User", "Basic")
@@ -570,7 +570,7 @@ fun Routing.resilienceRoutes() {
             }
             "attempt" -> {
                 val result: Either<Throwable, UserProfile> = Async {
-                    Computation { Services.fetchUserFlaky(userId) }
+                    Effect { Services.fetchUserFlaky(userId) }
                         .withCircuitBreaker(userCircuitBreaker)
                         .attempt()
                 }
@@ -611,7 +611,7 @@ fun Routing.resilienceRoutes() {
             bracket(
                 acquire = { println("  [Bracket] Acquiring API probe"); "api-probe" },
                 use = { _ ->
-                    Computation { Services.checkExternalApi() }
+                    Effect { Services.checkExternalApi() }
                         .guaranteeCase { case ->
                             exitCaseStr = when (case) {
                                 is ExitCase.Completed<*> -> "completed"
@@ -637,7 +637,7 @@ fun Routing.resilienceRoutes() {
 fun Routing.arrowRoutes() {
 
     // ── 8. Comprehensive validation ─────────────────────────────────────
-    //  APIs: validated{} DSL, kapV/withV, flatMapV, traverseV, mapV, mapError, orThrow
+    //  APIs: validated{} DSL, kapV/withV, andThenV, traverseV, mapV, mapError, orThrow
     post("/register") {
         val req = call.receive<RegistrationRequest>()
 
@@ -650,13 +650,13 @@ fun Routing.arrowRoutes() {
                 .withV { Services.validateAge(req.age) }
                 .withV(
                     req.interests.traverseV { interest ->
-                        Computation<Either<NonEmptyList<RegistrationError>, String>> {
+                        Effect<Either<NonEmptyList<RegistrationError>, String>> {
                             Services.validateSingleInterest(interest)
                         }
                     }
                 )
-                .flatMapV { result ->
-                    Computation {
+                .andThenV { result ->
+                    Effect {
                         val exists = Services.checkEmailExists(result.email)
                         if (exists) Either.Left(nonEmptyListOf(RegistrationError.DuplicateEmail("Email ${result.email} is already registered")))
                         else Either.Right(result)
@@ -676,7 +676,7 @@ fun Routing.arrowRoutes() {
 
         val result: Either<NonEmptyList<String>, List<ValidatedEmail>> = Async {
             req.emails.traverseV(3) { email ->
-                Computation { Services.validateEmailFormat(email) }
+                Effect { Services.validateEmailFormat(email) }
             }
         }
 
@@ -699,7 +699,7 @@ fun Routing.combinedRoutes() {
     // ── 10. Full order pipeline ─────────────────────────────────────────
     //  kap-arrow:       validate input (kapV/withV/orThrow)
     //  kap-resilience:  resilient fetch (Schedule, retry, timeoutRace, CircuitBreaker, bracket)
-    //  kap-core:        parallel orchestration (kap, with, followedBy)
+    //  kap-core:        parallel orchestration (kap, with, then)
     post("/orders") {
         val req = call.receive<OrderRequest>()
         Services.resetCounters()
@@ -719,32 +719,32 @@ fun Routing.combinedRoutes() {
                 .withV { Services.validateAddress(req.street, req.city, req.zip) }
                 .mapError { "${it::class.simpleName}: ${it.message}" }
                 .orThrow()
-                .flatMap { validated ->
+                .andThen { validated ->
                     kap(::PlacedOrder)
                         .with { validated.item.value }
                         .with { validated.qty.value }
                         .with(
-                            Computation { Services.checkInventory(validated.item.value) }
+                            Effect { Services.checkInventory(validated.item.value) }
                                 .retry(retryPolicy) { attempt, err, nextDelay ->
                                     println("  Inventory retry #$attempt: ${err.message} (waiting $nextDelay)")
                                 }
                                 .traced("inventory", tracer)
                         )
                         .with(
-                            Computation { Services.fetchLivePricing(validated.item.value) }
-                                .timeoutRace(100.milliseconds, Computation { Services.fetchCachedPricing(validated.item.value) })
+                            Effect { Services.fetchLivePricing(validated.item.value) }
+                                .timeoutRace(100.milliseconds, Effect { Services.fetchCachedPricing(validated.item.value) })
                                 .traced("pricing", tracer)
                         )
-                        .followedBy(
-                            Computation { Services.processPayment(validated.qty.value * 49.99 * 0.95) }
+                        .then(
+                            Effect { Services.processPayment(validated.qty.value * 49.99 * 0.95) }
                                 .withCircuitBreaker(paymentBreaker)
                                 .retry(Schedule.times<Throwable>(2) and Schedule.spaced(30.milliseconds))
                                 .traced("payment", tracer)
                         )
-                        .followedBy(
+                        .then(
                             bracket(
                                 acquire = { Services.openOrderDb() },
-                                use = { db -> Computation { db.insert("ORD-${System.currentTimeMillis()}") } },
+                                use = { db -> Effect { db.insert("ORD-${System.currentTimeMillis()}") } },
                                 release = { db -> db.close() },
                             ).traced("confirmation", tracer)
                         )

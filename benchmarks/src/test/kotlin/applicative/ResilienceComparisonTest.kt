@@ -55,7 +55,7 @@ class ResilienceComparisonTest {
     @Test fun `retry - kap - Schedule times + spaced`() = runTest {
         var attempts = 0
         val result = Async {
-            Computation {
+            Effect {
                 attempts++
                 if (attempts < 3) throw RuntimeException("flaky")
                 "success"
@@ -67,7 +67,7 @@ class ResilienceComparisonTest {
     @Test fun `retry - kap - Schedule exponential + jittered`() = runTest {
         var attempts = 0
         val result = Async {
-            Computation {
+            Effect {
                 attempts++
                 if (attempts < 3) throw RuntimeException("flaky")
                 "success"
@@ -144,7 +144,7 @@ class ResilienceComparisonTest {
         val result = Async {
             bracketCase(
                 acquire = { "txn-conn" },
-                use = { Computation { "success" } },
+                use = { Effect { "success" } },
                 release = { conn, case ->
                     when (case) {
                         is ExitCase.Completed<*> -> log += "$conn:completed"
@@ -176,7 +176,7 @@ class ResilienceComparisonTest {
     @Test fun `guarantee - kap`() = runTest {
         val log = mutableListOf<String>()
         val result = Async {
-            Computation { "success" }.guarantee { log += "finalized" }
+            Effect { "success" }.guarantee { log += "finalized" }
         }
         assertEquals("success", result)
         assertTrue("finalized" in log)
@@ -185,7 +185,7 @@ class ResilienceComparisonTest {
     @Test fun `guaranteeCase - kap`() = runTest {
         val log = mutableListOf<String>()
         val result = Async {
-            Computation { "success" }.guaranteeCase { case ->
+            Effect { "success" }.guaranteeCase { case ->
                 when (case) {
                     is ExitCase.Completed<*> -> log += "completed"
                     is ExitCase.Failed -> log += "failed"
@@ -260,26 +260,26 @@ class ResilienceComparisonTest {
 
     @Test fun `circuitBreaker - kap - closed state`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 30_000.milliseconds)
-        val result = Async { Computation { "ok" }.withCircuitBreaker(breaker) }
+        val result = Async { Effect { "ok" }.withCircuitBreaker(breaker) }
         assertEquals("ok", result)
     }
 
     @Test fun `circuitBreaker - kap - trips on failures`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 1000.milliseconds)
         repeat(2) {
-            runCatching { Async { Computation<String> { error("fail") }.withCircuitBreaker(breaker) } }
+            runCatching { Async { Effect<String> { error("fail") }.withCircuitBreaker(breaker) } }
         }
-        val error = runCatching { Async { Computation { "ok" }.withCircuitBreaker(breaker) } }
+        val error = runCatching { Async { Effect { "ok" }.withCircuitBreaker(breaker) } }
         assertTrue(error.isFailure)
         assertTrue(error.exceptionOrNull() is CircuitBreakerOpenException)
     }
 
     @Test fun `circuitBreaker - kap - half-open recovery`() = kotlinx.coroutines.runBlocking {
         val breaker = CircuitBreaker(maxFailures = 1, resetTimeout = 5.milliseconds)
-        runCatching { Async { Computation<String> { error("trip") }.withCircuitBreaker(breaker) } }
+        runCatching { Async { Effect<String> { error("trip") }.withCircuitBreaker(breaker) } }
         // Real sleep so monotonic clock advances past resetTimeout
         delay(20.milliseconds)
-        val result = Async { Computation { "recovered" }.withCircuitBreaker(breaker) }
+        val result = Async { Effect { "recovered" }.withCircuitBreaker(breaker) }
         assertEquals("recovered", result)
     }
 
@@ -299,16 +299,16 @@ class ResilienceComparisonTest {
 
     @Test fun `timeoutRace - kap - primary wins`() = runTest {
         val result = Async {
-            Computation { networkCall("primary", 30) }
-                .timeoutRace(100.milliseconds, Computation { networkCall("fallback", 80) })
+            Effect { networkCall("primary", 30) }
+                .timeoutRace(100.milliseconds, Effect { networkCall("fallback", 80) })
         }
         assertEquals("primary", result)
     }
 
     @Test fun `timeoutRace - kap - fallback wins`() = runTest {
         val result = Async {
-            Computation { networkCall("primary", 200) }
-                .timeoutRace(50.milliseconds, Computation { networkCall("fallback", 30) })
+            Effect { networkCall("primary", 200) }
+                .timeoutRace(50.milliseconds, Effect { networkCall("fallback", 30) })
         }
         assertEquals("fallback", result)
     }
@@ -339,11 +339,11 @@ class ResilienceComparisonTest {
         val result = Async {
             raceQuorum(
                 required = 2,
-                Computation { networkCall("replica-1", 100) },
-                Computation { networkCall("replica-2", 30) },
-                Computation { networkCall("replica-3", 80) },
-                Computation { networkCall("replica-4", 50) },
-                Computation { networkCall("replica-5", 200) },
+                Effect { networkCall("replica-1", 100) },
+                Effect { networkCall("replica-2", 30) },
+                Effect { networkCall("replica-3", 80) },
+                Effect { networkCall("replica-4", 50) },
+                Effect { networkCall("replica-5", 200) },
             )
         }
         assertEquals(2, result.size)
@@ -353,11 +353,11 @@ class ResilienceComparisonTest {
         val result = Async {
             raceQuorum(
                 required = 3,
-                Computation { networkCall("replica-1", 100) },
-                Computation { networkCall("replica-2", 30) },
-                Computation { networkCall("replica-3", 80) },
-                Computation { networkCall("replica-4", 50) },
-                Computation { networkCall("replica-5", 200) },
+                Effect { networkCall("replica-1", 100) },
+                Effect { networkCall("replica-2", 30) },
+                Effect { networkCall("replica-3", 80) },
+                Effect { networkCall("replica-4", 50) },
+                Effect { networkCall("replica-5", 200) },
             )
         }
         assertEquals(3, result.size)
@@ -372,7 +372,7 @@ class ResilienceComparisonTest {
             .fold(0) { count, _ -> count + 1 }
         var attempts = 0
         val result = Async {
-            Computation {
+            Effect {
                 attempts++
                 if (attempts < 3) error("flaky")
                 "ok"
@@ -388,7 +388,7 @@ class ResilienceComparisonTest {
             .and(Schedule.exponential(1.milliseconds))
             .jittered()
         val result = Async {
-            Computation {
+            Effect {
                 attempts++
                 if (attempts < 3) error("flaky")
                 "ok"

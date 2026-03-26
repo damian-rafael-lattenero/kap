@@ -20,7 +20,7 @@ class NewFeaturesTest {
     @Test
     fun `memoize executes computation only once across sequential uses`() = runTest {
         val counter = AtomicInteger(0)
-        val memoized = Computation {
+        val memoized = Effect {
             counter.incrementAndGet()
             "expensive"
         }.memoize()
@@ -32,13 +32,13 @@ class NewFeaturesTest {
         assertEquals("expensive", r1)
         assertEquals("expensive", r2)
         assertEquals("expensive", r3)
-        assertEquals(1, counter.get(), "Computation should execute exactly once")
+        assertEquals(1, counter.get(), "Effect should execute exactly once")
     }
 
     @Test
     fun `memoize caches result and returns it on subsequent uses`() = runTest {
         val counter = AtomicInteger(0)
-        val memoized = Computation {
+        val memoized = Effect {
             val value = counter.incrementAndGet()
             value * 10
         }.memoize()
@@ -50,7 +50,7 @@ class NewFeaturesTest {
         }
 
         assertEquals(20, result, "Both branches should get cached value 10")
-        assertEquals(1, counter.get(), "Computation should execute exactly once even in parallel ap")
+        assertEquals(1, counter.get(), "Effect should execute exactly once even in parallel ap")
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -60,7 +60,7 @@ class NewFeaturesTest {
     @Test
     fun `failed throws the given exception when executed`() = runTest {
         val result = runCatching {
-            Async { Computation.failed(IllegalStateException("boom")) }
+            Async { Effect.failed(IllegalStateException("boom")) }
         }
         assertTrue(result.isFailure)
         assertIs<IllegalStateException>(result.exceptionOrNull())
@@ -70,7 +70,7 @@ class NewFeaturesTest {
     @Test
     fun `failed works with recover`() = runTest {
         val result = Async {
-            Computation.failed(RuntimeException("oops"))
+            Effect.failed(RuntimeException("oops"))
                 .recover { "recovered: ${it.message}" }
         }
         assertEquals("recovered: oops", result)
@@ -79,8 +79,8 @@ class NewFeaturesTest {
     @Test
     fun `failed works with recoverWith`() = runTest {
         val result = Async {
-            Computation.failed(RuntimeException("oops"))
-                .recoverWith { Computation.of("recovered via: ${it.message}") }
+            Effect.failed(RuntimeException("oops"))
+                .recoverWith { Effect.of("recovered via: ${it.message}") }
         }
         assertEquals("recovered via: oops", result)
     }
@@ -93,9 +93,9 @@ class NewFeaturesTest {
     fun `defer lazily constructs the computation`() = runTest {
         val constructed = AtomicInteger(0)
 
-        val deferred = Computation.defer {
+        val deferred = Effect.defer {
             constructed.incrementAndGet()
-            Computation.of("lazy")
+            Effect.of("lazy")
         }
 
         assertEquals(0, constructed.get(), "Block should not be called until execution")
@@ -110,9 +110,9 @@ class NewFeaturesTest {
     fun `defer block is only called when the computation is executed`() = runTest {
         val callLog = AtomicInteger(0)
 
-        val deferred = Computation.defer {
+        val deferred = Effect.defer {
             callLog.incrementAndGet()
-            Computation.of(callLog.get())
+            Effect.of(callLog.get())
         }
 
         // Not executed yet — counter should be zero

@@ -126,7 +126,7 @@ tasks.register("generateKap") {
             val typeParams = (1..n).joinToString(", ") { "P$it" }
             val paramType = (1..n).joinToString(", ") { "P$it" }
             val curriedType = (1..n).joinToString(" -> ") { "(P$it)" } + " -> R"
-            return "fun <$typeParams, R> kap(f: ($paramType) -> R): Computation<$curriedType> = Computation.of(f.curried())"
+            return "fun <$typeParams, R> kap(f: ($paramType) -> R): Effect<$curriedType> = Effect.of(f.curried())"
         }
 
         val header = buildString {
@@ -140,7 +140,7 @@ tasks.register("generateKap") {
             appendLine()
             appendLine("// ── kap: curry and wrap for .with chains ────────────────────────────────")
             appendLine()
-            appendLine("/** Curries [f] and wraps it as a [Computation], ready for [with] chains. */")
+            appendLine("/** Curries [f] and wraps it as a [Effect], ready for [with] chains. */")
         }
 
         val body = (2..maxArity).joinToString("\n\n") { generateKap(it) }
@@ -163,14 +163,14 @@ tasks.register("generateZipCombine") {
         fun generateZip(n: Int): String {
             val types = typeLetters.take(n)
             val typeParams = types.joinToString(", ") + ", R"
-            val params = (1..n).joinToString(",\n") { i -> "    c$i: Computation<${types[i - 1]}>" }
+            val params = (1..n).joinToString(",\n") { i -> "    c$i: Effect<${types[i - 1]}>" }
             val asyncLaunches = (1..n).joinToString("\n    ") { i -> "val d$i = async { with(c$i) { execute() } }" }
             val awaits = (1..n).joinToString(", ") { "d$it.await()" }
             val combineTypes = types.joinToString(", ")
             return """fun <$typeParams> zip(
 $params,
     combine: ($combineTypes) -> R,
-): Computation<R> = Computation {
+): Effect<R> = Effect {
     $asyncLaunches
     combine($awaits)
 }"""
@@ -179,7 +179,7 @@ $params,
         fun generateMapN(n: Int): String {
             val types = typeLetters.take(n)
             val typeParams = types.joinToString(", ") + ", R"
-            val params = (1..n).joinToString(",\n") { i -> "    c$i: Computation<${types[i - 1]}>" }
+            val params = (1..n).joinToString(",\n") { i -> "    c$i: Effect<${types[i - 1]}>" }
             val combineTypes = types.joinToString(", ")
             val delegation = if (n == 2) "c1.zip(c2, f)" else {
                 val zipArgs = (1..n).joinToString(", ") { "c$it" }
@@ -188,7 +188,7 @@ $params,
             return """fun <$typeParams> combine(
 $params,
     f: ($combineTypes) -> R,
-): Computation<R> = $delegation"""
+): Effect<R> = $delegation"""
         }
 
         val header = buildString {

@@ -15,7 +15,7 @@ class CircuitBreakerTest {
     fun `stays closed on success`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
         repeat(10) {
-            assertEquals("ok", Async { Computation { "ok" }.withCircuitBreaker(breaker) })
+            assertEquals("ok", Async { Effect { "ok" }.withCircuitBreaker(breaker) })
         }
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
@@ -23,7 +23,7 @@ class CircuitBreakerTest {
     @Test
     fun `opens after maxFailures consecutive failures`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
-        val comp = Computation<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
+        val comp = Effect<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
 
         repeat(3) { assertTrue(runCatching { Async { comp } }.isFailure) }
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
@@ -37,7 +37,7 @@ class CircuitBreakerTest {
     fun `success resets failure count`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
         var callCount = 0
-        val comp = Computation {
+        val comp = Effect {
             callCount++
             if (callCount % 3 == 0) "ok" else throw RuntimeException("fail")
         }.withCircuitBreaker(breaker)
@@ -56,7 +56,7 @@ class CircuitBreakerTest {
     fun `transitions Open to HalfOpen after resetTimeout`() = runTest {
         val timeSource = TestTimeSource()
         val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 500.milliseconds, timeSource = timeSource)
-        val comp = Computation<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
+        val comp = Effect<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
 
         repeat(2) { runCatching { Async { comp } } }
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
@@ -76,7 +76,7 @@ class CircuitBreakerTest {
         val timeSource = TestTimeSource()
         var shouldFail = true
         val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 500.milliseconds, timeSource = timeSource)
-        val comp = Computation {
+        val comp = Effect {
             if (shouldFail) throw RuntimeException("fail"); "recovered"
         }.withCircuitBreaker(breaker)
 
@@ -98,7 +98,7 @@ class CircuitBreakerTest {
             onStateChange = { from, to -> transitions.add(from to to) },
         )
         var shouldFail = true
-        val comp = Computation {
+        val comp = Effect {
             if (shouldFail) throw RuntimeException("fail"); "ok"
         }.withCircuitBreaker(breaker)
 
@@ -119,10 +119,10 @@ class CircuitBreakerTest {
         val latch1 = CompletableDeferred<Unit>()
         val latch2 = CompletableDeferred<Unit>()
 
-        val compA = Computation {
+        val compA = Effect {
             latch1.complete(Unit); latch2.await(); "A"
         }.withCircuitBreaker(breaker)
-        val compB = Computation {
+        val compB = Effect {
             latch2.complete(Unit); latch1.await(); "B"
         }.withCircuitBreaker(breaker)
 
@@ -135,7 +135,7 @@ class CircuitBreakerTest {
     fun `full resilience stack — retry + recover + circuit breaker`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 1.seconds)
         var callCount = 0
-        val graph = Computation {
+        val graph = Effect {
             callCount++
             if (callCount < 3) throw RuntimeException("transient"); "success"
         }.withCircuitBreaker(breaker).retry(3).recover { "fallback" }
@@ -148,12 +148,12 @@ class CircuitBreakerTest {
     @Test
     fun `shared breaker fast-fails when open`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 10.seconds)
-        val fail = Computation<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
+        val fail = Effect<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
         repeat(2) { runCatching { Async { fail } } }
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
 
-        val compA = Computation<String> { error("nope") }.withCircuitBreaker(breaker).recover { "fast-a" }
-        val compB = Computation<String> { error("nope") }.withCircuitBreaker(breaker).recover { "fast-b" }
+        val compA = Effect<String> { error("nope") }.withCircuitBreaker(breaker).recover { "fast-a" }
+        val compB = Effect<String> { error("nope") }.withCircuitBreaker(breaker).recover { "fast-b" }
         val graph = kap { a: String, b: String -> "$a|$b" }.with(compA).with(compB)
         assertEquals("fast-a|fast-b", Async { graph })
     }
@@ -161,7 +161,7 @@ class CircuitBreakerTest {
     @Test
     fun `composes with timeout`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
-        val graph = Computation { "fast" }.timeout(100.milliseconds).withCircuitBreaker(breaker)
+        val graph = Effect { "fast" }.timeout(100.milliseconds).withCircuitBreaker(breaker)
         assertEquals("fast", Async { graph })
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
@@ -170,7 +170,7 @@ class CircuitBreakerTest {
     fun `Schedule retry exhausts then opens circuit`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 1.seconds)
         var callCount = 0
-        val graph = Computation<String> {
+        val graph = Effect<String> {
             callCount++; throw RuntimeException("always fails")
         }.withCircuitBreaker(breaker).retry(Schedule.times(4))
 

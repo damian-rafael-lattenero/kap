@@ -24,7 +24,7 @@ class EnhancedCombinatorsTest {
         var attempts = 0
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     if (attempts == 1) throw IOException("network error")
                     if (attempts == 2) throw IllegalArgumentException("bad input")
@@ -46,7 +46,7 @@ class EnhancedCombinatorsTest {
         var attempts = 0
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw IllegalStateException("not retryable")
                 }.retry(
@@ -74,7 +74,7 @@ class EnhancedCombinatorsTest {
 
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     throw RuntimeException("fail #$attempts")
                 }.retry(
@@ -108,7 +108,7 @@ class EnhancedCombinatorsTest {
 
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     throw RuntimeException("fail")
                 }.retry(
                     maxAttempts = 4,
@@ -145,7 +145,7 @@ class EnhancedCombinatorsTest {
 
         val result = runCatching {
             Async {
-                Computation<String> {
+                Effect<String> {
                     attempts++
                     when (attempts) {
                         1 -> throw IOException("network #1")
@@ -187,12 +187,12 @@ class EnhancedCombinatorsTest {
     @Test
     fun `timeoutRace - fallback wins when primary is slow`() = runTest {
         val result = Async {
-            Computation<String> {
+            Effect<String> {
                 delay(500.milliseconds)
                 "primary"
             }.timeoutRace(
                 duration = 100.milliseconds,
-                fallback = Computation {
+                fallback = Effect {
                     delay(30.milliseconds)
                     "fallback"
                 },
@@ -207,12 +207,12 @@ class EnhancedCombinatorsTest {
     @Test
     fun `timeoutRace - primary wins when fast enough`() = runTest {
         val result = Async {
-            Computation<String> {
+            Effect<String> {
                 delay(20.milliseconds)
                 "primary"
             }.timeoutRace(
                 duration = 50.milliseconds,
-                fallback = Computation {
+                fallback = Effect {
                     delay(100.milliseconds)
                     "fallback"
                 },
@@ -229,12 +229,12 @@ class EnhancedCombinatorsTest {
         // Regular timeout: waits for timeout to expire, THEN runs fallback sequentially
         val startRegular = currentTime
         val regularResult = Async {
-            Computation<String> {
+            Effect<String> {
                 delay(500.milliseconds)
                 "slow-primary"
             }.timeout(
                 duration = 100.milliseconds,
-                fallback = Computation {
+                fallback = Effect {
                     delay(50.milliseconds)
                     "regular-fallback"
                 },
@@ -249,12 +249,12 @@ class EnhancedCombinatorsTest {
         // timeoutRace: fallback runs in parallel from the start
         val startRace = currentTime
         val raceResult = Async {
-            Computation<String> {
+            Effect<String> {
                 delay(500.milliseconds)
                 "slow-primary"
             }.timeoutRace(
                 duration = 100.milliseconds,
-                fallback = Computation {
+                fallback = Effect {
                     delay(50.milliseconds)
                     "race-fallback"
                 },
@@ -277,19 +277,19 @@ class EnhancedCombinatorsTest {
 
     @Test
     fun `timeoutRace inside with chain - parallel branches with different strategies`() = runTest {
-        val timeoutRaceBranch = Computation<String> {
+        val timeoutRaceBranch = Effect<String> {
             delay(500.milliseconds)
             "slow-service"
         }.timeoutRace(
             duration = 100.milliseconds,
-            fallback = Computation {
+            fallback = Effect {
                 delay(30.milliseconds)
                 "cached"
             },
         )
 
         var retryAttempts = 0
-        val retryBranch = Computation<String> {
+        val retryBranch = Effect<String> {
             retryAttempts++
             if (retryAttempts < 3) throw RuntimeException("transient")
             delay(10.milliseconds)
@@ -315,7 +315,7 @@ class EnhancedCombinatorsTest {
     @Test
     fun `retry with shouldRetry inside with chain - selective retry in parallel`() = runTest {
         var ioAttempts = 0
-        val ioBranch = Computation<String> {
+        val ioBranch = Effect<String> {
             ioAttempts++
             if (ioAttempts < 3) throw IOException("network #$ioAttempts")
             delay(10.milliseconds)
@@ -326,7 +326,7 @@ class EnhancedCombinatorsTest {
         )
 
         var stateAttempts = 0
-        val stateBranch = Computation<String> {
+        val stateBranch = Effect<String> {
             stateAttempts++
             if (stateAttempts < 2) throw IllegalStateException("init #$stateAttempts")
             delay(20.milliseconds)

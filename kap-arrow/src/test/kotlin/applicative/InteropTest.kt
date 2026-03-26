@@ -17,36 +17,36 @@ import kotlin.time.Duration.Companion.milliseconds
 class InteropTest {
 
     // ════════════════════════════════════════════════════════════════════════
-    // Deferred → Computation
+    // Deferred → Effect
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `Deferred toComputation awaits the deferred`() = runTest {
+    fun `Deferred toEffect awaits the deferred`() = runTest {
         val deferred = CompletableDeferred(42)
-        val result = Async { deferred.toComputation() }
+        val result = Async { deferred.toEffect() }
         assertEquals(42, result)
     }
 
     @Test
-    fun `Deferred toComputation composes with kap+with`() = runTest {
+    fun `Deferred toEffect composes with kap+with`() = runTest {
         val deferredA = CompletableDeferred("hello")
         val deferredB = CompletableDeferred("world")
 
         val result = Async {
             kap { a: String, b: String -> "$a $b" }
-                .with { with(deferredA.toComputation()) { execute() } }
-                .with { with(deferredB.toComputation()) { execute() } }
+                .with { with(deferredA.toEffect()) { execute() } }
+                .with { with(deferredB.toEffect()) { execute() } }
         }
         assertEquals("hello world", result)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Computation → Deferred
+    // Effect → Deferred
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `Computation toDeferred starts eagerly in scope`() = runTest {
-        val computation = Computation.of(42)
+    fun `Effect toDeferred starts eagerly in scope`() = runTest {
+        val computation = Effect.of(42)
         val deferred = coroutineScope {
             computation.toDeferred(this)
         }
@@ -54,46 +54,46 @@ class InteropTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Flow → Computation
+    // Flow → Effect
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `Flow firstAsComputation takes first emission`() = runTest {
+    fun `Flow firstAsEffect takes first emission`() = runTest {
         val flow = flowOf("first", "second", "third")
-        val result = Async { flow.firstAsComputation() }
+        val result = Async { flow.firstAsEffect() }
         assertEquals("first", result)
     }
 
     @Test
-    fun `Flow firstAsComputation composes with kap+with`() = runTest {
+    fun `Flow firstAsEffect composes with kap+with`() = runTest {
         val result = Async {
             kap { a: String, b: Int -> "$a=$b" }
-                .with { with(flowOf("count").firstAsComputation()) { execute() } }
-                .with { with(flowOf(42).firstAsComputation()) { execute() } }
+                .with { with(flowOf("count").firstAsEffect()) { execute() } }
+                .with { with(flowOf(42).firstAsEffect()) { execute() } }
         }
         assertEquals("count=42", result)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // suspend lambda → Computation
+    // suspend lambda → Effect
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `suspend lambda toComputation wraps correctly`() = runTest {
+    fun `suspend lambda toEffect wraps correctly`() = runTest {
         val fn: suspend () -> Int = { 42 }
-        val result = Async { fn.toComputation() }
+        val result = Async { fn.toEffect() }
         assertEquals(42, result)
     }
 
     @Test
-    fun `suspend lambda toComputation composes with kap+with`() = runTest {
+    fun `suspend lambda toEffect composes with kap+with`() = runTest {
         val fetchUser: suspend () -> String = { "Alice" }
         val fetchAge: suspend () -> Int = { 30 }
 
         val result = Async {
             kap { name: String, age: Int -> "$name($age)" }
-                .with { with(fetchUser.toComputation()) { execute() } }
-                .with { with(fetchAge.toComputation()) { execute() } }
+                .with { with(fetchUser.toEffect()) { execute() } }
+                .with { with(fetchAge.toEffect()) { execute() } }
         }
         assertEquals("Alice(30)", result)
     }
@@ -153,7 +153,7 @@ class InteropTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Result → Validated Computation
+    // Result → Validated Effect
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
@@ -201,7 +201,7 @@ class InteropTest {
         val result = Async {
             race(
                 delayed(10_000.milliseconds, "slow"),
-                Computation.of("fast"),
+                Effect.of("fast"),
             )
         }
         assertEquals("fast", result)
@@ -212,9 +212,9 @@ class InteropTest {
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `Deferred toComputation suspends until completion`() = runTest {
+    fun `Deferred toEffect suspends until completion`() = runTest {
         val deferred = CompletableDeferred<String>()
-        val computation = deferred.toComputation()
+        val computation = deferred.toEffect()
 
         val result = Async {
             kap { a: String, b: String -> "$a|$b" }

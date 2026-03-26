@@ -17,9 +17,9 @@ class RaceQuorumTest {
         val result = Async {
             raceQuorum(
                 required = 1,
-                Computation { delay(100); "slow" },
-                Computation { delay(10); "fast" },
-                Computation { delay(50); "medium" },
+                Effect { delay(100); "slow" },
+                Effect { delay(10); "fast" },
+                Effect { delay(50); "medium" },
             )
         }
 
@@ -33,9 +33,9 @@ class RaceQuorumTest {
         val result = Async {
             raceQuorum(
                 required = 2,
-                Computation { delay(100); "slow" },
-                Computation { delay(10); "fast" },
-                Computation { delay(50); "medium" },
+                Effect { delay(100); "slow" },
+                Effect { delay(10); "fast" },
+                Effect { delay(50); "medium" },
             )
         }
 
@@ -50,9 +50,9 @@ class RaceQuorumTest {
         val result = Async {
             raceQuorum(
                 required = 3,
-                Computation { delay(10); "A" },
-                Computation { delay(50); "B" },
-                Computation { delay(30); "C" },
+                Effect { delay(10); "A" },
+                Effect { delay(50); "B" },
+                Effect { delay(30); "C" },
             )
         }
 
@@ -67,9 +67,9 @@ class RaceQuorumTest {
             val r: List<String> = Async {
                 raceQuorum(
                     required = 3,
-                    Computation { delay(10); "A" },
-                    Computation<String> { delay(20); throw RuntimeException("fail") },
-                    Computation { delay(30); "C" },
+                    Effect { delay(10); "A" },
+                    Effect<String> { delay(20); throw RuntimeException("fail") },
+                    Effect { delay(30); "C" },
                 )
             }
         }
@@ -81,10 +81,10 @@ class RaceQuorumTest {
         val result = Async {
             raceQuorum(
                 required = 2,
-                Computation { delay(10); throw RuntimeException("fail-1") },
-                Computation { delay(20); "B" },
-                Computation { delay(30); "C" },
-                Computation { delay(40); "D" },
+                Effect { delay(10); throw RuntimeException("fail-1") },
+                Effect { delay(20); "B" },
+                Effect { delay(30); "C" },
+                Effect { delay(40); "D" },
             )
         }
 
@@ -100,9 +100,9 @@ class RaceQuorumTest {
             val r: List<String> = Async {
                 raceQuorum(
                     required = 2,
-                    Computation { delay(10); throw RuntimeException("fail-1") },
-                    Computation { delay(20); throw RuntimeException("fail-2") },
-                    Computation { delay(30); "C" },
+                    Effect { delay(10); throw RuntimeException("fail-1") },
+                    Effect { delay(20); throw RuntimeException("fail-2") },
+                    Effect { delay(30); "C" },
                 )
             }
         }
@@ -117,7 +117,7 @@ class RaceQuorumTest {
         val result = Async {
             raceQuorum(
                 required = 1,
-                Computation { delay(10); "only" },
+                Effect { delay(10); "only" },
             )
         }
 
@@ -127,10 +127,10 @@ class RaceQuorumTest {
     @Test
     fun `quorum validates required parameter`() {
         assertFailsWith<IllegalArgumentException> {
-            raceQuorum(required = 0, Computation { "a" })
+            raceQuorum(required = 0, Effect { "a" })
         }
         assertFailsWith<IllegalArgumentException> {
-            raceQuorum(required = 3, Computation { "a" }, Computation { "b" })
+            raceQuorum(required = 3, Effect { "a" }, Effect { "b" })
         }
     }
 
@@ -140,9 +140,9 @@ class RaceQuorumTest {
         val result = Async {
             raceQuorum(
                 required = 2,
-                Computation { delay(10); "fast" },
-                Computation { delay(20); "medium" },
-                Computation {
+                Effect { delay(10); "fast" },
+                Effect { delay(20); "medium" },
+                Effect {
                     try {
                         delay(1000); "slow"
                     } catch (e: kotlinx.coroutines.CancellationException) {
@@ -161,9 +161,9 @@ class RaceQuorumTest {
     @Test
     fun `iterable extension raceQuorum works`() = runTest {
         val computations = listOf(
-            Computation { delay(10); "A" },
-            Computation { delay(20); "B" },
-            Computation { delay(30); "C" },
+            Effect { delay(10); "A" },
+            Effect { delay(20); "B" },
+            Effect { delay(30); "C" },
         )
 
         val result = Async { computations.raceQuorum(2) }
@@ -178,11 +178,11 @@ class RaceQuorumTest {
         val result = Async {
             raceQuorum(
                 required = 2,
-                Computation { delay(50); "A" },
-                Computation { delay(30); "B" },
-                Computation { delay(10); "C" },
-                Computation { delay(40); "D" },
-                Computation { delay(20); "E" },
+                Effect { delay(50); "A" },
+                Effect { delay(30); "B" },
+                Effect { delay(10); "C" },
+                Effect { delay(40); "D" },
+                Effect { delay(20); "E" },
             )
         }
 

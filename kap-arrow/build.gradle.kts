@@ -59,7 +59,7 @@ tasks.register("generateValidatedOverloads") {
             return """fun <$typeParamsList> zipV(
 $params,
     combine: ($combineParams) -> R,
-): Computation<Either<NonEmptyList<E>, R>> = Computation {
+): Effect<Either<NonEmptyList<E>, R>> = Effect {
     $asyncLaunches
     $awaits
     if ($rightCheck)
@@ -77,7 +77,7 @@ $params,
             val typeParams = (1..n).joinToString(", ") { "P$it" }
             val paramType = (1..n).joinToString(", ") { "P$it" }
             val curriedType = (1..n).joinToString(" -> ") { "(P$it)" } + " -> R"
-            return "fun <E, $typeParams, R> kapV(f: ($paramType) -> R): Computation<Either<NonEmptyList<E>, $curriedType>> =\n    Computation.of(Either.Right(f.curried()))"
+            return "fun <E, $typeParams, R> kapV(f: ($paramType) -> R): Effect<Either<NonEmptyList<E>, $curriedType>> =\n    Effect.of(Either.Right(f.curried()))"
         }
 
         val header = buildString {
