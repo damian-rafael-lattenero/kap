@@ -1,4 +1,4 @@
-import applicative.*
+import kap.*
 import arrow.core.Either
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
@@ -184,15 +184,15 @@ suspend fun main() {
         kap(::FetchedData)
             // Retry flaky inventory API with exponential backoff
             .with(
-                Effect { checkInventory(order.item.value) }
+                Kap { checkInventory(order.item.value) }
                     .retry(retryPolicy) { attempt, err, nextDelay ->
                         println("  Inventory retry #$attempt: ${err.message} (waiting $nextDelay)")
                     }
             )
             // timeoutRace: try live pricing, fall back to cache if slow
             .with(
-                Effect { fetchLivePricing(order.item.value) }
-                    .timeoutRace(100.milliseconds, Effect { fetchCachedPricing(order.item.value) })
+                Kap { fetchLivePricing(order.item.value) }
+                    .timeoutRace(100.milliseconds, Kap { fetchCachedPricing(order.item.value) })
             )
     }
 
@@ -212,7 +212,7 @@ suspend fun main() {
     val totalAmount = order.qty.value * fetched.pricing.unitPrice * (1 - fetched.pricing.discount)
 
     val payment = Async {
-        Effect { processPayment(totalAmount) }
+        Kap { processPayment(totalAmount) }
             .withCircuitBreaker(breaker)
             .retry(Schedule.times<Throwable>(2) and Schedule.spaced(50.milliseconds))
     }
@@ -229,7 +229,7 @@ suspend fun main() {
                 openOrderDb().also { println("  Acquired DB: ${it.name}") }
             },
             use = { db ->
-                Effect { db.insert("ORD-${System.currentTimeMillis()}") }
+                Kap { db.insert("ORD-${System.currentTimeMillis()}") }
             },
             release = { db ->
                 db.close()
@@ -246,14 +246,14 @@ suspend fun main() {
     println("=== Phase 5: attempt() and raceEither from kap-arrow ===\n")
 
     val attemptResult: Either<Throwable, String> = Async {
-        Effect { "Order ${confirmation.orderId} processed successfully" }.attempt()
+        Kap { "Order ${confirmation.orderId} processed successfully" }.attempt()
     }
     println("  attempt() result: $attemptResult")
 
     val raceResult: Either<String, Int> = Async {
         raceEither(
-            fa = Effect { delay(50); "fast-notification-sent" },
-            fb = Effect { delay(200); 42 },
+            fa = Kap { delay(50); "fast-notification-sent" },
+            fb = Kap { delay(200); 42 },
         )
     }
     println("  raceEither winner: $raceResult")
@@ -281,16 +281,16 @@ suspend fun main() {
             .with { validated }
             // Phase: inventory + pricing in parallel (kap-resilience)
             .with(
-                Effect { checkInventory(validated.item.value) }
+                Kap { checkInventory(validated.item.value) }
                     .retry(Schedule.times<Throwable>(4) and Schedule.exponential(20.milliseconds))
             )
             .with(
-                Effect { fetchLivePricing(validated.item.value) }
-                    .timeoutRace(80.milliseconds, Effect { fetchCachedPricing(validated.item.value) })
+                Kap { fetchLivePricing(validated.item.value) }
+                    .timeoutRace(80.milliseconds, Kap { fetchCachedPricing(validated.item.value) })
             )
             // Phase: payment (sequential, depends on pricing)
             .then(
-                Effect { processPayment(validated.qty.value * 49.99 * 0.95) }
+                Kap { processPayment(validated.qty.value * 49.99 * 0.95) }
                     .withCircuitBreaker(breaker)
                     .retry(Schedule.times<Throwable>(2) and Schedule.spaced(30.milliseconds))
             )
@@ -298,7 +298,7 @@ suspend fun main() {
             .then(
                 bracket(
                     acquire = { openOrderDb() },
-                    use = { db -> Effect { db.insert("ORD-FULL-${System.currentTimeMillis()}") } },
+                    use = { db -> Kap { db.insert("ORD-FULL-${System.currentTimeMillis()}") } },
                     release = { db -> db.close() },
                 )
             )

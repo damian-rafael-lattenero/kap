@@ -28,11 +28,11 @@ tasks.test {
 // ── Code generation tasks ────────────────────────────────────────────────
 
 tasks.register("generateValidatedOverloads") {
-    description = "Regenerates src/main/kotlin/applicative/ValidatedOverloads.kt (zipV + kapV arities 2-22)"
+    description = "Regenerates src/main/kotlin/kap/ValidatedOverloads.kt (zipV + kapV arities 2-22)"
     group = "codegen"
 
     val maxArity = 22
-    val outputFile = file("src/main/kotlin/applicative/ValidatedOverloads.kt")
+    val outputFile = file("src/main/kotlin/kap/ValidatedOverloads.kt")
     outputs.file(outputFile)
 
     doLast {
@@ -56,7 +56,7 @@ tasks.register("generateValidatedOverloads") {
             return """fun <$typeParamsList> zipV(
 $params,
     combine: ($combineParams) -> R,
-): Effect<Either<NonEmptyList<E>, R>> = Effect {
+): Kap<Either<NonEmptyList<E>, R>> = Kap {
     $asyncLaunches
     $awaits
     if ($rightCheck)
@@ -74,7 +74,7 @@ $params,
             val typeParams = (1..n).joinToString(", ") { "P$it" }
             val paramType = (1..n).joinToString(", ") { "P$it" }
             val curriedType = (1..n).joinToString(" -> ") { "(P$it)" } + " -> R"
-            return "fun <E, $typeParams, R> kapV(f: ($paramType) -> R): Effect<Either<NonEmptyList<E>, $curriedType>> =\n    Effect.of(Either.Right(f.curried()))"
+            return "fun <E, $typeParams, R> kapV(f: ($paramType) -> R): Kap<Either<NonEmptyList<E>, $curriedType>> =\n    Kap.of(Either.Right(f.curried()))"
         }
 
         val header = buildString {
@@ -82,12 +82,12 @@ $params,
             appendLine("// │  AUTO-GENERATED — do not edit by hand.                               │")
             appendLine("// │  Run: ./gradlew :kap-arrow:generateValidatedOverloads                │")
             appendLine("// └──────────────────────────────────────────────────────────────────────┘")
-            appendLine("package applicative")
+            appendLine("package kap")
             appendLine()
             appendLine("import arrow.core.Either")
             appendLine("import arrow.core.NonEmptyList")
             appendLine("import kotlinx.coroutines.async")
-            appendLine("import applicative.internal.curried")
+            appendLine("import kap.internal.curried")
         }
 
         val maxZipVArity = minOf(maxArity, letters.size)

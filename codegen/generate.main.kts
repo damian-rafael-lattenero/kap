@@ -9,13 +9,13 @@
  *   — or —
  *   ./gradlew generateCurry
  *
- * Output is written to src/main/kotlin/applicative/internal/curry.kt
+ * Output is written to src/main/kotlin/kap/internal/curry.kt
  */
 
 import java.io.File
 
 val maxArity = 22
-val outputFile = File("src/main/kotlin/applicative/internal/curry.kt")
+val outputFile = File("src/main/kotlin/kap/internal/curry.kt")
 
 fun generateCurried(arity: Int): String {
     val typeParams = (1..arity).joinToString(", ") { "P$it" }
@@ -53,7 +53,7 @@ val header = buildString {
     appendLine("// │  AUTO-GENERATED — do not edit by hand.                               │")
     appendLine("// │  Run: ./gradlew generateCurry                                        │")
     appendLine("// └──────────────────────────────────────────────────────────────────────┘")
-    appendLine("package applicative.internal")
+    appendLine("package kap.internal")
 }
 
 val body = (2..maxArity).joinToString("\n\n") { generateCurried(it) }

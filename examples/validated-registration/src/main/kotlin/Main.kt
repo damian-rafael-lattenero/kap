@@ -1,4 +1,4 @@
-import applicative.*
+import kap.*
 import arrow.core.Either
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
@@ -119,7 +119,7 @@ suspend fun main() {
             .withV { validateEmail("bob@test.com") }
             .withV { validateAge(25) }
             .andThenV { (name, email, age) ->
-                Effect { checkUsernameAvailable("alice") }.mapV { username ->
+                Kap { checkUsernameAvailable("alice") }.mapV { username ->
                     User(name, email, age, username)
                 }
             }

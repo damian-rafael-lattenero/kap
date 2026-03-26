@@ -21,7 +21,7 @@
  *   POST /orders                     full pipeline: validate → resilient fetch → bracket-safe write
  */
 
-import applicative.*
+import kap.*
 import arrow.core.Either
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
@@ -297,7 +297,7 @@ val userCircuitBreaker = CircuitBreaker(
     onStateChange = { old, new -> println("  [CircuitBreaker] User API: $old -> $new") },
 )
 
-val tracer = EffectTracer { event ->
+val tracer = KapTracer { event ->
     when (event) {
         is TraceEvent.Started -> println("  [Trace] ${event.name} started")
         is TraceEvent.Succeeded -> println("  [Trace] ${event.name} succeeded in ${event.duration}")
@@ -349,22 +349,22 @@ fun Routing.coreRoutes() {
         val dashboard = Async {
             kap(::Dashboard)
                 .with(
-                    Effect { Services.fetchUserProfile(userId) }
+                    Kap { Services.fetchUserProfile(userId) }
                         .named("fetchProfile")
                         .traced("profile", tracer)
                 )
                 .with(
-                    Effect { Services.fetchCart(userId) }
+                    Kap { Services.fetchCart(userId) }
                         .named("fetchCart")
                         .traced("cart", tracer)
                 )
                 .with(
-                    Effect { Services.fetchRecentOrders(userId) }
+                    Kap { Services.fetchRecentOrders(userId) }
                         .on(Dispatchers.IO)
                         .traced("recentOrders", tracer)
                 )
                 .then(
-                    Effect { Services.authorize(userId) }
+                    Kap { Services.authorize(userId) }
                         .traced("authorize", tracer)
                 )
                 .with { Services.fetchRecommendations("Gold") }
@@ -386,18 +386,18 @@ fun Routing.coreRoutes() {
 
         if (call.request.queryParameters["settled"] == "true") {
             val results = Async {
-                ids.traverseSettled { id -> Effect { Services.fetchProduct(id) } }
+                ids.traverseSettled { id -> Kap { Services.fetchProduct(id) } }
             }
             products = results.filter { it.isSuccess }.map { it.getOrThrow() }
             failures = results.filter { it.isFailure }.map { "${it.exceptionOrNull()?.message}" }
         } else if (concurrency != null) {
             products = Async {
-                ids.traverse(concurrency) { id -> Effect { Services.fetchProduct(id) } }
+                ids.traverse(concurrency) { id -> Kap { Services.fetchProduct(id) } }
             }
             failures = emptyList()
         } else {
             products = Async {
-                ids.traverse { id -> Effect { Services.fetchProduct(id) } }
+                ids.traverse { id -> Kap { Services.fetchProduct(id) } }
             }
             failures = emptyList()
         }
@@ -416,11 +416,11 @@ fun Routing.coreRoutes() {
                     query ?: throw IllegalArgumentException("Query parameter 'q' is required")
                 }
 
-                Effect { q }
+                Kap { q }
                     .ensure({ IllegalArgumentException("Query must be at least 2 characters") }) { it.length >= 2 }
                     .bind()
 
-                val rawProducts = Effect { Services.searchProducts(q) }.bind()
+                val rawProducts = Kap { Services.searchProducts(q) }.bind()
 
                 val filtered = if (minPrice != null) {
                     rawProducts.filter { it.price >= minPrice }
@@ -440,12 +440,12 @@ fun Routing.coreRoutes() {
         val ids = call.request.queryParameters["ids"]?.split(",")
             ?: throw IllegalArgumentException("'ids' parameter required (comma-separated)")
 
-        val memoizedExpensive = Effect { Services.fetchProduct("EXPENSIVE") }.memoizeOnSuccess()
+        val memoizedExpensive = Kap { Services.fetchProduct("EXPENSIVE") }.memoizeOnSuccess()
 
         val result = Async {
             computation {
                 val settledResults = ids.traverseSettled { id ->
-                    Effect { Services.fetchProduct(id) }
+                    Kap { Services.fetchProduct(id) }
                 }.bind()
 
                 val products = settledResults.map { r -> r.getOrNull() }
@@ -455,8 +455,8 @@ fun Routing.coreRoutes() {
 
                 val cheapest = if (ids.size >= 2) {
                     race(
-                        Effect { Services.fetchProduct(ids[0]) },
-                        Effect { Services.fetchProduct(ids[1]) },
+                        Kap { Services.fetchProduct(ids[0]) },
+                        Kap { Services.fetchProduct(ids[1]) },
                     ).bind()
                 } else null
 
@@ -493,9 +493,9 @@ fun Routing.resilienceRoutes() {
                 val quotes = Async {
                     raceQuorum(
                         required = 2,
-                        Effect { Services.fetchPricingReplicaA(itemId) },
-                        Effect { Services.fetchPricingReplicaB(itemId) },
-                        Effect { Services.fetchPricingReplicaC(itemId) },
+                        Kap { Services.fetchPricingReplicaA(itemId) },
+                        Kap { Services.fetchPricingReplicaB(itemId) },
+                        Kap { Services.fetchPricingReplicaC(itemId) },
                     )
                 }
                 pricing = quotes.first()
@@ -503,26 +503,26 @@ fun Routing.resilienceRoutes() {
             }
             "timeout-race" -> {
                 pricing = Async {
-                    Effect { Services.fetchPricingLive(itemId) }
-                        .timeoutRace(100.milliseconds, Effect { Services.fetchPricingCache(itemId) })
+                    Kap { Services.fetchPricingLive(itemId) }
+                        .timeoutRace(100.milliseconds, Kap { Services.fetchPricingCache(itemId) })
                 }
                 strategyUsed = "timeout-race (100ms deadline, source: ${pricing.source})"
             }
             "fallback-chain" -> {
                 pricing = Async {
                     firstSuccessOf(
-                        Effect { Services.fetchPricingPrimary(itemId) },
-                        Effect { Services.fetchPricingSecondary(itemId) },
-                        Effect { Services.fetchPricingFallback(itemId) },
+                        Kap { Services.fetchPricingPrimary(itemId) },
+                        Kap { Services.fetchPricingSecondary(itemId) },
+                        Kap { Services.fetchPricingFallback(itemId) },
                     )
                 }
                 strategyUsed = "fallback-chain (source: ${pricing.source})"
             }
             "orElse" -> {
                 pricing = Async {
-                    Effect { Services.fetchPricingPrimary(itemId) }
-                        .orElse(Effect { Services.fetchPricingSecondary(itemId) })
-                        .orElse(Effect { Services.fetchPricingFallback(itemId) })
+                    Kap { Services.fetchPricingPrimary(itemId) }
+                        .orElse(Kap { Services.fetchPricingSecondary(itemId) })
+                        .orElse(Kap { Services.fetchPricingFallback(itemId) })
                 }
                 strategyUsed = "orElse-chain (source: ${pricing.source})"
             }
@@ -547,7 +547,7 @@ fun Routing.resilienceRoutes() {
                     Schedule.exponential<Throwable>(30.milliseconds).jittered()
 
                 val retryResult = Async {
-                    Effect { Services.fetchUserFlaky(userId) }
+                    Kap { Services.fetchUserFlaky(userId) }
                         .withCircuitBreaker(userCircuitBreaker)
                         .retryWithResult(policy)
                 }
@@ -559,7 +559,7 @@ fun Routing.resilienceRoutes() {
                     Schedule.spaced<Throwable>(10.milliseconds)
 
                 val user = Async {
-                    Effect { Services.fetchUserFlaky(userId) }
+                    Kap { Services.fetchUserFlaky(userId) }
                         .withCircuitBreaker(userCircuitBreaker)
                         .retryOrElse(policy) {
                             UserProfile(userId, "Cached User", "Basic")
@@ -570,7 +570,7 @@ fun Routing.resilienceRoutes() {
             }
             "attempt" -> {
                 val result: Either<Throwable, UserProfile> = Async {
-                    Effect { Services.fetchUserFlaky(userId) }
+                    Kap { Services.fetchUserFlaky(userId) }
                         .withCircuitBreaker(userCircuitBreaker)
                         .attempt()
                 }
@@ -611,7 +611,7 @@ fun Routing.resilienceRoutes() {
             bracket(
                 acquire = { println("  [Bracket] Acquiring API probe"); "api-probe" },
                 use = { _ ->
-                    Effect { Services.checkExternalApi() }
+                    Kap { Services.checkExternalApi() }
                         .guaranteeCase { case ->
                             exitCaseStr = when (case) {
                                 is ExitCase.Completed<*> -> "completed"
@@ -650,13 +650,13 @@ fun Routing.arrowRoutes() {
                 .withV { Services.validateAge(req.age) }
                 .withV(
                     req.interests.traverseV { interest ->
-                        Effect<Either<NonEmptyList<RegistrationError>, String>> {
+                        Kap<Either<NonEmptyList<RegistrationError>, String>> {
                             Services.validateSingleInterest(interest)
                         }
                     }
                 )
                 .andThenV { result ->
-                    Effect {
+                    Kap {
                         val exists = Services.checkEmailExists(result.email)
                         if (exists) Either.Left(nonEmptyListOf(RegistrationError.DuplicateEmail("Email ${result.email} is already registered")))
                         else Either.Right(result)
@@ -676,7 +676,7 @@ fun Routing.arrowRoutes() {
 
         val result: Either<NonEmptyList<String>, List<ValidatedEmail>> = Async {
             req.emails.traverseV(3) { email ->
-                Effect { Services.validateEmailFormat(email) }
+                Kap { Services.validateEmailFormat(email) }
             }
         }
 
@@ -724,19 +724,19 @@ fun Routing.combinedRoutes() {
                         .with { validated.item.value }
                         .with { validated.qty.value }
                         .with(
-                            Effect { Services.checkInventory(validated.item.value) }
+                            Kap { Services.checkInventory(validated.item.value) }
                                 .retry(retryPolicy) { attempt, err, nextDelay ->
                                     println("  Inventory retry #$attempt: ${err.message} (waiting $nextDelay)")
                                 }
                                 .traced("inventory", tracer)
                         )
                         .with(
-                            Effect { Services.fetchLivePricing(validated.item.value) }
-                                .timeoutRace(100.milliseconds, Effect { Services.fetchCachedPricing(validated.item.value) })
+                            Kap { Services.fetchLivePricing(validated.item.value) }
+                                .timeoutRace(100.milliseconds, Kap { Services.fetchCachedPricing(validated.item.value) })
                                 .traced("pricing", tracer)
                         )
                         .then(
-                            Effect { Services.processPayment(validated.qty.value * 49.99 * 0.95) }
+                            Kap { Services.processPayment(validated.qty.value * 49.99 * 0.95) }
                                 .withCircuitBreaker(paymentBreaker)
                                 .retry(Schedule.times<Throwable>(2) and Schedule.spaced(30.milliseconds))
                                 .traced("payment", tracer)
@@ -744,7 +744,7 @@ fun Routing.combinedRoutes() {
                         .then(
                             bracket(
                                 acquire = { Services.openOrderDb() },
-                                use = { db -> Effect { db.insert("ORD-${System.currentTimeMillis()}") } },
+                                use = { db -> Kap { db.insert("ORD-${System.currentTimeMillis()}") } },
                                 release = { db -> db.close() },
                             ).traced("confirmation", tracer)
                         )

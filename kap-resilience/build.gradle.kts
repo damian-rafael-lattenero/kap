@@ -55,11 +55,11 @@ kotlin {
 // ── Code generation tasks ────────────────────────────────────────────────
 
 tasks.register("generateResourceZip") {
-    description = "Regenerates src/commonMain/kotlin/applicative/ResourceZip.kt"
+    description = "Regenerates src/commonMain/kotlin/kap/ResourceZip.kt"
     group = "codegen"
 
     val maxArity = 22
-    val outputFile = file("src/commonMain/kotlin/applicative/ResourceZip.kt")
+    val outputFile = file("src/commonMain/kotlin/kap/ResourceZip.kt")
     outputs.file(outputFile)
 
     doLast {
@@ -89,7 +89,7 @@ $params,
             appendLine("// │  AUTO-GENERATED — do not edit by hand.                               │")
             appendLine("// │  Run: ./gradlew :kap-resilience:generateResourceZip                  │")
             appendLine("// └──────────────────────────────────────────────────────────────────────┘")
-            appendLine("package applicative")
+            appendLine("package kap")
         }
 
         val body = (2..maxArity).joinToString("\n\n") { generateResourceZip(it) }

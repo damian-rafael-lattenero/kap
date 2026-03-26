@@ -1,6 +1,6 @@
 @file:Suppress("unused", "RedundantSuspendModifier", "UNUSED_VARIABLE")
 
-import applicative.*
+import kap.*
 import arrow.core.Either
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
@@ -169,7 +169,7 @@ suspend fun constructorIsAFunction() {
 suspend fun nothingRunsUntilAsync() {
     println("=== Nothing runs until Async {} ===\n")
 
-    val plan: Effect<Dashboard> = kap(::Dashboard)
+    val plan: Kap<Dashboard> = kap(::Dashboard)
         .with { fetchDashUser() }
         .with { fetchDashCart() }
         .with { fetchDashPromos() }
@@ -372,11 +372,11 @@ suspend fun quickStartResilience() {
 
     val result = Async {
         kap(::Dashboard)
-            .with(Effect { fetchDashUser() }
+            .with(Kap { fetchDashUser() }
                 .withCircuitBreaker(breaker)
                 .retry(retryPolicy))
-            .with(Effect { fetchFromSlowApi() }
-                .timeoutRace(100.milliseconds, Effect { fetchFromCache() }))
+            .with(Kap { fetchFromSlowApi() }
+                .timeoutRace(100.milliseconds, Kap { fetchFromCache() }))
             .with { fetchDashPromos() }
     }
     println("  Resilient dashboard: $result\n")
@@ -478,12 +478,12 @@ suspend fun chooseYourStyle() {
     }
     println("  combine:   $s2")
 
-    // Style 3: combine with pre-built Effects
+    // Style 3: combine with pre-built Kaps
     val s3 = Async {
         combine(
-            Effect { fetchDashUser() },
-            Effect { fetchDashCart() },
-            Effect { fetchDashPromos() },
+            Kap { fetchDashUser() },
+            Kap { fetchDashCart() },
+            Kap { fetchDashPromos() },
         ) { user: String, cart: String, promos: String -> Dashboard(user, cart, promos) }
     }
     println("  zip:       $s3")
@@ -510,7 +510,7 @@ suspend fun featureSettled() {
         kap { user: Result<String>, cart: String, config: String ->
             PartialDashboard(user.getOrDefault("anonymous"), cart, config)
         }
-            .with(Effect { fetchUserMayFail() }.settled())
+            .with(Kap { fetchUserMayFail() }.settled())
             .with { fetchCartAlways() }
             .with { fetchConfigAlways() }
     }
@@ -520,7 +520,7 @@ suspend fun featureSettled() {
     val ids = listOf(1, 2, 3, 4, 5)
     val results: List<Result<String>> = Async {
         ids.traverseSettled { id ->
-            Effect {
+            Kap {
                 if (id % 2 == 0) throw RuntimeException("fail-$id")
                 "user-$id"
             }
@@ -543,8 +543,8 @@ suspend fun featureTimeoutRace() {
 
     val start = System.currentTimeMillis()
     val result = Async {
-        Effect { fetchFromPrimary() }
-            .timeoutRace(100.milliseconds, Effect { fetchFromFallback() })
+        Kap { fetchFromPrimary() }
+            .timeoutRace(100.milliseconds, Kap { fetchFromFallback() })
     }
     val elapsed = System.currentTimeMillis() - start
     println("  timeoutRace: $result (${elapsed}ms — fallback won)\n")
@@ -569,7 +569,7 @@ suspend fun featureRetrySchedule() {
         Schedule.doWhile<Throwable> { it is RuntimeException }
 
     val result = Async {
-        Effect { flakyService() }.retry(policy)
+        Kap { flakyService() }.retry(policy)
     }
     println("  Result: $result")
 
@@ -579,7 +579,7 @@ suspend fun featureRetrySchedule() {
     val result2 = Async {
         kap { user: String, service: String -> RetryResult(user, service) }
             .with { fetchDashUser() }
-            .with(Effect { flakyService() }
+            .with(Kap { flakyService() }
                 .retry(3, delay = 10.milliseconds))
     }
     println("  Inline:  $result2\n")
@@ -608,17 +608,17 @@ suspend fun featureResourceSafety() {
         kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
             .with(bracket(
                 acquire = { openDbConnection() },
-                use = { conn -> Effect { conn.query("SELECT 1") } },
+                use = { conn -> Kap { conn.query("SELECT 1") } },
                 release = { conn -> conn.close() },
             ))
             .with(bracket(
                 acquire = { openCacheConnection() },
-                use = { conn -> Effect { conn.get("key") } },
+                use = { conn -> Kap { conn.get("key") } },
                 release = { conn -> conn.close() },
             ))
             .with(bracket(
                 acquire = { openHttpClient() },
-                use = { client -> Effect { client.get("/api") } },
+                use = { client -> Kap { client.get("/api") } },
                 release = { client -> client.close() },
             ))
     }
@@ -634,7 +634,7 @@ suspend fun featureResourceSafety() {
     ) { db, cache, http -> Triple(db, cache, http) }
 
     val result2 = Async {
-        infra.useEffect { (db, cache, http) ->
+        infra.useKap { (db, cache, http) ->
             kap(::DashboardData)
                 .with { db.query("SELECT 1") }
                 .with { cache.get("user:prefs") }
@@ -647,7 +647,7 @@ suspend fun featureResourceSafety() {
     val result3 = Async {
         bracketCase(
             acquire = { openDbConnection() },
-            use = { tx -> Effect { tx.query("INSERT 1") } },
+            use = { tx -> Kap { tx.query("INSERT 1") } },
             release = { tx, case ->
                 when (case) {
                     is ExitCase.Completed<*> -> println("    bracketCase: commit")
@@ -673,9 +673,9 @@ suspend fun featureRacing() {
 
     val fastest = Async {
         raceN(
-            Effect { fetchFromRegionUS() },
-            Effect { fetchFromRegionEU() },
-            Effect { fetchFromRegionAP() },
+            Kap { fetchFromRegionUS() },
+            Kap { fetchFromRegionEU() },
+            Kap { fetchFromRegionAP() },
         )
     }
     println("  raceN winner: $fastest")
@@ -683,8 +683,8 @@ suspend fun featureRacing() {
     // raceEither with different types
     val raceResult: Either<String, Int> = Async {
         raceEither(
-            fa = Effect { delay(30); "fast-string" },
-            fb = Effect { delay(100); 42 },
+            fa = Kap { delay(30); "fast-string" },
+            fb = Kap { delay(100); 42 },
         )
     }
     println("  raceEither: $raceResult\n")
@@ -701,7 +701,7 @@ suspend fun featureTraverse() {
 
     val results = Async {
         userIds.traverse(concurrency = 3) { id ->
-            Effect { delay(20); "user-$id" }
+            Kap { delay(20); "user-$id" }
         }
     }
     println("  traverse(c=3): ${results.size} users fetched\n")
@@ -721,9 +721,9 @@ suspend fun featureRaceQuorum() {
     val quorum: List<String> = Async {
         raceQuorum(
             required = 2,
-            Effect { fetchReplicaA() },
-            Effect { fetchReplicaB() },
-            Effect { fetchReplicaC() },
+            Kap { fetchReplicaA() },
+            Kap { fetchReplicaB() },
+            Kap { fetchReplicaC() },
         )
     }
     println("  raceQuorum(2 of 3): $quorum\n")
@@ -739,7 +739,7 @@ suspend fun featureCircuitBreaker() {
     val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
     val result = Async {
-        Effect { fetchDashUser() }
+        Kap { fetchDashUser() }
             .timeout(500.milliseconds)
             .withCircuitBreaker(breaker)
             .retry(Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds))
@@ -756,7 +756,7 @@ suspend fun featureMemoize() {
     println("=== Feature: Memoization ===\n")
 
     var callCount = 0
-    val fetchOnce = Effect { callCount++; delay(30); "expensive-result" }.memoizeOnSuccess()
+    val fetchOnce = Kap { callCount++; delay(30); "expensive-result" }.memoizeOnSuccess()
 
     val a = Async { fetchOnce }
     val b = Async { fetchOnce }
@@ -851,12 +851,12 @@ suspend fun featureAttempt() {
     println("=== Feature: attempt() ===\n")
 
     val success: Either<Throwable, String> = Async {
-        Effect { "hello" }.attempt()
+        Kap { "hello" }.attempt()
     }
     println("  attempt success: $success")
 
     val failure: Either<Throwable, String> = Async {
-        Effect<String> { throw RuntimeException("boom") }.attempt()
+        Kap<String> { throw RuntimeException("boom") }.attempt()
     }
     println("  attempt failure: $failure\n")
 }
@@ -869,16 +869,16 @@ suspend fun featureFallbacks() {
     println("=== Feature: firstSuccessOf & orElse ===\n")
 
     val result = Async {
-        Effect<String> { throw RuntimeException("fail-1") }
-            .orElse(Effect { "fallback-ok" })
+        Kap<String> { throw RuntimeException("fail-1") }
+            .orElse(Kap { "fallback-ok" })
     }
     println("  orElse: $result")
 
     val result2 = Async {
         firstSuccessOf(
-            Effect { throw RuntimeException("fail-1") },
-            Effect { throw RuntimeException("fail-2") },
-            Effect { "third-wins" },
+            Kap { throw RuntimeException("fail-1") },
+            Kap { throw RuntimeException("fail-2") },
+            Kap { "third-wins" },
         )
     }
     println("  firstSuccessOf: $result2\n")
@@ -888,13 +888,13 @@ suspend fun featureFallbacks() {
 //  Feature: computation {} builder (kap-core)
 // ═══════════════════════════════════════════════════════════════════════
 
-suspend fun featureEffectBuilder() {
+suspend fun featureKapBuilder() {
     println("=== Feature: computation {} builder ===\n")
 
     val result = Async {
         computation {
-            val user = Effect { fetchDashUser() }.bind()
-            val cart = Effect { fetchDashCart() }.bind()
+            val user = Kap { fetchDashUser() }.bind()
+            val cart = Kap { fetchDashCart() }.bind()
             "$user has $cart"
         }
     }
@@ -980,7 +980,7 @@ suspend fun bffMobileApp() {
     println("=== BFF: Mobile Home Page ===\n")
 
     val homePage: MobileHomePage = Async {
-        Effect { fetchSession("tok-abc") }         // phase 1: authenticate
+        Kap { fetchSession("tok-abc") }         // phase 1: authenticate
             .andThen { session ->                        // ── barrier: session ready
                 combine(                                 // phase 2: fan-out (all parallel)
                     { fetchProductFeed(session.prefs) },
@@ -1052,7 +1052,7 @@ suspend fun main() {
     featurePhasedValidation()
     featureAttempt()
     featureFallbacks()
-    featureEffectBuilder()
+    featureKapBuilder()
     executionModel()
 
     // Reordered execution

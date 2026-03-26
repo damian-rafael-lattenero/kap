@@ -59,11 +59,11 @@ kotlin {
 // ── Code generation tasks ────────────────────────────────────────────────
 
 tasks.register("generateCurry") {
-    description = "Regenerates src/commonMain/kotlin/applicative/internal/curry.kt"
+    description = "Regenerates src/commonMain/kotlin/kap/internal/curry.kt"
     group = "codegen"
 
     val maxArity = 22
-    val outputFile = file("src/commonMain/kotlin/applicative/internal/curry.kt")
+    val outputFile = file("src/commonMain/kotlin/kap/internal/curry.kt")
     outputs.file(outputFile)
 
     doLast {
@@ -101,7 +101,7 @@ tasks.register("generateCurry") {
             appendLine("// │  AUTO-GENERATED — do not edit by hand.                               │")
             appendLine("// │  Run: ./gradlew :kap-core:generateCurry                              │")
             appendLine("// └──────────────────────────────────────────────────────────────────────┘")
-            appendLine("package applicative.internal")
+            appendLine("package kap.internal")
         }
 
         val body = (2..maxArity).joinToString("\n\n") { generateCurried(it) }
@@ -111,11 +111,11 @@ tasks.register("generateCurry") {
 }
 
 tasks.register("generateKap") {
-    description = "Regenerates src/commonMain/kotlin/applicative/Kap.kt"
+    description = "Regenerates src/commonMain/kotlin/kap/KapOverloads.kt"
     group = "codegen"
 
     val maxArity = 22
-    val outputFile = file("src/commonMain/kotlin/applicative/Kap.kt")
+    val outputFile = file("src/commonMain/kotlin/kap/KapOverloads.kt")
     outputs.file(outputFile)
 
     doLast {
@@ -123,7 +123,7 @@ tasks.register("generateKap") {
             val typeParams = (1..n).joinToString(", ") { "P$it" }
             val paramType = (1..n).joinToString(", ") { "P$it" }
             val curriedType = (1..n).joinToString(" -> ") { "(P$it)" } + " -> R"
-            return "fun <$typeParams, R> kap(f: ($paramType) -> R): Effect<$curriedType> = Effect.of(f.curried())"
+            return "fun <$typeParams, R> kap(f: ($paramType) -> R): Kap<$curriedType> = Kap.of(f.curried())"
         }
 
         val header = buildString {
@@ -131,13 +131,13 @@ tasks.register("generateKap") {
             appendLine("// │  AUTO-GENERATED — do not edit by hand.                               │")
             appendLine("// │  Run: ./gradlew :kap-core:generateKap                                │")
             appendLine("// └──────────────────────────────────────────────────────────────────────┘")
-            appendLine("package applicative")
+            appendLine("package kap")
             appendLine()
-            appendLine("import applicative.internal.curried")
+            appendLine("import kap.internal.curried")
             appendLine()
             appendLine("// ── kap: curry and wrap for .with chains ────────────────────────────────")
             appendLine()
-            appendLine("/** Curries [f] and wraps it as a [Effect], ready for [with] chains. */")
+            appendLine("/** Curries [f] and wraps it as a [Kap], ready for [with] chains. */")
         }
 
         val body = (2..maxArity).joinToString("\n\n") { generateKap(it) }
@@ -147,11 +147,11 @@ tasks.register("generateKap") {
 }
 
 tasks.register("generateZipCombine") {
-    description = "Regenerates src/commonMain/kotlin/applicative/ZipCombineOverloads.kt"
+    description = "Regenerates src/commonMain/kotlin/kap/ZipCombineOverloads.kt"
     group = "codegen"
 
     val maxArity = 22
-    val outputFile = file("src/commonMain/kotlin/applicative/ZipCombineOverloads.kt")
+    val outputFile = file("src/commonMain/kotlin/kap/ZipCombineOverloads.kt")
     outputs.file(outputFile)
 
     doLast {
@@ -160,14 +160,14 @@ tasks.register("generateZipCombine") {
         fun generateZip(n: Int): String {
             val types = typeLetters.take(n)
             val typeParams = types.joinToString(", ") + ", R"
-            val params = (1..n).joinToString(",\n") { i -> "    c$i: Effect<${types[i - 1]}>" }
+            val params = (1..n).joinToString(",\n") { i -> "    c$i: Kap<${types[i - 1]}>" }
             val asyncLaunches = (1..n).joinToString("\n    ") { i -> "val d$i = async { with(c$i) { execute() } }" }
             val awaits = (1..n).joinToString(", ") { "d$it.await()" }
             val combineTypes = types.joinToString(", ")
             return """fun <$typeParams> zip(
 $params,
     combine: ($combineTypes) -> R,
-): Effect<R> = Effect {
+): Kap<R> = Kap {
     $asyncLaunches
     combine($awaits)
 }"""
@@ -176,7 +176,7 @@ $params,
         fun generateMapN(n: Int): String {
             val types = typeLetters.take(n)
             val typeParams = types.joinToString(", ") + ", R"
-            val params = (1..n).joinToString(",\n") { i -> "    c$i: Effect<${types[i - 1]}>" }
+            val params = (1..n).joinToString(",\n") { i -> "    c$i: Kap<${types[i - 1]}>" }
             val combineTypes = types.joinToString(", ")
             val delegation = if (n == 2) "c1.zip(c2, f)" else {
                 val zipArgs = (1..n).joinToString(", ") { "c$it" }
@@ -185,7 +185,7 @@ $params,
             return """fun <$typeParams> combine(
 $params,
     f: ($combineTypes) -> R,
-): Effect<R> = $delegation"""
+): Kap<R> = $delegation"""
         }
 
         val header = buildString {
@@ -193,7 +193,7 @@ $params,
             appendLine("// │  AUTO-GENERATED — do not edit by hand.                               │")
             appendLine("// │  Run: ./gradlew :kap-core:generateZipCombine                          │")
             appendLine("// └──────────────────────────────────────────────────────────────────────┘")
-            appendLine("package applicative")
+            appendLine("package kap")
             appendLine()
             appendLine("import kotlinx.coroutines.async")
         }
@@ -226,7 +226,7 @@ mavenPublishing {
 
     pom {
         name.set("kap-core")
-        description.set("Kotlin Applicative Parallelism — lean applicative DSL for parallel orchestration with Kotlin coroutines")
+        description.set("KAP — lean DSL for parallel orchestration with Kotlin coroutines")
         inceptionYear.set("2025")
         url.set("https://github.com/damian-rafael-lattenero/coroutines-applicatives")
 

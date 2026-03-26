@@ -80,7 +80,7 @@ val checkout: CheckoutResult = Async {
 
 11 service calls. 5 phases. One flat chain. **Swap any two `.with` lines and the compiler rejects it.** Each service returns a distinct type — the typed function chain locks parameter order at compile time.
 
-**130ms total** (vs 460ms sequential) — verified in [`ConcurrencyProofTest.kt`](kap-core/src/jvmTest/kotlin/applicative/ConcurrencyProofTest.kt).
+**130ms total** (vs 460ms sequential) — verified in [`ConcurrencyProofTest.kt`](kap-core/src/jvmTest/kotlin/kap/ConcurrencyProofTest.kt).
 
 ```
 t=0ms   ─── fetchUser ────────┐
@@ -126,7 +126,7 @@ dependencies {
 </details>
 
 ```kotlin
-import applicative.*
+import kap.*
 
 data class Dashboard(val user: String, val cart: String, val promos: String)
 
@@ -248,7 +248,7 @@ val dashboard = Async {
     kap { user: Result<String>, cart: String, config: String ->
         PartialDashboard(user.getOrDefault("anonymous"), cart, config)
     }
-        .with(Effect { fetchUserMayFail() }.settled())
+        .with(Kap { fetchUserMayFail() }.settled())
         .with { fetchCartAlways() }
         .with { fetchConfigAlways() }
 }
@@ -260,7 +260,7 @@ For collections — `traverseSettled` processes ALL items, no cancellation:
 
 ```kotlin
 val results: List<Result<String>> = Async {
-    ids.traverseSettled { id -> Effect { fetchUser(id) } }
+    ids.traverseSettled { id -> Kap { fetchUser(id) } }
 }
 ```
 
@@ -273,8 +273,8 @@ Your primary API has a timeout. Sequential approach *waits* the full timeout bef
 
 ```kotlin
 val result = Async {
-    Effect { fetchFromPrimary() }
-        .timeoutRace(100.milliseconds, Effect { fetchFromFallback() })
+    Kap { fetchFromPrimary() }
+        .timeoutRace(100.milliseconds, Kap { fetchFromFallback() })
 }
 // Fallback starts at t=0. If primary wins before 100ms, use it.
 // If primary times out, fallback is ALREADY RUNNING.
@@ -293,9 +293,9 @@ val result = Async {
 val quorum: List<String> = Async {
     raceQuorum(
         required = 2,
-        Effect { fetchReplicaA() },
-        Effect { fetchReplicaB() },
-        Effect { fetchReplicaC() },
+        Kap { fetchReplicaA() },
+        Kap { fetchReplicaB() },
+        Kap { fetchReplicaC() },
     )
 }
 // Returns the 2 fastest. Third cancelled. If 2+ fail, throws.
@@ -327,7 +327,7 @@ For same-type parameters, use value classes: `@JvmInline value class ValidName(v
 Standard memoization caches failures too — a transient network error gets cached forever.
 
 ```kotlin
-val fetchOnce = Effect { expensiveCall() }.memoizeOnSuccess()
+val fetchOnce = Kap { expensiveCall() }.memoizeOnSuccess()
 
 val a = Async { fetchOnce }  // runs the actual fetch
 val b = Async { fetchOnce }  // cached, instant
@@ -346,9 +346,9 @@ No manual `Mutex` + double-checked locking.
 ```kotlin
 val fastest = Async {
     raceN(
-        Effect { fetchFromRegionUS() },   // 100ms
-        Effect { fetchFromRegionEU() },   // 30ms
-        Effect { fetchFromRegionAP() },   // 60ms
+        Kap { fetchFromRegionUS() },   // 100ms
+        Kap { fetchFromRegionEU() },   // 30ms
+        Kap { fetchFromRegionAP() },   // 60ms
     )
 }
 // Returns EU at 30ms. US and AP cancelled.
@@ -365,7 +365,7 @@ val policy = Schedule.times<Throwable>(5) and
     Schedule.doWhile<Throwable> { it is RuntimeException }
 
 val result = Async {
-    Effect { flakyService() }.retry(policy)
+    Kap { flakyService() }.retry(policy)
 }
 ```
 
@@ -382,7 +382,7 @@ Downstream service is degraded. Every request times out. Stop calling it after N
 val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
 val result = Async {
-    Effect { fetchUser() }
+    Kap { fetchUser() }
         .timeout(500.milliseconds)
         .withCircuitBreaker(breaker)
         .retry(Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds))
@@ -403,17 +403,17 @@ val result = Async {
     kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
         .with(bracket(
             acquire = { openDb() },
-            use = { conn -> Effect { conn.query("SELECT 1") } },
+            use = { conn -> Kap { conn.query("SELECT 1") } },
             release = { conn -> conn.close() },
         ))
         .with(bracket(
             acquire = { openCache() },
-            use = { conn -> Effect { conn.get("key") } },
+            use = { conn -> Kap { conn.get("key") } },
             release = { conn -> conn.close() },
         ))
         .with(bracket(
             acquire = { openHttp() },
-            use = { client -> Effect { client.get("/api") } },
+            use = { client -> Kap { client.get("/api") } },
             release = { client -> client.close() },
         ))
 }
@@ -432,7 +432,7 @@ Or compose resources first: `Resource.zip(r1, r2, r3) { db, cache, http -> Tripl
 ```kotlin
 val results = Async {
     userIds.traverse(concurrency = 10) { id ->
-        Effect { fetchUser(id) }
+        Kap { fetchUser(id) }
     }
 }
 ```
@@ -469,7 +469,7 @@ val result: Either<NonEmptyList<RegError>, User> = Async {
 
 | Module | What you get | Depends on |
 |---|---|---|
-| **`kap-core`** | `Effect`, `with`, `kap`, `then`, `race`, `traverse`, `memoize`, `timeout`, `recover` | `kotlinx-coroutines-core` only |
+| **`kap-core`** | `Kap`, `with`, `kap`, `then`, `race`, `traverse`, `memoize`, `timeout`, `recover` | `kotlinx-coroutines-core` only |
 | **`kap-resilience`** | `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `raceQuorum`, `timeoutRace` | `kap-core` |
 | **`kap-arrow`** | `zipV`, `withV`, `validated {}`, `attempt()`, `raceEither`, `Either`/`Nel` bridges | `kap-core` + Arrow Core |
 
@@ -486,7 +486,7 @@ val result: Either<NonEmptyList<RegError>, User> = Async {
                               │
 ┌─────────────────────────────┴───────────────────────────────┐
 │                        kap-core                             │
-│  Effect · with · then · andThen · kap · combine  │
+│  Kap · with · then · andThen · kap · combine  │
 │  race · traverse · memoize · timeout · recover · retry(n)   │
 │  settled · catching · Deferred/Flow bridges                 │
 │    depends on: kotlinx-coroutines-core (JVM, JS, Native)    │
@@ -525,7 +525,7 @@ val result = Async(MDCContext()) {
 **Observability.** Bring your own logger — no framework coupled:
 
 ```kotlin
-val tracer = EffectTracer { event ->
+val tracer = KapTracer { event ->
     when (event) {
         is TraceEvent.Started -> logger.info("${event.name} started")
         is TraceEvent.Succeeded -> metrics.timer(event.name).record(event.duration)
@@ -540,7 +540,7 @@ val result = Async {
 }
 ```
 
-**Composition guarantees.** `Effect` satisfies functor, applicative, and monad laws — property-based tested via Kotest. Refactoring with these combinators is provably safe. See [LAWS.md](LAWS.md).
+**Composition guarantees.** `Kap` satisfies functor, applicative, and monad laws — property-based tested via Kotest. Refactoring with these combinators is provably safe. See [LAWS.md](LAWS.md).
 
 ---
 
@@ -610,7 +610,7 @@ KAP overhead is indistinguishable from raw coroutines. It pulls ahead on `race` 
 | Bounded traverse (500 items, c=50) | **300ms** | 15,000ms | **50x** |
 | kap (22 parallel branches) | **30ms** | 660ms | **22x** |
 
-Sources: [`CoreBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/CoreBenchmark.kt) | [`ResilienceBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/ResilienceBenchmark.kt) | [`ArrowBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/ArrowBenchmark.kt) | [`CoreComparisonTest.kt`](benchmarks/src/test/kotlin/applicative/CoreComparisonTest.kt)
+Sources: [`CoreBenchmark.kt`](benchmarks/src/jmh/kotlin/kap/benchmarks/CoreBenchmark.kt) | [`ResilienceBenchmark.kt`](benchmarks/src/jmh/kotlin/kap/benchmarks/ResilienceBenchmark.kt) | [`ArrowBenchmark.kt`](benchmarks/src/jmh/kotlin/kap/benchmarks/ArrowBenchmark.kt) | [`CoreComparisonTest.kt`](benchmarks/src/test/kotlin/kap/CoreComparisonTest.kt)
 
 </details>
 
@@ -624,13 +624,13 @@ Sources: [`CoreBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/C
 | Combinator | Semantics | Parallelism |
 |---|---|---|
 | `kap` + `.with` | N-way fan-out (typed, safe ordering) | Parallel |
-| `combine` | Lifting with suspend lambdas or Effects | Parallel |
+| `combine` | Lifting with suspend lambdas or Kaps | Parallel |
 | `pair(fa, fb)` / `triple(fa, fb, fc)` | Parallel into Pair/Triple | Parallel |
 | `.then` | True phase barrier | Sequential (gates) |
 | `.thenValue` | Sequential value fill, no barrier | Sequential (no gate) |
 | `.andThen` | Value-dependent sequencing | Sequential |
-| `map` / `Effect.of` / `Effect.empty` | Transform / wrap value | — |
-| `Effect.failed(error)` / `Effect.defer { }` | Error / lazy construction | — |
+| `map` / `Kap.of` / `Kap.empty` | Transform / wrap value | — |
+| `Kap.failed(error)` / `Kap.defer { }` | Error / lazy construction | — |
 | `.memoize()` / `.memoizeOnSuccess()` | Cache result (thread-safe) | — |
 | `.ensure(error) { pred }` / `.ensureNotNull(error) { extract }` | Guards | — |
 | `.on(context)` / `.named(name)` | Dispatcher / coroutine name | — |
@@ -656,9 +656,9 @@ Sources: [`CoreBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/C
 
 | Combinator | Semantics |
 |---|---|
-| `Deferred.toEffect()` / `Effect.toDeferred(scope)` | Deferred bridge |
-| `Flow.firstAsEffect()` / `(suspend () -> A).toEffect()` | Flow/lambda bridge |
-| `Flow.mapEffect(concurrency) { }` / `Flow.mapEffectOrdered` | Flow + Effect pipeline |
+| `Deferred.toKap()` / `Kap.toDeferred(scope)` | Deferred bridge |
+| `Flow.firstAsKap()` / `(suspend () -> A).toKap()` | Flow/lambda bridge |
+| `Flow.mapEffect(concurrency) { }` / `Flow.mapEffectOrdered` | Flow + Kap pipeline |
 | `catching { }` | Exception-safe `Result<A>` construction |
 | `traced(name, tracer)` | Observability hooks |
 | `delayed(d, value)` / `withOrNull` | Utilities |
@@ -686,7 +686,7 @@ Sources: [`CoreBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/C
 | `guarantee` / `guaranteeCase` | Finalizers with optional `ExitCase` |
 | `Resource(acquire, release)` | Composable resource |
 | `Resource.zip(r1..r22, f)` | Combine up to 22 resources |
-| `resource.use` / `resource.useEffect` | Terminal operations |
+| `resource.use` / `resource.useKap` | Terminal operations |
 
 ### `kap-arrow` — Validation & Arrow Integration
 
@@ -697,7 +697,7 @@ Sources: [`CoreBenchmark.kt`](benchmarks/src/jmh/kotlin/applicative/benchmarks/C
 | `thenV` / `andThenV` | Phase barriers / sequential short-circuit |
 | `validated { }` / `accumulate { }` | Short-circuit builder with `.bindV()` |
 | `valid` / `invalid` / `catching` | Entry points |
-| `Validated<E, A>` (typealias) | Shorthand for `Effect<Either<NonEmptyList<E>, A>>` |
+| `Validated<E, A>` (typealias) | Shorthand for `Kap<Either<NonEmptyList<E>, A>>` |
 | `ensureV(error) { pred }` / `ensureVAll(errors) { pred }` | Validated guards |
 | `recoverV` / `mapV` / `mapError` / `orThrow` | Transforms |
 | `traverseV` / `sequenceV` | Collection operations with error accumulation |

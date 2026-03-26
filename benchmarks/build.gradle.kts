@@ -24,6 +24,6 @@ jmh {
     iterations.set((findProperty("jmh.iterations") as? String)?.toIntOrNull() ?: 5)
     fork.set((findProperty("jmh.fork") as? String)?.toIntOrNull() ?: 2)
     resultFormat.set("JSON")
-    includes.set(listOf("applicative.benchmarks.*"))
+    includes.set(listOf("kap.benchmarks.*"))
     jmhVersion.set("1.37")
 }
