@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.maven.publish) apply false
     alias(libs.plugins.binary.compat)
+    alias(libs.plugins.ksp) apply false
 }
 
 group = "io.github.damian-rafael-lattenero"
@@ -23,5 +24,5 @@ allprojects {
 apiValidation {
     ignoredProjects.addAll(listOf("benchmarks", "ecommerce-checkout", "dashboard-aggregator",
         "validated-registration", "resilient-fetcher", "full-stack-order", "ktor-integration", "readme-examples",
-        "kap-kotest", "kap-ktor"))
+        "kap-kotest", "kap-ktor", "kap-ksp-annotations", "kap-ksp", "ksp-demo"))
 }
