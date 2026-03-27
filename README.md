@@ -1,5 +1,9 @@
 <p align="center">
-  <img src=".github/logo.svg?v=3" alt="KAP Logo" width="400"/>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/damian-rafael-lattenero/kap/master/.github/logo.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/damian-rafael-lattenero/kap/master/.github/logo.svg">
+    <img src="https://raw.githubusercontent.com/damian-rafael-lattenero/kap/master/.github/logo.svg" alt="KAP Logo" width="300">
+  </picture>
 </p>
 
 <h1 align="center">KAP — Kotlin Async Parallelism</h1>
