@@ -1,19 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#7F52FF;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#C811E2;stop-opacity:1" />
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7F52FF"/>
+      <stop offset="100%" stop-color="#C811E2"/>
+    </linearGradient>
+    <linearGradient id="grad-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6A3FE8"/>
+      <stop offset="100%" stop-color="#A00DB8"/>
     </linearGradient>
   </defs>
-  <rect width="200" height="200" rx="40" fill="url(#bg)"/>
-  <!-- K -->
-  <text x="28" y="145" font-family="JetBrains Mono, Fira Code, monospace" font-weight="900" font-size="120" fill="white" letter-spacing="-5">K</text>
-  <!-- A -->
-  <text x="88" y="145" font-family="JetBrains Mono, Fira Code, monospace" font-weight="900" font-size="120" fill="rgba(255,255,255,0.85)" letter-spacing="-5">A</text>
-  <!-- P -->
-  <text x="148" y="145" font-family="JetBrains Mono, Fira Code, monospace" font-weight="900" font-size="120" fill="rgba(255,255,255,0.7)" letter-spacing="-5">P</text>
-  <!-- Parallel lines accent -->
-  <line x1="20" y1="170" x2="70" y2="170" stroke="rgba(255,255,255,0.6)" stroke-width="3" stroke-linecap="round"/>
-  <line x1="80" y1="170" x2="120" y2="170" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-linecap="round"/>
-  <line x1="130" y1="170" x2="180" y2="170" stroke="rgba(255,255,255,0.3)" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- K Pac-Man body: circle with mouth wedge opening to the right -->
+  <path d="M100,100 L174,55 A88,88 0 1,0 174,145 Z" fill="url(#grad)"/>
+
+  <!-- Subtle inner shadow for depth -->
+  <path d="M100,100 L174,55 A88,88 0 1,0 174,145 Z" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="2"/>
+
+  <!-- Eye: Kotlin K logo mark (identical shape) -->
+  <!-- White eye socket -->
+  <circle cx="68" cy="72" r="18" fill="white"/>
+  <!-- Kotlin K mark: square with triangular notch = the K shape -->
+  <path d="M57,60 L79,60 L68,72 L79,84 L57,84 Z" fill="url(#grad-dark)"/>
+
+  <!-- "p" — in the mouth, between jaw opening and the dots -->
+  <text x="132" y="108" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="32" fill="rgba(127,82,255,0.6)" letter-spacing="-1">p</text>
+
+  <!-- Mouth inner edge highlight -->
+  <line x1="100" y1="100" x2="172" y2="57" stroke="rgba(255,255,255,0.15)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="100" y1="100" x2="172" y2="143" stroke="rgba(255,255,255,0.15)" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Three parallel dots being "eaten" — represents parallel execution -->
+  <circle cx="182" cy="82" r="4" fill="#C811E2" opacity="0.7"/>
+  <circle cx="182" cy="100" r="4" fill="#C811E2" opacity="0.5"/>
+  <circle cx="182" cy="118" r="4" fill="#C811E2" opacity="0.3"/>
 </svg>
