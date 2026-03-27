@@ -21,3 +21,6 @@ Thumbs.db
 
 # MkDocs
 site/
+
+# Dokka generated API docs (regenerated in CI)
+docs/api/

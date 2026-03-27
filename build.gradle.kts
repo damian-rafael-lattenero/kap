@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.kotlin.jvm) apply false
-    alias(libs.plugins.dokka) apply false
+    alias(libs.plugins.dokka)
     alias(libs.plugins.maven.publish) apply false
     alias(libs.plugins.binary.compat)
     alias(libs.plugins.ksp) apply false
@@ -18,6 +18,19 @@ subprojects {
 allprojects {
     repositories {
         mavenCentral()
+    }
+}
+
+dependencies {
+    dokka(project(":kap-core"))
+    dokka(project(":kap-resilience"))
+    dokka(project(":kap-arrow"))
+}
+
+dokka {
+    moduleName.set("KAP")
+    dokkaPublications.html {
+        outputDirectory.set(layout.projectDirectory.dir("docs/api"))
     }
 }
 

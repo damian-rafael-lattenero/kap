@@ -200,6 +200,8 @@ Scales to **22 validators** (Arrow's `zipOrAccumulate` maxes at 9).
 | [`kap-ktor`](modules/kap-ktor.md) | Ktor plugin, circuit breaker registry, tracers, `respondAsync` | `kap-core` + Ktor |
 | [`kap-kotest`](modules/kap-kotest.md) | `shouldSucceedWith`, `shouldFailWith`, timing & lifecycle matchers | `kap-core` (test) |
 
+[API Reference (Dokka)](api/index.html){ .md-button }
+
 ```kotlin
 dependencies {
     implementation("io.github.damian-rafael-lattenero:kap-core:2.3.0")
