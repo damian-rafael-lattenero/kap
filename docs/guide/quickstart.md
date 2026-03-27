@@ -2,6 +2,10 @@
 
 Get KAP running in 5 minutes.
 
+[Use the starter template](https://github.com/damian-rafael-lattenero/kap-starter/generate){ .md-button .md-button--primary }
+
+Or add the dependency manually:
+
 ## 1. Add the dependency
 
 === "Gradle (Kotlin DSL)"
