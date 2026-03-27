@@ -27,37 +27,39 @@ suspend fun fetchPromoCode(): String { delay(10); return "SAVE20" }
 suspend fun main() {
     println("=== KSP Type-Safe Demo ===\n")
 
-    // Class: unsafe vs safe
+    // ── Class: unsafe vs safe ──────────────────────────
+
     val unsafeUser = Async {
         kap(::User)
-            .with { fetchFirstName() }
-            .with { fetchLastName() }
-            .with { fetchAge() }
+            .with { fetchFirstName() }   // String — swap with lastName? no error
+            .with { fetchLastName() }    // String
+            .with { fetchAge() }         // Int
     }
     println("  Unsafe class:    $unsafeUser")
 
     val safeUser = Async {
         kapSafe(::User)
-            .with { UserFirstName(fetchFirstName()) }
-            .with { UserLastName(fetchLastName()) }
-            .with { UserAge(fetchAge()) }
+            .with { fetchFirstName().toFirstName() }   // UserFirstName
+            .with { fetchLastName().toLastName() }     // UserLastName — swap? COMPILE ERROR
+            .with { fetchAge().toAge() }               // UserAge
     }
     println("  Safe class:      $safeUser")
 
-    // Function: unsafe vs safe
+    // ── Function: unsafe vs safe ───────────────────────
+
     val unsafeDash = Async {
         kap(::buildDashboard)
-            .with { fetchUserName() }
-            .with { fetchCartSummary() }
-            .with { fetchPromoCode() }
+            .with { fetchUserName() }      // String — swap? no error
+            .with { fetchCartSummary() }   // String
+            .with { fetchPromoCode() }     // String
     }
     println("  Unsafe function: $unsafeDash")
 
     val safeDash = Async {
         kapSafeBuildDashboard(::buildDashboard)
-            .with { BuildDashboardUserName(fetchUserName()) }
-            .with { BuildDashboardCartSummary(fetchCartSummary()) }
-            .with { BuildDashboardPromoCode(fetchPromoCode()) }
+            .with { fetchUserName().toUserName() }         // BuildDashboardUserName
+            .with { fetchCartSummary().toCartSummary() }   // BuildDashboardCartSummary
+            .with { fetchPromoCode().toPromoCode() }       // BuildDashboardPromoCode
     }
     println("  Safe function:   $safeDash")
 

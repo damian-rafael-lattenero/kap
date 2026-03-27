@@ -170,7 +170,13 @@ class KapTypeSafeProcessor(
             val callArgs = paramNames.joinToString(", ") { "$it.value" }
             writer.write("f($callArgs)")
             writer.write(" }".repeat(params.size))
-            writer.write(")\n")
+            writer.write(")\n\n")
+
+            // Generate extension functions: Type.toWrapperName()
+            params.zip(wrapperNames).forEach { (param, wrapperName) ->
+                val extName = "to${param.name.replaceFirstChar { it.uppercase() }}"
+                writer.write("fun ${param.qualifiedType}.$extName(): $wrapperName = $wrapperName(this)\n")
+            }
         }
     }
 }
