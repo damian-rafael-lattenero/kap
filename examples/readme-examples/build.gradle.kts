@@ -9,6 +9,7 @@ dependencies {
     implementation(project(":kap-arrow"))
     implementation(libs.coroutines.core)
     implementation(libs.arrow.core)
+    implementation(libs.arrow.fx)
 }
 
 application {

@@ -67,25 +67,24 @@ val checkout = coroutineScope {
 }
 ```
 
-**Arrow** — Better, but nested `parZip` blocks, still no visible phases:
+**Arrow** — Parallel within phases, but sequential between them, phases still invisible:
 
 ```kotlin
-val checkout = parZip(
+val phase1 = parZip(
     { fetchUser() }, { fetchCart() }, { fetchPromos() }, { fetchInventory() },
-) { user, cart, promos, inventory ->
-    val stock = validateStock()
-    parZip(
-        { calcShipping() }, { calcTax() }, { calcDiscounts() },
-    ) { shipping, tax, discounts ->
-        val payment = reservePayment()
-        parZip(
-            { generateConfirmation() }, { sendEmail() },
-        ) { confirmation, email ->
-            CheckoutResult(user, cart, promos, inventory, stock,
-                shipping, tax, discounts, payment, confirmation, email)
-        }
-    }
-}
+) { u, c, p, i -> "$u|$c|$p|$i" }                  // where does phase 1 end?
+val stock = validateStock()                          // phase 2 — you have to read to know
+val phase3 = parZip(
+    { calcShipping() }, { calcTax() }, { calcDiscounts() },
+) { s, t, d -> Triple(s, t, d) }                    // phase 3
+val payment = reservePayment()                       // phase 4 — another invisible barrier
+val phase5 = parZip(
+    { generateConfirmation() }, { sendEmail() },
+) { c, e -> Pair(c, e) }                            // phase 5
+// Now you need to thread all values into the result manually:
+val checkout = CheckoutResult(/* destructure phase1?? */)
+// parZip maxes at 9 args. Result types lost across phase boundaries.
+// No compile-time ordering safety. No flat chain.
 ```
 
 **KAP** — 12 lines, explicit phases, compile-time safe:

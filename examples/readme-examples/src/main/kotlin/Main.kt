@@ -126,6 +126,39 @@ suspend fun rawCoroutinesCheckout() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//  Section: Arrow Checkout (for comparison)
+// ═══════════════════════════════════════════════════════════════════════
+
+data class Phase1(val user: UserProfile, val cart: ShoppingCart, val promos: PromotionBundle, val inventory: InventorySnapshot)
+data class Phase3(val shipping: ShippingQuote, val tax: TaxBreakdown, val discounts: DiscountSummary)
+
+suspend fun arrowCheckout() {
+    println("=== Arrow Checkout (for comparison) ===\n")
+
+    val p1 = arrow.fx.coroutines.parZip(
+        { fetchUser() }, { fetchCart() }, { fetchPromos() }, { fetchInventory() },
+    ) { u, c, p, i -> Phase1(u, c, p, i) }
+    val stock = validateStock()
+    val p3 = arrow.fx.coroutines.parZip(
+        { calcShipping() }, { calcTax() }, { calcDiscounts() },
+    ) { s, t, d -> Phase3(s, t, d) }
+    val payment = reservePayment()
+    val p5 = arrow.fx.coroutines.parZip(
+        { generateConfirmation() }, { sendEmail() },
+    ) { c, e -> Pair(c, e) }
+
+    val checkout = CheckoutResult(
+        p1.user, p1.cart, p1.promos, p1.inventory,
+        stock,
+        p3.shipping, p3.tax, p3.discounts,
+        payment,
+        p5.first, p5.second,
+    )
+
+    println("  Result: $checkout\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //  Section: Constructor is a Function
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -1015,6 +1048,7 @@ suspend fun main() {
     // Hero & Pain
     heroCheckout()
     rawCoroutinesCheckout()
+    arrowCheckout()
 
     // Key concepts
     constructorIsAFunction()
