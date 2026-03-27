@@ -1,18 +1,28 @@
-# KAP — Kotlin Async Parallelism
+<p align="center">
+  <img src=".github/logo.svg" alt="KAP Logo" width="200"/>
+</p>
 
-Multi-service orchestration for Kotlin coroutines. Flat chains, visible phases, compiler-checked argument order.
+<h1 align="center">KAP — Kotlin Async Parallelism</h1>
 
-**Your code shape *is* the execution plan.**
+<p align="center">
+  <strong>Type-safe multi-service orchestration for Kotlin coroutines.</strong><br>
+  Flat chains, visible phases, compiler-checked argument order.<br>
+  <em>Your code shape <b>is</b> the execution plan.</em>
+</p>
 
-[![CI](https://github.com/damian-rafael-lattenero/kap/actions/workflows/ci.yml/badge.svg)](https://github.com/damian-rafael-lattenero/kap/actions/workflows/ci.yml)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.20-blue.svg)](https://kotlinlang.org)
-[![Coroutines](https://img.shields.io/badge/Coroutines-1.10.2-blue.svg)](https://github.com/Kotlin/kotlinx.coroutines)
-[![Tests](https://img.shields.io/badge/Tests-906%20across%2061%20suites-brightgreen.svg)](#benchmarks)
-[![Benchmarks](https://img.shields.io/badge/Benchmarks-119%20JMH-blueviolet.svg)](https://damian-rafael-lattenero.github.io/kap/benchmarks/)
+<p align="center">
+  <a href="https://github.com/damian-rafael-lattenero/kap/actions/workflows/ci.yml"><img src="https://github.com/damian-rafael-lattenero/kap/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://central.sonatype.com/artifact/io.github.damian-rafael-lattenero/kap-core"><img src="https://img.shields.io/maven-central/v/io.github.damian-rafael-lattenero/kap-core?label=Maven%20Central&color=blue" alt="Maven Central"></a>
+  <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-2.3.20-7F52FF.svg?logo=kotlin&logoColor=white" alt="Kotlin"></a>
+  <a href="https://github.com/Kotlin/kotlinx.coroutines"><img src="https://img.shields.io/badge/Coroutines-1.10.2-7F52FF.svg" alt="Coroutines"></a>
+</p>
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Multiplatform](https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg)](#)
-[![Modular](https://img.shields.io/badge/Modules-kap--core%20%7C%20kap--resilience%20%7C%20kap--arrow-informational.svg)](#modules)
+<p align="center">
+  <a href="#benchmarks"><img src="https://img.shields.io/badge/Tests-906%20across%2061%20suites-brightgreen.svg" alt="Tests"></a>
+  <a href="https://damian-rafael-lattenero.github.io/kap/benchmarks/"><img src="https://img.shields.io/badge/Benchmarks-119%20JMH-blueviolet.svg" alt="Benchmarks"></a>
+  <a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-green.svg" alt="License"></a>
+  <a href="#modules"><img src="https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg" alt="Multiplatform"></a>
+</p>
 
 ---
 

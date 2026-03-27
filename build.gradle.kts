@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.maven.publish) apply false
+    alias(libs.plugins.binary.compat)
 }
 
 group = "io.github.damian-rafael-lattenero"
@@ -17,4 +18,9 @@ allprojects {
     repositories {
         mavenCentral()
     }
+}
+
+apiValidation {
+    ignoredProjects.addAll(listOf("benchmarks", "ecommerce-checkout", "dashboard-aggregator",
+        "validated-registration", "resilient-fetcher", "full-stack-order", "ktor-integration", "readme-examples"))
 }

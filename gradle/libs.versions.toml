@@ -9,6 +9,7 @@ dokka = "2.1.0"
 maven-publish = "0.36.0"
 jmh-plugin = "0.7.3"
 jmh = "1.37"
+binary-compat = "0.17.0"
 
 [libraries]
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -32,3 +33,4 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
 jmh = { id = "me.champeau.jmh", version.ref = "jmh-plugin" }
+binary-compat = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "binary-compat" }
