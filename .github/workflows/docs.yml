@@ -25,5 +25,23 @@ jobs:
       - name: Install MkDocs Material
         run: pip install mkdocs-material
 
-      - name: Build & deploy
+      - name: Preserve benchmark data from gh-pages
+        run: |
+          git fetch origin gh-pages:gh-pages || true
+          mkdir -p /tmp/benchmarks-backup
+          git show gh-pages:benchmarks/data.js > /tmp/benchmarks-backup/data.js 2>/dev/null || true
+          git show gh-pages:benchmarks/index.html > /tmp/benchmarks-backup/index.html 2>/dev/null || true
+
+      - name: Build & deploy docs
         run: mkdocs gh-deploy --force --clean --verbose
+
+      - name: Restore benchmark data
+        run: |
+          if [ -f /tmp/benchmarks-backup/data.js ]; then
+            git checkout gh-pages
+            mkdir -p benchmarks
+            cp /tmp/benchmarks-backup/* benchmarks/
+            git add benchmarks/
+            git commit -m "restore benchmark data after docs deploy" || true
+            git push origin gh-pages
+          fi

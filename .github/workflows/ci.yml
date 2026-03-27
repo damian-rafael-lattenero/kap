@@ -139,7 +139,8 @@ jobs:
             validated-registration \
             resilient-fetcher \
             full-stack-order \
-            readme-examples; do
+            readme-examples \
+            ksp-demo; do
             echo ""
             echo "════════════════════════════════════════"
             echo "  Running: examples/$mod"

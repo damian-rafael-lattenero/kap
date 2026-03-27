@@ -62,9 +62,11 @@ jobs:
           ./gradlew :kap-core:jvmTest \
                     :kap-resilience:jvmTest \
                     :kap-arrow:test \
+                    :kap-kotest:test \
+                    :kap-ktor:test \
                     :benchmarks:test
       - name: Verify multiplatform compilation
-        run: ./gradlew compileKotlinJs compileKotlinLinuxX64
+        run: ./gradlew compileKotlinJs compileKotlinWasmJs compileKotlinLinuxX64
       - name: Verify codegen is up-to-date
         run: |
           ./gradlew :kap-core:generateAll \
