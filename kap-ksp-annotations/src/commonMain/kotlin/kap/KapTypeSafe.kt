@@ -1,29 +1,36 @@
 package kap
 
 /**
- * Annotate a data class to generate type-safe wrappers for each constructor parameter.
+ * Annotate a data class or function to generate type-safe wrappers for each parameter.
  *
- * For each parameter, KSP generates a `@JvmInline value class` wrapper and a
- * `kapSafe()` function that requires those wrapper types — making it impossible
- * to swap same-typed parameters by accident.
+ * For each parameter, KSP generates:
+ * - A `@JvmInline value class` wrapper
+ * - A `kapSafe()` function that requires those wrapper types
+ * - A `.toParamName()` extension function for fluent wrapping
  *
  * ```kotlin
  * @KapTypeSafe
  * data class User(val firstName: String, val lastName: String, val age: Int)
  *
- * // Generated:
- * // @JvmInline value class UserFirstName(val value: String)
- * // @JvmInline value class UserLastName(val value: String)
- * // @JvmInline value class UserAge(val value: Int)
- * // fun kapSafe(f: (String, String, Int) -> User): Kap<(UserFirstName) -> (UserLastName) -> (UserAge) -> User>
- *
  * // Usage:
  * kapSafe(::User)
- *     .with { UserFirstName(fetchFirstName()) }
- *     .with { UserLastName(fetchLastName()) }   // swap? COMPILE ERROR
- *     .with { UserAge(25) }
+ *     .with { fetchFirstName().toFirstName() }
+ *     .with { fetchLastName().toLastName() }   // swap? COMPILE ERROR
+ *     .with { fetchAge().toAge() }
  * ```
+ *
+ * Use [prefix] to avoid name collisions when multiple classes share parameter names:
+ *
+ * ```kotlin
+ * @KapTypeSafe(prefix = "Dashboard")
+ * fun buildDashboard(userName: String, cartSummary: String): Dashboard
+ *
+ * // Generates: .toDashboardUserName(), .toDashboardCartSummary()
+ * ```
+ *
+ * @param prefix Optional prefix for generated wrapper names and extension functions.
+ *               Default is empty (no prefix). Use when parameter names collide across types.
  */
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)
-annotation class KapTypeSafe
+annotation class KapTypeSafe(val prefix: String = "")

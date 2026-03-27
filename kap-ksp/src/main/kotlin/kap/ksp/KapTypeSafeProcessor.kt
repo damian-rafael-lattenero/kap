@@ -35,6 +35,14 @@ class KapTypeSafeProcessor(
         return unprocessed
     }
 
+    private fun extractPrefix(annotated: KSAnnotated): String {
+        val annotation = annotated.annotations.first {
+            it.shortName.asString() == "KapTypeSafe"
+        }
+        val prefixArg = annotation.arguments.firstOrNull { it.name?.asString() == "prefix" }
+        return (prefixArg?.value as? String) ?: ""
+    }
+
     private data class ParamInfo(
         val name: String,
         val qualifiedType: String,
@@ -43,6 +51,7 @@ class KapTypeSafeProcessor(
     private fun generateForClass(classDecl: KSClassDeclaration) {
         val className = classDecl.simpleName.asString()
         val packageName = classDecl.packageName.asString()
+        val prefix = extractPrefix(classDecl)
         val constructor = classDecl.primaryConstructor ?: run {
             logger.error("@KapTypeSafe requires a primary constructor", classDecl)
             return
@@ -71,12 +80,14 @@ class KapTypeSafeProcessor(
             params = params,
             returnType = returnType,
             isSuspend = false,
+            prefix = prefix,
         )
     }
 
     private fun generateForFunction(funcDecl: KSFunctionDeclaration) {
         val funcName = funcDecl.simpleName.asString()
         val packageName = funcDecl.packageName.asString()
+        val prefix = extractPrefix(funcDecl)
 
         val params = funcDecl.parameters.map { param ->
             ParamInfo(
@@ -108,6 +119,7 @@ class KapTypeSafeProcessor(
             returnType = returnType,
             isSuspend = isSuspend,
             originalFunctionName = funcName,
+            prefix = prefix,
         )
     }
 
@@ -120,6 +132,7 @@ class KapTypeSafeProcessor(
         returnType: String,
         isSuspend: Boolean,
         originalFunctionName: String? = null,
+        prefix: String = "",
     ) {
         val hasPackage = packageName.isNotEmpty()
 
@@ -138,6 +151,7 @@ class KapTypeSafeProcessor(
             writer.write("import kap.of\n\n")
 
             // Generate value class wrappers
+            // Wrapper name always uses baseName (class/function) for uniqueness
             val wrapperNames = params.map { param ->
                 val wrapperName = "$baseName${param.name.replaceFirstChar { it.uppercase() }}"
                 writer.write("@JvmInline\n")
@@ -172,9 +186,9 @@ class KapTypeSafeProcessor(
             writer.write(" }".repeat(params.size))
             writer.write(")\n\n")
 
-            // Generate extension functions: Type.toWrapperName()
+            // Generate extension functions: Type.to[Prefix]ParamName()
             params.zip(wrapperNames).forEach { (param, wrapperName) ->
-                val extName = "to${param.name.replaceFirstChar { it.uppercase() }}"
+                val extName = "to$prefix${param.name.replaceFirstChar { it.uppercase() }}"
                 writer.write("fun ${param.qualifiedType}.$extName(): $wrapperName = $wrapperName(this)\n")
             }
         }
