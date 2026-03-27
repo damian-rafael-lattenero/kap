@@ -57,6 +57,7 @@ nav:
     - kap-ktor: modules/kap-ktor.md
     - kap-kotest: modules/kap-kotest.md
   - Comparison: comparison.md
+  - Blog: blog/index.md
   - Migration:
     - Coming from Arrow: guide/migration-arrow.md
     - Coming from Raw Coroutines: guide/migration-coroutines.md
@@ -90,3 +91,6 @@ markdown_extensions:
 
 plugins:
   - search
+  - blog:
+      blog_dir: blog
+      post_date_format: long
