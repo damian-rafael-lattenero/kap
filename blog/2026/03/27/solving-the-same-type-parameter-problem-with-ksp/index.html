@@ -1199,10 +1199,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#zero-runtime-overhead" class="md-nav__link">
+  <a href="#multiplatform-by-design" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Zero runtime overhead
+        Multiplatform by design
       
     </span>
   </a>
@@ -1397,9 +1397,9 @@
 </span></code></pre></div>
 <p>KSP generates:</p>
 <div class="language-kotlin highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">// Distinct wrapper types — each String parameter gets its own type</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nd">@JvmInline</span><span class="w"> </span><span class="kd">value</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">UserFirstName</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">value</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nd">@JvmInline</span><span class="w"> </span><span class="kd">value</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">UserLastName</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">value</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nd">@JvmInline</span><span class="w"> </span><span class="kd">value</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">UserAge</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">value</span><span class="p">:</span><span class="w"> </span><span class="kt">Int</span><span class="p">)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">UserFirstName</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">value</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">UserLastName</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">value</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">UserAge</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">value</span><span class="p">:</span><span class="w"> </span><span class="kt">Int</span><span class="p">)</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1">// Type-safe kap function</span>
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="kd">fun</span><span class="w"> </span><span class="nf">kapSafe</span><span class="p">(</span><span class="n">f</span><span class="p">:</span><span class="w"> </span><span class="p">(</span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kt">Int</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">User</span><span class="p">):</span><span class="w"> </span><span class="n">Kap</span><span class="o">&lt;</span><span class="p">(</span><span class="n">UserFirstName</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">(</span><span class="n">UserLastName</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">(</span><span class="n">UserAge</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">User</span><span class="o">&gt;</span>
@@ -1416,8 +1416,9 @@
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchAge</span><span class="p">().</span><span class="na">toAge</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">               </span><span class="c1">// UserAge</span>
 </span></code></pre></div>
 <p>Swap <code>.toFirstName()</code> and <code>.toLastName()</code>? The compiler rejects it. <code>UserFirstName</code> is not <code>UserLastName</code>. Done.</p>
-<h2 id="zero-runtime-overhead">Zero runtime overhead<a class="headerlink" href="#zero-runtime-overhead" title="Permanent link">&para;</a></h2>
-<p>The wrapper types are <code>@JvmInline value class</code> — the Kotlin compiler erases them at runtime. No boxing, no allocation, no performance cost. It's purely a compile-time check that disappears in the bytecode.</p>
+<h2 id="multiplatform-by-design">Multiplatform by design<a class="headerlink" href="#multiplatform-by-design" title="Permanent link">&para;</a></h2>
+<p>The generated wrappers are <code>data class</code> — they work on every Kotlin target: JVM, JS, WASM, Native, iOS, macOS. The KSP processor runs on JVM during compilation, but the code it generates compiles everywhere. No platform restrictions.</p>
+<p>The overhead is one small object per wrapper — negligible when you're wrapping network calls that take 50ms+. The type safety is what matters, and it's enforced at compile time.</p>
 <h2 id="works-on-functions-too">Works on functions too<a class="headerlink" href="#works-on-functions-too" title="Permanent link">&para;</a></h2>
 <p>Not just constructors:</p>
 <div class="language-kotlin highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@KapTypeSafe</span>
@@ -1447,7 +1448,7 @@
 <li><strong>The generated code needs to integrate with a specific API</strong> — it's not a general-purpose tool, it needs to know about <code>Kap</code> and <code>.with</code></li>
 <li><strong>KSP2 just became stable</strong> — the tooling wasn't ready until recently</li>
 </ol>
-<p>KAP is (as far as we know) the first Kotlin framework to ship this. One annotation, zero boilerplate, compile-time enforcement.</p>
+<p>KAP is (as far as we know) the first Kotlin framework to ship this. One annotation, zero boilerplate, compile-time enforcement, full multiplatform support.</p>
 <h2 id="the-design-journey">The design journey<a class="headerlink" href="#the-design-journey" title="Permanent link">&para;</a></h2>
 <p>This feature came from being honest about a limitation. The original KAP README said "swap any two .with lines and the compiler rejects it" — but that's only true when types differ. For same types, it was a lie.</p>
 <p>Instead of hiding it, we:</p>
@@ -1456,6 +1457,7 @@
 <li>Explored solutions (value classes, compiler plugins, KSP)</li>
 <li>Built the simplest thing that works (<code>@KapTypeSafe</code> + KSP2)</li>
 <li>Made it ergonomic (<code>.toFirstName()</code> extensions, <code>prefix</code> for collisions)</li>
+<li>Chose <code>data class</code> over <code>@JvmInline value class</code> for full multiplatform compatibility</li>
 </ol>
 <p>Each step was driven by one question: "what would make the developer's life easier?"</p>
 <h2 id="try-it">Try it<a class="headerlink" href="#try-it" title="Permanent link">&para;</a></h2>
