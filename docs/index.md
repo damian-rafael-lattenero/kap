@@ -13,7 +13,7 @@ hide:
 </style>
 
 <div class="hero">
-  <img src="assets/logo.svg" alt="KAP">
+  <img src="assets/logo.png" alt="KAP">
   <h1>KAP — Kotlin Async Parallelism</h1>
   <p><strong>Type-safe multi-service orchestration for Kotlin coroutines.</strong><br>
   Flat chains, visible phases, compiler-checked argument order.</p>
