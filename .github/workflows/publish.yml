@@ -33,7 +33,7 @@ jobs:
           - check: Not already published
             script: |
               VERSION=$(grep '^version' build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
-              for MODULE in kap-core kap-resilience kap-arrow; do
+              for MODULE in kap-core kap-resilience kap-arrow kap-ktor kap-kotest kap-ksp kap-ksp-annotations; do
                 URL="https://repo1.maven.org/maven2/io/github/damian-rafael-lattenero/$MODULE/$VERSION/$MODULE-$VERSION.pom"
                 if curl -sf "$URL" > /dev/null 2>&1; then
                   echo "::error::$MODULE $VERSION already exists on Maven Central. Bump the version before publishing."
@@ -115,7 +115,7 @@ jobs:
         run: |
           VERSION=$(grep '^version' build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
           BASE="https://repo1.maven.org/maven2/io/github/damian-rafael-lattenero"
-          MODULES="kap-core kap-resilience kap-arrow"
+          MODULES="kap-core kap-resilience kap-arrow kap-ktor kap-kotest kap-ksp kap-ksp-annotations"
           MAX_ATTEMPTS=40
           INTERVAL=60
 
@@ -148,7 +148,7 @@ jobs:
       - name: Verify all modules are resolvable
         run: |
           VERSION=$(grep '^version' build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
-          for MODULE in kap-core kap-resilience kap-arrow; do
+          for MODULE in kap-core kap-resilience kap-arrow kap-ktor kap-kotest kap-ksp kap-ksp-annotations; do
             URL="https://repo1.maven.org/maven2/io/github/damian-rafael-lattenero/$MODULE/$VERSION/$MODULE-$VERSION.pom"
             if ! curl -sf "$URL" > /dev/null 2>&1; then
               echo "::error::$MODULE $VERSION NOT found on Maven Central after publish."
