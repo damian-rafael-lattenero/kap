@@ -56,6 +56,7 @@ nav:
     - kap-arrow: modules/kap-arrow.md
     - kap-ktor: modules/kap-ktor.md
     - kap-kotest: modules/kap-kotest.md
+    - kap-ksp: modules/kap-ksp.md
   - Comparison: comparison.md
   - Blog: blog/index.md
   - Migration:

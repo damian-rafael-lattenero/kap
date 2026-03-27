@@ -174,6 +174,24 @@ val dashboard: FinalDashboard = Async {
 
 ---
 
+## Same-type safety with `@KapTypeSafe` (KSP)
+
+Two `String` params? Swap them and nobody notices — until production. KAP's KSP processor fixes this:
+
+```kotlin
+@KapTypeSafe
+data class User(val firstName: String, val lastName: String, val age: Int)
+
+kapSafe(::User)
+    .with { fetchFirstName().toFirstName() }   // generated UserFirstName
+    .with { fetchLastName().toLastName() }     // generated UserLastName — swap? COMPILE ERROR
+    .with { fetchAge().toAge() }               // generated UserAge
+```
+
+Works on functions too. `@KapTypeSafe(prefix = "Dashboard")` avoids collisions. [Full docs](https://damian-rafael-lattenero.github.io/kap/modules/kap-ksp/).
+
+---
+
 ## Install
 
 ```kotlin
@@ -185,6 +203,8 @@ dependencies {
     implementation("io.github.damian-rafael-lattenero:kap-arrow:2.3.0")       // Parallel validation with error accumulation
     implementation("io.github.damian-rafael-lattenero:kap-ktor:2.3.0")        // Ktor server plugin
     testImplementation("io.github.damian-rafael-lattenero:kap-kotest:2.3.0")  // Test matchers
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.3.0")  // @KapTypeSafe
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.3.0")                         // KSP processor
 }
 ```
 

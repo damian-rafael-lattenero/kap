@@ -166,6 +166,25 @@ We run 119 JMH benchmarks on every push. KAP overhead is indistinguishable from 
 
 The `timeoutRace` number is real: instead of waiting for the timeout before starting the fallback, both start at t=0. The fallback is already running when the primary times out. 2.6x faster.
 
+## The same-type problem — and how we solved it
+
+There's one thing the typed chain doesn't catch: two parameters with the same type. `firstName: String` and `lastName: String` can be swapped silently. Every framework has this problem — Haskell, Arrow, everyone recommends "use newtypes" and leaves it to the developer.
+
+We went further. KAP ships a KSP processor that generates the newtypes for you:
+
+```kotlin
+@KapTypeSafe
+data class User(val firstName: String, val lastName: String, val age: Int)
+
+// KSP generates value classes + extension functions automatically:
+kapSafe(::User)
+    .with { fetchFirstName().toFirstName() }   // UserFirstName — distinct type
+    .with { fetchLastName().toLastName() }     // UserLastName — swap? COMPILE ERROR
+    .with { fetchAge().toAge() }               // UserAge
+```
+
+One annotation. Zero runtime overhead (value classes are inlined). Every same-type swap becomes a compile error. Works on functions too, with optional prefix for collision avoidance. As far as we know, no other framework in the Kotlin ecosystem does this.
+
 ## Beyond orchestration
 
 Once you have a composable `Kap<A>` type, you can chain everything:
