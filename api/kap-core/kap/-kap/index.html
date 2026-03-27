@@ -1,0 +1,596 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Kap</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    KAP
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">2.4.0
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":kap-core/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":kap-core/commonMain" data-filter=":kap-core/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    KAP
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="kap-core::kap/Kap///PointingToDeclaration//606109949">
+  <div class="breadcrumbs"><a href="../../index.html">kap-core</a><span class="delimiter">/</span><a href="../index.html">kap</a><span class="delimiter">/</span><span class="current">Kap</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Kap</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token keyword">interface </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><span class="token keyword">out </span><a href="index.html">A</a><span class="token operator">&gt;</span></div><p class="paragraph">A lazy computation that produces <a href="index.html">A</a> when executed inside a <span data-unresolved-link="kotlinx.coroutines/CoroutineScope///PointingToDeclaration/">CoroutineScope</span>.</p><p class="paragraph">Kaps are descriptions — they don't run until <a href="../-async/invoke.html">Async.invoke</a> executes them. They can be composed outside the DSL using <a href="../map.html">map</a>, <a href="../with.html">with</a>, <a href="../then.html">then</a>, <a href="../and-then.html">andThen</a>, <a href="../zip.html">zip</a>, and other top-level combinators, then executed via <code class="lang-kotlin">Async { computation }</code>.</p><h2 class="">Design note: <code class="lang-kotlin">suspend fun CoroutineScope.execute()</code></h2><p class="paragraph">This signature intentionally combines a <span data-unresolved-link="kotlinx.coroutines/CoroutineScope///PointingToDeclaration/">CoroutineScope</span> receiver with <code class="lang-kotlin">suspend</code>. The Kotlin coroutines convention separates them (<code class="lang-kotlin">suspend fun</code> = suspends, <code class="lang-kotlin">CoroutineScope.fun</code> = launches coroutines), but <a href="index.html">Kap</a> requires both:</p><ul><li><p class="paragraph"><strong>CoroutineScope</strong> — operators like <a href="../with.html">with</a> and <a href="../race.html">race</a> call <code class="lang-kotlin">async {}</code> to launch parallel branches within the caller's scope (structured concurrency).</p></li><li><p class="paragraph"><strong>suspend</strong> — branches call <code class="lang-kotlin">await()</code>, <code class="lang-kotlin">withContext()</code>, <code class="lang-kotlin">withTimeout()</code>, etc.</p></li></ul><p class="paragraph">This is safe because <strong>users never call </strong><a href="execute.html"><strong>execute</strong></a><strong> directly</strong> — they compose via <a href="../with.html">with</a>, <a href="../then.html">then</a>, <a href="../and-then.html">andThen</a>, and execute via <a href="../-async/invoke.html">Async.invoke</a>. The dual contract is an internal implementation detail, not a public API concern.</p><p class="paragraph">This mirrors <code class="lang-kotlin">kotlinx.coroutines.async {}</code> and <code class="lang-kotlin">launch {}</code>, whose blocks are also <code class="lang-kotlin">suspend CoroutineScope.() -&gt; T</code>.</p><h4 class="tableheader">Inheritors</h4><div class="table"><div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="../-phase-barrier/index.html">PhaseBarrier</a></div></span></div><div></div></div></div></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button><button class="section-tab" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION,EXTENSION_PROPERTY,EXTENSION_FUNCTION">Members &amp; Extensions</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="30908238%2FClasslikes%2F606109949" anchor-label="Companion" id="30908238%2FClasslikes%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="30908238%2FClasslikes%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="118384185%2FFunctions%2F606109949" anchor-label="andThen" id="118384185%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../and-then.html"><span>and</span><wbr><span><span>Then</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="118384185%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../and-then.html">A</a><span class="token punctuation">, </span><a href="../and-then.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../and-then.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../and-then.html"><span class="token function">andThen</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">crossinline </span>f<span class="token operator">: </span><span class="token punctuation">(</span><a href="../and-then.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../and-then.html">B</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../and-then.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Monadic bind — sequential, value-dependent composition.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1088922735%2FFunctions%2F606109949" anchor-label="await" id="1088922735%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../await.html"><span><span>await</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1088922735%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">suspend </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../await.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../await.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../await.html"><span class="token function">await</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../await.html">A</a></div><div class="brief "><p class="paragraph">Executes this <a href="index.html">Kap</a> from any suspend context, creating a <span data-unresolved-link="kotlinx.coroutines//coroutineScope/#kotlin.coroutines.SuspendFunction1[kotlinx.coroutines.CoroutineScope,TypeParam(bounds=[kotlin.Any?])]/PointingToDeclaration/">coroutineScope</span> for structured concurrency.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1645627481%2FFunctions%2F606109949" anchor-label="discard" id="-1645627481%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../discard.html"><span><span>discard</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1645627481%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../discard.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../discard.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../discard.html"><span class="token function">discard</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Discards the result of this computation, returning <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1478040379%2FFunctions%2F606109949" anchor-label="ensure" id="1478040379%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../ensure.html"><span><span>ensure</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1478040379%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../ensure.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../ensure.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../ensure.html"><span class="token function">ensure</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">error<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a><span class="token punctuation">, </span></span><span class="parameter ">predicate<span class="token operator">: </span><span class="token punctuation">(</span><a href="../ensure.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../ensure.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Validates the result of this computation against <a href="../ensure.html">predicate</a>. If the predicate fails, throws the exception produced by <a href="../ensure.html">error</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="542940170%2FFunctions%2F606109949" anchor-label="ensureNotNull" id="542940170%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../ensure-not-null.html"><span>ensure</span><wbr><span>Not</span><wbr><span><span>Null</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="542940170%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../ensure-not-null.html">A</a><span class="token punctuation">, </span><a href="../ensure-not-null.html">B</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../ensure-not-null.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../ensure-not-null.html"><span class="token function">ensureNotNull</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">error<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a><span class="token punctuation">, </span></span><span class="parameter ">extract<span class="token operator">: </span><span class="token punctuation">(</span><a href="../ensure-not-null.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../ensure-not-null.html">B</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../ensure-not-null.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Extracts a non-null value from the result using <a href="../ensure-not-null.html">extract</a>. If the extracted value is null, throws the exception produced by <a href="../ensure-not-null.html">error</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-655844478%2FFunctions%2F606109949" anchor-label="execute" id="-655844478%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="execute.html"><span><span>execute</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-655844478%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><span data-unresolved-link="kotlinx.coroutines/CoroutineScope///PointingToDeclaration/">CoroutineScope</span><span class="token punctuation">.</span><a href="execute.html"><span class="token function">execute</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">A</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-72840607%2FFunctions%2F606109949" anchor-label="fallback" id="-72840607%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../fallback.html"><span><span>fallback</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-72840607%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">infix </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../fallback.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../fallback.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../fallback.html"><span class="token function">fallback</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../fallback.html">A</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../fallback.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">On failure, runs <a href="../fallback.html">other</a> instead. Shorthand for <code class="lang-kotlin">recoverWith { other }</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-275766804%2FFunctions%2F606109949" anchor-label="keepFirst" id="-275766804%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../keep-first.html"><span>keep</span><wbr><span><span>First</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-275766804%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../keep-first.html">A</a><span class="token punctuation">, </span><a href="../keep-first.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../keep-first.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../keep-first.html"><span class="token function">keepFirst</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../keep-first.html">B</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../keep-first.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Runs this computation and <a href="../keep-first.html">other</a> in parallel, returning only this result. Both must succeed; if either fails, the other is cancelled.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2139460278%2FFunctions%2F606109949" anchor-label="keepSecond" id="-2139460278%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../keep-second.html"><span>keep</span><wbr><span><span>Second</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2139460278%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../keep-second.html">A</a><span class="token punctuation">, </span><a href="../keep-second.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../keep-second.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../keep-second.html"><span class="token function">keepSecond</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../keep-second.html">B</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../keep-second.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Runs this computation and <a href="../keep-second.html">other</a> in parallel, returning only <a href="../keep-second.html">other</a>'s result. Both must succeed; if either fails, the other is cancelled.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-977824727%2FFunctions%2F606109949" anchor-label="map" id="-977824727%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../map.html"><span><span>map</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-977824727%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../map.html">A</a><span class="token punctuation">, </span><a href="../map.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../map.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../map.html"><span class="token function">map</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">crossinline </span>f<span class="token operator">: </span><span class="token punctuation">(</span><a href="../map.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../map.html">B</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../map.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Transforms the result of this computation by applying <a href="../map.html">f</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-870906389%2FFunctions%2F606109949" anchor-label="memoize" id="-870906389%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../memoize.html"><span><span>memoize</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-870906389%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../memoize.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../memoize.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../memoize.html"><span class="token function">memoize</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../memoize.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns a computation that executes the original at most once, caching the result. Subsequent executions return the cached value (or rethrow the cached exception).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1088114649%2FFunctions%2F606109949" anchor-label="memoizeOnSuccess" id="-1088114649%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../memoize-on-success.html"><span>memoize</span><wbr><span>On</span><wbr><span><span>Success</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1088114649%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../memoize-on-success.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../memoize-on-success.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../memoize-on-success.html"><span class="token function">memoizeOnSuccess</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../memoize-on-success.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Like <a href="../memoize.html">memoize</a>, but <strong>does not cache failures</strong> — if the first execution fails, the next caller retries the original computation.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1665701272%2FFunctions%2F606109949" anchor-label="named" id="1665701272%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../named.html"><span><span>named</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1665701272%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../named.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../named.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../named.html"><span class="token function">named</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../named.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Assigns a <span data-unresolved-link="kotlinx.coroutines/CoroutineName///PointingToDeclaration/">CoroutineName</span> to this computation, making it visible in coroutine debugger, thread dumps, and logging frameworks.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1496651157%2FFunctions%2F606109949" anchor-label="on" id="1496651157%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../on.html"><span><span>on</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1496651157%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../on.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../on.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../on.html"><span class="token function">on</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.coroutines/-coroutine-context/index.html">CoroutineContext</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../on.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Switches this computation to run on the given <a href="../on.html">context</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="33645127%2FFunctions%2F606109949" anchor-label="orElse" id="33645127%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../or-else.html"><span>or</span><wbr><span><span>Else</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="33645127%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">infix </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../or-else.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../or-else.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../or-else.html"><span class="token function">orElse</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../or-else.html">A</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../or-else.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Tries this computation; if it fails (non-cancellation), tries <a href="../or-else.html">other</a> instead.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-649298912%2FFunctions%2F606109949" anchor-label="peek" id="-649298912%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../peek.html"><span><span>peek</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-649298912%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../peek.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../peek.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../peek.html"><span class="token function">peek</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">crossinline </span>f<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><a href="../peek.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../peek.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Executes a side-effect <a href="../peek.html">f</a> with the result, then returns the original value unchanged.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-324401785%2FFunctions%2F606109949" anchor-label="raceAgainst" id="-324401785%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../race-against.html"><span>race</span><wbr><span><span>Against</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-324401785%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../race-against.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../race-against.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../race-against.html"><span class="token function">raceAgainst</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../race-against.html">A</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../race-against.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Races this computation against <a href="../race-against.html">other</a>; the first to <strong>succeed</strong> wins, the loser is cancelled.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="997482695%2FFunctions%2F606109949" anchor-label="recover" id="997482695%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../recover.html"><span><span>recover</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="997482695%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../recover.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../recover.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../recover.html"><span class="token function">recover</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">crossinline </span>f<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../recover.html">A</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../recover.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Catches non-cancellation exceptions and maps them to a recovery value.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1322264583%2FFunctions%2F606109949" anchor-label="recoverWith" id="-1322264583%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../recover-with.html"><span>recover</span><wbr><span><span>With</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1322264583%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../recover-with.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../recover-with.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../recover-with.html"><span class="token function">recoverWith</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">crossinline </span>f<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../recover-with.html">A</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../recover-with.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Catches non-cancellation exceptions and switches to a recovery computation.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-721593974%2FFunctions%2F606109949" anchor-label="retry" id="-721593974%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../retry.html"><span><span>retry</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-721593974%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../retry.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../retry.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../retry.html"><span class="token function">retry</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">maxAttempts<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">delay<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>Duration.ZERO<span class="token punctuation">, </span></span><span class="parameter ">backoff<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>{ it }<span class="token punctuation">, </span></span><span class="parameter ">shouldRetry<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span>{ true }<span class="token punctuation">, </span></span><span class="parameter ">onRetry<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span>attempt<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>error<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a><span class="token punctuation">, </span>nextDelay<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{ _, _, _ -&gt; }</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../retry.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Retries this computation up to <a href="../retry.html">maxAttempts</a> times on non-cancellation failure.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2100495572%2FFunctions%2F606109949" anchor-label="settled" id="-2100495572%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../settled.html"><span><span>settled</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2100495572%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../settled.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../settled.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../settled.html"><span class="token function">settled</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-result/index.html">Result</a><span class="token operator">&lt;</span><a href="../settled.html">A</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Wraps this computation's outcome in <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-result/index.html">Result</a>, catching all non-cancellation exceptions without propagating them to siblings in a <a href="../with.html">with</a> chain.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1903667590%2FFunctions%2F606109949" anchor-label="then" id="-1903667590%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../then.html"><span><span>then</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1903667590%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">infix </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../then.html">A</a><span class="token punctuation">, </span><a href="../then.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><span class="token punctuation">(</span><a href="../then.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../then.html">B</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../then.html"><span class="token function">then</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">fa<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../then.html">A</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../then.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">True phase barrier — awaits the left side, runs <a href="../then.html">fa</a>, and <strong>gates</strong> all subsequent <a href="../with.html">with</a> calls until the barrier completes.</p></div><div class="symbol monospace"><span class="token keyword">infix </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../then.html">A</a><span class="token punctuation">, </span><a href="../then.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><span class="token punctuation">(</span><a href="../then.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../then.html">B</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../then.html"><span class="token function">then</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">fa<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../then.html">A</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../then.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Convenience overload that wraps a suspend lambda into a <a href="index.html">Kap</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1057303114%2FFunctions%2F606109949" anchor-label="thenValue" id="-1057303114%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../then-value.html"><span>then</span><wbr><span><span>Value</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1057303114%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">infix </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../then-value.html">A</a><span class="token punctuation">, </span><a href="../then-value.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><span class="token punctuation">(</span><a href="../then-value.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../then-value.html">B</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../then-value.html"><span class="token function">thenValue</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">fa<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../then-value.html">A</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../then-value.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Sequential value fill — awaits the left side, then runs <a href="../then-value.html">fa</a>.</p></div><div class="symbol monospace"><span class="token keyword">infix </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../then-value.html">A</a><span class="token punctuation">, </span><a href="../then-value.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><span class="token punctuation">(</span><a href="../then-value.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../then-value.html">B</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../then-value.html"><span class="token function">thenValue</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">fa<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../then-value.html">A</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../then-value.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Convenience overload that wraps a suspend lambda into a <a href="index.html">Kap</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1111212676%2FFunctions%2F606109949" anchor-label="timeout" id="1111212676%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../timeout.html"><span><span>timeout</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1111212676%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../timeout.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../timeout.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../timeout.html"><span class="token function">timeout</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">duration<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../timeout.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Fails with <span data-unresolved-link="kotlinx.coroutines/TimeoutCancellationException///PointingToDeclaration/">kotlinx.coroutines.TimeoutCancellationException</span> if this computation does not complete within <a href="../timeout.html">duration</a>.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../timeout.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../timeout.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../timeout.html"><span class="token function">timeout</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">duration<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">, </span></span><span class="parameter ">default<span class="token operator">: </span><a href="../timeout.html">A</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../timeout.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns <a href="../timeout.html">default</a> if this computation does not complete within <a href="../timeout.html">duration</a>.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../timeout.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../timeout.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../timeout.html"><span class="token function">timeout</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">duration<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">, </span></span><span class="parameter ">fallback<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../timeout.html">A</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../timeout.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Runs <a href="../timeout.html">fallback</a> if this computation does not complete within <a href="../timeout.html">duration</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-553734733%2FFunctions%2F606109949" anchor-label="toDeferred" id="-553734733%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../to-deferred.html"><span>to</span><wbr><span><span>Deferred</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-553734733%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../to-deferred.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../to-deferred.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../to-deferred.html"><span class="token function">toDeferred</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">scope<span class="token operator">: </span><span data-unresolved-link="kotlinx.coroutines/CoroutineScope///PointingToDeclaration/">CoroutineScope</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="kotlinx.coroutines/Deferred///PointingToDeclaration/">Deferred</span><span class="token operator">&lt;</span><a href="../to-deferred.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Eagerly starts this computation as a <span data-unresolved-link="kotlinx.coroutines/Deferred///PointingToDeclaration/">Deferred</span> in <a href="../to-deferred.html">scope</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="581196200%2FFunctions%2F606109949" anchor-label="toFlow" id="581196200%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../to-flow.html"><span>to</span><wbr><span><span>Flow</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="581196200%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../to-flow.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../to-flow.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../to-flow.html"><span class="token function">toFlow</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span><span class="token operator">&lt;</span><a href="../to-flow.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Converts this <a href="index.html">Kap</a> into a <span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span> that emits a single value.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="589869372%2FFunctions%2F606109949" anchor-label="traced" id="589869372%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../traced.html"><span><span>traced</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="589869372%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../traced.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../traced.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../traced.html"><span class="token function">traced</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">tracer<span class="token operator">: </span><a href="../-kap-tracer/index.html">KapTracer</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../traced.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Wraps this computation with a structured <a href="../-kap-tracer/index.html">KapTracer</a>.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../traced.html">A</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../traced.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../traced.html"><span class="token function">traced</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">onStart<span class="token operator">: </span><span class="token punctuation">(</span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{}<span class="token punctuation">, </span></span><span class="parameter ">onSuccess<span class="token operator">: </span><span class="token punctuation">(</span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span>duration<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{ _, _ -&gt; }<span class="token punctuation">, </span></span><span class="parameter ">onError<span class="token operator">: </span><span class="token punctuation">(</span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span>duration<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">, </span>error<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{ _, _, _ -&gt; }</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../traced.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Wraps this computation with lifecycle hooks for observability.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1847870348%2FFunctions%2F606109949" anchor-label="with" id="1847870348%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../with.html"><span><span>with</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1847870348%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">infix </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../with.html">A</a><span class="token punctuation">, </span><a href="../with.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><span class="token punctuation">(</span><a href="../with.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../with.html">B</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../with.html"><span class="token function">with</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">fa<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../with.html">A</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../with.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Provides the next argument in parallel — runs this (a curried function) and <a href="../with.html">fa</a> concurrently, then applies the function to the result.</p></div><div class="symbol monospace"><span class="token keyword">infix </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../with.html">A</a><span class="token punctuation">, </span><a href="../with.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><span class="token punctuation">(</span><a href="../with.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../with.html">B</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../with.html"><span class="token function">with</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">fa<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../with.html">A</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../with.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Convenience overload that wraps a suspend lambda into a <a href="index.html">Kap</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1382458029%2FFunctions%2F606109949" anchor-label="withOrNull" id="-1382458029%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../with-or-null.html"><span>with</span><wbr><span>Or</span><wbr><span><span>Null</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1382458029%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">infix </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../with-or-null.html">A</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="../with-or-null.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><span class="token punctuation">(</span><a href="../with-or-null.html">A</a><span class="token operator">?</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../with-or-null.html">B</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../with-or-null.html"><span class="token function">withOrNull</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">fa<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../with-or-null.html">A</a><span class="token operator">&gt;</span><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../with-or-null.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Provides a nullable argument in parallel — when the curried function expects a nullable argument (<code class="lang-kotlin">A?</code>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1040764960%2FFunctions%2F606109949" anchor-label="zip" id="1040764960%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../zip.html"><span><span>zip</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1040764960%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../zip.html">A</a><span class="token punctuation">, </span><a href="../zip.html">B</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../zip.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../zip.html"><span class="token function">zip</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">fb<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../zip.html">B</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="../zip.html">A</a><span class="token punctuation">, </span><a href="../zip.html">B</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Runs this computation and <a href="../zip.html">fb</a> in parallel, returning both results as a <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-pair/index.html">Pair</a>.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../zip.html">A</a><span class="token punctuation">, </span><a href="../zip.html">B</a><span class="token punctuation">, </span><a href="../zip.html">C</a><span class="token operator">&gt; </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../zip.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="../zip.html"><span class="token function">zip</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">fb<span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../zip.html">B</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">f<span class="token operator">: </span><span class="token punctuation">(</span><a href="../zip.html">A</a><span class="token punctuation">, </span><a href="../zip.html">B</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../zip.html">C</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Kap</a><span class="token operator">&lt;</span><a href="../zip.html">C</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Runs this computation and <a href="../zip.html">fb</a> in parallel, combining results with <a href="../zip.html">f</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

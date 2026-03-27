@@ -1,0 +1,10 @@
+$dokka.format:html-v1
+$dokka.linkExtension:html
+
+module:kap-arrow
+kap
+module:kap-core
+kap
+kap.internal
+module:kap-resilience
+kap

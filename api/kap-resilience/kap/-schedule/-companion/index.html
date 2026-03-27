@@ -1,0 +1,277 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Companion</title>
+<link href="../../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../../styles/style.css" rel="Stylesheet">
+<link href="../../../../styles/main.css" rel="Stylesheet">
+<link href="../../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../../index.html" tabindex="1">
+                    KAP
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">2.4.0
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":kap-resilience/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":kap-resilience/commonMain" data-filter=":kap-resilience/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    KAP
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="kap-resilience::kap/Schedule.Companion///PointingToDeclaration//-865208273">
+  <div class="breadcrumbs"><a href="../../../index.html">kap-resilience</a><span class="delimiter">/</span><a href="../../index.html">kap</a><span class="delimiter">/</span><a href="../index.html">Schedule</a><span class="delimiter">/</span><span class="current">Companion</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Companion</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="index.html">Companion</a></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="1839271236%2FFunctions%2F-865208273" anchor-label="doUntil" id="1839271236%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="do-until.html"><span>do</span><wbr><span><span>Until</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1839271236%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="do-until.html">A</a><span class="token operator">&gt; </span><a href="do-until.html"><span class="token function">doUntil</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">predicate<span class="token operator">: </span><span class="token punctuation">(</span><a href="do-until.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">Schedule</a><span class="token operator">&lt;</span><a href="do-until.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Continue until the predicate holds. Complement of <a href="do-while.html">doWhile</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2136915153%2FFunctions%2F-865208273" anchor-label="doWhile" id="2136915153%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="do-while.html"><span>do</span><wbr><span><span>While</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2136915153%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="do-while.html">A</a><span class="token operator">&gt; </span><a href="do-while.html"><span class="token function">doWhile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">predicate<span class="token operator">: </span><span class="token punctuation">(</span><a href="do-while.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">Schedule</a><span class="token operator">&lt;</span><a href="do-while.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Continue while the predicate holds.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1638003485%2FFunctions%2F-865208273" anchor-label="exponential" id="1638003485%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="exponential.html"><span><span>exponential</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1638003485%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="exponential.html">A</a><span class="token operator">&gt; </span><a href="exponential.html"><span class="token function">exponential</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">base<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">, </span></span><span class="parameter ">factor<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token operator"> = </span><span class="token constant">2.0</span><span class="token punctuation">, </span></span><span class="parameter ">max<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>Duration.INFINITE</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">Schedule</a><span class="token operator">&lt;</span><a href="exponential.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Exponential backoff starting from <a href="exponential.html">base</a>, multiplied by <a href="exponential.html">factor</a> each retry, capped at <a href="exponential.html">max</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1133701827%2FFunctions%2F-865208273" anchor-label="fibonacci" id="1133701827%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="fibonacci.html"><span><span>fibonacci</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1133701827%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="fibonacci.html">A</a><span class="token operator">&gt; </span><a href="fibonacci.html"><span class="token function">fibonacci</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">base<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">, </span></span><span class="parameter ">max<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>Duration.INFINITE</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">Schedule</a><span class="token operator">&lt;</span><a href="fibonacci.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Fibonacci backoff starting from <a href="fibonacci.html">base</a>, capped at <a href="fibonacci.html">max</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-99274021%2FFunctions%2F-865208273" anchor-label="forever" id="-99274021%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="forever.html"><span><span>forever</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-99274021%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="forever.html">A</a><span class="token operator">&gt; </span><a href="forever.html"><span class="token function">forever</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">Schedule</a><span class="token operator">&lt;</span><a href="forever.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Retry forever with no delay. Combine with other schedules for backoff or time limits:</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-42076052%2FFunctions%2F-865208273" anchor-label="linear" id="-42076052%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="linear.html"><span><span>linear</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-42076052%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="linear.html">A</a><span class="token operator">&gt; </span><a href="linear.html"><span class="token function">linear</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">base<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">, </span></span><span class="parameter ">max<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>Duration.INFINITE</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">Schedule</a><span class="token operator">&lt;</span><a href="linear.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Linear backoff starting from <a href="linear.html">base</a>, capped at <a href="linear.html">max</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1864654098%2FFunctions%2F-865208273" anchor-label="spaced" id="1864654098%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="spaced.html"><span><span>spaced</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1864654098%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="spaced.html">A</a><span class="token operator">&gt; </span><a href="spaced.html"><span class="token function">spaced</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">duration<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">Schedule</a><span class="token operator">&lt;</span><a href="spaced.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Retry with a fixed delay between attempts, unlimited count.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="784535994%2FFunctions%2F-865208273" anchor-label="times" id="784535994%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="times.html"><span><span>times</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="784535994%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="times.html">A</a><span class="token operator">&gt; </span><a href="times.html"><span class="token function">times</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">n<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">Schedule</a><span class="token operator">&lt;</span><a href="times.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Retry up to <a href="times.html">n</a> times (total attempts = n + 1 including the first).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2024194689%2FFunctions%2F-865208273" anchor-label="untilInput" id="2024194689%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="until-input.html"><span>until</span><wbr><span><span>Input</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2024194689%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="until-input.html">A</a><span class="token operator">&gt; </span><a href="until-input.html"><span class="token function">untilInput</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">predicate<span class="token operator">: </span><span class="token punctuation">(</span><a href="until-input.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">Schedule</a><span class="token operator">&lt;</span><a href="until-input.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Synonym for <a href="do-until.html">doUntil</a> — Arrow naming compatibility.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2051423468%2FFunctions%2F-865208273" anchor-label="whileInput" id="-2051423468%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="while-input.html"><span>while</span><wbr><span><span>Input</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2051423468%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="while-input.html">A</a><span class="token operator">&gt; </span><a href="while-input.html"><span class="token function">whileInput</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">predicate<span class="token operator">: </span><span class="token punctuation">(</span><a href="while-input.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">Schedule</a><span class="token operator">&lt;</span><a href="while-input.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Synonym for <a href="do-while.html">doWhile</a> — Arrow naming compatibility.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

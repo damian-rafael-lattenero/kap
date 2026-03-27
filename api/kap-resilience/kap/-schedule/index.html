@@ -1,0 +1,285 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Schedule</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    KAP
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">2.4.0
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":kap-resilience/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":kap-resilience/commonMain" data-filter=":kap-resilience/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    KAP
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="kap-resilience::kap/Schedule///PointingToDeclaration//-865208273">
+  <div class="breadcrumbs"><a href="../../index.html">kap-resilience</a><span class="delimiter">/</span><a href="../index.html">kap</a><span class="delimiter">/</span><span class="current">Schedule</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Schedule</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">decide<span class="token operator">: </span><span class="token punctuation">(</span>attempt<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>value<span class="token operator">: </span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-decision/index.html">Schedule.Decision</a></span></span><span class="token punctuation">)</span></div><p class="paragraph">A composable retry policy that decides whether to continue and how long to wait.</p><p class="paragraph">Schedules are descriptions -- they don't execute anything. Combine them with <a href="and.html">and</a> (both must agree) or <a href="or.html">or</a> (either can continue), then pass to <a href="../retry.html">Kap.retry</a>.</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">val policy = Schedule.times&lt;Throwable&gt;(5) and<br>    Schedule.exponential(100.milliseconds) and<br>    Schedule.doWhile { it is IOException }<br><br>Kap { fetchUser() }.retry(policy)</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="-673668767%2FConstructors%2F-865208273" anchor-label="Schedule" id="-673668767%2FConstructors%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-schedule.html"><span><span>Schedule</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-673668767%2FConstructors%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">decide<span class="token operator">: </span><span class="token punctuation">(</span>attempt<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>value<span class="token operator">: </span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-decision/index.html">Schedule.Decision</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="1934841511%2FClasslikes%2F-865208273" anchor-label="Companion" id="1934841511%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1934841511%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1052643219%2FClasslikes%2F-865208273" anchor-label="Decision" id="1052643219%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-decision/index.html"><span><span>Decision</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1052643219%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">sealed </span><span class="token keyword">class </span><a href="-decision/index.html">Decision</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-1240317744%2FFunctions%2F-865208273" anchor-label="and" id="-1240317744%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="and.html"><span><span>and</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1240317744%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">infix </span><span class="token keyword">fun </span><a href="and.html"><span class="token function">and</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Both schedules must agree to continue. Uses the maximum delay. If either says <a href="-decision/-done/index.html">Decision.Done</a>, the result is <a href="-decision/-done/index.html">Decision.Done</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1127746506%2FFunctions%2F-865208273" anchor-label="collect" id="-1127746506%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="collect.html"><span><span>collect</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1127746506%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="collect.html"><span class="token function">collect</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Accumulates all retry inputs into a list. Specialization of <a href="fold.html">fold</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2050645135%2FFunctions%2F-865208273" anchor-label="fold" id="-2050645135%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="fold.html"><span><span>fold</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2050645135%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="fold.html">B</a><span class="token operator">&gt; </span><a href="fold.html"><span class="token function">fold</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">initial<span class="token operator">: </span><a href="fold.html">B</a><span class="token punctuation">, </span></span><span class="parameter ">combine<span class="token operator">: </span><span class="token punctuation">(</span><a href="fold.html">B</a><span class="token punctuation">, </span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="fold.html">B</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Accumulates a value across retry attempts by folding each input with <a href="fold.html">combine</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-283664599%2FFunctions%2F-865208273" anchor-label="jittered" id="-283664599%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="jittered.html"><span><span>jittered</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-283664599%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="jittered.html"><span class="token function">jittered</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">factor<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token operator"> = </span><span class="token constant">0.5</span><span class="token punctuation">, </span></span><span class="parameter ">random<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.random/-random/index.html">Random</a><span class="token operator"> = </span>Random</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Adds random jitter to delays, spreading retry storms across time.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1432129982%2FFunctions%2F-865208273" anchor-label="or" id="-1432129982%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="or.html"><span><span>or</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1432129982%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">infix </span><span class="token keyword">fun </span><a href="or.html"><span class="token function">or</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Either schedule can continue. Uses the minimum delay. Only <a href="-decision/-done/index.html">Decision.Done</a> when both say done.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-434797667%2FFunctions%2F-865208273" anchor-label="withMaxDuration" id="-434797667%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-max-duration.html"><span>with</span><wbr><span>Max</span><wbr><span><span>Duration</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-434797667%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-max-duration.html"><span class="token function">withMaxDuration</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">maxDuration<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">, </span></span><span class="parameter ">timeSource<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-time-source/index.html">TimeSource</a><span class="token operator"> = </span>TimeSource.Monotonic</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Limits the total time across all retries. Once the elapsed time since the first <span data-unresolved-link="kap/Schedule//#kotlin.Function2[kotlin.Int,TypeParam(bounds=[kotlin.Any?]),kap.Schedule.Decision]/PointingToCallableParameters(0)/">decide</span> call exceeds <a href="with-max-duration.html">maxDuration</a>, the schedule stops.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-141294984%2FFunctions%2F-865208273" anchor-label="zipWith" id="-141294984%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="zip-with.html"><span>zip</span><wbr><span><span>With</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-141294984%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="zip-with.html"><span class="token function">zipWith</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">f<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Combines two schedules with a custom delay merge. Both must agree to continue.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

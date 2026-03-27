@@ -1,0 +1,221 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Resource</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    KAP
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">2.4.0
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":kap-resilience/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":kap-resilience/commonMain" data-filter=":kap-resilience/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    KAP
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="kap-resilience::kap/Resource///PointingToDeclaration//-865208273">
+  <div class="breadcrumbs"><a href="../../index.html">kap-resilience</a><span class="delimiter">/</span><a href="../index.html">kap</a><span class="delimiter">/</span><span class="current">Resource</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Resource</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">Resource</a><span class="token operator">&lt;</span><span class="token keyword">out </span><a href="index.html">A</a><span class="token operator">&gt;</span></div><p class="paragraph">A composable resource with guaranteed cleanup.</p><p class="paragraph">Unlike <a href="../bracket.html">bracket</a> which requires nesting for multiple resources, <a href="index.html">Resource</a> supports flat composition via <a href="map.html">map</a>, <a href="and-then.html">andThen</a>, and <a href="../zip.html">zip</a>:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">val combined = Resource.zip(<br>    Resource({ openDb() }, { it.close() }),<br>    Resource({ openCache() }, { it.close() }),<br>) { db, cache -&gt; db to cache }<br><br>combined.use { (db, cache) -&gt;<br>    kap(::Result)<br>        .with { Kap { db.query("...") } }<br>        .with { Kap { cache.get("key") } }<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><p class="paragraph">Release always runs in <span data-unresolved-link="kotlinx.coroutines/NonCancellable///PointingToDeclaration/">NonCancellable</span> context, matching <a href="../bracket.html">bracket</a> semantics.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-1826899504%2FClasslikes%2F-865208273" anchor-label="Companion" id="-1826899504%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1826899504%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="430926155%2FFunctions%2F-865208273" anchor-label="andThen" id="430926155%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="and-then.html"><span>and</span><wbr><span><span>Then</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="430926155%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="and-then.html">B</a><span class="token operator">&gt; </span><a href="and-then.html"><span class="token function">andThen</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">f<span class="token operator">: </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="index.html">Resource</a><span class="token operator">&lt;</span><a href="and-then.html">B</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Resource</a><span class="token operator">&lt;</span><a href="and-then.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Composes resources sequentially. Both are released in reverse order.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1114652507%2FFunctions%2F-865208273" anchor-label="map" id="-1114652507%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="map.html"><span><span>map</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1114652507%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="map.html">B</a><span class="token operator">&gt; </span><a href="map.html"><span class="token function">map</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">f<span class="token operator">: </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="map.html">B</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Resource</a><span class="token operator">&lt;</span><a href="map.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Transforms the resource value. Release still applies to the original.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1805635047%2FFunctions%2F-865208273" anchor-label="use" id="1805635047%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="use.html"><span><span>use</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1805635047%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">suspend </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="use.html">B</a><span class="token operator">&gt; </span><a href="use.html"><span class="token function">use</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">f<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="use.html">B</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="use.html">B</a></div><div class="brief "><p class="paragraph">Terminal operation: acquires the resource, applies <a href="use.html">f</a>, then releases.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-8595322%2FFunctions%2F-865208273" anchor-label="useKap" id="-8595322%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="use-kap.html"><span>use</span><wbr><span><span>Kap</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-8595322%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="use-kap.html">B</a><span class="token operator">&gt; </span><a href="use-kap.html"><span class="token function">useKap</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">f<span class="token operator">: </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="use-kap.html">B</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="use-kap.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Terminal operation returning a <a href="../../../kap-core/kap/-kap/index.html">Kap</a> — integrates with <a href="../../../kap-arrow/kap/index.html">with</a> chains.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-843425697%2FFunctions%2F-865208273" anchor-label="useWithTimeout" id="-843425697%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="use-with-timeout.html"><span>use</span><wbr><span>With</span><wbr><span><span>Timeout</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-843425697%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">suspend </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="use-with-timeout.html">B</a><span class="token operator">&gt; </span><a href="use-with-timeout.html"><span class="token function">useWithTimeout</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">duration<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">, </span></span><span class="parameter ">f<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="use-with-timeout.html">B</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="use-with-timeout.html">B</a></div><div class="brief "><p class="paragraph">Terminal operation with a timeout: acquires the resource, applies <a href="use-with-timeout.html">f</a> within <a href="use-with-timeout.html">duration</a>, then releases — even if the timeout fires.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
