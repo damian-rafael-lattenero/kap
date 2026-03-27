@@ -2,6 +2,8 @@ rootProject.name = "kap"
 include(":kap-core")
 include(":kap-resilience")
 include(":kap-arrow")
+include(":kap-kotest")
+include(":kap-ktor")
 include(":benchmarks")
 
 include(":examples:ecommerce-checkout")

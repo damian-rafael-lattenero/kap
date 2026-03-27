@@ -24,6 +24,10 @@
   <a href="#modules"><img src="https://img.shields.io/badge/Multiplatform-JVM%20%7C%20JS%20%7C%20Native-orange.svg" alt="Multiplatform"></a>
 </p>
 
+<p align="center">
+  <a href="https://damian-rafael-lattenero.github.io/kap/"><strong>Documentation</strong></a> · <a href="https://damian-rafael-lattenero.github.io/kap/guide/quickstart/"><strong>Quickstart</strong></a> · <a href="https://damian-rafael-lattenero.github.io/kap/comparison/"><strong>Comparison</strong></a> · <a href="https://damian-rafael-lattenero.github.io/kap/benchmarks/"><strong>Benchmarks</strong></a>
+</p>
+
 ---
 
 ## The Problem
@@ -475,13 +479,15 @@ val result: Either<NonEmptyList<RegError>, User> = Async {
 
 ## Modules
 
-**Three modules, pick what you need:**
+**Five modules, pick what you need:**
 
 | Module | What you get | Depends on |
 |---|---|---|
 | **`kap-core`** | `Kap`, `with`, `kap`, `then`, `race`, `traverse`, `memoize`, `timeout`, `recover` | `kotlinx-coroutines-core` only |
 | **`kap-resilience`** | `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `raceQuorum`, `timeoutRace` | `kap-core` |
 | **`kap-arrow`** | `zipV`, `withV`, `validated {}`, `attempt()`, `raceEither`, `Either`/`Nel` bridges | `kap-core` + Arrow Core |
+| **`kap-ktor`** | Ktor plugin, circuit breaker registry, tracers, `respondAsync` | `kap-core` + Ktor |
+| **`kap-kotest`** | `shouldSucceedWith`, `shouldFailWith`, timing & lifecycle matchers | `kap-core` (test) |
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -512,6 +518,8 @@ dependencies {
     // Optional
     implementation("io.github.damian-rafael-lattenero:kap-resilience:2.3.0")
     implementation("io.github.damian-rafael-lattenero:kap-arrow:2.3.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ktor:2.3.0")
+    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:2.3.0")
 }
 ```
 

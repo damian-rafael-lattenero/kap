@@ -22,5 +22,6 @@ allprojects {
 
 apiValidation {
     ignoredProjects.addAll(listOf("benchmarks", "ecommerce-checkout", "dashboard-aggregator",
-        "validated-registration", "resilient-fetcher", "full-stack-order", "ktor-integration", "readme-examples"))
+        "validated-registration", "resilient-fetcher", "full-stack-order", "ktor-integration", "readme-examples",
+        "kap-kotest", "kap-ktor"))
 }

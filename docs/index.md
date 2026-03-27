@@ -107,6 +107,8 @@ Pick what you need:
 | [`kap-core`](modules/kap-core.md) | `Kap`, `with`, `then`, `race`, `traverse`, `memoize`, `timeout`, `recover` | `kotlinx-coroutines-core` |
 | [`kap-resilience`](modules/kap-resilience.md) | `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `timeoutRace`, `raceQuorum` | `kap-core` |
 | [`kap-arrow`](modules/kap-arrow.md) | `zipV`, `withV`, `validated {}`, `attempt()`, `raceEither` | `kap-core` + Arrow |
+| [`kap-ktor`](modules/kap-ktor.md) | Ktor plugin, circuit breaker registry, tracers, `respondAsync` | `kap-core` + Ktor |
+| [`kap-kotest`](modules/kap-kotest.md) | `shouldSucceedWith`, `shouldFailWith`, timing & lifecycle matchers | `kap-core` |
 
 ```kotlin
 dependencies {
@@ -115,6 +117,8 @@ dependencies {
     // Optional
     implementation("io.github.damian-rafael-lattenero:kap-resilience:2.3.0")
     implementation("io.github.damian-rafael-lattenero:kap-arrow:2.3.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ktor:2.3.0")
+    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:2.3.0")
 }
 ```
 
