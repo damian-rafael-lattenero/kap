@@ -5,19 +5,16 @@ hide:
 ---
 
 <style>
-.md-content__inner { max-width: 900px; margin: 0 auto; }
+.md-content__inner { max-width: 960px; margin: 0 auto; }
 .hero { text-align: center; padding: 2rem 0 1rem; }
 .hero img { width: 160px; }
 .hero h1 { font-size: 2.4rem; margin-top: 1rem; }
-.hero p { font-size: 1.2rem; color: var(--md-default-fg-color--light); }
-.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
-.feature { padding: 1.2rem; border-radius: 8px; border: 1px solid var(--md-default-fg-color--lightest); }
-.feature h3 { margin-top: 0; }
+.hero p { font-size: 1.15rem; color: var(--md-default-fg-color--light); }
 </style>
 
 <div class="hero">
   <img src="assets/logo.svg" alt="KAP">
-  <h1>KAP</h1>
+  <h1>KAP — Kotlin Async Parallelism</h1>
   <p><strong>Type-safe multi-service orchestration for Kotlin coroutines.</strong><br>
   Flat chains, visible phases, compiler-checked argument order.</p>
   <p>
@@ -28,25 +25,47 @@ hide:
 
 ---
 
-## The Problem
+## 11 services. 5 phases. One flat chain.
 
-You have 11 microservice calls. Some run in parallel, others depend on earlier results. With raw coroutines you get invisible phases, silent bugs, and 30+ lines of boilerplate:
+You have a checkout flow: fetch user, cart, promos, inventory in parallel. Wait. Validate stock. Wait. Calculate shipping, tax, discounts in parallel. Wait. Reserve payment. Wait. Generate confirmation and send email in parallel.
+
+With raw coroutines, this is **30+ lines of shuttle variables, invisible phases, and silent bugs**:
 
 ```kotlin
+// Raw coroutines: 30+ lines, invisible phases, silent bugs
 val checkout = coroutineScope {
     val dUser = async { fetchUser() }
     val dCart = async { fetchCart() }
     val dPromos = async { fetchPromos() }
     val dInventory = async { fetchInventory() }
-    val user = dUser.await()      // ← move this above async? Silent serialization.
-    val cart = dCart.await()       // ← swap with promos? Same type, no compiler error.
+    val user = dUser.await()          // ← move above async? Silent serialization.
+    val cart = dCart.await()           // ← swap with promos? Same type = no compiler error.
     val promos = dPromos.await()
     val inventory = dInventory.await()
-    // ... 20 more lines of shuttle variables
+
+    val stock = validateStock()       // Where does phase 1 end? You have to read every line.
+
+    val dShipping = async { calcShipping() }
+    val dTax = async { calcTax() }
+    val dDiscounts = async { calcDiscounts() }
+    val shipping = dShipping.await()
+    val tax = dTax.await()
+    val discounts = dDiscounts.await()
+
+    val payment = reservePayment()    // Another invisible barrier.
+
+    val dConfirmation = async { generateConfirmation() }
+    val dEmail = async { sendEmail() }
+
+    CheckoutResult(
+        user, cart, promos, inventory, stock,
+        shipping, tax, discounts, payment,
+        dConfirmation.await(), dEmail.await()
+    )
 }
 ```
 
-## The Solution
+**With KAP:**
 
 ```kotlin
 val checkout: CheckoutResult = Async {
@@ -65,50 +84,121 @@ val checkout: CheckoutResult = Async {
 }
 ```
 
-11 service calls. 5 phases. One flat chain. **Swap any two `.with` lines and the compiler rejects it.** 130ms total vs 460ms sequential.
+**30 lines vs 12.** Invisible phases vs explicit phases. Silent bugs vs compile-time safety. **Swap any two `.with` lines and the compiler rejects it** — each service returns a distinct type, and the typed function chain locks parameter order.
+
+```
+t=0ms   ─── fetchUser ────────┐
+t=0ms   ─── fetchCart ────────┤
+t=0ms   ─── fetchPromos ─────├─ phase 1 (parallel)
+t=0ms   ─── fetchInventory ──┘
+t=50ms  ─── validateStock ───── phase 2 (barrier)
+t=60ms  ─── calcShipping ────┐
+t=60ms  ─── calcTax ─────────├─ phase 3 (parallel)
+t=60ms  ─── calcDiscounts ───┘
+t=80ms  ─── reservePayment ──── phase 4 (barrier)
+t=90ms  ─── generateConfirm ─┐
+t=90ms  ─── sendEmail ───────┘─ phase 5 (parallel)
+t=130ms ─── done
+```
+
+**130ms total** (vs 460ms sequential). Verified in [`ConcurrencyProofTest.kt`](https://github.com/damian-rafael-lattenero/kap/blob/master/kap-core/src/jvmTest/kotlin/kap/ConcurrencyProofTest.kt).
 
 ---
 
-<div class="features">
-  <div class="feature">
-    <h3>Visible Phases</h3>
-    <p><code>.with</code> = parallel, <code>.then</code> = barrier. The code shape <em>is</em> the execution plan. No guessing where phases begin and end.</p>
-  </div>
-  <div class="feature">
-    <h3>Compile-Time Safety</h3>
-    <p>Each <code>.with</code> slot is typed. Swap two same-type services? The compiler catches it. No positional bugs.</p>
-  </div>
-  <div class="feature">
-    <h3>Zero Overhead</h3>
-    <p>JMH benchmarks show KAP overhead is indistinguishable from raw coroutines. No reflection, no code generation at runtime.</p>
-  </div>
-  <div class="feature">
-    <h3>Multiplatform</h3>
-    <p>JVM, JS, iOS, macOS, Linux. One dependency: <code>kotlinx-coroutines-core</code>.</p>
-  </div>
-  <div class="feature">
-    <h3>Resilience Built-In</h3>
-    <p>Schedule, CircuitBreaker, Resource, bracket, timeoutRace, raceQuorum. All composable in the chain.</p>
-  </div>
-  <div class="feature">
-    <h3>Arrow Integration</h3>
-    <p>Parallel validation with error accumulation. <code>zipV</code> scales to 22 validators (Arrow maxes at 9).</p>
-  </div>
-</div>
+## Value-dependent phases
+
+Real APIs have dependencies: phase 2 needs phase 1's results. With raw coroutines, you thread values through variables manually. With KAP, the dependency graph **is** the code shape:
+
+```kotlin
+val userId = "user-42"
+
+val dashboard: FinalDashboard = Async {
+    kap(::UserContext)
+        .with { fetchProfile(userId) }       // ┐
+        .with { fetchPreferences(userId) }   // ├─ phase 1: parallel
+        .with { fetchLoyaltyTier(userId) }   // ┘
+        .andThen { ctx ->                    // ── barrier: ctx available
+            kap(::EnrichedContent)
+                .with { fetchRecommendations(ctx.profile) }  // ┐
+                .with { fetchPromotions(ctx.tier) }           // ├─ phase 2: parallel
+                .with { fetchTrending(ctx.prefs) }            // │
+                .with { fetchHistory(ctx.profile) }           // ┘
+                .andThen { enriched ->                         // ── barrier
+                    kap(::FinalDashboard)
+                        .with { renderLayout(ctx, enriched) }     // ┐ phase 3
+                        .with { trackAnalytics(ctx, enriched) }   // ┘
+                }
+        }
+}
+```
+
+```
+t=0ms   ─── fetchProfile ──────┐
+t=0ms   ─── fetchPreferences ──├─ phase 1 (parallel)
+t=0ms   ─── fetchLoyaltyTier ──┘
+t=50ms  ─── andThen { ctx -> }  ── barrier, ctx available
+t=50ms  ─── fetchRecommendations ──┐
+t=50ms  ─── fetchPromotions ───────├─ phase 2 (parallel)
+t=50ms  ─── fetchTrending ─────────┤
+t=50ms  ─── fetchHistory ──────────┘
+t=90ms  ─── andThen { enriched -> } ── barrier
+t=90ms  ─── renderLayout ──┐
+t=90ms  ─── trackAnalytics ┘─ phase 3 (parallel)
+t=115ms ─── FinalDashboard ready
+```
+
+14 service calls, 3 phases, **115ms vs 460ms sequential**.
+
+---
+
+## Add resilience in the same chain
+
+```kotlin
+val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+val retryPolicy = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
+
+val result = Async {
+    kap(::Dashboard)
+        .with(Kap { fetchUser() }
+            .withCircuitBreaker(breaker)      // protect downstream
+            .retry(retryPolicy))              // exponential backoff
+        .with(Kap { fetchFromSlowApi() }
+            .timeoutRace(100.milliseconds,    // both start at t=0
+                Kap { fetchFromCache() }))    // fallback already running
+        .with { fetchPromos() }
+}
+```
+
+---
+
+## Collect every validation error at once
+
+```kotlin
+val result: Either<NonEmptyList<RegError>, User> = Async {
+    zipV(
+        { validateName("A") },           // ← too short
+        { validateEmail("bad") },         // ← invalid
+        { validateAge(10) },              // ← too young
+        { checkUsername("al") },          // ← too short
+    ) { name, email, age, username -> User(name, email, age, username) }
+}
+// result = Left(NonEmptyList(NameTooShort, InvalidEmail, AgeTooLow, UsernameTaken))
+// ALL 4 errors in ONE response. No round trips.
+```
+
+Scales to **22 validators** (Arrow's `zipOrAccumulate` maxes at 9).
 
 ---
 
 ## Modules
 
-Pick what you need:
-
 | Module | What you get | Depends on |
 |---|---|---|
-| [`kap-core`](modules/kap-core.md) | `Kap`, `with`, `then`, `race`, `traverse`, `memoize`, `timeout`, `recover` | `kotlinx-coroutines-core` |
+| [`kap-core`](modules/kap-core.md) | `with`, `then`, `andThen`, `race`, `traverse`, `memoize`, `settled`, `timeout`, `recover` | `kotlinx-coroutines-core` |
 | [`kap-resilience`](modules/kap-resilience.md) | `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `timeoutRace`, `raceQuorum` | `kap-core` |
 | [`kap-arrow`](modules/kap-arrow.md) | `zipV`, `withV`, `validated {}`, `attempt()`, `raceEither` | `kap-core` + Arrow |
 | [`kap-ktor`](modules/kap-ktor.md) | Ktor plugin, circuit breaker registry, tracers, `respondAsync` | `kap-core` + Ktor |
-| [`kap-kotest`](modules/kap-kotest.md) | `shouldSucceedWith`, `shouldFailWith`, timing & lifecycle matchers | `kap-core` |
+| [`kap-kotest`](modules/kap-kotest.md) | `shouldSucceedWith`, `shouldFailWith`, timing & lifecycle matchers | `kap-core` (test) |
 
 ```kotlin
 dependencies {
@@ -131,7 +221,10 @@ All claims backed by **119 JMH benchmarks** and deterministic virtual-time proof
 | Dimension | Raw Coroutines | Arrow | KAP |
 |---|---|---|---|
 | **Framework overhead** (arity 3) | <0.01ms | 0.02ms | **<0.01ms** |
+| **Framework overhead** (arity 9) | <0.01ms | 0.03ms | **<0.01ms** |
+| **Simple parallel** (5 x 50ms) | 50.27ms | 50.33ms | **50.31ms** |
 | **Multi-phase** (9 calls, 4 phases) | 180.85ms | 181.06ms | **180.98ms** |
+| **Race** (50ms vs 100ms) | 100.34ms | 50.51ms | **50.40ms** |
 | **timeoutRace** (primary wins) | 180.55ms | -- | **30.34ms** |
 | **Max validation arity** | -- | 9 | **22** |
 
