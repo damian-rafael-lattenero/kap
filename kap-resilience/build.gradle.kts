@@ -54,6 +54,10 @@ kotlin {
             implementation(libs.coroutines.test)
             implementation(libs.kotest.property)
         }
+        nativeTest.dependencies {
+             implementation(kotlin("test"))
+             implementation(libs.coroutines.test)
+        }     
     }
 }
 
