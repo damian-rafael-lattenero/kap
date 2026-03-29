@@ -178,6 +178,23 @@ val dashboard: FinalDashboard = Async {
 
 ---
 
+## Nothing runs until `Async { }`
+
+`Kap<A>` is lazy — it's a plan, not a running computation:
+
+```kotlin
+val plan: Kap<Dashboard> = kap(::Dashboard)
+    .with { fetchUser() }
+    .with { fetchCart() }
+    .with { fetchPromos() }
+
+println("Plan built. Nothing has executed yet.")
+
+val result: Dashboard = Async { plan }  // NOW it runs
+```
+
+---
+
 ## Same-type safety with `@KapTypeSafe` (KSP)
 
 Two `String` params? Swap them and nobody notices — until production. KAP's KSP processor fixes this:
