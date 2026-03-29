@@ -43,14 +43,8 @@ theme:
 
 nav:
   - Home: index.md
-  - Getting Started:
-    - Quickstart: guide/quickstart.md
-    - Core Concepts: guide/core-concepts.md
-  - Guides:
-    - Parallel API Aggregation: guide/parallel-aggregation.md
-    - Validated Forms: guide/validated-forms.md
-    - Resilient Services: guide/resilient-services.md
-  - Modules:
+  - Getting Started: guide/quickstart.md
+  - KDocs:
     - kap-core: modules/kap-core.md
     - kap-resilience: modules/kap-resilience.md
     - kap-arrow: modules/kap-arrow.md

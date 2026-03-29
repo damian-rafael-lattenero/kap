@@ -147,8 +147,8 @@ cd kap
 
 ## What's next?
 
-- [Core Concepts](core-concepts.md) — Understand the `with`/`then`/`andThen` model in depth
+- [kap-core KDocs](../modules/kap-core.md) — Full API with Raw/Arrow/KAP comparisons
+- [kap-resilience KDocs](../modules/kap-resilience.md) — Schedule, CircuitBreaker, Resource
+- [kap-arrow KDocs](../modules/kap-arrow.md) — Parallel validation with error accumulation
 - [Cookbook](../playground.md) — 12 complete runnable examples
-- [Parallel API Aggregation](parallel-aggregation.md) — Build a real BFF endpoint
-- [Modules](../modules/kap-core.md) — Full API reference per module
 - [Comparison](../comparison.md) — KAP vs Arrow vs raw coroutines
