@@ -143,24 +143,35 @@ suspend fun main() {
 import kap.*
 import kotlinx.coroutines.delay
 
+// Domain type that tolerates partial failure
 data class PartialDashboard(val user: String, val cart: String, val config: String)
 
+// Services: one is unreliable, the others always succeed
 suspend fun fetchUserMayFail(): String { throw RuntimeException("user service down") }
 suspend fun fetchCartAlways(): String { delay(20); return "cart-ok" }
 suspend fun fetchConfigAlways(): String { delay(15); return "config-ok" }
 
+// Builder function: receives Result<String> for the unreliable service
+fun buildPartialDashboard(user: Result<String>, cart: String, config: String): PartialDashboard =
+    PartialDashboard(
+        user = user.getOrDefault("anonymous"),  // failed? use fallback value
+        cart = cart,
+        config = config,
+    )
+
 suspend fun main() {
     val dashboard = Async {
-        kap { user: Result<String>, cart: String, config: String ->
-            PartialDashboard(user.getOrDefault("anonymous"), cart, config)
-        }
-            .with(Kap { fetchUserMayFail() }.settled())  // wrapped in Result — won't cancel siblings
-            .with { fetchCartAlways() }
-            .with { fetchConfigAlways() }
+        kap(::buildPartialDashboard)
+            .with(Kap { fetchUserMayFail() }.settled())  // .settled() wraps in Result<String>
+            .with { fetchCartAlways() }                   // normal String — failure here cancels all
+            .with { fetchConfigAlways() }                 // normal String
     }
     println(dashboard)
     // PartialDashboard(user=anonymous, cart=cart-ok, config=config-ok)
-    // fetchUser failed but dashboard still built with fallback
+    //
+    // fetchUserMayFail() threw RuntimeException → .settled() wrapped it as Result.failure
+    // fetchCartAlways() and fetchConfigAlways() were NOT cancelled
+    // buildPartialDashboard() used "anonymous" fallback for the failed user
 }
 ```
 

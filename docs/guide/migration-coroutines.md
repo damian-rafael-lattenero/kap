@@ -227,13 +227,17 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
 === "KAP"
 
     ```kotlin
+    // Builder function: handles the Result wrapper explicitly
+    fun buildDashboard(user: Result<String>, cart: String): Dashboard =
+        Dashboard(user.getOrDefault("anonymous"), cart)
+
     val result = Async {
-        kap { user: Result<String>, cart: String ->
-            Dashboard(user.getOrDefault("anonymous"), cart)
-        }
-            .with(Kap { fetchUserMayFail() }.settled())
-            .with { fetchCart() }
+        kap(::buildDashboard)
+            .with(Kap { fetchUserMayFail() }.settled())  // .settled() → Result<String>
+            .with { fetchCart() }                          // normal String
     }
+    // fetchUserMayFail() fails → Result.failure → buildDashboard uses "anonymous"
+    // fetchCart() is NOT cancelled
     ```
 
 ## Cheat sheet

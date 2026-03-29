@@ -531,24 +531,35 @@ suspend fun chooseYourStyle() {
 //  Feature: Partial Failure with .settled() (kap-core)
 // ═══════════════════════════════════════════════════════════════════════
 
+// Domain type that tolerates partial failure
+data class PartialDashboard(val user: String, val cart: String, val config: String)
+
+// Services: one is unreliable, the others always succeed
+suspend fun fetchUserMayFail(): String { throw RuntimeException("user service down") }
+suspend fun fetchCartAlways(): String { delay(20); return "cart-ok" }
+suspend fun fetchConfigAlways(): String { delay(15); return "config-ok" }
+
+// Builder function: receives Result<String> for the unreliable service, uses fallback
+fun buildPartialDashboard(user: Result<String>, cart: String, config: String): PartialDashboard =
+    PartialDashboard(
+        user = user.getOrDefault("anonymous"),  // failed? use fallback value
+        cart = cart,
+        config = config,
+    )
+
 suspend fun featureSettled() {
     println("=== Feature: Partial Failure with .settled() ===\n")
 
-    suspend fun fetchUserMayFail(): String { throw RuntimeException("user service down") }
-    suspend fun fetchCartAlways(): String { delay(20); return "cart-ok" }
-    suspend fun fetchConfigAlways(): String { delay(15); return "config-ok" }
-
-    data class PartialDashboard(val user: String, val cart: String, val config: String)
-
+    // .settled() wraps the result in Result<T> — failure doesn't cancel siblings
     val dashboard = Async {
-        kap { user: Result<String>, cart: String, config: String ->
-            PartialDashboard(user.getOrDefault("anonymous"), cart, config)
-        }
-            .with(Kap { fetchUserMayFail() }.settled())
-            .with { fetchCartAlways() }
-            .with { fetchConfigAlways() }
+        kap(::buildPartialDashboard)
+            .with(Kap { fetchUserMayFail() }.settled())  // Result<String> — won't cancel siblings
+            .with { fetchCartAlways() }                   // normal String — failure here cancels all
+            .with { fetchConfigAlways() }                 // normal String
     }
     println("  settled: $dashboard")
+    // PartialDashboard(user=anonymous, cart=cart-ok, config=config-ok)
+    // fetchUserMayFail() threw → .settled() wrapped as Result.failure → buildPartialDashboard used fallback
 
     // traverseSettled: process ALL items, no cancellation on failure
     val ids = listOf(1, 2, 3, 4, 5)

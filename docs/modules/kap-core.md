@@ -293,15 +293,41 @@ val lazy: Kap<String> = Kap.defer { Kap { expensiveSetup() } } // lazy construct
 === "KAP"
 
     ```kotlin
-    val dashboard = Async {
-        kap { user: Result<String>, cart: String, config: String ->
-            PartialDashboard(user.getOrDefault("anonymous"), cart, config)
+    import kap.*
+    import kotlinx.coroutines.delay
+
+    // Domain type that tolerates partial failure
+    data class PartialDashboard(val user: String, val cart: String, val config: String)
+
+    // Services: one is unreliable, the others always succeed
+    suspend fun fetchUserMayFail(): String { throw RuntimeException("user service down") }
+    suspend fun fetchCartAlways(): String { delay(20); return "cart-ok" }
+    suspend fun fetchConfigAlways(): String { delay(15); return "config-ok" }
+
+    // Builder function: handles the Result wrapper with a fallback
+    fun buildPartialDashboard(user: Result<String>, cart: String, config: String): PartialDashboard =
+        PartialDashboard(
+            user = user.getOrDefault("anonymous"),  // failed? use fallback
+            cart = cart,
+            config = config,
+        )
+
+    suspend fun main() {
+        val dashboard = Async {
+            kap(::buildPartialDashboard)
+                .with(Kap { fetchUserMayFail() }.settled())  // .settled() wraps in Result<String>
+                .with { fetchCartAlways() }                   // normal String — fails cancel everything
+                .with { fetchConfigAlways() }                 // normal String
         }
-            .with(Kap { fetchUserMayFail() }.settled())   // wrapped in Result
-            .with { fetchCartAlways() }
-            .with { fetchConfigAlways() }
+        println(dashboard)
+        // PartialDashboard(user=anonymous, cart=cart-ok, config=config-ok)
+        //
+        // What happened:
+        // - fetchUserMayFail() threw RuntimeException
+        // - .settled() caught it and wrapped as Result.failure(...)
+        // - fetchCartAlways() and fetchConfigAlways() were NOT cancelled
+        // - buildPartialDashboard() received Result.failure for user, used "anonymous" fallback
     }
-    // fetchUser fails? Dashboard still builds with "anonymous".
     ```
 
 ### `traverseSettled` — Collect ALL results, no cancellation
