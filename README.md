@@ -29,7 +29,7 @@
 </h2>
 
 <p align="center">
-  <a href="https://damian-rafael-lattenero.github.io/kap/playground/">Playground</a> · <a href="https://damian-rafael-lattenero.github.io/kap/comparison/">Comparison</a> · <a href="https://damian-rafael-lattenero.github.io/kap/blog/">Blog</a> · <a href="https://damian-rafael-lattenero.github.io/kap/guide/migration-coroutines/">Migration Guide</a> · <a href="https://github.com/damian-rafael-lattenero/kap-starter">Starter Template</a>
+  <a href="https://damian-rafael-lattenero.github.io/kap/playground/">Cookbook</a> · <a href="https://damian-rafael-lattenero.github.io/kap/comparison/">Comparison</a> · <a href="https://damian-rafael-lattenero.github.io/kap/blog/">Blog</a> · <a href="https://damian-rafael-lattenero.github.io/kap/guide/migration-coroutines/">Migration Guide</a> · <a href="https://github.com/damian-rafael-lattenero/kap-starter">Starter Template</a>
 </p>
 
 ---
@@ -230,7 +230,7 @@ dependencies {
 </h2>
 
 <p align="center">
-  <a href="https://damian-rafael-lattenero.github.io/kap/playground/">Playground</a> · <a href="https://damian-rafael-lattenero.github.io/kap/modules/kap-ksp/">@KapTypeSafe</a> · <a href="https://github.com/damian-rafael-lattenero/kap/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">Contribute</a> · <a href="https://github.com/damian-rafael-lattenero/kap/discussions">Discussions</a>
+  <a href="https://damian-rafael-lattenero.github.io/kap/playground/">Cookbook</a> · <a href="https://damian-rafael-lattenero.github.io/kap/modules/kap-ksp/">@KapTypeSafe</a> · <a href="https://github.com/damian-rafael-lattenero/kap/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">Contribute</a> · <a href="https://github.com/damian-rafael-lattenero/kap/discussions">Discussions</a>
 </p>
 
 ## License

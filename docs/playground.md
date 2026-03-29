@@ -3,153 +3,98 @@ hide:
   - toc
 ---
 
-# Playground
+# Cookbook
 
-Interactive examples powered by [Kotlin Playground](https://kotlinlang.org/docs/kotlin-tour-hello-world.html). Edit and run directly in your browser.
+Real examples from the [`readme-examples`](https://github.com/damian-rafael-lattenero/kap/tree/master/examples/readme-examples) project. All code compiles, runs, and is verified on every CI push.
 
-<script src="https://unpkg.com/kotlin-playground@1" data-selector=".kotlin-playground"></script>
-
-<style>
-.kotlin-playground { margin: 1.5rem 0; }
-</style>
+```bash
+# Run all examples yourself:
+git clone https://github.com/damian-rafael-lattenero/kap.git
+cd kap
+./gradlew :examples:readme-examples:run
+```
 
 ---
 
-## Parallel Execution — `.with`
+## Parallel Execution — 3 services at once
 
-Three services fetched in parallel. Total time = max(individual), not sum.
-
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-
+```kotlin
 data class Dashboard(val user: String, val cart: String, val promos: String)
 
-suspend fun fetchUser(): String { delay(300); return "Alice" }
-suspend fun fetchCart(): String { delay(200); return "3 items" }
-suspend fun fetchPromos(): String { delay(100); return "SAVE20" }
+suspend fun fetchDashUser(): String { delay(30); return "Alice" }
+suspend fun fetchDashCart(): String { delay(20); return "3 items" }
+suspend fun fetchDashPromos(): String { delay(10); return "SAVE20" }
 
-suspend fun main() {
-    val start = System.currentTimeMillis()
-
-    // Parallel execution with coroutineScope
-    val result = coroutineScope {
-        val dUser = async { fetchUser() }
-        val dCart = async { fetchCart() }
-        val dPromos = async { fetchPromos() }
-        Dashboard(dUser.await(), dCart.await(), dPromos.await())
-    }
-
-    val elapsed = System.currentTimeMillis() - start
-    println("Result: $result")
-    println("Time: ${elapsed}ms (not 600ms — parallel!)")
-
-    // With KAP this would be:
-    // val result = Async {
-    //     kap(::Dashboard)
-    //         .with { fetchUser() }
-    //         .with { fetchCart() }
-    //         .with { fetchPromos() }
-    // }
+val result = Async {
+    kap(::Dashboard)
+        .with { fetchDashUser() }     // ┐ all three in parallel
+        .with { fetchDashCart() }      // │ total time = max(30, 20, 10) = 30ms
+        .with { fetchDashPromos() }    // ┘ not 60ms
 }
-</div>
+```
 
-!!! info "Note"
-    KAP itself can't run in Kotlin Playground (it needs a Maven dependency). These examples show the **coroutine patterns** that KAP simplifies. The commented KAP code shows the equivalent.
+**Output:**
+```
+Dashboard(user=Alice, cart=3 items, promos=SAVE20)
+```
 
 ---
 
-## Phase Barriers — `.then`
+## 11-Service Checkout — 5 phases, one flat chain
 
-Phase 2 waits for phase 1 to complete:
-
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-
-suspend fun fetchA(): String { delay(200); return "A" }
-suspend fun fetchB(): String { delay(150); return "B" }
-suspend fun validate(a: String, b: String): String { delay(100); return "valid($a,$b)" }
-
-suspend fun main() {
-    val start = System.currentTimeMillis()
-
-    val result = coroutineScope {
-        // Phase 1: parallel
-        val dA = async { fetchA() }
-        val dB = async { fetchB() }
-        val a = dA.await()
-        val b = dB.await()
-
-        // Phase 2: barrier — needs A and B
-        val validated = validate(a, b)
-
-        Triple(a, b, validated)
-    }
-
-    val elapsed = System.currentTimeMillis() - start
-    println("Result: $result")
-    println("Time: ${elapsed}ms (200ms parallel + 100ms barrier = ~300ms)")
-
-    // With KAP:
-    // kap(::Triple)
-    //     .with { fetchA() }       // ┐ parallel
-    //     .with { fetchB() }       // ┘
-    //     .then { validate() }     // ── barrier
+```kotlin
+val checkout: CheckoutResult = Async {
+    kap(::CheckoutResult)
+        .with { fetchUser() }              // ┐
+        .with { fetchCart() }               // ├─ phase 1: parallel
+        .with { fetchPromos() }             // │
+        .with { fetchInventory() }          // ┘
+        .then { validateStock() }           // ── phase 2: barrier
+        .with { calcShipping() }            // ┐
+        .with { calcTax() }                 // ├─ phase 3: parallel
+        .with { calcDiscounts() }           // ┘
+        .then { reservePayment() }          // ── phase 4: barrier
+        .with { generateConfirmation() }    // ┐ phase 5: parallel
+        .with { sendEmail() }              // ┘
 }
-</div>
+```
+
+**Output:**
+```
+CheckoutResult(user=UserProfile(name=Alice, id=42), cart=ShoppingCart(items=3, total=147.5),
+promos=PromotionBundle(code=SUMMER20, discountPct=20), inventory=InventorySnapshot(allInStock=true),
+stock=StockConfirmation(confirmed=true), shipping=ShippingQuote(amount=5.99, method=standard),
+tax=TaxBreakdown(amount=12.38, rate=0.08), discounts=DiscountSummary(amount=29.5, promoApplied=SUMMER20),
+payment=PaymentAuth(cardLast4=4242, authorized=true), confirmation=OrderConfirmation(orderId=order-#90142),
+email=EmailReceipt(sentTo=alice@example.com, orderId=order-#90142))
+```
 
 ---
 
 ## Value-Dependent Phases — `.andThen`
 
-Phase 2 uses phase 1's result:
+Phase 2 needs phase 1's result:
 
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-
-data class UserContext(val profile: String, val prefs: String)
-data class Enriched(val recs: String, val promos: String)
-
-suspend fun fetchProfile(id: String): String { delay(200); return "profile-$id" }
-suspend fun fetchPrefs(id: String): String { delay(150); return "prefs-$id" }
-suspend fun fetchRecs(profile: String): String { delay(100); return "recs-for-$profile" }
-suspend fun fetchPromos(prefs: String): String { delay(80); return "promos-for-$prefs" }
-
-suspend fun main() {
-    val start = System.currentTimeMillis()
-
-    // Phase 1
-    val ctx = coroutineScope {
-        val dProfile = async { fetchProfile("user-42") }
-        val dPrefs = async { fetchPrefs("user-42") }
-        UserContext(dProfile.await(), dPrefs.await())
-    }
-
-    // Phase 2 — depends on ctx
-    val enriched = coroutineScope {
-        val dRecs = async { fetchRecs(ctx.profile) }
-        val dPromos = async { fetchPromos(ctx.prefs) }
-        Enriched(dRecs.await(), dPromos.await())
-    }
-
-    val elapsed = System.currentTimeMillis() - start
-    println("Context: $ctx")
-    println("Enriched: $enriched")
-    println("Time: ${elapsed}ms (200ms + 100ms = ~300ms, not 530ms)")
-
-    // With KAP — one flat chain:
-    // kap(::UserContext)
-    //     .with { fetchProfile("user-42") }
-    //     .with { fetchPrefs("user-42") }
-    //     .andThen { ctx ->
-    //         kap(::Enriched)
-    //             .with { fetchRecs(ctx.profile) }
-    //             .with { fetchPromos(ctx.prefs) }
-    //     }
+```kotlin
+val userId = "user-1"
+val dashboard = Async {
+    kap(::UserContext)
+        .with { fetchProfile(userId) }       // ┐ phase 1: parallel
+        .with { fetchPreferences(userId) }   // │
+        .with { fetchLoyaltyTier(userId) }   // ┘
+        .andThen { ctx ->                    // ── barrier: ctx available
+            kap(::PersonalizedDashboard)
+                .with { fetchRecommendations(ctx.profile) }  // ┐ phase 2
+                .with { fetchPromotions(ctx.tier) }           // │
+                .with { fetchTrending(ctx.prefs) }            // ┘
+        }
 }
-</div>
+```
+
+**Output:**
+```
+PersonalizedDashboard(recs=recs-for-profile-user-1, promos=promos-gold, trending=trending-prefs-dark)
+```
 
 ---
 
@@ -157,116 +102,196 @@ suspend fun main() {
 
 One service fails, the rest still complete:
 
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-
-data class Dashboard(val user: String, val cart: String, val config: String)
-
-suspend fun fetchUserMayFail(): String { throw RuntimeException("user service down") }
-suspend fun fetchCart(): String { delay(100); return "cart-ok" }
-suspend fun fetchConfig(): String { delay(80); return "config-ok" }
-
-suspend fun main() {
-    // With raw coroutines: supervisorScope + try/catch
-    val result = supervisorScope {
-        val dUser = async { fetchUserMayFail() }
-        val dCart = async { fetchCart() }
-        val dConfig = async { fetchConfig() }
-        val user = try { dUser.await() } catch (e: Exception) { "anonymous" }
-        Dashboard(user, dCart.await(), dConfig.await())
+```kotlin
+val dashboard = Async {
+    kap { user: Result<String>, cart: String, config: String ->
+        PartialDashboard(user.getOrDefault("anonymous"), cart, config)
     }
-
-    println("Result: $result")
-    println("User failed but dashboard still built with fallback!")
-
-    // With KAP:
-    // kap { user: Result<String>, cart: String, config: String ->
-    //     Dashboard(user.getOrDefault("anonymous"), cart, config)
-    // }
-    //     .with(Kap { fetchUserMayFail() }.settled())
-    //     .with { fetchCart() }
-    //     .with { fetchConfig() }
+        .with(Kap { fetchUserMayFail() }.settled())  // wrapped in Result
+        .with { fetchCartAlways() }
+        .with { fetchConfigAlways() }
 }
-</div>
+```
+
+**Output:**
+```
+PartialDashboard(user=anonymous, cart=cart-ok, config=config-ok)
+```
 
 ---
 
-## Racing — First to Succeed Wins
+## `traverseSettled` — Collect ALL results
 
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-import kotlinx.coroutines.selects.select
-
-suspend fun fetchUS(): String { delay(300); return "US-data" }
-suspend fun fetchEU(): String { delay(100); return "EU-data" }
-suspend fun fetchAP(): String { delay(200); return "AP-data" }
-
-suspend fun main() {
-    val start = System.currentTimeMillis()
-
-    // Race three regions
-    val winner = coroutineScope {
-        val us = async { fetchUS() }
-        val eu = async { fetchEU() }
-        val ap = async { fetchAP() }
-        select {
-            us.onAwait { it }
-            eu.onAwait { it }
-            ap.onAwait { it }
-        }.also {
-            us.cancel(); eu.cancel(); ap.cancel()
+```kotlin
+val ids = listOf(1, 2, 3, 4, 5)
+val results: List<Result<String>> = Async {
+    ids.traverseSettled { id ->
+        Kap {
+            if (id % 2 == 0) throw RuntimeException("fail-$id")
+            "user-$id"
         }
     }
-
-    val elapsed = System.currentTimeMillis() - start
-    println("Winner: $winner in ${elapsed}ms")
-    println("EU won at ~100ms. US and AP cancelled.")
-
-    // With KAP:
-    // raceN(
-    //     Kap { fetchUS() },
-    //     Kap { fetchEU() },
-    //     Kap { fetchAP() },
-    // )
 }
-</div>
+```
+
+**Output:**
+```
+successes=[user-1, user-3, user-5], failures=[fail-2, fail-4]
+```
 
 ---
 
-## Bounded Concurrency — `traverse(concurrency)`
+## Racing — Fastest region wins
 
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-
-suspend fun fetchUser(id: Int): String { delay(100); return "user-$id" }
-
-suspend fun main() {
-    val ids = (1..20).toList()
-    val start = System.currentTimeMillis()
-
-    // Bounded parallel: max 5 concurrent
-    val semaphore = Semaphore(5)
-    val results = coroutineScope {
-        ids.map { id ->
-            async { semaphore.withPermit { fetchUser(id) } }
-        }.awaitAll()
-    }
-
-    val elapsed = System.currentTimeMillis() - start
-    println("Fetched ${results.size} users in ${elapsed}ms")
-    println("With concurrency=5: ~400ms (4 batches × 100ms)")
-    println("Sequential would be: ${ids.size * 100}ms")
-
-    // With KAP:
-    // ids.traverse(concurrency = 5) { id -> Kap { fetchUser(id) } }
+```kotlin
+val fastest = Async {
+    raceN(
+        Kap { fetchFromRegionUS() },   // 100ms
+        Kap { fetchFromRegionEU() },   // 30ms
+        Kap { fetchFromRegionAP() },   // 60ms
+    )
 }
-</div>
+```
+
+**Output:**
+```
+EU-data  (at ~30ms, US and AP cancelled)
+```
 
 ---
 
-Ready to try KAP? [Get Started](guide/quickstart.md){ .md-button .md-button--primary }
+## Retry with Schedule
+
+```kotlin
+var attempts = 0
+val policy = Schedule.times<Throwable>(5) and
+    Schedule.exponential(10.milliseconds) and
+    Schedule.doWhile<Throwable> { it is RuntimeException }
+
+val result = Async {
+    Kap {
+        attempts++
+        if (attempts <= 2) throw RuntimeException("flake #$attempts")
+        "success on attempt $attempts"
+    }.retry(policy)
+}
+```
+
+**Output:**
+```
+success on attempt 3
+```
+
+---
+
+## TimeoutRace — Parallel fallback
+
+Both start at t=0. Fallback is already running when primary times out:
+
+```kotlin
+val result = Async {
+    Kap { delay(200); "primary-data" }
+        .timeoutRace(100.milliseconds, Kap { delay(30); "fallback-data" })
+}
+```
+
+**Output:**
+```
+fallback-data  (at ~30ms — 2.6x faster than sequential timeout)
+```
+
+---
+
+## Resource Safety — `bracket`
+
+All three resources acquired, used in parallel, ALL released even on failure:
+
+```kotlin
+val result = Async {
+    kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
+        .with(bracket(
+            acquire = { openDbConnection() },
+            use = { conn -> Kap { conn.query("SELECT 1") } },
+            release = { conn -> conn.close() },
+        ))
+        .with(bracket(
+            acquire = { openCacheConnection() },
+            use = { conn -> Kap { conn.get("key") } },
+            release = { conn -> conn.close() },
+        ))
+        .with(bracket(
+            acquire = { openHttpClient() },
+            use = { client -> Kap { client.get("/api") } },
+            release = { client -> client.close() },
+        ))
+}
+```
+
+**Output:**
+```
+db:result-of-SELECT 1|cache:key|http:/api
+```
+
+---
+
+## Parallel Validation — Collect every error
+
+```kotlin
+val result: Either<NonEmptyList<RegError>, User> = Async {
+    zipV(
+        { validateName("A") },
+        { validateEmail("bad") },
+        { validateAge(10) },
+        { checkUsername("al") },
+    ) { name, email, age, username -> User(name, email, age, username) }
+}
+```
+
+**Output:**
+```
+4 errors: [Name must be >= 2 chars, Invalid email: bad, Must be >= 18 got 10, Username too short]
+```
+
+---
+
+## Memoization — Cache only successes
+
+```kotlin
+var callCount = 0
+val fetchOnce = Kap { callCount++; delay(30); "expensive-result" }.memoizeOnSuccess()
+
+val a = Async { fetchOnce }  // runs, callCount=1
+val b = Async { fetchOnce }  // cached, callCount still 1
+```
+
+**Output:**
+```
+memoizeOnSuccess: a=expensive-result, b=expensive-result, callCount=1
+```
+
+---
+
+## Real HTTP — GitHub API + Cat Facts
+
+From [`examples/real-world-http`](https://github.com/damian-rafael-lattenero/kap/tree/master/examples/real-world-http):
+
+```kotlin
+val profile = Async {
+    kap(::DeveloperProfile)
+        .with { fetchGithubUser("JetBrains") }
+        .with { fetchGithubRepos("JetBrains") }
+        .with { fetchCatFact().fact }
+}
+```
+
+**Output:**
+```
+User: JetBrains (JetBrains)
+Repos: 805 public, top 5: ...
+Fun fact: Contrary to popular belief, the cat is a social animal.
+Time: 693ms (parallel, not sequential)
+```
+
+---
+
+Ready to try? [Get Started](guide/quickstart.md){ .md-button .md-button--primary } &nbsp; [GitHub](https://github.com/damian-rafael-lattenero/kap){ .md-button }

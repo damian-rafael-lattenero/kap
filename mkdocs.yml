@@ -58,7 +58,7 @@ nav:
     - kap-kotest: modules/kap-kotest.md
     - kap-ksp: modules/kap-ksp.md
   - Comparison: comparison.md
-  - Playground: playground.md
+  - Cookbook: playground.md
   - Blog: blog/index.md
   - Migration:
     - Coming from Arrow: guide/migration-arrow.md
