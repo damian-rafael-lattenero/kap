@@ -231,3 +231,4 @@ All claims backed by **119 JMH benchmarks** and deterministic virtual-time proof
 | **Max validation arity** | -- | 9 | **22** |
 
 [Live benchmark dashboard](https://damian-rafael-lattenero.github.io/kap/benchmarks/){ .md-button }
+
