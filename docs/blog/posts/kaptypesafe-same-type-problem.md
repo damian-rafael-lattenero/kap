@@ -146,9 +146,9 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.4.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.4.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.4.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.5.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.5.0")
 }
 ```
 

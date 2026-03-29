@@ -228,7 +228,7 @@ val result = Async {
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.4.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
 }
 ```
 

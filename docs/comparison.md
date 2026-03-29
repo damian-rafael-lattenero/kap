@@ -304,8 +304,8 @@ KAP doesn't compete with Arrow — the `kap-arrow` module **uses** Arrow's types
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.4.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.4.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.5.0")
 }
 ```
 

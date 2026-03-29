@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-03-29
+
+### Added
+- **`settled { }` top-level function** — shorthand for `Kap { }.settled()`, reads immediately
+- **Native test coverage** for kap-resilience (ScheduleTest, CircuitBreakerTest, ResourceTest) — contributed by @guilherme-dionysio
+- **38 Arrow comparison tabs** across all KDocs (every tabbed section now has Raw/Arrow/KAP)
+- **36 new verified examples** in readme-examples (69 total, 100% API coverage)
+
+### Changed
+- KSP processor generates `data class` instead of `@JvmInline value class` — now fully multiplatform
+- Documentation restructured: Guides + Modules merged into single "KDocs" tab
+- Comparison page rewritten with 4 triple-tab code comparisons
+- Cookbook rewritten with complete self-contained examples
+- Quickstart rewritten with copy-paste-runnable code (no `/* ... */` comments)
+- `.settled()` docs rewritten with progressive reveal (problem → solution)
+
+### Fixed
+- MkDocs CI pinned to stable versions (pygments compatibility)
+
 ## [2.4.0] - 2026-03-27
 
 ### Added
@@ -107,7 +126,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Algebraic law verification (Functor, Applicative, Monad)
 - Code generation for arities 2-22 (curry, kap, zip, combine, zipV, kapV, Resource.zip)
 
-[Unreleased]: https://github.com/damian-rafael-lattenero/kap/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/damian-rafael-lattenero/kap/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.1.0...v2.2.0

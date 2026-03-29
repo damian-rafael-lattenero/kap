@@ -12,7 +12,7 @@ Or add the dependency manually:
 
     ```kotlin
     dependencies {
-        implementation("io.github.damian-rafael-lattenero:kap-core:2.4.0")
+        implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
     }
     ```
 
@@ -20,7 +20,7 @@ Or add the dependency manually:
 
     ```groovy
     dependencies {
-        implementation 'io.github.damian-rafael-lattenero:kap-core:2.4.0'
+        implementation 'io.github.damian-rafael-lattenero:kap-core:2.5.0'
     }
     ```
 
@@ -30,7 +30,7 @@ Or add the dependency manually:
     <dependency>
         <groupId>io.github.damian-rafael-lattenero</groupId>
         <artifactId>kap-core-jvm</artifactId>
-        <version>2.4.0</version>
+        <version>2.5.0</version>
     </dependency>
     ```
 

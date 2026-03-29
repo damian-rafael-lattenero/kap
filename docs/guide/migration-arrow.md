@@ -8,8 +8,8 @@ KAP's `kap-arrow` module **uses** Arrow's `Either` and `NonEmptyList`. You don't
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.4.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.4.0") // uses Arrow Core
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.5.0") // uses Arrow Core
 }
 ```
 

@@ -204,13 +204,13 @@ Scales to **22 validators** (Arrow's `zipOrAccumulate` maxes at 9).
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.4.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
 
     // Optional
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.4.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.4.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ktor:2.4.0")
-    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:2.4.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.5.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.5.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ktor:2.5.0")
+    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:2.5.0")
 }
 ```
 

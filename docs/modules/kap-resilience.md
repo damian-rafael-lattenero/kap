@@ -3,7 +3,7 @@
 Retry, resource safety, and protection patterns. All composable in the KAP chain.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-resilience:2.4.0")
+implementation("io.github.damian-rafael-lattenero:kap-resilience:2.5.0")
 ```
 
 **Depends on:** `kap-core`.

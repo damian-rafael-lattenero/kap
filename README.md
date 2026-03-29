@@ -217,15 +217,15 @@ Works on functions too. `@KapTypeSafe(prefix = "Dashboard")` avoids collisions. 
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.4.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
 
     // Optional
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.4.0")  // Schedule, CircuitBreaker, Resource, timeoutRace
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.4.0")       // Parallel validation with error accumulation
-    implementation("io.github.damian-rafael-lattenero:kap-ktor:2.4.0")        // Ktor server plugin
-    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:2.4.0")  // Test matchers
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.4.0")  // @KapTypeSafe
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.4.0")                         // KSP processor
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.5.0")  // Schedule, CircuitBreaker, Resource, timeoutRace
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.5.0")       // Parallel validation with error accumulation
+    implementation("io.github.damian-rafael-lattenero:kap-ktor:2.5.0")        // Ktor server plugin
+    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:2.5.0")  // Test matchers
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.5.0")  // @KapTypeSafe
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.5.0")                         // KSP processor
 }
 ```
 

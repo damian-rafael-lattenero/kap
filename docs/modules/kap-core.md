@@ -3,7 +3,7 @@
 The foundation module. Type-safe parallel orchestration with visible phases.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-core:2.4.0")
+implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
 ```
 
 **Depends on:** `kotlinx-coroutines-core` only.
