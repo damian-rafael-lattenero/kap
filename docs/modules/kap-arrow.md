@@ -107,6 +107,20 @@ suspend fun checkUsername(username: String): Either<NonEmptyList<RegError>, Vali
 
 ### All pass
 
+=== "Raw Coroutines"
+
+    ```kotlin
+    // Sequential: if all pass you get the result, but no parallelism
+    suspend fun registerUser(name: String, email: String, age: Int, username: String): User {
+        val validName = validateName("Alice").getOrElse { throw ValidationException(it) }
+        val validEmail = validateEmail("alice@example.com").getOrElse { throw ValidationException(it) }
+        val validAge = validateAge(25).getOrElse { throw ValidationException(it) }
+        val validUsername = checkUsername("alice").getOrElse { throw ValidationException(it) }
+        return User(validName, validEmail, validAge, validUsername)
+    }
+    // Works when all pass, but runs sequentially — no parallel speedup
+    ```
+
 === "KAP"
 
     ```kotlin
@@ -134,6 +148,21 @@ suspend fun checkUsername(username: String): Either<NonEmptyList<RegError>, Vali
     ```
 
 ### All fail — every error collected
+
+=== "Raw Coroutines"
+
+    ```kotlin
+    // Sequential: returns FIRST error only, user must fix and resubmit
+    suspend fun registerUser(): User {
+        val validName = validateName("A").getOrElse { throw ValidationException(it) }
+        // ↑ fails here — never reaches the rest
+        val validEmail = validateEmail("bad").getOrElse { throw ValidationException(it) }
+        val validAge = validateAge(10).getOrElse { throw ValidationException(it) }
+        val validUsername = checkUsername("al").getOrElse { throw ValidationException(it) }
+        return User(validName, validEmail, validAge, validUsername)
+    }
+    // Only InvalidName reported — 4 errors = 4 round trips
+    ```
 
 === "KAP"
 
@@ -169,6 +198,20 @@ Scales to **22 validators**. Arrow's `zipOrAccumulate` maxes at 9.
 ## `kapV` + `withV` — Curried Builder
 
 Same parallel execution and error accumulation, typed chain syntax:
+
+=== "Raw Coroutines"
+
+    ```kotlin
+    // Sequential calls, no error accumulation, no type-safe builder
+    suspend fun registerUser(): Either<NonEmptyList<RegError>, User> {
+        val name = validateName("Alice").getOrElse { return Either.Left(it) }
+        val email = validateEmail("alice@example.com").getOrElse { return Either.Left(it) }
+        val age = validateAge(25).getOrElse { return Either.Left(it) }
+        val username = checkUsername("alice").getOrElse { return Either.Left(it) }
+        return Either.Right(User(name, email, age, username))
+    }
+    // No parallel execution, short-circuits on first error
+    ```
 
 === "KAP"
 
@@ -265,25 +308,49 @@ val result = Async {
 
 ## Guards — `ensureV` / `ensureVAll`
 
-```kotlin
-val result = Async {
-    valid(ValidAge(15))
-        .ensureV(RegError.InvalidAge("Must be 18+")) { it.value >= 18 }
-}
-// Left(NonEmptyList(InvalidAge("Must be 18+")))
+=== "Raw Coroutines"
 
-val result2 = Async {
-    valid(ValidPassword("123"))
-        .ensureVAll { password ->
-            buildList {
-                if (password.value.length < 8) add(RegError.WeakPassword("Too short"))
-                if (!password.value.any { it.isUpperCase() }) add(RegError.WeakPassword("No uppercase"))
-                if (!password.value.any { it.isDigit() }) add(RegError.WeakPassword("No digit"))
-            }.let { if (it.isEmpty()) null else nonEmptyListOf(it.first(), *it.drop(1).toTypedArray()) }
+    ```kotlin
+    // Manual if/else — no composable guard abstraction
+    fun validateAge(age: ValidAge): Either<NonEmptyList<RegError>, ValidAge> {
+        return if (age.value >= 18) Either.Right(age)
+        else Either.Left(nonEmptyListOf(RegError.InvalidAge("Must be 18+")))
+    }
+
+    // Multiple checks require manual error accumulation
+    fun validatePassword(password: ValidPassword): Either<NonEmptyList<RegError>, ValidPassword> {
+        val errors = buildList {
+            if (password.value.length < 8) add(RegError.WeakPassword("Too short"))
+            if (!password.value.any { it.isUpperCase() }) add(RegError.WeakPassword("No uppercase"))
+            if (!password.value.any { it.isDigit() }) add(RegError.WeakPassword("No digit"))
         }
-}
-// Left(NonEmptyList(WeakPassword("Too short"), WeakPassword("No uppercase")))
-```
+        return if (errors.isEmpty()) Either.Right(password)
+        else Either.Left(nonEmptyListOf(errors.first(), *errors.drop(1).toTypedArray()))
+    }
+    // Must write a new function for every guard — no chaining
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val result = Async {
+        valid(ValidAge(15))
+            .ensureV(RegError.InvalidAge("Must be 18+")) { it.value >= 18 }
+    }
+    // Left(NonEmptyList(InvalidAge("Must be 18+")))
+
+    val result2 = Async {
+        valid(ValidPassword("123"))
+            .ensureVAll { password ->
+                buildList {
+                    if (password.value.length < 8) add(RegError.WeakPassword("Too short"))
+                    if (!password.value.any { it.isUpperCase() }) add(RegError.WeakPassword("No uppercase"))
+                    if (!password.value.any { it.isDigit() }) add(RegError.WeakPassword("No digit"))
+                }.let { if (it.isEmpty()) null else nonEmptyListOf(it.first(), *it.drop(1).toTypedArray()) }
+            }
+    }
+    // Left(NonEmptyList(WeakPassword("Too short"), WeakPassword("No uppercase")))
+    ```
 
 ---
 
@@ -366,14 +433,40 @@ val user: User = Async {
     // Manual loop, mutable state, no parallel execution
     ```
 
+=== "Arrow"
+
+    ```kotlin
+    val emails = listOf("alice@example.com", "bad", "bob@example.com", "also-bad")
+    val result: Either<NonEmptyList<RegError>, List<ValidEmail>> =
+        emails.mapOrAccumulate { email -> validateEmail(email).bind() }
+    // Arrow's mapOrAccumulate — accumulates errors but runs sequentially
+    ```
+
 ### `sequenceV` — Sequence validated computations
 
-```kotlin
-val validated: List<Validated<RegError, ValidEmail>> = emails.map { email ->
-    Kap { validateEmail(email) }
-}
-val result = Async { validated.sequenceV() }
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    val validated: List<Either<NonEmptyList<RegError>, ValidEmail>> = emails.map { email ->
+        validateEmail(email)
+    }
+    val errors = validated.filterIsInstance<Either.Left<NonEmptyList<RegError>>>()
+        .flatMap { it.value }
+    val results = validated.filterIsInstance<Either.Right<ValidEmail>>()
+        .map { it.value }
+    val result = if (errors.isEmpty()) Either.Right(results)
+        else Either.Left(nonEmptyListOf(errors.first(), *errors.drop(1).toTypedArray()))
+    // Manual filtering, no structured composition
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val validated: List<Validated<RegError, ValidEmail>> = emails.map { email ->
+        Kap { validateEmail(email) }
+    }
+    val result = Async { validated.sequenceV() }
+    ```
 
 ---
 
@@ -443,6 +536,26 @@ val result = Async { validated.sequenceV() }
 ## `accumulate { }` Builder
 
 For imperative-style validation with `.bindV()`:
+
+=== "Raw Coroutines"
+
+    ```kotlin
+    // Sequential, no error accumulation within phases, no parallel execution
+    suspend fun register(): Either<NonEmptyList<RegError>, Registration> {
+        val name = validateName("Alice").getOrElse { return Either.Left(it) }
+        val email = validateEmail("alice@example.com").getOrElse { return Either.Left(it) }
+        val age = validateAge(25).getOrElse { return Either.Left(it) }
+        val identity = Identity(name, email, age)
+
+        // Phase 2 — also sequential, also short-circuits on first error
+        val notBlocked = checkNotBlacklisted(identity).getOrElse { return Either.Left(it) }
+        val available = checkUsernameAvailable(identity.email.value).getOrElse { return Either.Left(it) }
+        val cleared = Clearance(notBlocked, available)
+
+        return Either.Right(Registration(identity, cleared))
+    }
+    // No parallel execution within phases, no error accumulation
+    ```
 
 === "KAP"
 

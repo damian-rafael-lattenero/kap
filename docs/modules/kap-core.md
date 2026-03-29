@@ -72,6 +72,10 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
     }
     ```
 
+=== "Arrow"
+
+    Arrow has no equivalent for this. You'd need to implement it manually, similar to the Raw Coroutines approach.
+
 === "KAP"
 
     ```kotlin
@@ -114,6 +118,10 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
         FinalDashboard(dLayout.await(), dTrack.await())
     }
     ```
+
+=== "Arrow"
+
+    Arrow has no equivalent for this. You'd need to implement it manually, similar to the Raw Coroutines approach.
 
 === "KAP"
 
@@ -158,6 +166,10 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
         Page(content, sidebar, timestamp)
     }
     ```
+
+=== "Arrow"
+
+    Arrow has no equivalent for this. You'd need to implement it manually, similar to the Raw Coroutines approach.
 
 === "KAP"
 
@@ -274,6 +286,10 @@ val lazy: Kap<String> = Kap.defer { Kap { expensiveSetup() } } // lazy construct
     }
     ```
 
+=== "Arrow"
+
+    Arrow has no equivalent for this. You'd need to implement it manually, similar to the Raw Coroutines approach.
+
 === "KAP"
 
     ```kotlin
@@ -303,6 +319,10 @@ val lazy: Kap<String> = Kap.defer { Kap { expensiveSetup() } } // lazy construct
         }.awaitAll()
     }
     ```
+
+=== "Arrow"
+
+    Arrow has no equivalent for this. You'd need to implement it manually, similar to the Raw Coroutines approach.
 
 === "KAP"
 
@@ -341,6 +361,10 @@ val lazy: Kap<String> = Kap.defer { Kap { expensiveSetup() } } // lazy construct
     }
     // Caches failures too. Transient error? Cached forever.
     ```
+
+=== "Arrow"
+
+    Arrow has no equivalent for this. You'd need to implement it manually, similar to the Raw Coroutines approach.
 
 === "KAP — `.memoize()`"
 
@@ -401,20 +425,68 @@ val lazy: Kap<String> = Kap.defer { Kap { expensiveSetup() } } // lazy construct
 
 ### `traverseDiscard` — Fire-and-forget
 
-```kotlin
-Async {
-    userIds.traverseDiscard(concurrency = 5) { id ->
-        Kap { notifyUser(id) }
+=== "Raw Coroutines"
+
+    ```kotlin
+    val semaphore = Semaphore(5)
+    coroutineScope {
+        userIds.map { id ->
+            async {
+                semaphore.withPermit { notifyUser(id) }
+            }
+        }.awaitAll()
     }
-}
-```
+    // Result discarded — only side-effects matter
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    userIds.parMap(concurrency = 5) { id ->
+        notifyUser(id)
+    }
+    // Arrow's parMap returns results; discard them manually
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    Async {
+        userIds.traverseDiscard(concurrency = 5) { id ->
+            Kap { notifyUser(id) }
+        }
+    }
+    ```
 
 ### `sequence` / `sequence(concurrency)`
 
-```kotlin
-val kaps: List<Kap<String>> = userIds.map { id -> Kap { fetchUser(id) } }
-val results: List<String> = Async { kaps.sequence(concurrency = 10) }
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    val semaphore = Semaphore(10)
+    val results = coroutineScope {
+        userIds.map { id ->
+            async { semaphore.withPermit { fetchUser(id) } }
+        }.awaitAll()
+    }
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    val results = userIds.parMap(concurrency = 10) { id ->
+        fetchUser(id)
+    }
+    // Arrow has no pre-built effect list to sequence;
+    // use parMap over the original collection instead
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val kaps: List<Kap<String>> = userIds.map { id -> Kap { fetchUser(id) } }
+    val results: List<String> = Async { kaps.sequence(concurrency = 10) }
+    ```
 
 ---
 
@@ -471,6 +543,16 @@ val results: List<String> = Async { kaps.sequence(concurrency = 10) }
     }
     ```
 
+=== "Arrow"
+
+    ```kotlin
+    val winner = raceN(
+        { delay(100); "slow" },
+        { delay(30); "fast" },
+    )
+    // "fast" at 30ms, loser cancelled automatically
+    ```
+
 === "KAP"
 
     ```kotlin
@@ -500,6 +582,22 @@ val results: List<String> = Async { kaps.sequence(concurrency = 10) }
     }
     ```
 
+=== "Arrow"
+
+    ```kotlin
+    // Arrow's raceN supports a fixed number of args (max 9), not a dynamic list.
+    // For a dynamic list, you'd need to implement it manually:
+    val fastest = coroutineScope {
+        select {
+            regions.map { region ->
+                async { fetchFrom(region) }
+            }.forEach { deferred ->
+                deferred.onAwait { it }
+            }
+        }
+    }
+    ```
+
 === "KAP"
 
     ```kotlin
@@ -517,6 +615,13 @@ val results: List<String> = Async { kaps.sequence(concurrency = 10) }
 === "Raw Coroutines"
 
     ```kotlin
+    val result = withTimeoutOrNull(500) { fetchSlowService() } ?: "fallback-value"
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has no built-in timeout combinator; use kotlinx.coroutines directly:
     val result = withTimeoutOrNull(500) { fetchSlowService() } ?: "fallback-value"
     ```
 
@@ -539,6 +644,13 @@ val results: List<String> = Async { kaps.sequence(concurrency = 10) }
     } catch (e: Exception) {
         "recovered"
     }
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    val result = Either.catch { fetchUser() }
+        .getOrElse { "recovered" }
     ```
 
 === "KAP"
@@ -564,6 +676,18 @@ val results: List<String> = Async { kaps.sequence(concurrency = 10) }
             source3()  // nested try/catch hell
         }
     }
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has no built-in firstSuccessOf or orElse combinator.
+    // Use nested Either.catch calls:
+    val result = Either.catch { source1() }
+        .getOrElse {
+            Either.catch { source2() }
+                .getOrElse { source3() }
+        }
     ```
 
 === "KAP"
@@ -605,6 +729,15 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
     result ?: throw lastError!!
     ```
 
+=== "Arrow"
+
+    ```kotlin
+    // Arrow's Schedule can express retry policies, but requires arrow-resilience:
+    val result = Schedule.recurs<Throwable>(3)
+        .and(Schedule.exponential<Throwable>(10.milliseconds))
+        .retry { flakyService() }
+    ```
+
 === "KAP"
 
     ```kotlin
@@ -624,6 +757,23 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
 
     val user = fetchUserOrNull()
         ?: throw NoSuchElementException("User not found")
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    // Arrow's either { } block provides ensure via Raise:
+    val result: Either<String, Int> = either {
+        val age = fetchAge()
+        ensure(age >= 18) { "Must be 18+" }
+        age
+    }
+
+    val result2: Either<String, User> = either {
+        val user = fetchUserOrNull()
+        ensureNotNull(user) { "User not found" }
+        user
+    }
     ```
 
 === "KAP"
@@ -652,6 +802,13 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
     }
     ```
 
+=== "Arrow"
+
+    ```kotlin
+    val result: Either<Throwable, String> = Either.catch { riskyOperation() }
+    // Either.Right("value") or Either.Left(exception)
+    ```
+
 === "KAP"
 
     ```kotlin
@@ -673,6 +830,10 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
         }
         .collect { user -> process(user) }
     ```
+
+=== "Arrow"
+
+    Arrow has no equivalent for this. You'd need to implement it manually, similar to the Raw Coroutines approach.
 
 === "KAP"
 
@@ -705,6 +866,10 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
     }
     ```
 
+=== "Arrow"
+
+    Arrow has no equivalent for this. You'd need to implement it manually, similar to the Raw Coroutines approach.
+
 === "KAP"
 
     ```kotlin
@@ -721,6 +886,10 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
     val result: String = userIdFlow.first()
     // Direct, but not composable with other Kap chains
     ```
+
+=== "Arrow"
+
+    Arrow has no equivalent for this. You'd need to implement it manually, similar to the Raw Coroutines approach.
 
 === "KAP"
 
@@ -763,6 +932,17 @@ val kap: Kap<String> = lambda.toKap()
     }
     ```
 
+=== "Arrow"
+
+    ```kotlin
+    // Arrow's either { } block provides similar monadic composition:
+    val result: Either<Throwable, String> = either {
+        val user = Either.catch { fetchDashUser() }.bind()
+        val cart = Either.catch { fetchDashCart() }.bind()
+        "$user has $cart"
+    }
+    ```
+
 === "KAP"
 
     ```kotlin
@@ -792,6 +972,15 @@ Run both in parallel, keep only one result:
         dLog.await()    // must explicitly await to ensure it completes
         dUser.await()   // easy to forget awaiting the side-effect
     }
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    val user = parZip(
+        { fetchUser() },
+        { logAccess() },
+    ) { user, _ -> user }   // both run, manually discard second
     ```
 
 === "KAP"

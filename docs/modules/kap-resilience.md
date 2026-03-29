@@ -144,6 +144,20 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
     val finalResult = result ?: "fallback-after-exhaustion"
     ```
 
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has no retryOrElse equivalent.
+    // You can approximate it by catching the error after Schedule exhaustion:
+    val result = try {
+        Schedule.recurs<Throwable>(2)
+            .and(Schedule.spaced(100.milliseconds))
+            .retry { flakyService() }
+    } catch (e: Throwable) {
+        "fallback-after-exhaustion"
+    }
+    ```
+
 === "KAP"
 
     ```kotlin
@@ -180,6 +194,14 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
     println(value)       // "success"
     println(attempts)    // 3
     println(totalDelay)  // 30ms (manual — no standard tracking)
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has no retryWithResult equivalent.
+    // Schedule.retry does not return attempt count or total delay metadata.
+    // You would need to manually track this state around the retry call.
     ```
 
 === "KAP"
@@ -243,6 +265,14 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
     }
     ```
 
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has no built-in CircuitBreaker.
+    // You would need to implement a state machine manually (similar to Raw Coroutines)
+    // or use a third-party library like resilience4j.
+    ```
+
 === "KAP"
 
     ```kotlin
@@ -289,6 +319,14 @@ val result = Async {
         fetchFromFallback()  // starts AFTER 100ms timeout
     }
     // Total: 100ms (wasted) + fallback time
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has no timeoutRace equivalent.
+    // The closest approximation is the same sequential withTimeout + catch pattern
+    // shown in Raw Coroutines. There is no built-in parallel fallback combinator.
     ```
 
 === "KAP"
@@ -341,6 +379,14 @@ t=30ms   ─── fallback wins ───       ← 3x faster
     }
     ```
 
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has no raceQuorum equivalent.
+    // Arrow provides raceN (2-3 arity) which returns the single fastest result,
+    // but has no N-of-M quorum combinator. You would need the manual approach above.
+    ```
+
 === "KAP"
 
     ```kotlin
@@ -389,6 +435,19 @@ Supports arities 2-22.
     }
     ```
 
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has Resource but not bracket with acquire/use/release in this form.
+    // Arrow's Resource monad works differently:
+    val db = Resource({ openDbConnection() }, { conn, _ -> conn.close() })
+    val cache = Resource({ openCacheConnection() }, { conn, _ -> conn.close() })
+    val http = Resource({ openHttpClient() }, { client, _ -> client.close() })
+
+    // Arrow Resource does not natively compose into parallel use like KAP's bracket.
+    // Resources are acquired and released sequentially.
+    ```
+
 === "KAP"
 
     ```kotlin
@@ -434,6 +493,15 @@ Supports arities 2-22.
     }
     ```
 
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has no bracketCase equivalent.
+    // Arrow's Resource receives an ExitCase in its release function, but there is no
+    // standalone bracketCase combinator. You would need manual try/catch/finally
+    // with outcome tracking as shown in Raw Coroutines.
+    ```
+
 === "KAP"
 
     ```kotlin
@@ -452,7 +520,6 @@ Supports arities 2-22.
         )
     }
     ```
-```
 
 ### `Resource` — Composable resource
 
@@ -470,6 +537,26 @@ Supports arities 2-22.
         cache.close()
         db.close()
     }
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has a Resource monad:
+    val db = Resource({ openDbConnection() }, { conn, _ -> conn.close() })
+    val cache = Resource({ openCacheConnection() }, { conn, _ -> conn.close() })
+    val http = Resource({ openHttpClient() }, { client, _ -> client.close() })
+
+    val infra = arrow.fx.coroutines.Resource.zip(db, cache, http)
+
+    infra.use { (db, cache, http) ->
+        // use resources — but no built-in parallel composition like KAP
+        val dbResult = db.query("SELECT 1")
+        val cacheResult = cache.get("user:prefs")
+        val httpResult = http.get("/recommendations")
+        DashboardData(dbResult, cacheResult, httpResult)
+    }
+    // Resources released in reverse order on completion or failure.
     ```
 
 === "KAP"
@@ -522,6 +609,14 @@ Supports arities 2-22.
             else -> println("cancellation cleanup")
         }
     }
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has no guarantee or guaranteeCase equivalent.
+    // The closest approach is using Resource or manual try/finally as in Raw Coroutines.
+    // Arrow does not provide a standalone finalizer combinator for arbitrary suspend blocks.
     ```
 
 === "KAP"
@@ -610,6 +705,25 @@ All features composed in one chain:
         // Fallback after exhaustion
         return cachedData()
     }
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    // Arrow has Schedule for retries but lacks CircuitBreaker, timeoutRace, and
+    // composable resilience chains. A partial approximation:
+    val result = try {
+        Schedule.recurs<Throwable>(3)
+            .and(Schedule.exponential(50.milliseconds))
+            .retry {
+                withTimeout(2000) { fetchData() }
+            }
+    } catch (e: Throwable) {
+        cachedData()
+    }
+    // Missing: CircuitBreaker (needs manual implementation or resilience4j),
+    // jitter (not built-in to Arrow Schedule), max duration cap,
+    // and composable chaining of timeout + CB + retry + recover.
     ```
 
 === "KAP"
