@@ -550,16 +550,16 @@ fun buildPartialDashboard(user: Result<String>, cart: String, config: String): P
 suspend fun featureSettled() {
     println("=== Feature: Partial Failure with .settled() ===\n")
 
-    // .settled() wraps the result in Result<T> — failure doesn't cancel siblings
+    // settled { } wraps the result in Result<T> — failure doesn't cancel siblings
     val dashboard = Async {
         kap(::buildPartialDashboard)
-            .with(Kap { fetchUserMayFail() }.settled())  // Result<String> — won't cancel siblings
-            .with { fetchCartAlways() }                   // normal String — failure here cancels all
-            .with { fetchConfigAlways() }                 // normal String
+            .with(settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
+            .with { fetchCartAlways() }             // normal String — failure here cancels all
+            .with { fetchConfigAlways() }            // normal String
     }
     println("  settled: $dashboard")
     // PartialDashboard(user=anonymous, cart=cart-ok, config=config-ok)
-    // fetchUserMayFail() threw → .settled() wrapped as Result.failure → buildPartialDashboard used fallback
+    // fetchUserMayFail() threw → settled { } wrapped as Result.failure → buildPartialDashboard used fallback
 
     // traverseSettled: process ALL items, no cancellation on failure
     val ids = listOf(1, 2, 3, 4, 5)

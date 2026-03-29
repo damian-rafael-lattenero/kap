@@ -243,6 +243,19 @@ fun <A> firstSuccessOf(vararg computations: Kap<A>): Kap<A> {
 fun <A> Iterable<Kap<A>>.firstSuccess(): Kap<A> =
     firstSuccessOf(*toList().toTypedArray())
 
+// ── settled: top-level shorthand ─────────────────────────────────────────
+
+/**
+ * Wraps a suspend computation in [Result] — failure doesn't cancel siblings.
+ *
+ * ```
+ * kap(::Dashboard)
+ *     .with(settled { fetchUser() })   // Result<String>
+ *     .with { fetchCart() }             // String
+ * ```
+ */
+fun <A> settled(block: suspend () -> A): Kap<Result<A>> = Kap { block() }.settled()
+
 // ── backoff strategies ───────────────────────────────────────────────────
 
 /** Doubles the delay on each retry. */

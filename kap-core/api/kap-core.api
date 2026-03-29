@@ -37,6 +37,7 @@ public final class kap/CombinatorsKt {
 	public static final fun recoverWith (Lkap/Kap;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
 	public static final fun retry-WPi__2c (Lkap/Kap;IJLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)Lkap/Kap;
 	public static synthetic fun retry-WPi__2c$default (Lkap/Kap;IJLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)Lkap/Kap;
+	public static final fun settled (Lkotlin/jvm/functions/Function1;)Lkap/Kap;
 	public static final fun timeout-8Mi8wO0 (Lkap/Kap;JLjava/lang/Object;)Lkap/Kap;
 	public static final fun timeout-8Mi8wO0 (Lkap/Kap;JLkap/Kap;)Lkap/Kap;
 	public static final fun timeout-HG0u8IE (Lkap/Kap;J)Lkap/Kap;

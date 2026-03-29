@@ -233,7 +233,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
 
     val result = Async {
         kap(::buildDashboard)
-            .with(Kap { fetchUserMayFail() }.settled())  // .settled() → Result<String>
+            .with(settled { fetchUserMayFail() })  // .settled() → Result<String>
             .with { fetchCart() }                          // normal String
     }
     // fetchUserMayFail() fails → Result.failure → buildDashboard uses "anonymous"

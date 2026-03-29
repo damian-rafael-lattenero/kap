@@ -292,42 +292,34 @@ val lazy: Kap<String> = Kap.defer { Kap { expensiveSetup() } } // lazy construct
 
 === "KAP"
 
+    **Without `settled` — one failure cancels everything:**
+
     ```kotlin
-    import kap.*
-    import kotlinx.coroutines.delay
-
-    // Domain type that tolerates partial failure
-    data class PartialDashboard(val user: String, val cart: String, val config: String)
-
-    // Services: one is unreliable, the others always succeed
-    suspend fun fetchUserMayFail(): String { throw RuntimeException("user service down") }
-    suspend fun fetchCartAlways(): String { delay(20); return "cart-ok" }
-    suspend fun fetchConfigAlways(): String { delay(15); return "config-ok" }
-
-    // Builder function: handles the Result wrapper with a fallback
-    fun buildPartialDashboard(user: Result<String>, cart: String, config: String): PartialDashboard =
-        PartialDashboard(
-            user = user.getOrDefault("anonymous"),  // failed? use fallback
-            cart = cart,
-            config = config,
-        )
-
-    suspend fun main() {
-        val dashboard = Async {
-            kap(::buildPartialDashboard)
-                .with(Kap { fetchUserMayFail() }.settled())  // .settled() wraps in Result<String>
-                .with { fetchCartAlways() }                   // normal String — fails cancel everything
-                .with { fetchConfigAlways() }                 // normal String
-        }
-        println(dashboard)
-        // PartialDashboard(user=anonymous, cart=cart-ok, config=config-ok)
-        //
-        // What happened:
-        // - fetchUserMayFail() threw RuntimeException
-        // - .settled() caught it and wrapped as Result.failure(...)
-        // - fetchCartAlways() and fetchConfigAlways() were NOT cancelled
-        // - buildPartialDashboard() received Result.failure for user, used "anonymous" fallback
+    val dashboard = Async {
+        kap(::Dashboard)
+            .with { fetchUser() }     // throws! → cart and config CANCELLED
+            .with { fetchCart() }      // never runs
+            .with { fetchConfig() }    // never runs
     }
+    // RuntimeException — entire dashboard lost. Cart and config were fine.
+    ```
+
+    **With `settled { }` — failure wrapped, siblings continue:**
+
+    ```kotlin
+    // The type changes: user becomes Result<String> instead of String
+    data class Dashboard(val user: Result<String>, val cart: String, val config: String)
+
+    val dashboard = Async {
+        kap(::Dashboard)
+            .with(settled { fetchUser() })   // Result<String> — won't cancel siblings
+            .with { fetchCart() }              // String — runs normally
+            .with { fetchConfig() }            // String — runs normally
+    }
+    // Dashboard(user=Result.failure(RuntimeException), cart=cart-ok, config=config-ok)
+
+    // Use the result with a fallback:
+    val userName = dashboard.user.getOrDefault("anonymous")  // "anonymous"
     ```
 
 ### `traverseSettled` — Collect ALL results, no cancellation
