@@ -4,7 +4,7 @@ Production services fail. KAP's resilience module gives you composable retry, ci
 
 !!! note "Requires `kap-resilience`"
     ```kotlin
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.3.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.4.0")
     ```
 
 ## Composable retry with Schedule

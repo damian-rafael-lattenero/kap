@@ -3,7 +3,7 @@
 Arrow integration for parallel validation with error accumulation.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-arrow:2.3.0")
+implementation("io.github.damian-rafael-lattenero:kap-arrow:2.4.0")
 ```
 
 **Depends on:** `kap-core` + Arrow Core.
@@ -107,32 +107,60 @@ suspend fun checkUsername(username: String): Either<NonEmptyList<RegError>, Vali
 
 ### All pass
 
-```kotlin
-val valid: Either<NonEmptyList<RegError>, User> = Async {
-    zipV(
+=== "KAP"
+
+    ```kotlin
+    val valid: Either<NonEmptyList<RegError>, User> = Async {
+        zipV(
+            { validateName("Alice") },
+            { validateEmail("alice@example.com") },
+            { validateAge(25) },
+            { checkUsername("alice") },
+        ) { name, email, age, username -> User(name, email, age, username) }
+    }
+    // Right(User(ValidName(Alice), ValidEmail(alice@example.com), ValidAge(25), ValidUsername(alice)))
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    val result = Either.zipOrAccumulate(
         { validateName("Alice") },
         { validateEmail("alice@example.com") },
         { validateAge(25) },
         { checkUsername("alice") },
     ) { name, email, age, username -> User(name, email, age, username) }
-}
-// Right(User(ValidName(Alice), ValidEmail(alice@example.com), ValidAge(25), ValidUsername(alice)))
-```
+    // Same error accumulation, but max 9 args and not parallel
+    ```
 
 ### All fail — every error collected
 
-```kotlin
-val invalid: Either<NonEmptyList<RegError>, User> = Async {
-    zipV(
+=== "KAP"
+
+    ```kotlin
+    val invalid: Either<NonEmptyList<RegError>, User> = Async {
+        zipV(
+            { validateName("A") },           // ← too short
+            { validateEmail("bad") },         // ← no @
+            { validateAge(10) },              // ← under 18
+            { checkUsername("al") },          // ← too short
+        ) { name, email, age, username -> User(name, email, age, username) }
+    }
+    // Left(NonEmptyList(InvalidName, InvalidEmail, InvalidAge, UsernameTaken))
+    // ALL 4 errors in ONE response. All ran in parallel.
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    val result = Either.zipOrAccumulate(
         { validateName("A") },           // ← too short
         { validateEmail("bad") },         // ← no @
         { validateAge(10) },              // ← under 18
         { checkUsername("al") },          // ← too short
     ) { name, email, age, username -> User(name, email, age, username) }
-}
-// Left(NonEmptyList(InvalidName, InvalidEmail, InvalidAge, UsernameTaken))
-// ALL 4 errors in ONE response. All ran in parallel.
-```
+    // Same error accumulation, but max 9 args and not parallel
+    ```
 
 Scales to **22 validators**. Arrow's `zipOrAccumulate` maxes at 9.
 
@@ -142,15 +170,24 @@ Scales to **22 validators**. Arrow's `zipOrAccumulate` maxes at 9.
 
 Same parallel execution and error accumulation, typed chain syntax:
 
-```kotlin
-val result = Async {
-    kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
-        .withV { validateName("Alice") }
-        .withV { validateEmail("alice@example.com") }
-        .withV { validateAge(25) }
-        .withV { checkUsername("alice") }
-}
-```
+=== "KAP"
+
+    ```kotlin
+    val result = Async {
+        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+            .withV { validateName("Alice") }
+            .withV { validateEmail("alice@example.com") }
+            .withV { validateAge(25) }
+            .withV { checkUsername("alice") }
+    }
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    // No equivalent — Arrow has no curried builder for validation.
+    // You must use zipOrAccumulate with all args in one call.
+    ```
 
 Swap two `.withV` lines? **Compile error** — same type safety as `kap` + `.with`.
 
@@ -160,32 +197,45 @@ Swap two `.withV` lines? **Compile error** — same type safety as `kap` + `.wit
 
 Some validations depend on earlier results. Phase 1 collects all basic errors. Only if all pass does phase 2 run:
 
-```kotlin
-data class Identity(val name: ValidName, val email: ValidEmail, val age: ValidAge)
-data class Clearance(val notBlocked: Boolean, val available: Boolean)
-data class Registration(val identity: Identity, val clearance: Clearance)
+=== "KAP"
 
-val result: Either<NonEmptyList<RegError>, Registration> = Async {
-    accumulate {
-        // Phase 1: validate basic fields in parallel, collect ALL errors
-        val identity = zipV(
-            { validateName("Alice") },
-            { validateEmail("alice@example.com") },
-            { validateAge(25) },
-        ) { name, email, age -> Identity(name, email, age) }
-            .bindV()  // short-circuits if phase 1 fails
+    ```kotlin
+    data class Identity(val name: ValidName, val email: ValidEmail, val age: ValidAge)
+    data class Clearance(val notBlocked: Boolean, val available: Boolean)
+    data class Registration(val identity: Identity, val clearance: Clearance)
 
-        // Phase 2: only runs if phase 1 passed — uses identity result
-        val cleared = zipV(
-            { checkNotBlacklisted(identity) },
-            { checkUsernameAvailable(identity.email.value) },
-        ) { a, b -> Clearance(a, b) }
-            .bindV()
+    val result: Either<NonEmptyList<RegError>, Registration> = Async {
+        accumulate {
+            // Phase 1: validate basic fields in parallel, collect ALL errors
+            val identity = zipV(
+                { validateName("Alice") },
+                { validateEmail("alice@example.com") },
+                { validateAge(25) },
+            ) { name, email, age -> Identity(name, email, age) }
+                .bindV()  // short-circuits if phase 1 fails
 
-        Registration(identity, cleared)
+            // Phase 2: only runs if phase 1 passed — uses identity result
+            val cleared = zipV(
+                { checkNotBlacklisted(identity) },
+                { checkUsernameAvailable(identity.email.value) },
+            ) { a, b -> Clearance(a, b) }
+                .bindV()
+
+            Registration(identity, cleared)
+        }
     }
-}
-```
+    ```
+
+=== "Raw Coroutines"
+
+    ```kotlin
+    // Sequential validation — stops at first error
+    val name = validateName("Alice")       // fails? stop here
+    val email = validateEmail("alice@ex.com") // never reached if name fails
+    val age = validateAge(25)              // never reached if email fails
+    // No error accumulation, no parallel execution
+    // Each phase is just another if/else — no structured composition
+    ```
 
 ---
 
@@ -288,14 +338,33 @@ val user: User = Async {
 
 ### `traverseV` — Validate each element
 
-```kotlin
-val emails = listOf("alice@example.com", "bad", "bob@example.com", "also-bad")
-val result = Async {
-    emails.traverseV { email -> validateEmail(email) }
-}
-// Left(NonEmptyList(InvalidEmail("bad"), InvalidEmail("also-bad")))
-// ALL invalid emails reported, not just the first
-```
+=== "KAP"
+
+    ```kotlin
+    val emails = listOf("alice@example.com", "bad", "bob@example.com", "also-bad")
+    val result = Async {
+        emails.traverseV { email -> validateEmail(email) }
+    }
+    // Left(NonEmptyList(InvalidEmail("bad"), InvalidEmail("also-bad")))
+    // ALL invalid emails reported, not just the first
+    ```
+
+=== "Raw Coroutines"
+
+    ```kotlin
+    val emails = listOf("alice@example.com", "bad", "bob@example.com", "also-bad")
+    val errors = mutableListOf<RegError>()
+    val results = mutableListOf<ValidEmail>()
+    for (email in emails) {
+        when (val r = validateEmail(email)) {
+            is Either.Right -> results.add(r.value)
+            is Either.Left -> errors.addAll(r.value)
+        }
+    }
+    val result = if (errors.isEmpty()) Either.Right(results)
+        else Either.Left(nonEmptyListOf(errors.first(), *errors.drop(1).toTypedArray()))
+    // Manual loop, mutable state, no parallel execution
+    ```
 
 ### `sequenceV` — Sequence validated computations
 
@@ -338,16 +407,36 @@ val result = Async { validated.sequenceV() }
 
 ### `raceEither(fa, fb)` — Race two different types
 
-```kotlin
-val result: Either<String, Int> = Async {
-    raceEither(
-        fa = Kap { delay(30); "fast-string" },
-        fb = Kap { delay(100); 42 },
-    )
-}
-// Left("fast-string") — String won the race
-// Loser cancelled automatically
-```
+=== "KAP"
+
+    ```kotlin
+    val result: Either<String, Int> = Async {
+        raceEither(
+            fa = Kap { delay(30); "fast-string" },
+            fb = Kap { delay(100); 42 },
+        )
+    }
+    // Left("fast-string") — String won the race
+    // Loser cancelled automatically
+    ```
+
+=== "Raw Coroutines"
+
+    ```kotlin
+    sealed class RaceResult {
+        data class FromA(val value: String) : RaceResult()
+        data class FromB(val value: Int) : RaceResult()
+    }
+
+    val result = coroutineScope {
+        select<RaceResult> {
+            async { delay(30); "fast-string" }.onAwait { RaceResult.FromA(it) }
+            async { delay(100); 42 }.onAwait { RaceResult.FromB(it) }
+        }
+    }
+    // Requires a sealed class wrapper for different types
+    // Must manually handle cancellation of the loser
+    ```
 
 ---
 
@@ -355,26 +444,51 @@ val result: Either<String, Int> = Async {
 
 For imperative-style validation with `.bindV()`:
 
-```kotlin
-val result = Async {
-    accumulate<RegError, Registration> {
-        val identity = zipV(
+=== "KAP"
+
+    ```kotlin
+    val result = Async {
+        accumulate<RegError, Registration> {
+            val identity = zipV(
+                { validateName("Alice") },
+                { validateEmail("alice@example.com") },
+                { validateAge(25) },
+            ) { name, email, age -> Identity(name, email, age) }
+                .bindV()  // short-circuits if phase 1 fails
+
+            val cleared = zipV(
+                { checkNotBlacklisted(identity) },
+                { checkUsernameAvailable(identity.email.value) },
+            ) { a, b -> Clearance(a, b) }
+                .bindV()
+
+            Registration(identity, cleared)
+        }
+    }
+    ```
+
+=== "Arrow"
+
+    ```kotlin
+    val result = either<NonEmptyList<RegError>, Registration> {
+        // Arrow's either { } block — monadic, short-circuits on first Left
+        val identity = Either.zipOrAccumulate(
             { validateName("Alice") },
             { validateEmail("alice@example.com") },
             { validateAge(25) },
         ) { name, email, age -> Identity(name, email, age) }
-            .bindV()  // short-circuits if phase 1 fails
+            .bind()  // short-circuits if phase 1 fails
 
-        val cleared = zipV(
+        val cleared = Either.zipOrAccumulate(
             { checkNotBlacklisted(identity) },
             { checkUsernameAvailable(identity.email.value) },
         ) { a, b -> Clearance(a, b) }
-            .bindV()
+            .bind()
 
         Registration(identity, cleared)
     }
-}
-```
+    // Similar structure, but zipOrAccumulate is not parallel and maxes at 9 args
+    ```
 
 !!! warning "Short-circuit vs parallel"
     `.bindV()` short-circuits (monadic): if phase 1 fails, phase 2 never runs.

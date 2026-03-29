@@ -3,7 +3,7 @@
 The foundation module. Type-safe parallel orchestration with visible phases.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-core:2.3.0")
+implementation("io.github.damian-rafael-lattenero:kap-core:2.4.0")
 ```
 
 **Depends on:** `kotlinx-coroutines-core` only.
@@ -146,14 +146,29 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
 
 Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentially without blocking parallel siblings:
 
-```kotlin
-val result = Async {
-    kap(::Page)
-        .with { fetchContent() }           // parallel
-        .with { fetchSidebar() }           // parallel
-        .thenValue { computeTimestamp() }  // sequential fill, no barrier
-}
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    val result = coroutineScope {
+        val dContent = async { fetchContent() }
+        val dSidebar = async { fetchSidebar() }
+        val content = dContent.await()
+        val sidebar = dSidebar.await()
+        val timestamp = computeTimestamp()  // sequential, but you manually thread it
+        Page(content, sidebar, timestamp)
+    }
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val result = Async {
+        kap(::Page)
+            .with { fetchContent() }           // parallel
+            .with { fetchSidebar() }           // parallel
+            .thenValue { computeTimestamp() }  // sequential fill, no barrier
+    }
+    ```
 
 ---
 
@@ -275,18 +290,34 @@ val lazy: Kap<String> = Kap.defer { Kap { expensiveSetup() } } // lazy construct
 
 ### `traverseSettled` — Collect ALL results, no cancellation
 
-```kotlin
-val ids = listOf(1, 2, 3, 4, 5)
-val results: List<Result<String>> = Async {
-    ids.traverseSettled { id ->
-        Kap {
-            if (id % 2 == 0) throw RuntimeException("fail-$id")
-            "user-$id"
+=== "Raw Coroutines"
+
+    ```kotlin
+    // supervisorScope + try/catch per item
+    val results = supervisorScope {
+        ids.map { id ->
+            async {
+                try { Result.success(fetchUser(id)) }
+                catch (e: Exception) { Result.failure(e) }
+            }
+        }.awaitAll()
+    }
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val ids = listOf(1, 2, 3, 4, 5)
+    val results: List<Result<String>> = Async {
+        ids.traverseSettled { id ->
+            Kap {
+                if (id % 2 == 0) throw RuntimeException("fail-$id")
+                "user-$id"
+            }
         }
     }
-}
-// successes=[user-1, user-3, user-5], failures=[fail-2, fail-4]
-```
+    // successes=[user-1, user-3, user-5], failures=[fail-2, fail-4]
+    ```
 
 ---
 
@@ -428,22 +459,54 @@ val results: List<String> = Async { kaps.sequence(concurrency = 10) }
 
 ### `race(fa, fb)` — Two-way race
 
-```kotlin
-val winner = Async {
-    race(
-        Kap { delay(100); "slow" },
-        Kap { delay(30); "fast" },
-    )
-}
-// "fast" at 30ms
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    val winner = coroutineScope {
+        select {
+            async { delay(100); "slow" }.onAwait { it }
+            async { delay(30); "fast" }.onAwait { it }
+        }
+        // Loser coroutine still running — must cancel manually
+    }
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val winner = Async {
+        race(
+            Kap { delay(100); "slow" },
+            Kap { delay(30); "fast" },
+        )
+    }
+    // "fast" at 30ms, loser cancelled automatically
+    ```
 
 ### `raceAll(list)` — Race a dynamic list
 
-```kotlin
-val replicas = regions.map { region -> Kap { fetchFrom(region) } }
-val fastest = Async { raceAll(replicas) }
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    val fastest = coroutineScope {
+        val jobs = regions.map { region -> async { fetchFrom(region) } }
+        select {
+            jobs.forEach { deferred ->
+                deferred.onAwait { it }
+            }
+        }
+        // Must manually cancel remaining jobs
+        jobs.forEach { it.cancel() }
+    }
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val replicas = regions.map { region -> Kap { fetchFrom(region) } }
+    val fastest = Async { raceAll(replicas) }
+    // Losers cancelled automatically
+    ```
 
 ---
 
@@ -525,33 +588,76 @@ val fastest = Async { raceAll(replicas) }
 
 Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resilience.md)):
 
-```kotlin
-val result = Async {
-    Kap { flakyService() }
-        .retry(3, delay = 10.milliseconds)
-}
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    var result: String? = null
+    var lastError: Exception? = null
+    repeat(3) { attempt ->
+        try {
+            result = flakyService()
+            return@repeat
+        } catch (e: Exception) {
+            lastError = e
+            delay(10L * (attempt + 1))  // manual backoff
+        }
+    }
+    result ?: throw lastError!!
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val result = Async {
+        Kap { flakyService() }
+            .retry(3, delay = 10.milliseconds)
+    }
+    ```
 
 ### `.ensure(error) { predicate }` / `.ensureNotNull(error) { extract }`
 
-```kotlin
-val result = Async {
-    Kap { fetchAge() }
-        .ensure(IllegalArgumentException("Must be 18+")) { it >= 18 }
-}
+=== "Raw Coroutines"
 
-val result2 = Async {
-    Kap { fetchUserOrNull() }
-        .ensureNotNull(NoSuchElementException("User not found")) { it }
-}
-```
+    ```kotlin
+    val age = fetchAge()
+    if (age < 18) throw IllegalArgumentException("Must be 18+")
+
+    val user = fetchUserOrNull()
+        ?: throw NoSuchElementException("User not found")
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val result = Async {
+        Kap { fetchAge() }
+            .ensure(IllegalArgumentException("Must be 18+")) { it >= 18 }
+    }
+
+    val result2 = Async {
+        Kap { fetchUserOrNull() }
+            .ensureNotNull(NoSuchElementException("User not found")) { it }
+    }
+    ```
 
 ### `catching { }` — Exception-safe Result
 
-```kotlin
-val result: Result<String> = catching { riskyOperation() }
-// Result.success("value") or Result.failure(exception)
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    val result: Result<String> = try {
+        Result.success(riskyOperation())
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val result: Result<String> = catching { riskyOperation() }
+    // Result.success("value") or Result.failure(exception)
+    ```
 
 ---
 
@@ -579,24 +685,58 @@ val result: Result<String> = catching { riskyOperation() }
 
 ### `Flow.mapEffectOrdered` — Preserve upstream order
 
-```kotlin
-val results: Flow<String> = userIdFlow
-    .mapEffectOrdered(concurrency = 5) { id -> Kap { fetchUser(id) } }
-// Results arrive in the same order as the input Flow
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    // channelFlow + manual index tracking to preserve order
+    val results: Flow<String> = channelFlow {
+        val buffer = ConcurrentHashMap<Int, String>()
+        var nextIndex = 0
+        val semaphore = Semaphore(5)
+        userIdFlow.collectIndexed { index, id ->
+            semaphore.acquire()
+            launch {
+                val result = fetchUser(id)
+                buffer[index] = result
+                semaphore.release()
+                // Flush in-order results... (complex bookkeeping)
+            }
+        }
+    }
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val results: Flow<String> = userIdFlow
+        .mapEffectOrdered(concurrency = 5) { id -> Kap { fetchUser(id) } }
+    // Results arrive in the same order as the input Flow
+    ```
 
 ### `Flow.firstAsKap()`
 
-```kotlin
-val first: Kap<String> = userIdFlow.firstAsKap()
-val result = Async { first }
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    val result: String = userIdFlow.first()
+    // Direct, but not composable with other Kap chains
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val first: Kap<String> = userIdFlow.firstAsKap()
+    val result = Async { first }
+    // Composable — can .map, .recover, .timeout, combine with other Kaps
+    ```
 
 ---
 
 ## Interop
 
 ### `Deferred.toKap()` / `Kap.toDeferred(scope)`
+
+Bridge between existing coroutine code and KAP. Useful when you have a `Deferred` from a library or legacy code and want to compose it with other `Kap` combinators (`.map`, `.recover`, `.timeout`, parallel `.with` chains, etc.).
 
 ```kotlin
 val deferred: Deferred<String> = scope.async { fetchUser() }
@@ -643,12 +783,25 @@ val kap: Kap<String> = lambda.toKap()
 
 Run both in parallel, keep only one result:
 
-```kotlin
-val user = Async {
-    Kap { fetchUser() }
-        .keepFirst(Kap { logAccess() })  // both run, only user returned
-}
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    val user = coroutineScope {
+        val dUser = async { fetchUser() }
+        val dLog = async { logAccess() }
+        dLog.await()    // must explicitly await to ensure it completes
+        dUser.await()   // easy to forget awaiting the side-effect
+    }
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val user = Async {
+        Kap { fetchUser() }
+            .keepFirst(Kap { logAccess() })  // both run, only user returned
+    }
+    ```
 
 ### `.discard()` / `.peek { }`
 

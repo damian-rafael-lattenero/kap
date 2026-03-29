@@ -3,7 +3,7 @@
 Retry, resource safety, and protection patterns. All composable in the KAP chain.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-resilience:2.3.0")
+implementation("io.github.damian-rafael-lattenero:kap-resilience:2.4.0")
 ```
 
 **Depends on:** `kap-core`.
@@ -127,27 +127,73 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
 
 #### `.retryOrElse(schedule, fallback)` — Fallback after exhaustion
 
-```kotlin
-val result = Async {
-    Kap { flakyService() }
-        .retryOrElse(
-            Schedule.times(2) and Schedule.spaced(100.milliseconds)
-        ) { "fallback-after-exhaustion" }
-}
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    var result: String? = null
+    var lastError: Exception? = null
+    for (attempt in 0..2) {
+        try {
+            result = flakyService()
+            break
+        } catch (e: Exception) {
+            lastError = e
+            if (attempt < 2) delay(100)
+        }
+    }
+    val finalResult = result ?: "fallback-after-exhaustion"
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val result = Async {
+        Kap { flakyService() }
+            .retryOrElse(
+                Schedule.times(2) and Schedule.spaced(100.milliseconds)
+            ) { "fallback-after-exhaustion" }
+    }
+    ```
 
 #### `.retryWithResult(schedule)` — Returns full context
 
-```kotlin
-val retryResult = Async {
-    Kap { flakyService() }.retryWithResult(
-        Schedule.times<Throwable>(5) and Schedule.exponential(10.milliseconds)
-    )
-}
-println(retryResult.value)       // "success"
-println(retryResult.attempts)    // 3
-println(retryResult.totalDelay)  // 70ms
-```
+=== "Raw Coroutines"
+
+    ```kotlin
+    var attempts = 0
+    var totalDelay = 0L
+    var currentDelay = 10L
+    var value: String? = null
+    for (attempt in 0..5) {
+        attempts++
+        try {
+            value = flakyService()
+            break
+        } catch (e: Exception) {
+            if (attempt < 5) {
+                delay(currentDelay)
+                totalDelay += currentDelay
+                currentDelay *= 2
+            } else throw e
+        }
+    }
+    println(value)       // "success"
+    println(attempts)    // 3
+    println(totalDelay)  // 30ms (manual — no standard tracking)
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val retryResult = Async {
+        Kap { flakyService() }.retryWithResult(
+            Schedule.times<Throwable>(5) and Schedule.exponential(10.milliseconds)
+        )
+    }
+    println(retryResult.value)       // "success"
+    println(retryResult.attempts)    // 3
+    println(retryResult.totalDelay)  // 70ms
+    ```
 
 ---
 
@@ -370,21 +416,42 @@ Supports arities 2-22.
 
 ### `bracketCase` — Release depends on outcome
 
-```kotlin
-val result = Async {
-    bracketCase(
-        acquire = { openDbConnection() },
-        use = { tx -> Kap { tx.query("INSERT 1") } },
-        release = { tx, case ->
-            when (case) {
-                is ExitCase.Completed<*> -> { println("commit"); tx.commit() }
-                is ExitCase.Failed -> { println("rollback"); tx.rollback() }
-                is ExitCase.Cancelled -> { println("rollback (cancelled)"); tx.rollback() }
-            }
-            tx.close()
-        },
-    )
-}
+=== "Raw Coroutines"
+
+    ```kotlin
+    val conn = openDbConnection()
+    var succeeded = false
+    try {
+        val result = conn.query("INSERT 1")
+        succeeded = true
+        result
+    } catch (e: Exception) {
+        conn.rollback()
+        throw e
+    } finally {
+        if (succeeded) conn.commit()
+        conn.close()
+    }
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val result = Async {
+        bracketCase(
+            acquire = { openDbConnection() },
+            use = { tx -> Kap { tx.query("INSERT 1") } },
+            release = { tx, case ->
+                when (case) {
+                    is ExitCase.Completed<*> -> { println("commit"); tx.commit() }
+                    is ExitCase.Failed -> { println("rollback"); tx.rollback() }
+                    is ExitCase.Cancelled -> { println("rollback (cancelled)"); tx.rollback() }
+                }
+                tx.close()
+            },
+        )
+    }
+    ```
 ```
 
 ### `Resource` — Composable resource
@@ -429,29 +496,59 @@ val result = Async {
 
 ### `guarantee` / `guaranteeCase`
 
-```kotlin
-// guarantee: finalizer always runs, regardless of success or failure
-val result = Async {
-    guarantee(
-        fa = { riskyOperation() },
-        finalizer = { cleanup() },
-    )
-}
+=== "Raw Coroutines"
 
-// guaranteeCase: finalizer receives the exit case
-val result2 = Async {
-    guaranteeCase(
-        fa = { riskyOperation() },
-        finalizer = { case ->
-            when (case) {
-                is ExitCase.Completed<*> -> println("success cleanup")
-                is ExitCase.Failed -> println("failure cleanup: ${case.error}")
-                is ExitCase.Cancelled -> println("cancellation cleanup")
-            }
-        },
-    )
-}
-```
+    ```kotlin
+    // guarantee: try/finally is all you get
+    val result = try {
+        riskyOperation()
+    } finally {
+        cleanup()
+    }
+
+    // guaranteeCase: manual outcome tracking
+    var outcome: String = "cancelled"
+    val result2 = try {
+        val r = riskyOperation()
+        outcome = "success"
+        r
+    } catch (e: Exception) {
+        outcome = "failure: ${e.message}"
+        throw e
+    } finally {
+        when {
+            outcome.startsWith("success") -> println("success cleanup")
+            outcome.startsWith("failure") -> println("failure cleanup: $outcome")
+            else -> println("cancellation cleanup")
+        }
+    }
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    // guarantee: finalizer always runs, regardless of success or failure
+    val result = Async {
+        guarantee(
+            fa = { riskyOperation() },
+            finalizer = { cleanup() },
+        )
+    }
+
+    // guaranteeCase: finalizer receives the exit case
+    val result2 = Async {
+        guaranteeCase(
+            fa = { riskyOperation() },
+            finalizer = { case ->
+                when (case) {
+                    is ExitCase.Completed<*> -> println("success cleanup")
+                    is ExitCase.Failed -> println("failure cleanup: ${case.error}")
+                    is ExitCase.Cancelled -> println("cancellation cleanup")
+                }
+            },
+        )
+    }
+    ```
 
 ---
 
@@ -459,17 +556,75 @@ val result2 = Async {
 
 All features composed in one chain:
 
-```kotlin
-val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+=== "Raw Coroutines"
 
-val result = Async {
-    Kap { fetchData() }
-        .timeout(2.seconds)                              // hard timeout
-        .withCircuitBreaker(breaker)                     // circuit breaker
-        .retry(Schedule.times<Throwable>(3)              // retry with backoff + jitter
-            and Schedule.exponential(50.milliseconds)
-            .jittered()
-            .withMaxDuration(10.seconds))
-        .recover { cachedData() }                        // fallback on exhaustion
-}
-```
+    ```kotlin
+    val maxFailures = 5
+    var failures = 0
+    var cbState = "closed"
+    var cbLastFailure = 0L
+
+    suspend fun fetchWithResilience(): String {
+        // Circuit breaker check
+        if (cbState == "open") {
+            if (System.currentTimeMillis() - cbLastFailure > 30_000) {
+                cbState = "half-open"
+            } else {
+                throw RuntimeException("Circuit breaker is open")
+            }
+        }
+
+        // Retry loop with exponential backoff + jitter
+        var lastException: Exception? = null
+        var currentDelay = 50L
+        val startTime = System.currentTimeMillis()
+
+        for (attempt in 0..3) {
+            if (System.currentTimeMillis() - startTime > 10_000) break // max duration
+
+            try {
+                // Timeout
+                val result = withTimeout(2000) { fetchData() }
+
+                // Circuit breaker success
+                failures = 0
+                cbState = "closed"
+                return result
+            } catch (e: Exception) {
+                lastException = e
+
+                // Circuit breaker failure tracking
+                failures++
+                cbLastFailure = System.currentTimeMillis()
+                if (failures >= maxFailures) cbState = "open"
+
+                if (attempt < 3) {
+                    // Jittered delay
+                    val jitter = (currentDelay * Math.random()).toLong()
+                    delay(currentDelay + jitter)
+                    currentDelay *= 2
+                }
+            }
+        }
+
+        // Fallback after exhaustion
+        return cachedData()
+    }
+    ```
+
+=== "KAP"
+
+    ```kotlin
+    val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+
+    val result = Async {
+        Kap { fetchData() }
+            .timeout(2.seconds)                              // hard timeout
+            .withCircuitBreaker(breaker)                     // circuit breaker
+            .retry(Schedule.times<Throwable>(3)              // retry with backoff + jitter
+                and Schedule.exponential(50.milliseconds)
+                .jittered()
+                .withMaxDuration(10.seconds))
+            .recover { cachedData() }                        // fallback on exhaustion
+    }
+    ```
