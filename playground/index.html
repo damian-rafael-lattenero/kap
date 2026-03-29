@@ -29,7 +29,7 @@
     
     
       
-        <title>Playground - KAP — Kotlin Async Parallelism</title>
+        <title>Cookbook - KAP — Kotlin Async Parallelism</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#playground" class="md-skip">
+        <a href="#cookbook" class="md-skip">
           Skip to content
         </a>
       
@@ -119,7 +119,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Playground
+              Cookbook
             
           </span>
         </div>
@@ -332,7 +332,7 @@
   
     
   
-  Playground
+  Cookbook
 
       </a>
     </li>
@@ -998,7 +998,7 @@
   <span class="md-ellipsis">
     
   
-    Playground
+    Cookbook
   
 
     
@@ -1016,7 +1016,7 @@
   <span class="md-ellipsis">
     
   
-    Playground
+    Cookbook
   
 
     
@@ -1042,10 +1042,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#parallel-execution-with" class="md-nav__link">
+  <a href="#parallel-execution-3-services-at-once" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Parallel Execution — .with
+        Parallel Execution — 3 services at once
       
     </span>
   </a>
@@ -1053,10 +1053,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#phase-barriers-then" class="md-nav__link">
+  <a href="#11-service-checkout-5-phases-one-flat-chain" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Phase Barriers — .then
+        11-Service Checkout — 5 phases, one flat chain
       
     </span>
   </a>
@@ -1086,10 +1086,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#racing-first-to-succeed-wins" class="md-nav__link">
+  <a href="#traversesettled-collect-all-results" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Racing — First to Succeed Wins
+        traverseSettled — Collect ALL results
       
     </span>
   </a>
@@ -1097,10 +1097,76 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#bounded-concurrency-traverseconcurrency" class="md-nav__link">
+  <a href="#racing-fastest-region-wins" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Bounded Concurrency — traverse(concurrency)
+        Racing — Fastest region wins
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retry-with-schedule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retry with Schedule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#timeoutrace-parallel-fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TimeoutRace — Parallel fallback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-safety-bracket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource Safety — bracket
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parallel-validation-collect-every-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parallel Validation — Collect every error
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memoization-cache-only-successes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memoization — Cache only successes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#real-http-github-api-cat-facts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real HTTP — GitHub API + Cat Facts
       
     </span>
   </a>
@@ -1290,10 +1356,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#parallel-execution-with" class="md-nav__link">
+  <a href="#parallel-execution-3-services-at-once" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Parallel Execution — .with
+        Parallel Execution — 3 services at once
       
     </span>
   </a>
@@ -1301,10 +1367,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#phase-barriers-then" class="md-nav__link">
+  <a href="#11-service-checkout-5-phases-one-flat-chain" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Phase Barriers — .then
+        11-Service Checkout — 5 phases, one flat chain
       
     </span>
   </a>
@@ -1334,10 +1400,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#racing-first-to-succeed-wins" class="md-nav__link">
+  <a href="#traversesettled-collect-all-results" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Racing — First to Succeed Wins
+        traverseSettled — Collect ALL results
       
     </span>
   </a>
@@ -1345,10 +1411,76 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#bounded-concurrency-traverseconcurrency" class="md-nav__link">
+  <a href="#racing-fastest-region-wins" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Bounded Concurrency — traverse(concurrency)
+        Racing — Fastest region wins
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retry-with-schedule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retry with Schedule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#timeoutrace-parallel-fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TimeoutRace — Parallel fallback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-safety-bracket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource Safety — bracket
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parallel-validation-collect-every-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parallel Validation — Collect every error
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memoization-cache-only-successes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memoization — Cache only successes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#real-http-github-api-cat-facts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real HTTP — GitHub API + Cat Facts
       
     </span>
   </a>
@@ -1377,255 +1509,216 @@
   
 
 
-<h1 id="playground">Playground<a class="headerlink" href="#playground" title="Permanent link">&para;</a></h1>
-<p>Interactive examples powered by <a href="https://kotlinlang.org/docs/kotlin-tour-hello-world.html">Kotlin Playground</a>. Edit and run directly in your browser.</p>
-<script src="https://unpkg.com/kotlin-playground@1" data-selector=".kotlin-playground"></script>
-
-<style>
-.kotlin-playground { margin: 1.5rem 0; }
-</style>
-
+<h1 id="cookbook">Cookbook<a class="headerlink" href="#cookbook" title="Permanent link">&para;</a></h1>
+<p>Real examples from the <a href="https://github.com/damian-rafael-lattenero/kap/tree/master/examples/readme-examples"><code>readme-examples</code></a> project. All code compiles, runs, and is verified on every CI push.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Run all examples yourself:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/damian-rafael-lattenero/kap.git
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nb">cd</span><span class="w"> </span>kap
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>./gradlew<span class="w"> </span>:examples:readme-examples:run
+</span></code></pre></div>
 <hr />
-<h2 id="parallel-execution-with">Parallel Execution — <code>.with</code><a class="headerlink" href="#parallel-execution-with" title="Permanent link">&para;</a></h2>
-<p>Three services fetched in parallel. Total time = max(individual), not sum.</p>
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-
-data class Dashboard(val user: String, val cart: String, val promos: String)
-
-suspend fun fetchUser(): String { delay(300); return "Alice" }
-suspend fun fetchCart(): String { delay(200); return "3 items" }
-suspend fun fetchPromos(): String { delay(100); return "SAVE20" }
-
-suspend fun main() {
-    val start = System.currentTimeMillis()
-
-    // Parallel execution with coroutineScope
-    val result = coroutineScope {
-        val dUser = async { fetchUser() }
-        val dCart = async { fetchCart() }
-        val dPromos = async { fetchPromos() }
-        Dashboard(dUser.await(), dCart.await(), dPromos.await())
-    }
-
-    val elapsed = System.currentTimeMillis() - start
-    println("Result: $result")
-    println("Time: ${elapsed}ms (not 600ms — parallel!)")
-
-    // With KAP this would be:
-    // val result = Async {
-    //     kap(::Dashboard)
-    //         .with { fetchUser() }
-    //         .with { fetchCart() }
-    //         .with { fetchPromos() }
-    // }
-}
-</div>
-
-<div class="admonition info">
-<p class="admonition-title">Note</p>
-<p>KAP itself can't run in Kotlin Playground (it needs a Maven dependency). These examples show the <strong>coroutine patterns</strong> that KAP simplifies. The commented KAP code shows the equivalent.</p>
-</div>
+<h2 id="parallel-execution-3-services-at-once">Parallel Execution — 3 services at once<a class="headerlink" href="#parallel-execution-3-services-at-once" title="Permanent link">&para;</a></h2>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">Dashboard</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">cart</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">promos</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">fetchDashUser</span><span class="p">():</span><span class="w"> </span><span class="kt">String</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">delay</span><span class="p">(</span><span class="m">30</span><span class="p">);</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;Alice&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">fetchDashCart</span><span class="p">():</span><span class="w"> </span><span class="kt">String</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">delay</span><span class="p">(</span><span class="m">20</span><span class="p">);</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;3 items&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">fetchDashPromos</span><span class="p">():</span><span class="w"> </span><span class="kt">String</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">delay</span><span class="p">(</span><span class="m">10</span><span class="p">);</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;SAVE20&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="n">kap</span><span class="p">(</span><span class="o">::</span><span class="n">Dashboard</span><span class="p">)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchDashUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">     </span><span class="c1">// ┐ all three in parallel</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchDashCart</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">      </span><span class="c1">// │ total time = max(30, 20, 10) = 30ms</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchDashPromos</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">    </span><span class="c1">// ┘ not 60ms</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Dashboard(user=Alice, cart=3 items, promos=SAVE20)
+</span></code></pre></div></p>
 <hr />
-<h2 id="phase-barriers-then">Phase Barriers — <code>.then</code><a class="headerlink" href="#phase-barriers-then" title="Permanent link">&para;</a></h2>
-<p>Phase 2 waits for phase 1 to complete:</p>
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-
-suspend fun fetchA(): String { delay(200); return "A" }
-suspend fun fetchB(): String { delay(150); return "B" }
-suspend fun validate(a: String, b: String): String { delay(100); return "valid($a,$b)" }
-
-suspend fun main() {
-    val start = System.currentTimeMillis()
-
-    val result = coroutineScope {
-        // Phase 1: parallel
-        val dA = async { fetchA() }
-        val dB = async { fetchB() }
-        val a = dA.await()
-        val b = dB.await()
-
-        // Phase 2: barrier — needs A and B
-        val validated = validate(a, b)
-
-        Triple(a, b, validated)
-    }
-
-    val elapsed = System.currentTimeMillis() - start
-    println("Result: $result")
-    println("Time: ${elapsed}ms (200ms parallel + 100ms barrier = ~300ms)")
-
-    // With KAP:
-    // kap(::Triple)
-    //     .with { fetchA() }       // ┐ parallel
-    //     .with { fetchB() }       // ┘
-    //     .then { validate() }     // ── barrier
-}
-</div>
-
+<h2 id="11-service-checkout-5-phases-one-flat-chain">11-Service Checkout — 5 phases, one flat chain<a class="headerlink" href="#11-service-checkout-5-phases-one-flat-chain" title="Permanent link">&para;</a></h2>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">checkout</span><span class="p">:</span><span class="w"> </span><span class="n">CheckoutResult</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="n">kap</span><span class="p">(</span><span class="o">::</span><span class="n">CheckoutResult</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">              </span><span class="c1">// ┐</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchCart</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">               </span><span class="c1">// ├─ phase 1: parallel</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchPromos</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">             </span><span class="c1">// │</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchInventory</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">          </span><span class="c1">// ┘</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">        </span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">validateStock</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">           </span><span class="c1">// ── phase 2: barrier</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">calcShipping</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">            </span><span class="c1">// ┐</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">calcTax</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">                 </span><span class="c1">// ├─ phase 3: parallel</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">calcDiscounts</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">           </span><span class="c1">// ┘</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">        </span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">reservePayment</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">          </span><span class="c1">// ── phase 4: barrier</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">generateConfirmation</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">    </span><span class="c1">// ┐ phase 5: parallel</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">sendEmail</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">              </span><span class="c1">// ┘</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CheckoutResult(user=UserProfile(name=Alice, id=42), cart=ShoppingCart(items=3, total=147.5),
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>promos=PromotionBundle(code=SUMMER20, discountPct=20), inventory=InventorySnapshot(allInStock=true),
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>stock=StockConfirmation(confirmed=true), shipping=ShippingQuote(amount=5.99, method=standard),
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>tax=TaxBreakdown(amount=12.38, rate=0.08), discounts=DiscountSummary(amount=29.5, promoApplied=SUMMER20),
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>payment=PaymentAuth(cardLast4=4242, authorized=true), confirmation=OrderConfirmation(orderId=order-#90142),
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>email=EmailReceipt(sentTo=alice@example.com, orderId=order-#90142))
+</span></code></pre></div></p>
 <hr />
 <h2 id="value-dependent-phases-andthen">Value-Dependent Phases — <code>.andThen</code><a class="headerlink" href="#value-dependent-phases-andthen" title="Permanent link">&para;</a></h2>
-<p>Phase 2 uses phase 1's result:</p>
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-
-data class UserContext(val profile: String, val prefs: String)
-data class Enriched(val recs: String, val promos: String)
-
-suspend fun fetchProfile(id: String): String { delay(200); return "profile-$id" }
-suspend fun fetchPrefs(id: String): String { delay(150); return "prefs-$id" }
-suspend fun fetchRecs(profile: String): String { delay(100); return "recs-for-$profile" }
-suspend fun fetchPromos(prefs: String): String { delay(80); return "promos-for-$prefs" }
-
-suspend fun main() {
-    val start = System.currentTimeMillis()
-
-    // Phase 1
-    val ctx = coroutineScope {
-        val dProfile = async { fetchProfile("user-42") }
-        val dPrefs = async { fetchPrefs("user-42") }
-        UserContext(dProfile.await(), dPrefs.await())
-    }
-
-    // Phase 2 — depends on ctx
-    val enriched = coroutineScope {
-        val dRecs = async { fetchRecs(ctx.profile) }
-        val dPromos = async { fetchPromos(ctx.prefs) }
-        Enriched(dRecs.await(), dPromos.await())
-    }
-
-    val elapsed = System.currentTimeMillis() - start
-    println("Context: $ctx")
-    println("Enriched: $enriched")
-    println("Time: ${elapsed}ms (200ms + 100ms = ~300ms, not 530ms)")
-
-    // With KAP — one flat chain:
-    // kap(::UserContext)
-    //     .with { fetchProfile("user-42") }
-    //     .with { fetchPrefs("user-42") }
-    //     .andThen { ctx ->
-    //         kap(::Enriched)
-    //             .with { fetchRecs(ctx.profile) }
-    //             .with { fetchPromos(ctx.prefs) }
-    //     }
-}
-</div>
-
+<p>Phase 2 needs phase 1's result:</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">userId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;user-1&quot;</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kd">val</span><span class="w"> </span><span class="nv">dashboard</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="n">kap</span><span class="p">(</span><span class="o">::</span><span class="n">UserContext</span><span class="p">)</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchProfile</span><span class="p">(</span><span class="n">userId</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">       </span><span class="c1">// ┐ phase 1: parallel</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchPreferences</span><span class="p">(</span><span class="n">userId</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// │</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchLoyaltyTier</span><span class="p">(</span><span class="n">userId</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// ┘</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">        </span><span class="p">.</span><span class="na">andThen</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">-&gt;</span><span class="w">                    </span><span class="c1">// ── barrier: ctx available</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">            </span><span class="n">kap</span><span class="p">(</span><span class="o">::</span><span class="n">PersonalizedDashboard</span><span class="p">)</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">                </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchRecommendations</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="na">profile</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">  </span><span class="c1">// ┐ phase 2</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">                </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchPromotions</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="na">tier</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">           </span><span class="c1">// │</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">                </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchTrending</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="na">prefs</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">            </span><span class="c1">// ┘</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>PersonalizedDashboard(recs=recs-for-profile-user-1, promos=promos-gold, trending=trending-prefs-dark)
+</span></code></pre></div></p>
 <hr />
 <h2 id="partial-failure-settled">Partial Failure — <code>.settled()</code><a class="headerlink" href="#partial-failure-settled" title="Permanent link">&para;</a></h2>
 <p>One service fails, the rest still complete:</p>
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-
-data class Dashboard(val user: String, val cart: String, val config: String)
-
-suspend fun fetchUserMayFail(): String { throw RuntimeException("user service down") }
-suspend fun fetchCart(): String { delay(100); return "cart-ok" }
-suspend fun fetchConfig(): String { delay(80); return "config-ok" }
-
-suspend fun main() {
-    // With raw coroutines: supervisorScope + try/catch
-    val result = supervisorScope {
-        val dUser = async { fetchUserMayFail() }
-        val dCart = async { fetchCart() }
-        val dConfig = async { fetchConfig() }
-        val user = try { dUser.await() } catch (e: Exception) { "anonymous" }
-        Dashboard(user, dCart.await(), dConfig.await())
-    }
-
-    println("Result: $result")
-    println("User failed but dashboard still built with fallback!")
-
-    // With KAP:
-    // kap { user: Result<String>, cart: String, config: String ->
-    //     Dashboard(user.getOrDefault("anonymous"), cart, config)
-    // }
-    //     .with(Kap { fetchUserMayFail() }.settled())
-    //     .with { fetchCart() }
-    //     .with { fetchConfig() }
-}
-</div>
-
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">dashboard</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="n">kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">user</span><span class="p">:</span><span class="w"> </span><span class="n">Result</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">cart</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="n">config</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="w"> </span><span class="o">-&gt;</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">        </span><span class="n">PartialDashboard</span><span class="p">(</span><span class="n">user</span><span class="p">.</span><span class="na">getOrDefault</span><span class="p">(</span><span class="s">&quot;anonymous&quot;</span><span class="p">),</span><span class="w"> </span><span class="n">cart</span><span class="p">,</span><span class="w"> </span><span class="n">config</span><span class="p">)</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="p">(</span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUserMayFail</span><span class="p">()</span><span class="w"> </span><span class="p">}.</span><span class="na">settled</span><span class="p">())</span><span class="w">  </span><span class="c1">// wrapped in Result</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchCartAlways</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchConfigAlways</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>PartialDashboard(user=anonymous, cart=cart-ok, config=config-ok)
+</span></code></pre></div></p>
 <hr />
-<h2 id="racing-first-to-succeed-wins">Racing — First to Succeed Wins<a class="headerlink" href="#racing-first-to-succeed-wins" title="Permanent link">&para;</a></h2>
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-import kotlinx.coroutines.selects.select
-
-suspend fun fetchUS(): String { delay(300); return "US-data" }
-suspend fun fetchEU(): String { delay(100); return "EU-data" }
-suspend fun fetchAP(): String { delay(200); return "AP-data" }
-
-suspend fun main() {
-    val start = System.currentTimeMillis()
-
-    // Race three regions
-    val winner = coroutineScope {
-        val us = async { fetchUS() }
-        val eu = async { fetchEU() }
-        val ap = async { fetchAP() }
-        select {
-            us.onAwait { it }
-            eu.onAwait { it }
-            ap.onAwait { it }
-        }.also {
-            us.cancel(); eu.cancel(); ap.cancel()
-        }
-    }
-
-    val elapsed = System.currentTimeMillis() - start
-    println("Winner: $winner in ${elapsed}ms")
-    println("EU won at ~100ms. US and AP cancelled.")
-
-    // With KAP:
-    // raceN(
-    //     Kap { fetchUS() },
-    //     Kap { fetchEU() },
-    //     Kap { fetchAP() },
-    // )
-}
-</div>
-
+<h2 id="traversesettled-collect-all-results"><code>traverseSettled</code> — Collect ALL results<a class="headerlink" href="#traversesettled-collect-all-results" title="Permanent link">&para;</a></h2>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">ids</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="m">1</span><span class="p">,</span><span class="w"> </span><span class="m">2</span><span class="p">,</span><span class="w"> </span><span class="m">3</span><span class="p">,</span><span class="w"> </span><span class="m">4</span><span class="p">,</span><span class="w"> </span><span class="m">5</span><span class="p">)</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kd">val</span><span class="w"> </span><span class="nv">results</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">Result</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="n">ids</span><span class="p">.</span><span class="na">traverseSettled</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">-&gt;</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">        </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="m">0</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="n">RuntimeException</span><span class="p">(</span><span class="s">&quot;fail-</span><span class="si">$</span><span class="n">id</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">            </span><span class="s">&quot;user-</span><span class="si">$</span><span class="n">id</span><span class="s">&quot;</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>successes=[user-1, user-3, user-5], failures=[fail-2, fail-4]
+</span></code></pre></div></p>
 <hr />
-<h2 id="bounded-concurrency-traverseconcurrency">Bounded Concurrency — <code>traverse(concurrency)</code><a class="headerlink" href="#bounded-concurrency-traverseconcurrency" title="Permanent link">&para;</a></h2>
-<div class="kotlin-playground" theme="darcula">
-
-import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-
-suspend fun fetchUser(id: Int): String { delay(100); return "user-$id" }
-
-suspend fun main() {
-    val ids = (1..20).toList()
-    val start = System.currentTimeMillis()
-
-    // Bounded parallel: max 5 concurrent
-    val semaphore = Semaphore(5)
-    val results = coroutineScope {
-        ids.map { id ->
-            async { semaphore.withPermit { fetchUser(id) } }
-        }.awaitAll()
-    }
-
-    val elapsed = System.currentTimeMillis() - start
-    println("Fetched ${results.size} users in ${elapsed}ms")
-    println("With concurrency=5: ~400ms (4 batches × 100ms)")
-    println("Sequential would be: ${ids.size * 100}ms")
-
-    // With KAP:
-    // ids.traverse(concurrency = 5) { id -> Kap { fetchUser(id) } }
-}
-</div>
-
+<h2 id="racing-fastest-region-wins">Racing — Fastest region wins<a class="headerlink" href="#racing-fastest-region-wins" title="Permanent link">&para;</a></h2>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">fastest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span><span class="n">raceN</span><span class="p">(</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">        </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchFromRegionUS</span><span class="p">()</span><span class="w"> </span><span class="p">},</span><span class="w">   </span><span class="c1">// 100ms</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">        </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchFromRegionEU</span><span class="p">()</span><span class="w"> </span><span class="p">},</span><span class="w">   </span><span class="c1">// 30ms</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">        </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchFromRegionAP</span><span class="p">()</span><span class="w"> </span><span class="p">},</span><span class="w">   </span><span class="c1">// 60ms</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="p">)</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>EU-data  (at ~30ms, US and AP cancelled)
+</span></code></pre></div></p>
 <hr />
-<p>Ready to try KAP? <a class="md-button md-button--primary" href="../guide/quickstart/">Get Started</a></p>
+<h2 id="retry-with-schedule">Retry with Schedule<a class="headerlink" href="#retry-with-schedule" title="Permanent link">&para;</a></h2>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kd">var</span><span class="w"> </span><span class="nv">attempts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kd">val</span><span class="w"> </span><span class="nv">policy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Schedule</span><span class="p">.</span><span class="na">times</span><span class="o">&lt;</span><span class="n">Throwable</span><span class="o">&gt;</span><span class="p">(</span><span class="m">5</span><span class="p">)</span><span class="w"> </span><span class="n">and</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="n">Schedule</span><span class="p">.</span><span class="na">exponential</span><span class="p">(</span><span class="m">10.</span><span class="n">milliseconds</span><span class="p">)</span><span class="w"> </span><span class="n">and</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="n">Schedule</span><span class="p">.</span><span class="na">doWhile</span><span class="o">&lt;</span><span class="n">Throwable</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">it</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="n">RuntimeException</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">    </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">        </span><span class="n">attempts</span><span class="o">++</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">attempts</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="m">2</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="n">RuntimeException</span><span class="p">(</span><span class="s">&quot;flake #</span><span class="si">$</span><span class="n">attempts</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">        </span><span class="s">&quot;success on attempt </span><span class="si">$</span><span class="n">attempts</span><span class="s">&quot;</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="w">    </span><span class="p">}.</span><span class="na">retry</span><span class="p">(</span><span class="n">policy</span><span class="p">)</span>
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>success on attempt 3
+</span></code></pre></div></p>
+<hr />
+<h2 id="timeoutrace-parallel-fallback">TimeoutRace — Parallel fallback<a class="headerlink" href="#timeoutrace-parallel-fallback" title="Permanent link">&para;</a></h2>
+<p>Both start at t=0. Fallback is already running when primary times out:</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">    </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">delay</span><span class="p">(</span><span class="m">200</span><span class="p">);</span><span class="w"> </span><span class="s">&quot;primary-data&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">        </span><span class="p">.</span><span class="na">timeoutRace</span><span class="p">(</span><span class="m">100.</span><span class="n">milliseconds</span><span class="p">,</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">delay</span><span class="p">(</span><span class="m">30</span><span class="p">);</span><span class="w"> </span><span class="s">&quot;fallback-data&quot;</span><span class="w"> </span><span class="p">})</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>fallback-data  (at ~30ms — 2.6x faster than sequential timeout)
+</span></code></pre></div></p>
+<hr />
+<h2 id="resource-safety-bracket">Resource Safety — <code>bracket</code><a class="headerlink" href="#resource-safety-bracket" title="Permanent link">&para;</a></h2>
+<p>All three resources acquired, used in parallel, ALL released even on failure:</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">    </span><span class="n">kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">db</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="n">cache</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="n">api</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="s">&quot;</span><span class="si">$</span><span class="n">db</span><span class="s">|</span><span class="si">$</span><span class="n">cache</span><span class="s">|</span><span class="si">$</span><span class="n">api</span><span class="s">&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="p">(</span><span class="n">bracket</span><span class="p">(</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">            </span><span class="n">acquire</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">openDbConnection</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="w">            </span><span class="n">use</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">conn</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">conn</span><span class="p">.</span><span class="na">query</span><span class="p">(</span><span class="s">&quot;SELECT 1&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="w">            </span><span class="n">release</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">conn</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">conn</span><span class="p">.</span><span class="na">close</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="w">        </span><span class="p">))</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="p">(</span><span class="n">bracket</span><span class="p">(</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="w">            </span><span class="n">acquire</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">openCacheConnection</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="w">            </span><span class="n">use</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">conn</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">conn</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="s">&quot;key&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="w">            </span><span class="n">release</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">conn</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">conn</span><span class="p">.</span><span class="na">close</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="w">        </span><span class="p">))</span>
+</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="p">(</span><span class="n">bracket</span><span class="p">(</span>
+</span><span id="__span-17-14"><a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="w">            </span><span class="n">acquire</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">openHttpClient</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-17-15"><a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a><span class="w">            </span><span class="n">use</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">client</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">client</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="s">&quot;/api&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-17-16"><a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a><span class="w">            </span><span class="n">release</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">client</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">client</span><span class="p">.</span><span class="na">close</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-17-17"><a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a><span class="w">        </span><span class="p">))</span>
+</span><span id="__span-17-18"><a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>db:result-of-SELECT 1|cache:key|http:/api
+</span></code></pre></div></p>
+<hr />
+<h2 id="parallel-validation-collect-every-error">Parallel Validation — Collect every error<a class="headerlink" href="#parallel-validation-collect-every-error" title="Permanent link">&para;</a></h2>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="p">:</span><span class="w"> </span><span class="n">Either</span><span class="o">&lt;</span><span class="n">NonEmptyList</span><span class="o">&lt;</span><span class="n">RegError</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">User</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">    </span><span class="n">zipV</span><span class="p">(</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="n">validateName</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="n">validateEmail</span><span class="p">(</span><span class="s">&quot;bad&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="n">validateAge</span><span class="p">(</span><span class="m">10</span><span class="p">)</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="n">checkUsername</span><span class="p">(</span><span class="s">&quot;al&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">email</span><span class="p">,</span><span class="w"> </span><span class="n">age</span><span class="p">,</span><span class="w"> </span><span class="n">username</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">User</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">email</span><span class="p">,</span><span class="w"> </span><span class="n">age</span><span class="p">,</span><span class="w"> </span><span class="n">username</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>4 errors: [Name must be &gt;= 2 chars, Invalid email: bad, Must be &gt;= 18 got 10, Username too short]
+</span></code></pre></div></p>
+<hr />
+<h2 id="memoization-cache-only-successes">Memoization — Cache only successes<a class="headerlink" href="#memoization-cache-only-successes" title="Permanent link">&para;</a></h2>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kd">var</span><span class="w"> </span><span class="nv">callCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="kd">val</span><span class="w"> </span><span class="nv">fetchOnce</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">callCount</span><span class="o">++</span><span class="p">;</span><span class="w"> </span><span class="n">delay</span><span class="p">(</span><span class="m">30</span><span class="p">);</span><span class="w"> </span><span class="s">&quot;expensive-result&quot;</span><span class="w"> </span><span class="p">}.</span><span class="na">memoizeOnSuccess</span><span class="p">()</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="kd">val</span><span class="w"> </span><span class="nv">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchOnce</span><span class="w"> </span><span class="p">}</span><span class="w">  </span><span class="c1">// runs, callCount=1</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="kd">val</span><span class="w"> </span><span class="nv">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchOnce</span><span class="w"> </span><span class="p">}</span><span class="w">  </span><span class="c1">// cached, callCount still 1</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>memoizeOnSuccess: a=expensive-result, b=expensive-result, callCount=1
+</span></code></pre></div></p>
+<hr />
+<h2 id="real-http-github-api-cat-facts">Real HTTP — GitHub API + Cat Facts<a class="headerlink" href="#real-http-github-api-cat-facts" title="Permanent link">&para;</a></h2>
+<p>From <a href="https://github.com/damian-rafael-lattenero/kap/tree/master/examples/real-world-http"><code>examples/real-world-http</code></a>:</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="w">    </span><span class="n">kap</span><span class="p">(</span><span class="o">::</span><span class="n">DeveloperProfile</span><span class="p">)</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchGithubUser</span><span class="p">(</span><span class="s">&quot;JetBrains&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchGithubRepos</span><span class="p">(</span><span class="s">&quot;JetBrains&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">        </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchCatFact</span><span class="p">().</span><span class="na">fact</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>User: JetBrains (JetBrains)
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>Repos: 805 public, top 5: ...
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>Fun fact: Contrary to popular belief, the cat is a social animal.
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>Time: 693ms (parallel, not sequential)
+</span></code></pre></div></p>
+<hr />
+<p>Ready to try? <a class="md-button md-button--primary" href="../guide/quickstart/">Get Started</a> &nbsp; <a class="md-button" href="https://github.com/damian-rafael-lattenero/kap">GitHub</a></p>
 
 
 
