@@ -32,7 +32,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install MkDocs Material
-        run: pip install "mkdocs-material==9.7.6" "pygments>=2.17,<2.20"
+        run: pip install "mkdocs-material>=9.7,<10" "pygments>=2.17,<2.20"
 
       - name: Preserve benchmark data from gh-pages
         run: |
