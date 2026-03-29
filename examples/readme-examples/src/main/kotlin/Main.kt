@@ -5,6 +5,7 @@ import arrow.core.Either
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -1037,6 +1038,819 @@ suspend fun bffMobileApp() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//  Feature: thenValue — fill a slot without a barrier
+// ═══════════════════════════════════════════════════════════════════════
+
+data class Enriched(val a: String, val enriched: String, val c: String)
+
+suspend fun featureThenValue() {
+    println("=== Feature: thenValue (no barrier) ===\n")
+
+    val result = Async {
+        kap(::Enriched)
+            .with { delay(30); "data-A" }        // launched at t=0
+            .thenValue { delay(50); "enriched" }  // sequential value, no barrier
+            .with { delay(20); "data-C" }         // launched at t=0 (overlaps!)
+    }
+    println("  thenValue: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: traverseDiscard — fire-and-forget parallel processing
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureTraverseDiscard() {
+    println("=== Feature: traverseDiscard ===\n")
+
+    val ids = listOf(1, 2, 3, 4, 5)
+    val processed = mutableListOf<Int>()
+
+    Async {
+        ids.traverseDiscard(concurrency = 3) { id ->
+            Kap { delay(10); synchronized(processed) { processed.add(id) } }
+        }
+    }
+    println("  traverseDiscard processed: $processed (fire-and-forget, results discarded)\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: sequence — execute a list of Kap computations
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureSequence() {
+    println("=== Feature: sequence ===\n")
+
+    val computations = listOf(
+        Kap { delay(30); "alpha" },
+        Kap { delay(20); "beta" },
+        Kap { delay(10); "gamma" },
+    )
+
+    val results: List<String> = Async { computations.sequence(concurrency = 2) }
+    println("  sequence(c=2): $results\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: raceAll — race a dynamic list of computations
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureRaceAll() {
+    println("=== Feature: raceAll ===\n")
+
+    val replicas = listOf(
+        Kap { delay(100); "replica-slow" },
+        Kap { delay(20); "replica-fast" },
+        Kap { delay(60); "replica-medium" },
+    )
+
+    val winner = Async { replicas.raceAll() }
+    println("  raceAll winner: $winner\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: timeout — .timeout(duration) { fallback }
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureTimeout() {
+    println("=== Feature: timeout ===\n")
+
+    // timeout with default value
+    val result1 = Async {
+        Kap { delay(200); "slow-value" }
+            .timeout(50.milliseconds, "default-value")
+    }
+    println("  timeout(default): $result1")
+
+    // timeout with fallback computation
+    val result2 = Async {
+        Kap { delay(200); "slow-value" }
+            .timeout(50.milliseconds, Kap { delay(10); "fallback-value" })
+    }
+    println("  timeout(fallback): $result2\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: recover — .recover { } and .recoverWith { }
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureRecover() {
+    println("=== Feature: recover / recoverWith ===\n")
+
+    val result1 = Async {
+        Kap<String> { throw RuntimeException("oops") }
+            .recover { err -> "recovered: ${err.message}" }
+    }
+    println("  recover: $result1")
+
+    val result2 = Async {
+        Kap<String> { throw RuntimeException("oops") }
+            .recoverWith { err -> Kap { delay(10); "recovered-with: ${err.message}" } }
+    }
+    println("  recoverWith: $result2\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: retry (simple) — .retry(maxAttempts, delay)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureRetrySimple() {
+    println("=== Feature: retry (simple) ===\n")
+
+    var attempts = 0
+    val result = Async {
+        Kap {
+            attempts++
+            if (attempts < 3) throw RuntimeException("flake #$attempts")
+            "success on attempt $attempts"
+        }.retry(maxAttempts = 5, delay = 10.milliseconds, backoff = exponential)
+    }
+    println("  retry: $result (took $attempts attempts)\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: ensure / ensureNotNull
+// ═══════════════════════════════════════════════════════════════════════
+
+data class UserRecord(val name: String, val profile: String?)
+
+suspend fun featureEnsure() {
+    println("=== Feature: ensure / ensureNotNull ===\n")
+
+    val result1 = Async {
+        Kap { delay(10); 42 }
+            .ensure({ IllegalStateException("must be positive") }) { it > 0 }
+    }
+    println("  ensure (pass): $result1")
+
+    val failResult = try {
+        Async {
+            Kap { delay(10); -1 }
+                .ensure({ IllegalStateException("must be positive") }) { it > 0 }
+        }
+    } catch (e: IllegalStateException) {
+        "caught: ${e.message}"
+    }
+    println("  ensure (fail): $failResult")
+
+    val result2 = Async {
+        Kap { delay(10); UserRecord("Alice", "premium") }
+            .ensureNotNull({ IllegalStateException("profile is null") }) { it.profile }
+    }
+    println("  ensureNotNull: $result2\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: catching — Result wrapping
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureCatching() {
+    println("=== Feature: catching ===\n")
+
+    val success: Result<String> = Async { catching { delay(10); "hello" } }
+    println("  catching success: $success")
+
+    val failure: Result<String> = Async { catching { throw RuntimeException("boom") } }
+    println("  catching failure: $failure\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: Flow.mapKap (concurrent flow mapping)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureFlowMapEffect() {
+    println("=== Feature: Flow.mapKap (concurrent) ===\n")
+
+    val results = (1..5).asFlow()
+        .mapKap(concurrency = 3) { id -> Kap { delay(20); "user-$id" } }
+        .toList()
+    println("  mapKap(c=3): $results\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: Flow.mapKapOrdered (concurrent, preserves order)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureFlowMapEffectOrdered() {
+    println("=== Feature: Flow.mapKapOrdered (ordered) ===\n")
+
+    val results = flowOf("a", "b", "c", "d", "e")
+        .mapKapOrdered(concurrency = 3) { s ->
+            Kap { delay((50 - s[0].code % 5 * 10).toLong()); s.uppercase() }
+        }
+        .toList()
+    println("  mapKapOrdered(c=3): $results (order preserved)\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: Flow.firstAsKap
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureFlowFirstAsKap() {
+    println("=== Feature: Flow.firstAsKap ===\n")
+
+    val result = Async {
+        flowOf("first", "second", "third").firstAsKap()
+    }
+    println("  firstAsKap: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: Deferred.toKap
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureDeferredToKap() {
+    println("=== Feature: Deferred.toKap ===\n")
+
+    val result = coroutineScope {
+        val deferred = async { delay(30); "deferred-value" }
+        Async { deferred.toKap() }
+    }
+    println("  Deferred.toKap: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: computation { bind() } builder
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureComputation() {
+    println("=== Feature: computation { bind() } ===\n")
+
+    val result = Async {
+        computation {
+            val userId = bind { delay(20); "user-42" }
+            val profile = Kap { delay(15); "profile-for-$userId" }.bind()
+            val cart = bind { delay(10); "cart-of-$userId" }
+            "$profile | $cart"
+        }
+    }
+    println("  computation: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: keepFirst / keepSecond
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureKeepFirst() {
+    println("=== Feature: keepFirst / keepSecond ===\n")
+
+    val user = Async {
+        Kap { delay(30); "Alice" }
+            .keepFirst(Kap { delay(20); println("    (side-effect: logged access)") })
+    }
+    println("  keepFirst: $user")
+
+    val cart = Async {
+        Kap { delay(10); println("    (side-effect: tracked event)") }
+            .keepSecond(Kap { delay(20); "3 items" })
+    }
+    println("  keepSecond: $cart\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: discard() and peek { }
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureDiscardAndPeek() {
+    println("=== Feature: discard / peek ===\n")
+
+    val unit: Unit = Async {
+        Kap { delay(10); "some-value" }.discard()
+    }
+    println("  discard: $unit (value discarded)")
+
+    val peeked = Async {
+        Kap { delay(10); "peek-value" }
+            .peek { v -> println("    (peeked: $v)") }
+    }
+    println("  peek returned: $peeked\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: .on(Dispatchers.IO) and .named("name")
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureOnAndNamed() {
+    println("=== Feature: on / named ===\n")
+
+    val result = Async {
+        kap { a: String, b: String -> "$a|$b" }
+            .with(Kap { delay(20); "io-result" }
+                .on(Dispatchers.IO)
+                .named("io-task"))
+            .with(Kap { delay(15); "default-result" }
+                .named("default-task"))
+    }
+    println("  on/named: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: .await() from suspend context
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureAwait() {
+    println("=== Feature: await ===\n")
+
+    val result = Async {
+        kap { a: String, b: String -> "$a|$b" }
+            .with { Kap { delay(30); "fast" }.timeout(100.milliseconds, "cached").await() }
+            .with { delay(20); "normal" }
+    }
+    println("  await: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: delayed(duration, value)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureDelayed() {
+    println("=== Feature: delayed ===\n")
+
+    val start = System.currentTimeMillis()
+    val result = Async {
+        raceN(
+            Kap { delay(200); "slow-service" },
+            delayed(50.milliseconds, "timeout-fallback"),
+        )
+    }
+    val elapsed = System.currentTimeMillis() - start
+    println("  delayed race: $result (${elapsed}ms)\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: traced with KapTracer
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureTraced() {
+    println("=== Feature: traced with KapTracer ===\n")
+
+    val events = mutableListOf<String>()
+    val tracer = KapTracer { event ->
+        when (event) {
+            is TraceEvent.Started -> events.add("started:${event.name}")
+            is TraceEvent.Succeeded -> events.add("ok:${event.name}(${event.duration.inWholeMilliseconds}ms)")
+            is TraceEvent.Failed -> events.add("fail:${event.name}")
+        }
+    }
+
+    val result = Async {
+        kap { a: String, b: String -> "$a|$b" }
+            .with(Kap { delay(30); "user-data" }.traced("fetchUser", tracer))
+            .with(Kap { delay(20); "cart-data" }.traced("fetchCart", tracer))
+    }
+    println("  traced result: $result")
+    println("  trace events: $events\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: bracketCase with ExitCase handling (kap-resilience)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureBracketCase() {
+    println("=== Feature: bracketCase with ExitCase ===\n")
+
+    // Success path — commit
+    val successResult = Async {
+        bracketCase(
+            acquire = { delay(10); MockConnection("tx-db") },
+            use = { tx -> Kap { tx.query("INSERT INTO orders VALUES (1)") } },
+            release = { tx, case ->
+                when (case) {
+                    is ExitCase.Completed<*> -> println("    commit (success: ${case.value})")
+                    is ExitCase.Failed -> println("    rollback (error: ${case.error.message})")
+                    is ExitCase.Cancelled -> println("    rollback (cancelled)")
+                }
+                tx.close()
+            },
+        )
+    }
+    println("  Success path: $successResult")
+
+    // Failure path — rollback
+    val fallbackResult = try {
+        Async {
+            bracketCase(
+                acquire = { delay(10); MockConnection("tx-db-fail") },
+                use = { _: MockConnection -> Kap<String> { throw RuntimeException("constraint violation") } },
+                release = { tx, case ->
+                    when (case) {
+                        is ExitCase.Completed<*> -> println("    commit")
+                        is ExitCase.Failed -> println("    rollback (error: ${case.error.message})")
+                        is ExitCase.Cancelled -> println("    rollback (cancelled)")
+                    }
+                    tx.close()
+                },
+            )
+        }
+    } catch (e: RuntimeException) {
+        "caught: ${e.message}"
+    }
+    println("  Failure path: $fallbackResult\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: Resource.zip composable resources (kap-resilience)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureResourceComposable() {
+    println("=== Feature: Resource.zip composable ===\n")
+
+    data class InfraResult(val dbData: String, val cacheData: String, val httpData: String)
+
+    val dbResource = Resource({ delay(10); MockConnection("db") }, { it.close() })
+    val cacheResource = Resource({ delay(10); MockConnection("cache") }, { it.close() })
+    val httpResource = Resource({ delay(10); MockConnection("http") }, { it.close() })
+
+    val combined = Resource.zip(dbResource, cacheResource, httpResource) { db, cache, http ->
+        Triple(db, cache, http)
+    }
+
+    val result = Async {
+        combined.useKap { (db, cache, http) ->
+            kap(::InfraResult)
+                .with { db.query("SELECT * FROM users") }
+                .with { cache.get("session:abc") }
+                .with { http.get("/api/health") }
+        }
+    }
+    println("  Resource.zip + useKap: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: guarantee and guaranteeCase (kap-resilience)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureGuarantee() {
+    println("=== Feature: guarantee & guaranteeCase ===\n")
+
+    // guarantee: finalizer always runs
+    val result1 = Async {
+        Kap { delay(20); "fetched-data" }
+            .guarantee { println("    guarantee: cleanup ran (always)") }
+    }
+    println("  guarantee result: $result1")
+
+    // guaranteeCase: finalizer receives ExitCase
+    val result2 = Async {
+        Kap { delay(20); "metrics-data" }
+            .guaranteeCase { case ->
+                when (case) {
+                    is ExitCase.Completed<*> -> println("    guaranteeCase: success -> record latency")
+                    is ExitCase.Failed -> println("    guaranteeCase: failed -> ${case.error.message}")
+                    is ExitCase.Cancelled -> println("    guaranteeCase: cancelled -> no-op")
+                }
+            }
+    }
+    println("  guaranteeCase result: $result2")
+
+    // guaranteeCase on failure
+    val result3 = try {
+        Async {
+            Kap<String> { throw RuntimeException("service down") }
+                .guaranteeCase { case ->
+                    when (case) {
+                        is ExitCase.Completed<*> -> println("    guaranteeCase: success")
+                        is ExitCase.Failed -> println("    guaranteeCase: failed -> ${case.error.message}")
+                        is ExitCase.Cancelled -> println("    guaranteeCase: cancelled")
+                    }
+                }
+        }
+    } catch (e: RuntimeException) {
+        "caught: ${e.message}"
+    }
+    println("  guaranteeCase on failure: $result3\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: retryOrElse with fallback (kap-resilience)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureRetryOrElse() {
+    println("=== Feature: retryOrElse ===\n")
+
+    var attempts = 0
+    suspend fun unreliableService(): String {
+        attempts++
+        throw RuntimeException("down (attempt $attempts)")
+    }
+
+    val policy = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
+
+    val result = Async {
+        Kap { unreliableService() }
+            .retryOrElse(policy) { err -> "fallback after $attempts attempts: ${err.message}" }
+    }
+    println("  retryOrElse: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: retryWithResult metadata (kap-resilience)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureRetryWithResult() {
+    println("=== Feature: retryWithResult ===\n")
+
+    var attempts = 0
+    suspend fun flakyApi(): String {
+        attempts++
+        if (attempts <= 2) throw RuntimeException("flake #$attempts")
+        return "data from attempt $attempts"
+    }
+
+    val policy = Schedule.times<Throwable>(5) and Schedule.exponential(10.milliseconds)
+
+    val retryResult: RetryResult<String> = Async {
+        Kap { flakyApi() }.retryWithResult(policy)
+    }
+    println("  value:      ${retryResult.value}")
+    println("  attempts:   ${retryResult.attempts}")
+    println("  totalDelay: ${retryResult.totalDelay}\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: kapV + withV builder style validation (kap-arrow)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureKapVWithV() {
+    println("=== Feature: kapV + withV builder ===\n")
+
+    val result: Either<NonEmptyList<RegError>, User> = Async {
+        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+            .withV { validateName("Bob") }
+            .withV { validateEmail("bob@example.com") }
+            .withV { validateAge(30) }
+            .withV { checkUsername("bobby") }
+    }
+    when (result) {
+        is Either.Right -> println("  Valid user: ${result.value}")
+        is Either.Left -> println("  Errors: ${result.value.map { it.message }}")
+    }
+
+    // All invalid — errors accumulate
+    val invalid: Either<NonEmptyList<RegError>, User> = Async {
+        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+            .withV { validateName("X") }
+            .withV { validateEmail("no-at-sign") }
+            .withV { validateAge(5) }
+            .withV { checkUsername("ab") }
+    }
+    when (invalid) {
+        is Either.Right -> println("  Valid: ${invalid.value}")
+        is Either.Left -> println("  ${invalid.value.size} accumulated errors: ${invalid.value.map { it.message }}")
+    }
+    println()
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: valid(), invalid(), invalidAll() entry points (kap-arrow)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureValidEntryPoints() {
+    println("=== Feature: valid / invalid / invalidAll entry points ===\n")
+
+    val ok: Either<NonEmptyList<RegError>, ValidName> = Async {
+        valid<RegError, ValidName>(ValidName("Alice"))
+    }
+    println("  valid():      $ok")
+
+    val err: Either<NonEmptyList<RegError>, ValidName> = Async {
+        invalid<RegError, ValidName>(RegError.NameTooShort("too short"))
+    }
+    println("  invalid():    $err")
+
+    val errs: Either<NonEmptyList<RegError>, ValidName> = Async {
+        invalidAll<RegError, ValidName>(
+            nonEmptyListOf(RegError.NameTooShort("too short"), RegError.InvalidEmail("bad email"))
+        )
+    }
+    println("  invalidAll(): $errs\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: catching for arrow validation (kap-arrow)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureValidCatching() {
+    println("=== Feature: catching (exception -> validation error) ===\n")
+
+    val success: Either<NonEmptyList<RegError>, String> = Async {
+        Kap { delay(10); "valid-data" }
+            .catching { e -> RegError.NameTooShort("caught: ${e.message}") }
+    }
+    println("  catching success: $success")
+
+    val failure: Either<NonEmptyList<RegError>, String> = Async {
+        Kap<String> { throw IllegalArgumentException("bad input") }
+            .catching { e -> RegError.InvalidEmail("caught: ${e.message}") }
+    }
+    println("  catching failure: $failure\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: ensureV and ensureVAll guards (kap-arrow)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureEnsureV() {
+    println("=== Feature: ensureV & ensureVAll ===\n")
+
+    // ensureV — single error on predicate failure
+    val pass: Either<NonEmptyList<RegError>, Int> = Async {
+        Kap { delay(10); 25 }
+            .ensureV(
+                error = { age -> RegError.AgeTooLow("Age $age too low") },
+                predicate = { it >= 18 },
+            )
+    }
+    println("  ensureV pass: $pass")
+
+    val fail: Either<NonEmptyList<RegError>, Int> = Async {
+        Kap { delay(10); 12 }
+            .ensureV(
+                error = { age -> RegError.AgeTooLow("Age $age too low") },
+                predicate = { it >= 18 },
+            )
+    }
+    println("  ensureV fail: $fail")
+
+    // ensureVAll — multiple errors on predicate failure
+    val failAll: Either<NonEmptyList<RegError>, String> = Async {
+        Kap { delay(10); "X" }
+            .ensureVAll(
+                errors = { name ->
+                    nonEmptyListOf(
+                        RegError.NameTooShort("'$name' too short"),
+                        RegError.UsernameTaken("'$name' reserved"),
+                    )
+                },
+                predicate = { it.length >= 3 },
+            )
+    }
+    println("  ensureVAll fail: $failAll\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: mapV transform (kap-arrow)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureMapV() {
+    println("=== Feature: mapV ===\n")
+
+    val result: Either<NonEmptyList<RegError>, String> = Async {
+        Kap { delay(10); Either.Right(ValidName("Alice")) as Either<NonEmptyList<RegError>, ValidName> }
+            .mapV { name -> "Hello, ${name.value}!" }
+    }
+    println("  mapV: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: mapError transform (kap-arrow)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureMapError() {
+    println("=== Feature: mapError ===\n")
+
+    val original: Either<NonEmptyList<RegError>, ValidName> = Async {
+        invalid<RegError, ValidName>(RegError.NameTooShort("too short"))
+    }
+    println("  original errors: $original")
+
+    val mapped: Either<NonEmptyList<String>, ValidName> = Async {
+        invalid<RegError, ValidName>(RegError.NameTooShort("too short"))
+            .mapError { regError -> "mapped: ${regError.message}" }
+    }
+    println("  mapError:        $mapped\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: recoverV recovery (kap-arrow)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureRecoverV() {
+    println("=== Feature: recoverV ===\n")
+
+    val result: Either<NonEmptyList<RegError>, String> = Async {
+        Kap<Either<NonEmptyList<RegError>, String>> {
+            throw RuntimeException("network timeout")
+        }.recoverV { e ->
+            RegError.InvalidEmail("recovered: ${e.message}")
+        }
+    }
+    println("  recoverV: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: orThrow unwrap (kap-arrow)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureOrThrow() {
+    println("=== Feature: orThrow ===\n")
+
+    // Success — unwraps cleanly
+    val name: ValidName = Async {
+        valid<RegError, ValidName>(ValidName("Alice")).orThrow()
+    }
+    println("  orThrow success: $name")
+
+    // Failure — throws ValidationException
+    val caught = try {
+        Async {
+            invalid<RegError, ValidName>(RegError.NameTooShort("too short")).orThrow()
+        }
+    } catch (e: ValidationException) {
+        "caught ValidationException: ${e.errors.size} error(s)"
+    }
+    println("  orThrow failure: $caught\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: traverseV collection validation (kap-arrow)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureTraverseV() {
+    println("=== Feature: traverseV ===\n")
+
+    val names = listOf("Alice", "Bob", "X", "Y")
+
+    val result: Either<NonEmptyList<RegError>, List<ValidName>> = Async {
+        names.traverseV { name ->
+            Kap { validateName(name) }
+        }
+    }
+    when (result) {
+        is Either.Right -> println("  traverseV all valid: ${result.value}")
+        is Either.Left -> println("  traverseV errors: ${result.value.map { it.message }}")
+    }
+
+    val allValid: Either<NonEmptyList<RegError>, List<ValidName>> = Async {
+        listOf("Alice", "Bob", "Charlie").traverseV { name ->
+            Kap { validateName(name) }
+        }
+    }
+    when (allValid) {
+        is Either.Right -> println("  traverseV all pass: ${allValid.value}")
+        is Either.Left -> println("  traverseV errors: ${allValid.value.map { it.message }}")
+    }
+    println()
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: sequenceV validated computations (kap-arrow)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureSequenceV() {
+    println("=== Feature: sequenceV ===\n")
+
+    val validations: List<Kap<Either<NonEmptyList<RegError>, ValidName>>> = listOf(
+        Kap { validateName("Alice") },
+        Kap { validateName("Bob") },
+        Kap { validateName("X") },
+    )
+
+    val result: Either<NonEmptyList<RegError>, List<ValidName>> = Async {
+        validations.sequenceV()
+    }
+    when (result) {
+        is Either.Right -> println("  sequenceV all valid: ${result.value}")
+        is Either.Left -> println("  sequenceV errors: ${result.value.map { it.message }}")
+    }
+
+    // All valid
+    val allOk: Either<NonEmptyList<RegError>, List<ValidName>> = Async {
+        listOf(
+            Kap { validateName("Alice") },
+            Kap { validateName("Bob") },
+        ).sequenceV()
+    }
+    when (allOk) {
+        is Either.Right -> println("  sequenceV all pass: ${allOk.value}")
+        is Either.Left -> println("  sequenceV errors: ${allOk.value.map { it.message }}")
+    }
+    println()
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Feature: raceEither with different types (kap-arrow)
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun featureRaceEither() {
+    println("=== Feature: raceEither ===\n")
+
+    suspend fun fetchCachedName(): String { delay(20); return "cached-Alice" }
+    suspend fun fetchFreshAge(): Int { delay(100); return 30 }
+
+    val result: Either<String, Int> = Async {
+        raceEither(
+            fa = Kap { fetchCachedName() },
+            fb = Kap { fetchFreshAge() },
+        )
+    }
+    when (result) {
+        is Either.Left -> println("  raceEither: Left won (fast) = ${result.value}")
+        is Either.Right -> println("  raceEither: Right won (fast) = ${result.value}")
+    }
+    println()
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //  Main — runs every example
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -1095,6 +1909,48 @@ suspend fun main() {
 
     // BFF example
     bffMobileApp()
+
+    // Additional Feature Showcase
+    featureThenValue()
+    featureTraverseDiscard()
+    featureSequence()
+    featureRaceAll()
+    featureTimeout()
+    featureRecover()
+    featureRetrySimple()
+    featureEnsure()
+    featureCatching()
+    featureFlowMapEffect()
+    featureFlowMapEffectOrdered()
+    featureFlowFirstAsKap()
+    featureDeferredToKap()
+    featureComputation()
+    featureKeepFirst()
+    featureDiscardAndPeek()
+    featureOnAndNamed()
+    featureAwait()
+    featureDelayed()
+    featureTraced()
+
+    // kap-resilience additional examples
+    featureBracketCase()
+    featureResourceComposable()
+    featureGuarantee()
+    featureRetryOrElse()
+    featureRetryWithResult()
+
+    // kap-arrow additional examples
+    featureKapVWithV()
+    featureValidEntryPoints()
+    featureValidCatching()
+    featureEnsureV()
+    featureMapV()
+    featureMapError()
+    featureRecoverV()
+    featureOrThrow()
+    featureTraverseV()
+    featureSequenceV()
+    featureRaceEither()
 
     println("All README examples passed!")
 }
