@@ -27,26 +27,21 @@ You have 11 microservice calls. Some run in parallel, some depend on earlier res
 ```kotlin
 val checkout: CheckoutResult = Async {
     kap(::CheckoutResult)
-
-        .with { fetchUser() }           // starts a coroutine
-        .with { fetchCart() }            // starts another, in parallel
-        .with { fetchPromos() }          // and another, all at the same time
-        .with { fetchInventory() }       // four independent tasks, running together
-
-        .then { validateStock() }        // waits for ALL four above to finish, then runs alone
-
-        .with { calcShipping() }         // starts a new parallel group
-        .with { calcTax() }              // runs alongside calcShipping
-        .with { calcDiscounts() }        // three independent tasks again
-
-        .andThen { partial ->            // waits, receives everything built so far
+        .with { fetchUser() }                        // starts a coroutine
+        .with { fetchCart() }                         // starts another, in parallel
+        .with { fetchPromos() }                       // and another, all at the same time
+        .with { fetchInventory() }                    // four independent tasks running together
+        .then { validateStock() }                     // waits for ALL four, then runs alone
+        .with { calcShipping() }                      // starts a new parallel group
+        .with { calcTax() }                           // runs alongside calcShipping
+        .with { calcDiscounts() }                     // three independent tasks again
+        .andThen { partial ->                         // waits, receives everything so far
             kap(::FinalCheckout)
-                .with { reservePayment(partial) }    // uses the partial result
-                .with { applyLoyaltyPoints(partial) } // both run in parallel, both need partial
+                .with { reservePayment(partial) }     // uses the partial result
+                .with { applyLoyaltyPoints(partial) } // both need partial, both run in parallel
         }
-
-        .with { generateConfirmation() } // one more parallel group after payment
-        .with { sendEmail() }            // both fire at the same time
+        .with { generateConfirmation() }              // one more parallel group after payment
+        .with { sendEmail() }                         // both fire at the same time
 }
 // 13 calls. 6 phases. The dependency graph IS the code shape.
 // Swap any .with that returns a different type → compile error.
