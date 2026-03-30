@@ -22,77 +22,31 @@
 
 ---
 
-## The problem
-
-You have 11 microservice calls. Some run in parallel, some depend on earlier results. With raw coroutines you get:
-
-- **Invisible phases** — where does parallel end and sequential begin? Read every line to find out.
-- **Silent bugs** — swap two `await()` calls of the same type? Compiles fine. Wrong data in production.
-- **Boilerplate that scales badly** — each new phase doubles the ceremony.
-
-```kotlin
-val checkout = coroutineScope {
-    val dUser = async { fetchUser() }
-    val dCart = async { fetchCart() }
-    val dPromos = async { fetchPromos() }
-    val dInventory = async { fetchInventory() }
-    val user = dUser.await()
-    val cart = dCart.await()
-    val promos = dPromos.await()
-    val inventory = dInventory.await()
-    val stock = validateStock()
-    val dShipping = async { calcShipping() }
-    val dTax = async { calcTax() }
-    val dDiscounts = async { calcDiscounts() }
-    val shipping = dShipping.await()
-    val tax = dTax.await()
-    val discounts = dDiscounts.await()
-    val payment = reservePayment()
-    val dConfirmation = async { generateConfirmation() }
-    val dEmail = async { sendEmail() }
-    CheckoutResult(user, cart, promos, inventory, stock,
-        shipping, tax, discounts, payment,
-        dConfirmation.await(), dEmail.await())
-}
-```
-
-## The KAP version
+You have 11 microservice calls. Some run in parallel, some depend on earlier results. With raw coroutines you get invisible phases, silent swap bugs, and 30 lines of `async`/`await` boilerplate. With KAP:
 
 ```kotlin
 val checkout: CheckoutResult = Async {
     kap(::CheckoutResult)
-        .with { fetchUser() }              // ┐
-        .with { fetchCart() }               // ├─ phase 1: independent tasks
-        .with { fetchPromos() }             // │
-        .with { fetchInventory() }          // ┘
-        .then { validateStock() }           // ── phase 2: barrier
-        .with { calcShipping() }            // ┐
-        .with { calcTax() }                 // ├─ phase 3: independent tasks
-        .with { calcDiscounts() }           // ┘
-        .then { reservePayment() }          // ── phase 4: barrier
-        .with { generateConfirmation() }    // ┐ phase 5: independent tasks
-        .with { sendEmail() }              // ┘
+
+        .with { fetchUser() }           // starts a coroutine
+        .with { fetchCart() }            // starts another, in parallel
+        .with { fetchPromos() }          // and another, all at the same time
+        .with { fetchInventory() }       // four independent tasks, running together
+
+        .then { validateStock() }        // waits for ALL four above to finish, then runs alone
+
+        .with { calcShipping() }         // starts a new parallel group
+        .with { calcTax() }              // runs alongside calcShipping
+        .with { calcDiscounts() }        // three independent tasks again
+
+        .then { reservePayment() }       // waits for shipping, tax, discounts — then runs alone
+
+        .with { generateConfirmation() } // last parallel group
+        .with { sendEmail() }            // both fire at the same time
 }
+// 11 calls. 5 phases. 130ms total — not 460ms sequential.
+// Swap any .with that returns a different type → compile error.
 ```
-
-**The code shape is the execution plan:**
-
-```
-t=0ms   ┌─ fetchUser ──────┐
-        ├─ fetchCart ───────┤ independent
-        ├─ fetchPromos ─────┤ tasks
-        └─ fetchInventory ──┘
-t=50ms  ── validateStock ──── barrier
-t=60ms  ┌─ calcShipping ───┐
-        ├─ calcTax ─────────┤ independent
-        └─ calcDiscounts ──┘ tasks
-t=80ms  ── reservePayment ── barrier
-t=90ms  ┌─ generateConfirm ┐ independent
-        └─ sendEmail ──────┘ tasks
-t=130ms    done (not 460ms sequential)
-```
-
-Swap any `.with` that returns a different type → **compile error**.
 
 ---
 
