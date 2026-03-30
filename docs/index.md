@@ -14,9 +14,9 @@ hide:
 
 <div class="hero">
   <img src="assets/logo.png" alt="KAP">
-  <h1>KAP — Kotlin Async Parallelism</h1>
-  <p><strong>Type-safe multi-service orchestration for Kotlin coroutines.</strong><br>
-  Flat chains, visible phases, compiler-checked argument order.</p>
+  <h1>KAP</h1>
+  <p><strong>Stop wiring async calls manually.</strong><br>
+  Compile-time safe coroutine orchestration with visible phases.</p>
   <p>
     <a href="guide/quickstart/" class="md-button md-button--primary">Get Started</a>
     <a href="https://github.com/damian-rafael-lattenero/kap" class="md-button">GitHub</a>
