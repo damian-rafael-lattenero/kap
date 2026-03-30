@@ -27,7 +27,7 @@ You have 11 microservice calls. Some run in parallel, some depend on earlier res
 ```kotlin
 val checkout: CheckoutResult = Async {
     kap(::CheckoutResult)
-        .with { fetchUser() }                        // starts a coroutine
+        .with { fetchUser() }                         // starts a coroutine
         .with { fetchCart() }                         // starts another, in parallel
         .with { fetchPromos() }                       // and another, all at the same time
         .with { fetchInventory() }                    // four independent tasks running together
