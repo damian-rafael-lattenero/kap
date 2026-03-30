@@ -39,12 +39,16 @@ val checkout: CheckoutResult = Async {
         .with { calcTax() }              // runs alongside calcShipping
         .with { calcDiscounts() }        // three independent tasks again
 
-        .then { reservePayment() }       // waits for shipping, tax, discounts — then runs alone
+        .andThen { partial ->            // waits, receives everything built so far
+            kap(::FinalCheckout)
+                .with { reservePayment(partial) }    // uses the partial result
+                .with { applyLoyaltyPoints(partial) } // both run in parallel, both need partial
+        }
 
-        .with { generateConfirmation() } // last parallel group
+        .with { generateConfirmation() } // one more parallel group after payment
         .with { sendEmail() }            // both fire at the same time
 }
-// 11 calls. 5 phases. 130ms total — not 460ms sequential.
+// 13 calls. 6 phases. The dependency graph IS the code shape.
 // Swap any .with that returns a different type → compile error.
 ```
 
