@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774833011263,
+  "lastUpdate": 1774833448237,
   "repoUrl": "https://github.com/damian-rafael-lattenero/kap",
   "entries": {
     "KAP JMH Benchmarks": [
@@ -736,6 +736,744 @@ window.BENCHMARK_DATA = {
           {
             "name": "kap.benchmarks.ResilienceBenchmark.raw_timeoutRace_primary_wins",
             "value": 180.71605941666667,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "damianlattenero@gmail.com",
+            "name": "Damian Rafael Lattenero",
+            "username": "damian-rafael-lattenero"
+          },
+          "committer": {
+            "email": "damianlattenero@gmail.com",
+            "name": "Damian Rafael Lattenero",
+            "username": "damian-rafael-lattenero"
+          },
+          "distinct": true,
+          "id": "8e0f2d86a1b567b3bec72d5576c46163200d1891",
+          "message": "docs: simplify README to single narrative example with descriptive comments\n\nRemoved: raw coroutines code, ASCII timeline, three-concepts bracket comments\nKept: ONE KAP example with plain English comments explaining each line\n- \"starts a coroutine\", \"starts another, in parallel\", \"waits for ALL four\"\n- No bracket alignment issues, no // ┐├┘ symbols\n- The reader imagines the raw coroutine mess, sees only the clean KAP version",
+          "timestamp": "2026-03-29T21:09:17-03:00",
+          "tree_id": "b11c0a8d80dc822851dcdedb77b3bc9c4c06a978",
+          "url": "https://github.com/damian-rafael-lattenero/kap/commit/8e0f2d86a1b567b3bec72d5576c46163200d1891"
+        },
+        "date": 1774833447455,
+        "tool": "jmh",
+        "benches": [
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.arrow_attempt_success",
+            "value": 0.00010667801130714704,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.arrow_either_builder",
+            "value": 0.00017672987214376718,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.arrow_phased_validation",
+            "value": 80.49790476,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.arrow_raceEither",
+            "value": 30.426946190909092,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.arrow_validation_all_fail",
+            "value": 40.407389964,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.arrow_validation_all_pass",
+            "value": 40.35572877400001,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_andThenV_phased",
+            "value": 80.45810052400002,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_attempt_failure",
+            "value": 0.0018164825350054556,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_attempt_success",
+            "value": 0.00013895479652426966,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_catching_failure",
+            "value": 0.001860430844926001,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_catching_success",
+            "value": 0.00013733401569021876,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_ensureV_fail",
+            "value": 0.00018256616888200642,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_ensureV_pass",
+            "value": 0.00014568925044489497,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_raceEither_heterogeneous_overhead",
+            "value": 0.0014678075795792056,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_raceEither_latency",
+            "value": 30.254710985074627,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_race_homogeneous_overhead",
+            "value": 0.0014913398537614983,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_traverseV_10_all_pass",
+            "value": 30.21429633731343,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_traverseV_10_half_fail",
+            "value": 30.22490101641791,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_traverseV_bounded_20_c5_half_fail",
+            "value": 120.85258638235295,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_traverseV_bounded_20_c5_pass",
+            "value": 120.82149924117645,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_validated_builder",
+            "value": 0.00023964387809512276,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_withV_latency_all_fail",
+            "value": 40.256694505999995,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_withV_latency_all_pass",
+            "value": 40.262393548000006,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.kap_zipV_mixed",
+            "value": 40.27076248,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.raw_attempt_failure",
+            "value": 0.0014914158404218491,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.raw_attempt_success",
+            "value": 0.00009798742734093528,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.raw_raceEither",
+            "value": 30.387681487878787,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ArrowBenchmark.sequential_validation_all_pass",
+            "value": 160.94418679230768,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.arrow_combine3_overhead",
+            "value": 0.02777024089559224,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.arrow_latency_arity5",
+            "value": 50.377727835,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.arrow_latency_multiPhase",
+            "value": 181.13828404166665,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.arrow_overhead_arity3",
+            "value": 0.027939934890899527,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.arrow_overhead_arity9",
+            "value": 0.0331195494872127,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.arrow_race_two",
+            "value": 50.525648655,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_andThen_chain_latency",
+            "value": 150.75087197142858,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_andThen_chain_overhead",
+            "value": 0.00018640383517390483,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_combine3_overhead",
+            "value": 0.0012985381254478534,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_combine5_latency",
+            "value": 50.339534542500004,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_combine5_overhead",
+            "value": 0.0018481034230471882,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_computation_latency",
+            "value": 150.71321864285716,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_computation_overhead",
+            "value": 0.00015037823545997148,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_firstSuccessOf_latency",
+            "value": 30.58193096666667,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_firstSuccessOf_overhead",
+            "value": 0.0039679699966789226,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_flow_filterKap_10",
+            "value": 0.0006447168641844587,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_flow_mapKapOrdered_c5_10",
+            "value": 60.66436548440286,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_flow_mapKap_c5_10",
+            "value": 60.67609231470588,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_flow_mapKap_overhead_10",
+            "value": 0.007738045895871222,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_flow_mapKap_seq_10",
+            "value": 301.95989817142856,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_latency_arity5",
+            "value": 50.34314622750001,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_latency_multiPhase",
+            "value": 181.09956216666666,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_memoizeOnSuccess_cold",
+            "value": 0.00018235630355363449,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_memoizeOnSuccess_failure_retry",
+            "value": 0.0024151639392648366,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_memoizeOnSuccess_warm",
+            "value": 0.00014053898651935492,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_memoize_cold",
+            "value": 0.00018894607157076497,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_memoize_warm",
+            "value": 0.0001500867321327891,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_orElse_chain_latency",
+            "value": 30.40719687575757,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_orElse_chain_overhead",
+            "value": 0.0038499614379460417,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_overhead_arity15",
+            "value": 0.005271230769430655,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_overhead_arity3",
+            "value": 0.001413914141696621,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_overhead_arity9",
+            "value": 0.003318721191179895,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_race_two",
+            "value": 50.37066658,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_settled_failure_no_cancel",
+            "value": 50.37804927,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_settled_success",
+            "value": 0.00013569378631171348,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_timeout_with_default",
+            "value": 100.50111713499999,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_traverseSettled_10_half_fail",
+            "value": 30.3090758240389,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_traverseSettled_10_pass",
+            "value": 30.259197496472183,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_traverseSettled_bounded_20_c5",
+            "value": 120.88786802941176,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_traverse_bounded_20_c5",
+            "value": 120.84484409411766,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.kap_traverse_unbounded_20",
+            "value": 30.233415253844413,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_combine3_overhead",
+            "value": 0.0012381239967315092,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_firstSuccessOf_5",
+            "value": 0.003484382890998329,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_flow_flatMapMerge_10",
+            "value": 60.67421381301248,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_flow_map_overhead_10",
+            "value": 0.0002316382080398029,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_latency_arity5",
+            "value": 50.324869899999996,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_latency_multiPhase",
+            "value": 181.02385516666666,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_memoize_cold",
+            "value": 0.00012595716518894388,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_orElse_chain_3",
+            "value": 0.002822035404920889,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_overhead_arity15",
+            "value": 0.004088709687207567,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_overhead_arity3",
+            "value": 0.0012515083483220495,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_overhead_arity9",
+            "value": 0.002627838168291199,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_race_two",
+            "value": 100.416151735,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_sequential_3",
+            "value": 0.00010251405746102127,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_sequential_latency_3",
+            "value": 150.74043815714285,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_timeout_with_default",
+            "value": 100.45569704,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_traverseSettled_10",
+            "value": 30.23971294687924,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_traverse_bounded_20_c5",
+            "value": 120.86511661764708,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.raw_traverse_unbounded_20",
+            "value": 30.218646443283586,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.sequential_latency_arity5",
+            "value": 251.0081129375,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.CoreBenchmark.sequential_latency_multiPhase",
+            "value": 411.79578638000004,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_bracketCase_latency",
+            "value": 60.539655002317296,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_bracketCase_overhead",
+            "value": 0.0004379658266010247,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_bracket_latency",
+            "value": 50.4256836375,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_bracket_overhead",
+            "value": 0.0004142268287676297,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_circuitBreaker_closed_latency",
+            "value": 50.284345977499996,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_circuitBreaker_closed_overhead",
+            "value": 0.00018702178922900425,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_circuitBreaker_halfOpen_probe",
+            "value": 2.098315454588446,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_guaranteeCase_overhead",
+            "value": 0.00040629836403501234,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_guarantee_overhead",
+            "value": 0.00042458242466870505,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_raceQuorum_2of3_overhead",
+            "value": 0.0022715372706035596,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_raceQuorum_2of5",
+            "value": 40.31433586200001,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_raceQuorum_3of5",
+            "value": 50.3375432625,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_resource_zip_latency",
+            "value": 100.53308573,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_resource_zip_overhead",
+            "value": 0.0007652326051248396,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_retry_schedule_exponential",
+            "value": 30.228121846268653,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_retry_schedule_times",
+            "value": 30.231770844776122,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_schedule_fold",
+            "value": 0.0035899459040172376,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_timeoutRace_fallback_wins",
+            "value": 30.349850599004974,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_timeoutRace_primary_wins",
+            "value": 30.344372167955676,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.kap_timeoutRace_vs_timeout",
+            "value": 80.62631628,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.raw_bracketCase_overhead",
+            "value": 0.00010450642312399951,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.raw_bracket_latency",
+            "value": 50.366504455,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.raw_bracket_overhead",
+            "value": 0.00009701236835326056,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.raw_circuitBreaker_closed",
+            "value": 0.00010150083326177493,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.raw_guarantee_overhead",
+            "value": 0.00009777735806271741,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.raw_raceQuorum_2of5",
+            "value": 40.284555917999995,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.raw_resource_zip_overhead",
+            "value": 0.00010511764861202858,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.raw_retry_manual_3",
+            "value": 120.90839716470589,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.raw_timeoutRace_fallback_wins",
+            "value": 80.59414973599999,
+            "unit": "ms/op",
+            "extra": "iterations: 5\nforks: 2\nthreads: 1"
+          },
+          {
+            "name": "kap.benchmarks.ResilienceBenchmark.raw_timeoutRace_primary_wins",
+            "value": 180.65071803333336,
             "unit": "ms/op",
             "extra": "iterations: 5\nforks: 2\nthreads: 1"
           }
