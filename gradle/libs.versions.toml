@@ -2,7 +2,7 @@
 kotlin = "2.3.20"
 coroutines = "1.10.2"
 arrow = "2.1.2"
-ktor = "3.4.1"
+ktor = "3.4.2"
 serialization = "1.10.0"
 kotest = "6.1.7"
 dokka = "2.1.0"
