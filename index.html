@@ -514,6 +514,89 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#full-api-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full API at a glance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Full API at a glance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kap-core-foundation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-core — Foundation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kap-resilience-fault-tolerance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-resilience — Fault Tolerance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kap-arrow-parallel-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-arrow — Parallel Validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kap-ktor-ktor-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-ktor — Ktor Integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kap-kotest-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-kotest — Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kap-ksp-code-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-ksp — Code Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#modules" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1070,6 +1153,89 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#full-api-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full API at a glance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Full API at a glance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kap-core-foundation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-core — Foundation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kap-resilience-fault-tolerance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-resilience — Fault Tolerance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kap-arrow-parallel-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-arrow — Parallel Validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kap-ktor-ktor-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-ktor — Ktor Integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kap-kotest-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-kotest — Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kap-ksp-code-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kap-ksp — Code Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#modules" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1267,6 +1433,104 @@
 </span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="c1">// ALL 4 errors in ONE response. No round trips.</span>
 </span></code></pre></div>
 <p>Scales to <strong>22 validators</strong> (Arrow's <code>zipOrAccumulate</code> maxes at 9).</p>
+<hr />
+<h2 id="full-api-at-a-glance">Full API at a glance<a class="headerlink" href="#full-api-at-a-glance" title="Permanent link">&para;</a></h2>
+<h3 id="kap-core-foundation"><a href="modules/kap-core/">kap-core</a> — Foundation<a class="headerlink" href="#kap-core-foundation" title="Permanent link">&para;</a></h3>
+<p><strong>Orchestration</strong></p>
+<ul>
+<li><a href="modules/kap-core/#with-independent-tasks-in-parallel"><code>.with</code></a> / <a href="modules/kap-core/#then-phase-barrier"><code>.then</code></a> / <a href="modules/kap-core/#andthen-dependent-phase"><code>.andThen</code></a> — parallel, barrier, dependent phase</li>
+<li><a href="modules/kap-core/#kapf-curry-a-function-for-with-chains"><code>kap(f)</code></a> — curry any function for type-safe <code>.with</code> chains</li>
+<li><a href="modules/kap-core/#computation-imperative-builder"><code>computation { }</code></a> — imperative builder with <code>bind</code></li>
+</ul>
+<p><strong>Error handling</strong></p>
+<ul>
+<li><a href="modules/kap-core/#timeoutduration-default"><code>.timeout</code></a> — deadline with default value or fallback computation</li>
+<li><a href="modules/kap-core/#recover-recoverwith"><code>.recover</code> / <code>.recoverWith</code></a> — catch and transform errors</li>
+<li><a href="modules/kap-core/#retrymaxattempts-delay-backoff"><code>.retry</code></a> — retry with backoff strategy</li>
+<li><a href="modules/kap-core/#ensureerror-predicate-ensurenotnullerror-extract"><code>.ensure</code> / <code>.ensureNotNull</code></a> — predicate guards</li>
+<li><a href="modules/kap-core/#catching-exception-safe-result"><code>catching</code></a> — wrap exceptions into <code>Result</code></li>
+</ul>
+<p><strong>Collections</strong></p>
+<ul>
+<li><a href="modules/kap-core/#traverse"><code>traverse</code></a> / <a href="modules/kap-core/#traversesettled-collect-all-results-no-cancellation"><code>traverseSettled</code></a> / <a href="modules/kap-core/#traversediscard-fire-and-forget"><code>traverseDiscard</code></a> — parallel map over collections</li>
+<li><a href="modules/kap-core/#sequence-sequenceconcurrency"><code>sequence</code></a> — execute all, with optional concurrency limit</li>
+<li><a href="modules/kap-core/#partial-failure"><code>settled</code></a> — collect successes and failures without cancellation</li>
+</ul>
+<p><strong>Racing</strong></p>
+<ul>
+<li><a href="modules/kap-core/#racenc1-c2-cn-first-to-succeed-wins-rest-cancelled"><code>raceN</code></a> — first to succeed wins, rest cancelled</li>
+<li><a href="modules/kap-core/#racefa-fb-two-way-race"><code>race</code></a> / <a href="modules/kap-core/#racealllist-race-a-dynamic-list"><code>raceAll</code></a> — two-way and dynamic-list races</li>
+<li><a href="modules/kap-core/#orelseother-firstsuccessof"><code>.orElse</code> / <code>firstSuccessOf</code></a> — sequential fallback chains</li>
+</ul>
+<p><strong>Flow integration</strong></p>
+<ul>
+<li><a href="modules/kap-core/#flow-integration"><code>mapKap</code> / <code>mapKapOrdered</code></a> — parallel transforms inside Flows</li>
+<li><a href="modules/kap-core/#flowmapeffectordered-preserve-upstream-order"><code>mapEffectOrdered</code></a> — ordered async transformation preserving emission order</li>
+<li><a href="modules/kap-core/#flowfirstaskap"><code>firstAsKap</code> / <code>collectAsKap</code></a> — bridge Flow to Kap</li>
+</ul>
+<p><strong>Utilities</strong></p>
+<ul>
+<li><a href="modules/kap-core/#memoization"><code>memoize</code> / <code>memoizeOnSuccess</code></a> — cache computation results thread-safely</li>
+<li><a href="modules/kap-core/#kapofvalue-kapempty-kapfailederror-kapdefer"><code>Kap.of</code> / <code>.empty</code> / <code>.failed</code> / <code>.defer</code></a> — construction helpers</li>
+<li><a href="modules/kap-core/#interop"><code>Deferred.toKap()</code> / <code>.toDeferred</code></a> — coroutine interop</li>
+<li><a href="modules/kap-core/#observability"><code>traced</code> / <code>KapTracer</code></a> — structured observability hooks</li>
+<li><a href="modules/kap-core/#utilities"><code>combine</code> / <code>pair</code> / <code>triple</code> / <code>zip</code></a> — parallel combinators</li>
+<li><a href="modules/kap-core/#oncontext-namedname"><code>named</code> / <code>on</code> / <code>discard</code> / <code>peek</code></a> — chain modifiers</li>
+<li><a href="modules/kap-core/#delayedduration-value-withornull"><code>delayed</code> / <code>.await</code></a> — execution control</li>
+</ul>
+<hr />
+<h3 id="kap-resilience-fault-tolerance"><a href="modules/kap-resilience/">kap-resilience</a> — Fault Tolerance<a class="headerlink" href="#kap-resilience-fault-tolerance" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="modules/kap-resilience/#schedule-composable-retry-policies"><code>Schedule</code></a> — composable retry policies (<code>times</code>, <code>exponential</code>, <code>fibonacci</code>, <code>linear</code>, <code>forever</code>)</li>
+<li><a href="modules/kap-resilience/#jittered-prevent-thundering-herd"><code>.jittered</code></a> / <a href="modules/kap-resilience/#withmaxdurationd-total-time-cap"><code>.withMaxDuration</code></a> — schedule modifiers</li>
+<li><a href="modules/kap-resilience/#composition"><code>.and</code> / <code>.or</code> / <code>.fold</code></a> — schedule composition</li>
+<li><a href="modules/kap-resilience/#retryorelseschedule-fallback-fallback-after-exhaustion"><code>retryOrElse</code></a> / <a href="modules/kap-resilience/#retrywithresultschedule-returns-full-context"><code>retryWithResult</code></a> — retry with fallback or full context</li>
+<li><a href="modules/kap-resilience/#circuitbreaker"><code>CircuitBreaker</code></a> — fail fast when a dependency is down</li>
+<li><a href="modules/kap-resilience/#timeoutrace-parallel-fallback"><code>timeoutRace</code></a> — race primary against eager fallback</li>
+<li><a href="modules/kap-resilience/#racequorum-n-of-m-successes"><code>raceQuorum</code></a> — N-of-M quorum pattern</li>
+<li><a href="modules/kap-resilience/#bracket-guaranteed-cleanup"><code>bracket</code></a> / <a href="modules/kap-resilience/#bracketcase-release-depends-on-outcome"><code>bracketCase</code></a> — guaranteed cleanup</li>
+<li><a href="modules/kap-resilience/#resource-composable-resource"><code>Resource</code></a> — composable acquire / use / release</li>
+<li><a href="modules/kap-resilience/#guarantee-guaranteecase"><code>guarantee</code> / <code>guaranteeCase</code></a> — unconditional finalizers</li>
+</ul>
+<hr />
+<h3 id="kap-arrow-parallel-validation"><a href="modules/kap-arrow/">kap-arrow</a> — Parallel Validation<a class="headerlink" href="#kap-arrow-parallel-validation" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="modules/kap-arrow/#zipv-parallel-validation-2-22-args"><code>zipV</code></a> — parallel validation with error accumulation (2–22 args)</li>
+<li><a href="modules/kap-arrow/#kapv-withv-curried-builder"><code>kapV</code> + <code>withV</code></a> — curried validation builder</li>
+<li><a href="modules/kap-arrow/#phased-validation-thenv-andthenv"><code>thenV</code> / <code>andThenV</code></a> — phased validation with short-circuit</li>
+<li><a href="modules/kap-arrow/#entry-points"><code>valid</code> / <code>invalid</code> / <code>invalidAll</code></a> — entry points</li>
+<li><a href="modules/kap-arrow/#catchingtoerror-exception-to-error-bridge"><code>catching(toError)</code></a> — exceptions to validation errors</li>
+<li><a href="modules/kap-arrow/#guards-ensurev-ensurevall"><code>ensureV</code> / <code>ensureVAll</code></a> — validation guards</li>
+<li><a href="modules/kap-arrow/#transforms"><code>mapV</code> / <code>mapError</code> / <code>recoverV</code> / <code>orThrow</code></a> — transforms</li>
+<li><a href="modules/kap-arrow/#collection-operations"><code>traverseV</code> / <code>sequenceV</code></a> — validate collections in parallel</li>
+<li><a href="modules/kap-arrow/#arrow-interop"><code>.attempt</code> / <code>raceEither</code></a> — Arrow Either interop</li>
+<li><a href="modules/kap-arrow/#accumulate-builder"><code>accumulate { }</code></a> — imperative builder with error accumulation</li>
+</ul>
+<hr />
+<h3 id="kap-ktor-ktor-integration"><a href="modules/kap-ktor/">kap-ktor</a> — Ktor Integration<a class="headerlink" href="#kap-ktor-ktor-integration" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="modules/kap-ktor/#plugin-installation"><code>install(Kap)</code></a> — one-line plugin setup</li>
+<li><a href="modules/kap-ktor/#built-in-tracers"><code>ktorTracer</code> / <code>structuredTracer</code></a> — SLF4J and JSON logging</li>
+<li><a href="modules/kap-ktor/#named-circuit-breakers">Named circuit breakers</a> — per-dependency circuit breakers</li>
+<li><a href="modules/kap-ktor/#response-helpers"><code>respondAsync</code> / <code>respondKap</code></a> — response helpers</li>
+<li><a href="modules/kap-ktor/#statuspages-exception-handlers"><code>kapExceptionHandlers</code></a> — exception-to-HTTP status mapping</li>
+</ul>
+<hr />
+<h3 id="kap-kotest-testing"><a href="modules/kap-kotest/">kap-kotest</a> — Testing<a class="headerlink" href="#kap-kotest-testing" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="modules/kap-kotest/#kap-matchers"><code>shouldSucceed</code> / <code>shouldSucceedWith</code></a> — assert Kap success</li>
+<li><a href="modules/kap-kotest/#kap-matchers"><code>shouldFailWith</code> / <code>shouldFailWithMessage</code></a> — assert Kap failure</li>
+<li><a href="modules/kap-kotest/#arrow-matchers"><code>shouldBeRight</code> / <code>shouldBeLeft</code></a> — Arrow Either assertions</li>
+<li><a href="modules/kap-kotest/#resilience-matchers"><code>shouldBeClosed</code> / <code>shouldBeOpen</code></a> — circuit breaker state assertions</li>
+<li><a href="modules/kap-kotest/#timing-matchers"><code>shouldProveParallel</code> / <code>shouldBeMillis</code></a> — timing assertions</li>
+</ul>
+<hr />
+<h3 id="kap-ksp-code-generation"><a href="modules/kap-ksp/">kap-ksp</a> — Code Generation<a class="headerlink" href="#kap-ksp-code-generation" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="modules/kap-ksp/#the-solution"><code>@KapTypeSafe</code></a> — generate wrapper types to prevent same-type parameter swaps</li>
+<li><a href="modules/kap-ksp/#works-on-functions-too">Works on functions too</a> — not just data classes</li>
+<li><a href="modules/kap-ksp/#prefix-avoiding-collisions">Prefix</a> — avoid naming collisions across modules</li>
+</ul>
 <hr />
 <h2 id="modules">Modules<a class="headerlink" href="#modules" title="Permanent link">&para;</a></h2>
 <table>
