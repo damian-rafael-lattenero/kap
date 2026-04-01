@@ -190,6 +190,112 @@ Scales to **22 validators** (Arrow's `zipOrAccumulate` maxes at 9).
 
 ---
 
+## Full API at a glance
+
+### [kap-core](modules/kap-core.md) — Foundation
+
+**Orchestration**
+
+- [`.with`](modules/kap-core.md#with-independent-tasks-in-parallel) / [`.then`](modules/kap-core.md#then-phase-barrier) / [`.andThen`](modules/kap-core.md#andthen-dependent-phase) — parallel, barrier, dependent phase
+- [`kap(f)`](modules/kap-core.md#kapf-curry-a-function-for-with-chains) — curry any function for type-safe `.with` chains
+- [`computation { }`](modules/kap-core.md#computation-imperative-builder) — imperative builder with `bind`
+
+**Error handling**
+
+- [`.timeout`](modules/kap-core.md#timeoutduration-default) — deadline with default value or fallback computation
+- [`.recover` / `.recoverWith`](modules/kap-core.md#recover-recoverwith) — catch and transform errors
+- [`.retry`](modules/kap-core.md#retrymaxattempts-delay-backoff) — retry with backoff strategy
+- [`.ensure` / `.ensureNotNull`](modules/kap-core.md#ensureerror-predicate-ensurenotnullerror-extract) — predicate guards
+- [`catching`](modules/kap-core.md#catching-exception-safe-result) — wrap exceptions into `Result`
+
+**Collections**
+
+- [`traverse`](modules/kap-core.md#traverse) / [`traverseSettled`](modules/kap-core.md#traversesettled-collect-all-results-no-cancellation) / [`traverseDiscard`](modules/kap-core.md#traversediscard-fire-and-forget) — parallel map over collections
+- [`sequence`](modules/kap-core.md#sequence-sequenceconcurrency) — execute all, with optional concurrency limit
+- [`settled`](modules/kap-core.md#partial-failure) — collect successes and failures without cancellation
+
+**Racing**
+
+- [`raceN`](modules/kap-core.md#racenc1-c2-cn-first-to-succeed-wins-rest-cancelled) — first to succeed wins, rest cancelled
+- [`race`](modules/kap-core.md#racefa-fb-two-way-race) / [`raceAll`](modules/kap-core.md#racealllist-race-a-dynamic-list) — two-way and dynamic-list races
+- [`.orElse` / `firstSuccessOf`](modules/kap-core.md#orelseother-firstsuccessof) — sequential fallback chains
+
+**Flow integration**
+
+- [`mapKap` / `mapKapOrdered`](modules/kap-core.md#flow-integration) — parallel transforms inside Flows
+- [`mapEffectOrdered`](modules/kap-core.md#flowmapeffectordered-preserve-upstream-order) — ordered async transformation preserving emission order
+- [`firstAsKap` / `collectAsKap`](modules/kap-core.md#flowfirstaskap) — bridge Flow to Kap
+
+**Utilities**
+
+- [`memoize` / `memoizeOnSuccess`](modules/kap-core.md#memoization) — cache computation results thread-safely
+- [`Kap.of` / `.empty` / `.failed` / `.defer`](modules/kap-core.md#kapofvalue-kapempty-kapfailederror-kapdefer) — construction helpers
+- [`Deferred.toKap()` / `.toDeferred`](modules/kap-core.md#interop) — coroutine interop
+- [`traced` / `KapTracer`](modules/kap-core.md#observability) — structured observability hooks
+- [`combine` / `pair` / `triple` / `zip`](modules/kap-core.md#utilities) — parallel combinators
+- [`named` / `on` / `discard` / `peek`](modules/kap-core.md#oncontext-namedname) — chain modifiers
+- [`delayed` / `.await`](modules/kap-core.md#delayedduration-value-withornull) — execution control
+
+---
+
+### [kap-resilience](modules/kap-resilience.md) — Fault Tolerance
+
+- [`Schedule`](modules/kap-resilience.md#schedule-composable-retry-policies) — composable retry policies (`times`, `exponential`, `fibonacci`, `linear`, `forever`)
+- [`.jittered`](modules/kap-resilience.md#jittered-prevent-thundering-herd) / [`.withMaxDuration`](modules/kap-resilience.md#withmaxdurationd-total-time-cap) — schedule modifiers
+- [`.and` / `.or` / `.fold`](modules/kap-resilience.md#composition) — schedule composition
+- [`retryOrElse`](modules/kap-resilience.md#retryorelseschedule-fallback-fallback-after-exhaustion) / [`retryWithResult`](modules/kap-resilience.md#retrywithresultschedule-returns-full-context) — retry with fallback or full context
+- [`CircuitBreaker`](modules/kap-resilience.md#circuitbreaker) — fail fast when a dependency is down
+- [`timeoutRace`](modules/kap-resilience.md#timeoutrace-parallel-fallback) — race primary against eager fallback
+- [`raceQuorum`](modules/kap-resilience.md#racequorum-n-of-m-successes) — N-of-M quorum pattern
+- [`bracket`](modules/kap-resilience.md#bracket-guaranteed-cleanup) / [`bracketCase`](modules/kap-resilience.md#bracketcase-release-depends-on-outcome) — guaranteed cleanup
+- [`Resource`](modules/kap-resilience.md#resource-composable-resource) — composable acquire / use / release
+- [`guarantee` / `guaranteeCase`](modules/kap-resilience.md#guarantee-guaranteecase) — unconditional finalizers
+
+---
+
+### [kap-arrow](modules/kap-arrow.md) — Parallel Validation
+
+- [`zipV`](modules/kap-arrow.md#zipv-parallel-validation-2-22-args) — parallel validation with error accumulation (2–22 args)
+- [`kapV` + `withV`](modules/kap-arrow.md#kapv-withv-curried-builder) — curried validation builder
+- [`thenV` / `andThenV`](modules/kap-arrow.md#phased-validation-thenv-andthenv) — phased validation with short-circuit
+- [`valid` / `invalid` / `invalidAll`](modules/kap-arrow.md#entry-points) — entry points
+- [`catching(toError)`](modules/kap-arrow.md#catchingtoerror-exception-to-error-bridge) — exceptions to validation errors
+- [`ensureV` / `ensureVAll`](modules/kap-arrow.md#guards-ensurev-ensurevall) — validation guards
+- [`mapV` / `mapError` / `recoverV` / `orThrow`](modules/kap-arrow.md#transforms) — transforms
+- [`traverseV` / `sequenceV`](modules/kap-arrow.md#collection-operations) — validate collections in parallel
+- [`.attempt` / `raceEither`](modules/kap-arrow.md#arrow-interop) — Arrow Either interop
+- [`accumulate { }`](modules/kap-arrow.md#accumulate-builder) — imperative builder with error accumulation
+
+---
+
+### [kap-ktor](modules/kap-ktor.md) — Ktor Integration
+
+- [`install(Kap)`](modules/kap-ktor.md#plugin-installation) — one-line plugin setup
+- [`ktorTracer` / `structuredTracer`](modules/kap-ktor.md#built-in-tracers) — SLF4J and JSON logging
+- [Named circuit breakers](modules/kap-ktor.md#named-circuit-breakers) — per-dependency circuit breakers
+- [`respondAsync` / `respondKap`](modules/kap-ktor.md#response-helpers) — response helpers
+- [`kapExceptionHandlers`](modules/kap-ktor.md#statuspages-exception-handlers) — exception-to-HTTP status mapping
+
+---
+
+### [kap-kotest](modules/kap-kotest.md) — Testing
+
+- [`shouldSucceed` / `shouldSucceedWith`](modules/kap-kotest.md#kap-matchers) — assert Kap success
+- [`shouldFailWith` / `shouldFailWithMessage`](modules/kap-kotest.md#kap-matchers) — assert Kap failure
+- [`shouldBeRight` / `shouldBeLeft`](modules/kap-kotest.md#arrow-matchers) — Arrow Either assertions
+- [`shouldBeClosed` / `shouldBeOpen`](modules/kap-kotest.md#resilience-matchers) — circuit breaker state assertions
+- [`shouldProveParallel` / `shouldBeMillis`](modules/kap-kotest.md#timing-matchers) — timing assertions
+
+---
+
+### [kap-ksp](modules/kap-ksp.md) — Code Generation
+
+- [`@KapTypeSafe`](modules/kap-ksp.md#the-solution) — generate wrapper types to prevent same-type parameter swaps
+- [Works on functions too](modules/kap-ksp.md#works-on-functions-too) — not just data classes
+- [Prefix](modules/kap-ksp.md#prefix-avoiding-collisions) — avoid naming collisions across modules
+
+---
+
 ## Modules
 
 | Module | What you get | Depends on |

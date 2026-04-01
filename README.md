@@ -22,30 +22,72 @@
 
 ---
 
-You have 11 microservice calls. Some run in parallel, some depend on earlier results. With raw coroutines you get invisible phases, silent swap bugs, and 30 lines of `async`/`await` boilerplate. With KAP:
+You have three async calls. They should run in parallel. Your code doesn't show it.
 
 ```kotlin
-val checkout: CheckoutResult = Async {
-    kap(::CheckoutResult)
-        .with { fetchUser() }                         // starts a coroutine
-        .with { fetchCart() }                         // starts another, in parallel
-        .with { fetchPromos() }                       // and another, all at the same time
-        .with { fetchInventory() }                    // four independent tasks running together
-        .then { validateStock() }                     // waits for ALL four, then runs alone
-        .with { calcShipping() }                      // starts a new parallel group
-        .with { calcTax() }                           // runs alongside calcShipping
-        .with { calcDiscounts() }                     // three independent tasks again
-        .andThen { partial ->                         // waits, receives everything so far
-            kap(::FinalCheckout)
-                .with { reservePayment(partial) }     // uses the partial result
-                .with { applyLoyaltyPoints(partial) } // both need partial, both run in parallel
-        }
-        .with { generateConfirmation() }              // one more parallel group after payment
-        .with { sendEmail() }                         // both fire at the same time
+// KAP — what you mean is what you write
+val dashboard: Dashboard = Async {
+    kap(::Dashboard)
+        .with { fetchUser() }       // ┐ all three start at t=0
+        .with { fetchCart() }        // │ total time = max(30, 20, 10) = 30ms
+        .with { fetchPromos() }      // ┘ not 60ms sequential
 }
-// 13 calls. 6 phases. The dependency graph IS the code shape.
-// Swap any .with that returns a different type → compile error.
 ```
+
+<details>
+<summary><b>Same thing with raw coroutines</b></summary>
+
+```kotlin
+val dashboard = coroutineScope {
+    val dUser  = async { fetchUser() }
+    val dCart   = async { fetchCart() }
+    val dPromos = async { fetchPromos() }
+    Dashboard(
+        dUser.await(),
+        dCart.await(),
+        dPromos.await()
+    )
+}
+```
+
+</details>
+
+Now add a dependency: phase 2 needs phase 1's results.
+
+```kotlin
+// Fetch context first, then personalize — two phases, one chain
+val dashboard = Async {
+    kap(::UserContext)
+        .with { fetchProfile(id) }           // ┐ phase 1: parallel
+        .with { fetchPreferences(id) }       // │
+        .with { fetchLoyaltyTier(id) }       // ┘
+        .andThen { ctx ->                    // ── barrier: ctx available
+            kap(::PersonalizedDashboard)
+                .with { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
+                .with { fetchPromotions(ctx.tier) }           // │ uses ctx
+                .with { fetchTrending(ctx.prefs) }            // ┘
+        }
+}
+```
+
+<details>
+<summary><b>Same thing with raw coroutines</b></summary>
+
+```kotlin
+val dashboard = coroutineScope {
+    val dProfile = async { fetchProfile(id) }
+    val dPrefs   = async { fetchPreferences(id) }
+    val dTier    = async { fetchLoyaltyTier(id) }
+    val ctx = UserContext(dProfile.await(), dPrefs.await(), dTier.await())
+
+    val dRecs     = async { fetchRecommendations(ctx.profile) }
+    val dPromos   = async { fetchPromotions(ctx.tier) }
+    val dTrending = async { fetchTrending(ctx.prefs) }
+    PersonalizedDashboard(dRecs.await(), dPromos.await(), dTrending.await())
+}
+```
+
+</details>
 
 ---
 
@@ -56,6 +98,81 @@ val checkout: CheckoutResult = Async {
 | `.with { }` | Runs in parallel with everything else in the same phase | "and at the same time..." |
 | `.then { }` | Waits for all above, then continues | "once that's done..." |
 | `.andThen { ctx -> }` | Waits, passes the result, then continues | "using what we got..." |
+
+---
+
+## And it scales.
+
+11 microservice calls. 5 phases. Dependencies between them. One flat chain:
+
+```kotlin
+val checkout: CheckoutResult = Async {
+    kap(::CheckoutResult)
+        .with { fetchUser() }               // ┐
+        .with { fetchCart() }               // ├─ phase 1: parallel
+        .with { fetchPromos() }             // │
+        .with { fetchInventory() }          // ┘
+        .then { validateStock() }           // ── phase 2: barrier
+        .with { calcShipping() }            // ┐
+        .with { calcTax() }                 // ├─ phase 3: parallel
+        .with { calcDiscounts() }           // ┘
+        .then { reservePayment() }          // ── phase 4: barrier
+        .with { generateConfirmation() }    // ┐ phase 5: parallel
+        .with { sendEmail() }              // ┘
+}
+```
+
+<details>
+<summary><b>Same thing with raw coroutines (30 lines)</b></summary>
+
+```kotlin
+val checkout = coroutineScope {
+    val dUser = async { fetchUser() }
+    val dCart = async { fetchCart() }
+    val dPromos = async { fetchPromos() }
+    val dInventory = async { fetchInventory() }
+    val user = dUser.await()
+    val cart = dCart.await()
+    val promos = dPromos.await()
+    val inventory = dInventory.await()
+
+    val stock = validateStock()
+
+    val dShipping = async { calcShipping() }
+    val dTax = async { calcTax() }
+    val dDiscounts = async { calcDiscounts() }
+    val shipping = dShipping.await()
+    val tax = dTax.await()
+    val discounts = dDiscounts.await()
+
+    val payment = reservePayment()
+
+    val dConfirmation = async { generateConfirmation() }
+    val dEmail = async { sendEmail() }
+
+    CheckoutResult(
+        user, cart, promos, inventory, stock,
+        shipping, tax, discounts, payment,
+        dConfirmation.await(), dEmail.await()
+    )
+}
+```
+
+</details>
+
+---
+
+## What only KAP can do
+
+- <a href="https://damian-rafael-lattenero.github.io/kap/modules/kap-core/#then-phase-barrier" target="_blank"><b>Phase barriers in flat chains</b></a> — <code>.then</code> creates visible ordering without nesting or shuttle variables
+- <a href="https://damian-rafael-lattenero.github.io/kap/modules/kap-resilience/#schedule-composable-retry-policies" target="_blank"><b>Composable retry schedules</b></a> — <code>Schedule.exponential.jittered.and(Schedule.times(5))</code>
+- <a href="https://damian-rafael-lattenero.github.io/kap/modules/kap-arrow/#zipv-parallel-validation-2-22-args" target="_blank"><b>Parallel validation up to 22 fields</b></a> — <code>zipV</code> accumulates ALL errors, no short-circuit
+- <a href="https://damian-rafael-lattenero.github.io/kap/modules/kap-resilience/#racequorum-n-of-m-successes" target="_blank"><b>N-of-M quorum racing</b></a> — <code>raceQuorum(2, c1, c2, c3)</code> — first 2 to succeed win
+- <a href="https://damian-rafael-lattenero.github.io/kap/modules/kap-resilience/#resource-composable-resource" target="_blank"><b>Composable resources</b></a> — <code>Resource.zip(db, cache, queue) { ... }</code> with guaranteed cleanup
+
+<p>
+  <a href="https://damian-rafael-lattenero.github.io/kap/" target="_blank"><b>Full API reference — every combinator, every module →</b></a>
+</p>
 
 ---
 
@@ -80,6 +197,12 @@ Optional modules: [resilience](https://damian-rafael-lattenero.github.io/kap/mod
 | 5 parallel calls @ 50ms each | 50.27ms | 50.31ms |
 
 Zero overhead. No reflection. No runtime code generation. [119 JMH benchmarks](https://damian-rafael-lattenero.github.io/kap/benchmarks/).
+
+---
+
+## `(String) -> (String) -> (String) -> String` — which is which?
+
+Swap two `String` parameters and the compiler says nothing. Add `@KapTypeSafe` and it does. <a href="https://damian-rafael-lattenero.github.io/kap/modules/kap-ksp/" target="_blank"><b>See how →</b></a>
 
 ---
 
