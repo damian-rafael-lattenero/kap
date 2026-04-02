@@ -3,6 +3,7 @@ package kap
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -10,6 +11,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.withContext
 
 class OverloadsAndEdgeCasesTest {
 
@@ -32,7 +34,7 @@ class OverloadsAndEdgeCasesTest {
             }
         }
 
-        val result = Async { computations.sequence(3) }
+        val result = computations.sequence(3).executeGraph()
 
         assertEquals((0 until 8).map { "v$it" }, result)
         assertTrue(maxConcurrent <= 3, "Max concurrent was $maxConcurrent, expected <= 3")
@@ -40,8 +42,8 @@ class OverloadsAndEdgeCasesTest {
 
     @Test
     fun `Async with context overload runs on specified context`() = runTest {
-        val result = Async(CoroutineName("test-ctx")) {
-            context.map { it[CoroutineName]?.name ?: "unknown" }
+        val result = withContext(CoroutineName("test-ctx")) {
+            context.map { it[CoroutineName]?.name ?: "unknown" }.executeGraph()
         }
         assertEquals("test-ctx", result)
     }
@@ -50,11 +52,9 @@ class OverloadsAndEdgeCasesTest {
     fun `ap with Kap overload works the same as suspend lambda`() = runTest {
         val comp = Kap { "from-computation" }
 
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with(comp)
-                .with(Kap { "also-computation" })
-        }
+                .with(Kap { "also-computation" }).executeGraph()
 
         assertEquals("from-computation|also-computation", result)
     }
@@ -63,11 +63,9 @@ class OverloadsAndEdgeCasesTest {
     fun `then with Kap overload`() = runTest {
         val comp = Kap { "barrier" }
 
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .then(comp)
-                .with { "after" }
-        }
+                .with { "after" }.executeGraph()
 
         assertEquals("barrier|after", result)
     }
@@ -80,10 +78,8 @@ class OverloadsAndEdgeCasesTest {
     fun `timeout with fallback Kap runs fallback on timeout`() = runTest {
         val fallback = Kap { "fallback-value" }
 
-        val result = Async {
-            Kap<String> { delay(10.seconds); "too-slow" }
-                .timeout(50.milliseconds, fallback)
-        }
+        val result = Kap<String> { delay(10.seconds); "too-slow" }
+                .timeout(50.milliseconds, fallback).executeGraph()
 
         assertEquals("fallback-value", result)
     }
@@ -92,28 +88,22 @@ class OverloadsAndEdgeCasesTest {
     fun `timeout with fallback Kap returns original on success`() = runTest {
         val fallback = Kap { "fallback-value" }
 
-        val result = Async {
-            Kap.of("fast").timeout(1.seconds, fallback)
-        }
+        val result = Kap.of("fast").timeout(1.seconds, fallback).executeGraph()
 
         assertEquals("fast", result)
     }
 
     @Test
     fun `recoverWith switches to recovery computation`() = runTest {
-        val result = Async {
-            Kap<String> { throw RuntimeException("boom") }
-                .recoverWith { e -> Kap.of("recovered: ${e.message}") }
-        }
+        val result = Kap<String> { throw RuntimeException("boom") }
+                .recoverWith { e -> Kap.of("recovered: ${e.message}") }.executeGraph()
 
         assertEquals("recovered: boom", result)
     }
 
     @Test
     fun `recoverWith passes through on success`() = runTest {
-        val result = Async {
-            Kap.of("ok").recoverWith { Kap.of("should-not-reach") }
-        }
+        val result = Kap.of("ok").recoverWith { Kap.of("should-not-reach") }.executeGraph()
 
         assertEquals("ok", result)
     }
@@ -138,13 +128,11 @@ class OverloadsAndEdgeCasesTest {
     fun `retry with exponential backoff`() = runTest {
         var attempts = 0
 
-        val result = Async {
-            Kap {
+        val result = Kap {
                 attempts++
                 if (attempts < 3) throw RuntimeException("fail #$attempts")
                 "success on attempt $attempts"
-            }.retry(maxAttempts = 5, delay = 10.milliseconds, backoff = exponential)
-        }
+            }.retry(maxAttempts = 5, delay = 10.milliseconds, backoff = exponential).executeGraph()
 
         assertEquals("success on attempt 3", result)
         assertEquals(3, attempts)
@@ -156,24 +144,20 @@ class OverloadsAndEdgeCasesTest {
 
     @Test
     fun `race returns winner even if loser fails`() = runTest {
-        val result = Async {
-            race(
+        val result = race(
                 Kap { "fast-winner" },
                 Kap<String> { delay(100); throw RuntimeException("loser-error") },
-            )
-        }
+            ).executeGraph()
         assertEquals("fast-winner", result)
     }
 
     @Test
     fun `raceN returns winner even if other fails`() = runTest {
-        val result = Async {
-            raceN(
+        val result = raceN(
                 Kap { "winner" },
                 Kap<String> { delay(100); throw RuntimeException("boom") },
                 Kap<String> { delay(100); throw RuntimeException("boom2") },
-            )
-        }
+            ).executeGraph()
         assertEquals("winner", result)
     }
 
@@ -183,11 +167,9 @@ class OverloadsAndEdgeCasesTest {
 
     @Test
     fun `on switches dispatcher for a specific computation`() = runTest {
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with(Kap { "io-task" }.on(Dispatchers.IO))
-                .with { "default-task" }
-        }
+                .with { "default-task" }.executeGraph()
         assertEquals("io-task|default-task", result)
     }
 }

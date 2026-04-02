@@ -120,9 +120,8 @@ fun Iterable<Kap<Unit>>.sequenceDiscard(concurrency: Int): Kap<Unit> =
  * This is useful when you need to know ALL outcomes, not just the first failure:
  *
  * ```
- * val results: List<Result<User>> = Async {
- *     userIds.traverseSettled { id -> Kap { fetchUser(id) } }
- * }
+ * val results: List<Result<User>> = userIds.traverseSettled { id -> Kap { fetchUser(id) } }
+ *     .executeGraph()
  * val successes = results.filter { it.isSuccess }.map { it.getOrThrow() }
  * val failures = results.filter { it.isFailure }.map { it.exceptionOrNull()!! }
  * ```

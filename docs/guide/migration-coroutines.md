@@ -4,7 +4,7 @@ If you're using `coroutineScope { async { } }` for parallel execution, this guid
 
 ## KAP is built ON coroutines
 
-KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` creates a `coroutineScope`. `.with` uses `async`. All structured concurrency rules still apply:
+KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGraph()` creates a `coroutineScope`. `.with` uses `async`. All structured concurrency rules still apply:
 
 - Parent cancels → all children cancel
 - One child fails → siblings cancel (unless `.settled()`)
@@ -27,12 +27,11 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        kap(::Dashboard)
-            .with { fetchUser() }
-            .with { fetchCart() }
-            .with { fetchPromos() }
-    }
+    val result = kap(::Dashboard)
+        .with { fetchUser() }
+        .with { fetchCart() }
+        .with { fetchPromos() }
+        .executeGraph()
     ```
 
 6 lines → 4 lines. No shuttle variables. Swap two `.with` lines? Compile error.
@@ -58,14 +57,13 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        kap(::Result)
-            .with { fetchA() }       // ┐ phase 1
-            .with { fetchB() }       // ┘
-            .then { validate() }     // ── explicit barrier
-            .with { fetchC() }       // ┐ phase 2
-            .with { fetchD() }       // ┘
-    }
+    val result = kap(::Result)
+        .with { fetchA() }       // ┐ phase 1
+        .with { fetchB() }       // ┘
+        .then { validate() }     // ── explicit barrier
+        .with { fetchC() }       // ┐ phase 2
+        .with { fetchD() }       // ┘
+        .executeGraph()
     ```
 
 ## Bounded concurrency: `Semaphore` → `traverse(concurrency)`
@@ -86,11 +84,9 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
 === "KAP"
 
     ```kotlin
-    val results = Async {
-        userIds.traverse(concurrency = 10) { id ->
-            Kap { fetchUser(id) }
-        }
-    }
+    val results = userIds.traverse(concurrency = 10) { id ->
+        Kap { fetchUser(id) }
+    }.executeGraph()
     ```
 
 ## Timeout with fallback: `withTimeoutOrNull` → `.timeout`
@@ -104,9 +100,9 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        Kap { fetchSlowService() }.timeout(500.milliseconds) { "fallback" }
-    }
+    val result = Kap { fetchSlowService() }
+        .timeout(500.milliseconds) { "fallback" }
+        .executeGraph()
     ```
 
 ## Parallel fallback: sequential → `timeoutRace`
@@ -126,10 +122,9 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
 
     ```kotlin
     // Parallel: both start at t=0
-    val result = Async {
-        Kap { fetchFromPrimary() }
-            .timeoutRace(100.milliseconds, Kap { fetchFromFallback() })
-    }
+    val result = Kap { fetchFromPrimary() }
+        .timeoutRace(100.milliseconds, Kap { fetchFromFallback() })
+        .executeGraph()
     // 2.6x faster — fallback already running when primary times out
     ```
 
@@ -149,9 +144,9 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        Kap { fetchUser() }.recover { "anonymous" }
-    }
+    val result = Kap { fetchUser() }
+        .recover { "anonymous" }
+        .executeGraph()
     // CancellationException automatically re-thrown — no manual check needed
     ```
 
@@ -178,11 +173,9 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        Kap { fetchUser() }.retry(
-            Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds).jittered()
-        )
-    }
+    val result = Kap { fetchUser() }.retry(
+        Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds).jittered()
+    ).executeGraph()
     ```
 
 ## Resource cleanup: `try`/`finally` → `bracket`
@@ -201,13 +194,11 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        bracket(
-            acquire = { openConnection() },
-            use = { conn -> Kap { conn.query("SELECT 1") } },
-            release = { conn -> conn.close() },  // NonCancellable — guaranteed
-        )
-    }
+    val result = bracket(
+        acquire = { openConnection() },
+        use = { conn -> Kap { conn.query("SELECT 1") } },
+        release = { conn -> conn.close() },  // NonCancellable — guaranteed
+    ).executeGraph()
     ```
 
 ## Partial failure: `supervisorScope` → `.settled()`
@@ -231,11 +222,10 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
     fun buildDashboard(user: Result<String>, cart: String): Dashboard =
         Dashboard(user.getOrDefault("anonymous"), cart)
 
-    val result = Async {
-        kap(::buildDashboard)
-            .with(settled { fetchUserMayFail() })  // .settled() → Result<String>
-            .with { fetchCart() }                          // normal String
-    }
+    val result = kap(::buildDashboard)
+        .with(settled { fetchUserMayFail() })  // .settled() → Result<String>
+        .with { fetchCart() }                          // normal String
+        .executeGraph()
     // fetchUserMayFail() fails → Result.failure → buildDashboard uses "anonymous"
     // fetchCart() is NOT cancelled
     ```
@@ -244,7 +234,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `Async { }` 
 
 | Raw Coroutines | KAP |
 |---|---|
-| `coroutineScope { async { } }` | `Async { kap(::T).with { } }` |
+| `coroutineScope { async { } }` | `kap(::T).with { }.executeGraph()` |
 | `async { }.await()` | `.with { }` |
 | suspend call between phases | `.then { }` |
 | nested `coroutineScope` | `.andThen { ctx -> }` |

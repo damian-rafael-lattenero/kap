@@ -23,17 +23,15 @@ class EnhancedCombinatorsTest {
     fun `retry with shouldRetry - only retries matching exceptions`() = runTest {
         var attempts = 0
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    if (attempts == 1) throw IOException("network error")
-                    if (attempts == 2) throw IllegalArgumentException("bad input")
-                    "ok"
-                }.retry(
-                    maxAttempts = 5,
-                    shouldRetry = { it is IOException },
-                )
-            }
+                        Kap<String> {
+                attempts++
+                if (attempts == 1) throw IOException("network error")
+                if (attempts == 2) throw IllegalArgumentException("bad input")
+                "ok"
+            }.retry(
+                maxAttempts = 5,
+                shouldRetry = { it is IOException },
+            ).executeGraph()
         }
         assertTrue(result.isFailure)
         assertIs<IllegalArgumentException>(result.exceptionOrNull())
@@ -45,15 +43,13 @@ class EnhancedCombinatorsTest {
     fun `retry with shouldRetry - skips non-retryable on first attempt`() = runTest {
         var attempts = 0
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    throw IllegalStateException("not retryable")
-                }.retry(
-                    maxAttempts = 5,
-                    shouldRetry = { it is IOException },
-                )
-            }
+                        Kap<String> {
+                attempts++
+                throw IllegalStateException("not retryable")
+            }.retry(
+                maxAttempts = 5,
+                shouldRetry = { it is IOException },
+            ).executeGraph()
         }
         assertTrue(result.isFailure)
         assertIs<IllegalStateException>(result.exceptionOrNull())
@@ -73,19 +69,17 @@ class EnhancedCombinatorsTest {
         var attempts = 0
 
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    throw RuntimeException("fail #$attempts")
-                }.retry(
-                    maxAttempts = 3,
-                    delay = 100.milliseconds,
-                    backoff = { it * 2 },
-                    onRetry = { attempt, error, nextDelay ->
-                        records.add(RetryRecord(attempt, error.message!!, nextDelay))
-                    },
-                )
-            }
+                        Kap<String> {
+                attempts++
+                throw RuntimeException("fail #$attempts")
+            }.retry(
+                maxAttempts = 3,
+                delay = 100.milliseconds,
+                backoff = { it * 2 },
+                onRetry = { attempt, error, nextDelay ->
+                    records.add(RetryRecord(attempt, error.message!!, nextDelay))
+                },
+            ).executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -107,18 +101,16 @@ class EnhancedCombinatorsTest {
         val callbackTimes = mutableListOf<Long>()
 
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    throw RuntimeException("fail")
-                }.retry(
-                    maxAttempts = 4,
-                    delay = 100.milliseconds,
-                    backoff = { it * 2 },
-                    onRetry = { _, _, _ ->
-                        callbackTimes.add(currentTime)
-                    },
-                )
-            }
+                        Kap<String> {
+                throw RuntimeException("fail")
+            }.retry(
+                maxAttempts = 4,
+                delay = 100.milliseconds,
+                backoff = { it * 2 },
+                onRetry = { _, _, _ ->
+                    callbackTimes.add(currentTime)
+                },
+            ).executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -144,25 +136,23 @@ class EnhancedCombinatorsTest {
         var attempts = 0
 
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    when (attempts) {
-                        1 -> throw IOException("network #1")
-                        2 -> throw IOException("network #2")
-                        3 -> throw IllegalStateException("bad state")
-                        else -> "ok"
-                    }
-                }.retry(
-                    maxAttempts = 5,
-                    delay = 50.milliseconds,
-                    backoff = { it * 2 },
-                    shouldRetry = { it is IOException },
-                    onRetry = { attempt, error, nextDelay ->
-                        logs.add(RetryLog(attempt, error::class.simpleName!!, nextDelay))
-                    },
-                )
-            }
+                        Kap<String> {
+                attempts++
+                when (attempts) {
+                    1 -> throw IOException("network #1")
+                    2 -> throw IOException("network #2")
+                    3 -> throw IllegalStateException("bad state")
+                    else -> "ok"
+                }
+            }.retry(
+                maxAttempts = 5,
+                delay = 50.milliseconds,
+                backoff = { it * 2 },
+                shouldRetry = { it is IOException },
+                onRetry = { attempt, error, nextDelay ->
+                    logs.add(RetryLog(attempt, error::class.simpleName!!, nextDelay))
+                },
+            ).executeGraph()
         }
 
         // Attempt 1: IOException -> shouldRetry=true, onRetry(1), delay 50ms
@@ -186,18 +176,16 @@ class EnhancedCombinatorsTest {
 
     @Test
     fun `timeoutRace - fallback wins when primary is slow`() = runTest {
-        val result = Async {
-            Kap<String> {
-                delay(500.milliseconds)
-                "primary"
-            }.timeoutRace(
-                duration = 100.milliseconds,
-                fallback = Kap {
-                    delay(30.milliseconds)
-                    "fallback"
-                },
-            )
-        }
+        val result = Kap<String> {
+            delay(500.milliseconds)
+            "primary"
+        }.timeoutRace(
+            duration = 100.milliseconds,
+            fallback = Kap {
+                delay(30.milliseconds)
+                "fallback"
+            },
+        ).executeGraph()
 
         assertEquals("fallback", result)
         assertEquals(30L, currentTime,
@@ -206,18 +194,16 @@ class EnhancedCombinatorsTest {
 
     @Test
     fun `timeoutRace - primary wins when fast enough`() = runTest {
-        val result = Async {
-            Kap<String> {
-                delay(20.milliseconds)
-                "primary"
-            }.timeoutRace(
-                duration = 50.milliseconds,
-                fallback = Kap {
-                    delay(100.milliseconds)
-                    "fallback"
-                },
-            )
-        }
+        val result = Kap<String> {
+            delay(20.milliseconds)
+            "primary"
+        }.timeoutRace(
+            duration = 50.milliseconds,
+            fallback = Kap {
+                delay(100.milliseconds)
+                "fallback"
+            },
+        ).executeGraph()
 
         assertEquals("primary", result)
         assertEquals(20L, currentTime,
@@ -228,18 +214,16 @@ class EnhancedCombinatorsTest {
     fun `timeoutRace vs regular timeout with fallback computation - timing comparison`() = runTest {
         // Regular timeout: waits for timeout to expire, THEN runs fallback sequentially
         val startRegular = currentTime
-        val regularResult = Async {
-            Kap<String> {
-                delay(500.milliseconds)
-                "slow-primary"
-            }.timeout(
-                duration = 100.milliseconds,
-                fallback = Kap {
-                    delay(50.milliseconds)
-                    "regular-fallback"
-                },
-            )
-        }
+        val regularResult = Kap<String> {
+            delay(500.milliseconds)
+            "slow-primary"
+        }.timeout(
+            duration = 100.milliseconds,
+            fallback = Kap {
+                delay(50.milliseconds)
+                "regular-fallback"
+            },
+        ).executeGraph()
         val regularTime = currentTime - startRegular
 
         assertEquals("regular-fallback", regularResult)
@@ -248,18 +232,16 @@ class EnhancedCombinatorsTest {
 
         // timeoutRace: fallback runs in parallel from the start
         val startRace = currentTime
-        val raceResult = Async {
-            Kap<String> {
-                delay(500.milliseconds)
-                "slow-primary"
-            }.timeoutRace(
-                duration = 100.milliseconds,
-                fallback = Kap {
-                    delay(50.milliseconds)
-                    "race-fallback"
-                },
-            )
-        }
+        val raceResult = Kap<String> {
+            delay(500.milliseconds)
+            "slow-primary"
+        }.timeoutRace(
+            duration = 100.milliseconds,
+            fallback = Kap {
+                delay(50.milliseconds)
+                "race-fallback"
+            },
+        ).executeGraph()
         val raceTime = currentTime - startRace
 
         assertEquals("race-fallback", raceResult)
@@ -296,11 +278,9 @@ class EnhancedCombinatorsTest {
             "retried-ok"
         }.retry(maxAttempts = 3)
 
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
-                .with(timeoutRaceBranch)
-                .with(retryBranch)
-        }
+        val result = kap { a: String, b: String -> "$a|$b" }
+            .with(timeoutRaceBranch)
+            .with(retryBranch).executeGraph()
 
         assertEquals("cached|retried-ok", result)
         assertEquals(3, retryAttempts)
@@ -336,11 +316,9 @@ class EnhancedCombinatorsTest {
             shouldRetry = { it is IllegalStateException },
         )
 
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
-                .with(ioBranch)
-                .with(stateBranch)
-        }
+        val result = kap { a: String, b: String -> "$a|$b" }
+            .with(ioBranch)
+            .with(stateBranch).executeGraph()
 
         assertEquals("io-ok|state-ok", result)
         assertEquals(3, ioAttempts, "IO branch should have taken 3 attempts")

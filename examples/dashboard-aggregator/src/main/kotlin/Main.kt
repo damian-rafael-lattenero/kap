@@ -123,8 +123,7 @@ suspend fun main() {
     // Type-safe: each .with slot is verified at compile time against
     // the corresponding DashboardView constructor parameter type.
     // Swapping two calls (e.g. fetchFeed and fetchNotifications) is a compile error.
-    val dashboard = Async {
-        kap(::DashboardView)
+    val dashboard = kap(::DashboardView)
             // Phase 1: User context (parallel)
             .with { fetchUserProfile().also { println("  Phase 1 [${System.currentTimeMillis() - start}ms]: user loaded") } }
             .with { fetchPreferences() }
@@ -144,7 +143,7 @@ suspend fun main() {
             .with { fetchAds() }
             .with { fetchSocialProof() }
             .with { fetchAppVersion().also { println("  Phase 5 [${System.currentTimeMillis() - start}ms]: sidebar loaded") } }
-    }
+            .executeGraph()
 
     val elapsed = System.currentTimeMillis() - start
     println("\nDashboard assembled in ${elapsed}ms with 14 fields")

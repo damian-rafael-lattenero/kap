@@ -58,24 +58,23 @@ Prove parallel execution in virtual-time tests:
 ```kotlin
 @Test
 fun `runs 5 tasks in parallel`() = runTest {
-    Async { items.traverse { Kap { delay(50); it } } }
+    items.traverse { Kap { delay(50); it } }.executeGraph()
     currentTime.shouldBeMillis(50, "5 tasks should complete in 50ms, not 250ms")
 }
 
 @Test
 fun `completes within timeout`() = runTest {
-    Async { Kap { delay(80) } }
+    Kap { delay(80) }.executeGraph()
     currentTime.shouldBeAtMostMillis(100)
 }
 
 @Test
 fun `proves parallelism`() = runTest {
-    Async {
-        kap { a: Unit, b: Unit, c: Unit -> Triple(a, b, c) }
-            .with(Kap { delay(50) })
-            .with(Kap { delay(50) })
-            .with(Kap { delay(50) })
-    }
+    kap { a: Unit, b: Unit, c: Unit -> Triple(a, b, c) }
+        .with(Kap { delay(50) })
+        .with(Kap { delay(50) })
+        .with(Kap { delay(50) })
+        .executeGraph()
     currentTime.shouldProveParallel(taskCount = 3, taskDurationMs = 50)
 }
 ```
@@ -113,13 +112,11 @@ Track and assert resource lifecycle events:
 ```kotlin
 val lifecycle = LifecycleTracker()
 
-Async {
-    bracket(
-        acquire = { lifecycle.record("acquire"); openDb() },
-        use = { lifecycle.record("use"); Kap { it.query() } },
-        release = { lifecycle.record("release"); it.close() }
-    )
-}
+bracket(
+    acquire = { lifecycle.record("acquire"); openDb() },
+    use = { lifecycle.record("use"); Kap { it.query() } },
+    release = { lifecycle.record("release"); it.close() }
+).executeGraph()
 
 lifecycle.shouldHaveEvents("acquire", "use", "release")
 lifecycle.shouldHaveReleasedAfterUse("use", "release")
@@ -139,7 +136,7 @@ val left: Either<String, Int> = Either.Left("error")
 left.shouldBeLeft("error")
 
 // Validation error accumulation
-val result: Either<NonEmptyList<RegError>, User> = Async { zipV(...) { ... } }
+val result: Either<NonEmptyList<RegError>, User> = zipV(...) { ... }.executeGraph()
 result.shouldHaveErrors(3)
 result.shouldContainError(RegError.NameTooShort(2))
 ```

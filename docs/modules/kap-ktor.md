@@ -55,11 +55,10 @@ install(Kap) {
 routing {
     get("/users/{id}") {
         val breaker = call.circuitBreaker("user-api")
-        val user = Async {
-            Kap { fetchUser(call.parameters["id"]!!) }
-                .withCircuitBreaker(breaker)
-                .retry(Schedule.times(3) and Schedule.exponential(50.milliseconds))
-        }
+        val user = Kap { fetchUser(call.parameters["id"]!!) }
+            .withCircuitBreaker(breaker)
+            .retry(Schedule.times(3) and Schedule.exponential(50.milliseconds))
+            .executeGraph()
         call.respond(user)
     }
 }
@@ -89,11 +88,10 @@ Execute any suspend block and respond:
 ```kotlin
 get("/user/{id}") {
     call.respondKap {
-        Async {
-            kap(::UserResponse)
-                .with { fetchProfile(id) }
-                .with { fetchPreferences(id) }
-        }
+        kap(::UserResponse)
+            .with { fetchProfile(id) }
+            .with { fetchPreferences(id) }
+            .executeGraph()
     }
 }
 ```
@@ -138,16 +136,15 @@ fun Application.module() {
             val breaker = call.circuitBreaker("user-api")
             val tracer = call.kapTracer
 
-            val dashboard = Async {
-                kap(::Dashboard)
-                    .with {
-                        Kap { fetchUser(userId) }
-                            .withCircuitBreaker(breaker)
-                            .traced("fetch-user", tracer)
-                    }
-                    .with { fetchCart(userId) }
-                    .with { fetchPromos(userId) }
-            }
+            val dashboard = kap(::Dashboard)
+                .with {
+                    Kap { fetchUser(userId) }
+                        .withCircuitBreaker(breaker)
+                        .traced("fetch-user", tracer)
+                }
+                .with { fetchCart(userId) }
+                .with { fetchPromos(userId) }
+                .executeGraph()
             call.respond(dashboard)
         }
     }

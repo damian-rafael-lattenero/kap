@@ -17,13 +17,11 @@ class RaceTest {
 
     @Test
     fun `raceN with three computations returns fastest`() = runTest {
-        val result = Async {
-            raceN(
+        val result = raceN(
                 Kap { delay(10_000); "slow1" },
                 Kap { "fast" },
                 Kap { delay(10_000); "slow2" },
-            )
-        }
+            ).executeGraph()
         assertEquals("fast", result)
     }
 
@@ -32,8 +30,7 @@ class RaceTest {
         val cancelled1 = CompletableDeferred<Boolean>()
         val cancelled2 = CompletableDeferred<Boolean>()
 
-        val result = Async {
-            raceN(
+        val result = raceN(
                 Kap {
                     try { awaitCancellation() }
                     catch (e: kotlinx.coroutines.CancellationException) {
@@ -47,8 +44,7 @@ class RaceTest {
                         cancelled2.complete(true); throw e
                     }
                 },
-            )
-        }
+            ).executeGraph()
 
         assertEquals("winner", result)
         assertTrue(cancelled1.await())
@@ -57,14 +53,14 @@ class RaceTest {
 
     @Test
     fun `raceN with single computation returns it`() = runTest {
-        val result = Async { raceN(Kap.of(42)) }
+        val result = raceN(Kap.of(42)).executeGraph()
         assertEquals(42, result)
     }
 
     @Test
     fun `raceN with empty throws IllegalArgumentException`() = runTest {
         val result = runCatching {
-            Async { raceN<Int>() }
+            raceN<Int>().executeGraph()
         }
         assertTrue(result.isFailure)
         assertIs<IllegalArgumentException>(result.exceptionOrNull())
@@ -76,13 +72,11 @@ class RaceTest {
 
     @Test
     fun `raceAll on list returns fastest`() = runTest {
-        val result = Async {
-            listOf(
+        val result = listOf(
                 Kap { delay(10_000); "slow" },
                 Kap { "fast" },
                 Kap { delay(10_000); "slower" },
-            ).raceAll()
-        }
+            ).raceAll().executeGraph()
         assertEquals("fast", result)
     }
 
@@ -92,60 +86,50 @@ class RaceTest {
 
     @Test
     fun `race returns second when first fails`() = runTest {
-        val result = Async {
-            race(
+        val result = race(
                 Kap<String> { throw RuntimeException("boom") },
                 Kap { delay(100); "fallback" },
-            )
-        }
+            ).executeGraph()
         assertEquals("fallback", result)
     }
 
     @Test
     fun `race returns first when second fails`() = runTest {
-        val result = Async {
-            race(
+        val result = race(
                 Kap { delay(100); "primary" },
                 Kap<String> { throw RuntimeException("boom") },
-            )
-        }
+            ).executeGraph()
         assertEquals("primary", result)
     }
 
     @Test
     fun `race propagates when both sides fail`() = runTest {
         val result = runCatching {
-            Async {
-                race(
+            race(
                     Kap<String> { throw RuntimeException("boom1") },
                     Kap<String> { throw RuntimeException("boom2") },
-                )
-            }
+                ).executeGraph()
         }
         assertTrue(result.isFailure)
     }
 
     @Test
     fun `raceN skips failed racers and picks first success`() = runTest {
-        val result = Async {
-            raceN(
+        val result = raceN(
                 Kap<String> { throw RuntimeException("fail1") },
                 Kap<String> { throw RuntimeException("fail2") },
                 Kap { delay(100); "winner" },
-            )
-        }
+            ).executeGraph()
         assertEquals("winner", result)
     }
 
     @Test
     fun `raceN propagates when all fail`() = runTest {
         val result = runCatching {
-            Async {
-                raceN(
+            raceN(
                     Kap<String> { throw RuntimeException("fail1") },
                     Kap<String> { throw RuntimeException("fail2") },
-                )
-            }
+                ).executeGraph()
         }
         assertTrue(result.isFailure)
     }
@@ -157,24 +141,20 @@ class RaceTest {
     @Test
     fun `race does not lose successful result when failure arrives concurrently`() = runTest {
         // Both complete nearly simultaneously — failure must not shadow success
-        val result = Async {
-            race(
+        val result = race(
                 Kap { "success" },
                 Kap<String> { throw RuntimeException("concurrent-fail") },
-            )
-        }
+            ).executeGraph()
         assertEquals("success", result)
     }
 
     @Test
     fun `race both fail propagates first failure`() = runTest {
         val result = runCatching {
-            Async {
-                race(
+            race(
                     Kap<String> { throw RuntimeException("first") },
                     Kap<String> { delay(50); throw RuntimeException("second") },
-                )
-            }
+                ).executeGraph()
         }
         assertTrue(result.isFailure)
         val ex = result.exceptionOrNull()!!
@@ -185,13 +165,11 @@ class RaceTest {
     @Test
     fun `raceN all fail propagates with all errors collected`() = runTest {
         val result = runCatching {
-            Async {
-                raceN(
+            raceN(
                     Kap<String> { throw RuntimeException("r1") },
                     Kap<String> { delay(50); throw RuntimeException("r2") },
                     Kap<String> { delay(100); throw RuntimeException("r3") },
-                )
-            }
+                ).executeGraph()
         }
         assertTrue(result.isFailure)
         val ex = result.exceptionOrNull()!!

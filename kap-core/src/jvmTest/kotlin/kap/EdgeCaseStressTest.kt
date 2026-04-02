@@ -78,11 +78,11 @@ class EdgeCaseStressTest {
         }.memoize()
 
         val graph = kap { a: Int, b: Int, c: Int -> listOf(a, b, c) }
-            .with { computation.await() }
-            .with { computation.await() }
-            .with { computation.await() }
+            .with { computation.executeGraph() }
+            .with { computation.executeGraph() }
+            .with { computation.executeGraph() }
 
-        val results = Async { graph }
+        val results = graph.executeGraph()
         assertEquals(listOf(42, 42, 42), results)
         assertEquals(1, executionCount)
     }
@@ -175,7 +175,7 @@ class EdgeCaseStressTest {
             Kap { delay(10.milliseconds); throw RuntimeException("first") },
             Kap { delay(20.milliseconds); throw IllegalStateException("second") },
         )
-        val ex = assertFailsWith<RuntimeException> { val r = Async { graph } }
+        val ex = assertFailsWith<RuntimeException> { val r = graph.executeGraph() }
         assertEquals("first", ex.message)
     }
 
@@ -186,14 +186,13 @@ class EdgeCaseStressTest {
             Kap { delay(20.milliseconds); throw IllegalStateException("b") },
             Kap { delay(30.milliseconds); throw UnsupportedOperationException("c") },
         )
-        val ex = assertFailsWith<RuntimeException> { val r = Async { graph } }
+        val ex = assertFailsWith<RuntimeException> { val r = graph.executeGraph() }
         assertEquals("a", ex.message)
     }
 
     @Test
     fun `race — fast failure, slow success wins`() = runTest {
-        val result = Async {
-            race(
+        val result = race(
                 Kap {
                     delay(10.milliseconds)
                     throw RuntimeException("fast fail")
@@ -202,27 +201,24 @@ class EdgeCaseStressTest {
                     delay(50.milliseconds)
                     "slow success"
                 },
-            )
-        }
+            ).executeGraph()
         assertEquals("slow success", result)
     }
 
     @Test
     fun `raceN — single computation returns directly`() = runTest {
-        val result = Async { raceN(Kap { "only one" }) }
+        val result = raceN(Kap { "only one" }).executeGraph()
         assertEquals("only one", result)
     }
 
     @Test
     fun `raceN — many racers, fastest success wins`() = runTest {
-        val result = Async {
-            raceN(
+        val result = raceN(
                 Kap { delay(200.milliseconds); "slow1" },
                 Kap { delay(300.milliseconds); "slow2" },
                 Kap { delay(10.milliseconds); "fast winner" },
                 Kap { delay(400.milliseconds); "slow3" },
-            )
-        }
+            ).executeGraph()
         assertEquals("fast winner", result)
     }
 
@@ -230,12 +226,10 @@ class EdgeCaseStressTest {
     fun `race — CancellationException in one racer treated as failure, other racer wins`() = runTest {
         // In race, CancellationException from a racer is treated as a failure —
         // the other racer gets a chance to succeed. Only scope-level cancellation propagates.
-        val result = Async {
-            race(
+        val result = race(
                 Kap<String> { throw CancellationException("one racer cancelled") },
                 Kap { delay(10.milliseconds); "survivor" },
-            )
-        }
+            ).executeGraph()
         assertEquals("survivor", result)
     }
 
@@ -248,23 +242,21 @@ class EdgeCaseStressTest {
             .with { 1 }
             .then(failing)
             .with { 3 }
-        val ex = assertFailsWith<RuntimeException> { val r = Async { graph } }
+        val ex = assertFailsWith<RuntimeException> { val r = graph.executeGraph() }
         assertEquals("barrier failed", ex.message)
     }
 
     @Test
     fun `then — multiple barriers in sequence`() = runTest {
         val order = mutableListOf<String>()
-        val result = Async {
-            kap { a: String, b: String, c: String, d: String, e: String ->
+        val result = kap { a: String, b: String, c: String, d: String, e: String ->
                 "$a|$b|$c|$d|$e"
             }
                 .with { order.add("a"); "a" }
                 .then { order.add("b"); "b" }
                 .with { order.add("c"); "c" }
                 .then { order.add("d"); "d" }
-                .with { order.add("e"); "e" }
-        }
+                .with { order.add("e"); "e" }.executeGraph()
         assertEquals("a|b|c|d|e", result)
         assertTrue(order.indexOf("b") > order.indexOf("a"))
         assertTrue(order.indexOf("d") > order.indexOf("c"))
@@ -284,11 +276,9 @@ class EdgeCaseStressTest {
     @Test
     fun `orElse — chains three computations, first two fail`() = runTest {
         val calls = mutableListOf<String>()
-        val result = Async {
-            Kap { calls.add("primary"); throw RuntimeException("p") }
+        val result = Kap { calls.add("primary"); throw RuntimeException("p") }
                 .orElse(Kap { calls.add("secondary"); throw RuntimeException("s") })
-                .orElse(Kap { calls.add("tertiary"); "success" })
-        }
+                .orElse(Kap { calls.add("tertiary"); "success" }).executeGraph()
         assertEquals("success", result)
         assertEquals(listOf("primary", "secondary", "tertiary"), calls)
     }
@@ -300,7 +290,7 @@ class EdgeCaseStressTest {
             Kap { throw IllegalStateException("b") },
             Kap { throw UnsupportedOperationException("c") },
         )
-        val ex = assertFailsWith<UnsupportedOperationException> { val r = Async { graph } }
+        val ex = assertFailsWith<UnsupportedOperationException> { val r = graph.executeGraph() }
         assertEquals("c", ex.message)
     }
 
@@ -309,10 +299,10 @@ class EdgeCaseStressTest {
     @Test
     fun `ensure — predicate failure throws, success passes through`() = runTest {
         val passGraph = Kap.of(42).ensure({ IllegalStateException("too small") }) { it > 10 }
-        assertEquals(42, Async { passGraph })
+        assertEquals(42, passGraph.executeGraph())
 
         val failGraph = Kap.of(5).ensure({ IllegalStateException("too small") }) { it > 10 }
-        assertFailsWith<IllegalStateException> { val r = Async { failGraph } }
+        assertFailsWith<IllegalStateException> { val r = failGraph.executeGraph() }
     }
 
     @Test
@@ -321,11 +311,11 @@ class EdgeCaseStressTest {
 
         val passGraph = Kap.of(Wrapper("hello"))
             .ensureNotNull({ IllegalStateException("null!") }) { it.inner }
-        assertEquals("hello", Async { passGraph })
+        assertEquals("hello", passGraph.executeGraph())
 
         val failGraph = Kap.of(Wrapper(null))
             .ensureNotNull({ IllegalStateException("null!") }) { it.inner }
-        assertFailsWith<IllegalStateException> { val r = Async { failGraph } }
+        assertFailsWith<IllegalStateException> { val r = failGraph.executeGraph() }
     }
 
     // ── memoizeOnSuccess edge cases ────────────────────────────────────────
@@ -360,7 +350,7 @@ class EdgeCaseStressTest {
             if (n <= 0) Kap.of(0)
             else Kap.defer { countdown(n - 1).map { it + 1 } }
 
-        assertEquals(100, Async { countdown(100) })
+        assertEquals(100, countdown(100).executeGraph())
     }
 
     // ── Kap.failed edge cases ──────────────────────────────────────
@@ -369,7 +359,7 @@ class EdgeCaseStressTest {
     fun `failed — throws immediately, composes with recover`() = runTest {
         val graph = Kap.failed(RuntimeException("boom"))
             .recover { "recovered" }
-        assertEquals("recovered", Async { graph })
+        assertEquals("recovered", graph.executeGraph())
     }
 
     // ── timeout edge cases ─────────────────────────────────────────────────
@@ -381,7 +371,7 @@ class EdgeCaseStressTest {
             null
         }.timeout(100.milliseconds, "default")
 
-        val result: String? = Async { graph }
+        val result: String? = graph.executeGraph()
         assertEquals(null, result)
     }
 
@@ -392,6 +382,6 @@ class EdgeCaseStressTest {
             "slow"
         }.timeout(50.milliseconds, Kap { "fast fallback" })
 
-        assertEquals("fast fallback", Async { graph })
+        assertEquals("fast fallback", graph.executeGraph())
     }
 }

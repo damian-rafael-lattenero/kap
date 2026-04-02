@@ -19,13 +19,11 @@ class CollectionsExtTest {
 
     @Test
     fun `zip3 runs all 3 computations in parallel - timing proof`() = runTest {
-        val result = Async {
-            zip(
+        val result = zip(
                 Kap { delay(30); "A" },
                 Kap { delay(30); "B" },
                 Kap { delay(30); "C" },
-            ) { a, b, c -> "$a|$b|$c" }
-        }
+            ) { a, b, c -> "$a|$b|$c" }.executeGraph()
 
         assertEquals("A|B|C", result)
         assertEquals(30, currentTime,
@@ -38,14 +36,12 @@ class CollectionsExtTest {
 
     @Test
     fun `zip4 runs all 4 computations in parallel - timing proof`() = runTest {
-        val result = Async {
-            zip(
+        val result = zip(
                 Kap { delay(40); "A" },
                 Kap { delay(40); "B" },
                 Kap { delay(40); "C" },
                 Kap { delay(40); "D" },
-            ) { a, b, c, d -> "$a|$b|$c|$d" }
-        }
+            ) { a, b, c, d -> "$a|$b|$c|$d" }.executeGraph()
 
         assertEquals("A|B|C|D", result)
         assertEquals(40, currentTime,
@@ -58,15 +54,13 @@ class CollectionsExtTest {
 
     @Test
     fun `zip5 runs all 5 computations in parallel - timing proof`() = runTest {
-        val result = Async {
-            zip(
+        val result = zip(
                 Kap { delay(50); "A" },
                 Kap { delay(50); "B" },
                 Kap { delay(50); "C" },
                 Kap { delay(50); "D" },
                 Kap { delay(50); "E" },
-            ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }
-        }
+            ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.executeGraph()
 
         assertEquals("A|B|C|D|E", result)
         assertEquals(50, currentTime,
@@ -84,8 +78,7 @@ class CollectionsExtTest {
         val allStarted = List(3) { CompletableDeferred<Unit>() }
 
         val result = runCatching {
-            Async {
-                zip(
+            zip(
                     Kap {
                         allStarted[0].complete(Unit)
                         try {
@@ -109,8 +102,7 @@ class CollectionsExtTest {
                             throw e
                         }
                     },
-                ) { a, b, c -> "$a|$b|$c" }
-            }
+                ) { a, b, c -> "$a|$b|$c" }.executeGraph()
         }
 
         assertTrue(result.isFailure, "zip3 should propagate the exception")
@@ -127,10 +119,10 @@ class CollectionsExtTest {
         val fa = Kap { delay(30); "X" }
         val fb = Kap { delay(30); "Y" }
 
-        val zipResult = Async { fa.zip(fb) { a, b -> "$a+$b" } }
+        val zipResult = fa.zip(fb) { a, b -> "$a+$b" }.executeGraph()
         val zipTime = currentTime
 
-        val mapNResult = Async { combine(fa, fb) { a, b -> "$a+$b" } }
+        val mapNResult = combine(fa, fb) { a, b -> "$a+$b" }.executeGraph()
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN2 and zip should produce the same result")
@@ -148,10 +140,10 @@ class CollectionsExtTest {
         val fb = Kap { delay(30); "B" }
         val fc = Kap { delay(30); "C" }
 
-        val zipResult = Async { zip(fa, fb, fc) { a, b, c -> "$a|$b|$c" } }
+        val zipResult = zip(fa, fb, fc) { a, b, c -> "$a|$b|$c" }.executeGraph()
         val zipTime = currentTime
 
-        val mapNResult = Async { combine(fa, fb, fc) { a, b, c -> "$a|$b|$c" } }
+        val mapNResult = combine(fa, fb, fc) { a, b, c -> "$a|$b|$c" }.executeGraph()
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN3 and zip3 should produce the same result")
@@ -170,10 +162,10 @@ class CollectionsExtTest {
         val fc = Kap { delay(40); "C" }
         val fd = Kap { delay(40); "D" }
 
-        val zipResult = Async { zip(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" } }
+        val zipResult = zip(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" }.executeGraph()
         val zipTime = currentTime
 
-        val mapNResult = Async { combine(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" } }
+        val mapNResult = combine(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" }.executeGraph()
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN4 and zip4 should produce the same result")
@@ -193,10 +185,10 @@ class CollectionsExtTest {
         val fd = Kap { delay(50); "D" }
         val fe = Kap { delay(50); "E" }
 
-        val zipResult = Async { zip(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" } }
+        val zipResult = zip(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.executeGraph()
         val zipTime = currentTime
 
-        val mapNResult = Async { combine(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" } }
+        val mapNResult = combine(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.executeGraph()
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN5 and zip5 should produce the same result")
@@ -210,11 +202,9 @@ class CollectionsExtTest {
 
     @Test
     fun `traverse runs elements in parallel - timing proof`() = runTest {
-        val result = Async {
-            listOf(1, 2, 3, 4, 5).traverse { i ->
+        val result = listOf(1, 2, 3, 4, 5).traverse { i ->
                 Kap { delay(30); "v$i" }
-            }
-        }
+            }.executeGraph()
 
         assertEquals(listOf("v1", "v2", "v3", "v4", "v5"), result)
         assertEquals(30, currentTime,
@@ -227,11 +217,9 @@ class CollectionsExtTest {
 
     @Test
     fun `traverse with concurrency limit - timing proof`() = runTest {
-        val result = Async {
-            (1..9).toList().traverse(3) { i ->
+        val result = (1..9).toList().traverse(3) { i ->
                 Kap { delay(30); "v$i" }
-            }
-        }
+            }.executeGraph()
 
         assertEquals((1..9).map { "v$it" }, result)
         // 9 elements, concurrency=3, 30ms each: 3 batches x 30ms = 90ms
@@ -248,8 +236,7 @@ class CollectionsExtTest {
         // Phase 1: zip3 runs 3 computations in parallel (30ms)
         // Phase 2: andThen uses the result to build a new computation
         // Phase 3: then gates a final parallel phase
-        val result = Async {
-            zip(
+        val result = zip(
                 Kap { delay(30); "user" },
                 Kap { delay(30); "cart" },
                 Kap { delay(30); "prefs" },
@@ -263,8 +250,7 @@ class CollectionsExtTest {
                         .with(Kap { delay(20); "enriched($summary)" })
                         .then(Kap { delay(10); "shipping" })
                         .with(Kap { delay(20); "tax" })
-                }
-        }
+                }.executeGraph()
 
         assertEquals("enriched(user+cart+prefs)|shipping|tax", result)
         // zip3: 30ms

@@ -15,14 +15,12 @@ class TracingTest {
     fun `traced reports start and success with duration`() = runTest {
         val events = mutableListOf<String>()
 
-        val result = Async {
-            Kap.of(42).traced(
+        val result = Kap.of(42).traced(
                 name = "compute",
                 onStart = { events += "start:$it" },
                 onSuccess = { name, _ -> events += "success:$name" },
                 onError = { name, _, _ -> events += "error:$name" },
-            )
-        }
+            ).executeGraph()
 
         assertEquals(42, result)
         assertEquals(listOf("start:compute", "success:compute"), events)
@@ -33,15 +31,13 @@ class TracingTest {
         val events = mutableListOf<String>()
 
         val result = runCatching {
-            Async {
-                Kap<String> { throw IllegalStateException("boom") }
+            Kap<String> { throw IllegalStateException("boom") }
                     .traced(
                         name = "failing",
                         onStart = { events += "start:$it" },
                         onSuccess = { name, _ -> events += "success:$name" },
                         onError = { name, _, e -> events += "error:$name:${e.message}" },
-                    )
-            }
+                    ).executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -54,15 +50,13 @@ class TracingTest {
         val events = mutableListOf<String>()
 
         val result = runCatching {
-            Async {
-                Kap<String> { throw CancellationException("cancelled") }
+            Kap<String> { throw CancellationException("cancelled") }
                     .traced(
                         name = "cancelled-op",
                         onStart = { events += "start:$it" },
                         onSuccess = { name, _ -> events += "success:$name" },
                         onError = { name, _, _ -> events += "error:$name" },
-                    )
-            }
+                    ).executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -74,12 +68,10 @@ class TracingTest {
     fun `traced duration is non-negative`() = runTest {
         var recordedDuration: kotlin.time.Duration? = null
 
-        Async {
-            Kap { delay(10.milliseconds); "done" }.traced(
+        Kap { delay(10.milliseconds); "done" }.traced(
                 name = "timed",
                 onSuccess = { _, duration -> recordedDuration = duration },
-            )
-        }
+            ).executeGraph()
 
         assertTrue(recordedDuration!! >= kotlin.time.Duration.ZERO)
     }
@@ -89,9 +81,7 @@ class TracingTest {
         val events = mutableListOf<TraceEvent>()
         val tracer = KapTracer { events += it }
 
-        val result = Async {
-            Kap.of(99).traced("op", tracer)
-        }
+        val result = Kap.of(99).traced("op", tracer).executeGraph()
 
         assertEquals(99, result)
         assertEquals(2, events.size)
@@ -107,10 +97,8 @@ class TracingTest {
         val tracer = KapTracer { events += it }
 
         val result = runCatching {
-            Async {
-                Kap<String> { throw RuntimeException("fail") }
-                    .traced("broken", tracer)
-            }
+            Kap<String> { throw RuntimeException("fail") }
+                    .traced("broken", tracer).executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -126,11 +114,9 @@ class TracingTest {
         val started = mutableListOf<String>()
         val succeeded = mutableListOf<String>()
 
-        val result = Async {
-            kap { a: Int, b: Int -> a + b }
+        val result = kap { a: Int, b: Int -> a + b }
                 .with(Kap.of(10).traced("left", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
-                .with(Kap.of(20).traced("right", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
-        }
+                .with(Kap.of(20).traced("right", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n })).executeGraph()
 
         assertEquals(30, result)
         assertTrue("left" in started)

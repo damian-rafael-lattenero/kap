@@ -49,12 +49,11 @@ suspend fun fetchCart(): String { delay(40); return "3 items" }
 suspend fun fetchPromos(): String { delay(30); return "SAVE20" }
 
 suspend fun main() {
-    val result: Dashboard = Async {
-        kap(::Dashboard)
-            .with { fetchUser() }     // ┐ all three start at t=0
-            .with { fetchCart() }      // │ total time = max(50, 40, 30) = 50ms
-            .with { fetchPromos() }    // ┘ not 120ms sequential
-    }
+    val result: Dashboard = kap(::Dashboard)
+        .with { fetchUser() }     // ┐ all three start at t=0
+        .with { fetchCart() }      // │ total time = max(50, 40, 30) = 50ms
+        .with { fetchPromos() }    // ┘ not 120ms sequential
+        .executeGraph()
     println(result)
     // Dashboard(user=Alice, cart=3 items, promos=SAVE20)
 }
@@ -87,14 +86,13 @@ suspend fun calcShipping(): ShippingQuote { delay(30); return ShippingQuote(5.99
 suspend fun calcTax(): TaxBreakdown { delay(20); return TaxBreakdown(0.08) }
 
 suspend fun main() {
-    val checkout: CheckoutResult = Async {
-        kap(::CheckoutResult)
-            .with { fetchUser() }           // ┐ phase 1: parallel
-            .with { fetchCart() }            // ┘
-            .then { validateStock() }        // ── phase 2: waits for phase 1
-            .with { calcShipping() }         // ┐ phase 3: parallel
-            .with { calcTax() }              // ┘
-    }
+    val checkout: CheckoutResult = kap(::CheckoutResult)
+        .with { fetchUser() }           // ┐ phase 1: parallel
+        .with { fetchCart() }            // ┘
+        .then { validateStock() }        // ── phase 2: waits for phase 1
+        .with { calcShipping() }         // ┐ phase 3: parallel
+        .with { calcTax() }              // ┘
+        .executeGraph()
     println(checkout)
     // CheckoutResult(user=User(name=Alice), cart=Cart(items=3), stock=StockCheck(confirmed=true),
     //   shipping=ShippingQuote(amount=5.99), tax=TaxBreakdown(rate=0.08))
@@ -122,16 +120,15 @@ suspend fun fetchPromotions(prefs: String): String { delay(30); return "promos-f
 suspend fun main() {
     val userId = "user-42"
 
-    val dashboard: EnrichedDashboard = Async {
-        kap(::UserContext)
-            .with { fetchProfile(userId) }      // ┐ phase 1: parallel
-            .with { fetchPreferences(userId) }   // ┘
-            .andThen { ctx ->                    // ── barrier: ctx available
-                kap(::EnrichedDashboard)
-                    .with { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
-                    .with { fetchPromotions(ctx.prefs) }          // ┘ uses ctx from phase 1
-            }
-    }
+    val dashboard: EnrichedDashboard = kap(::UserContext)
+        .with { fetchProfile(userId) }      // ┐ phase 1: parallel
+        .with { fetchPreferences(userId) }   // ┘
+        .andThen { ctx ->                    // ── barrier: ctx available
+            kap(::EnrichedDashboard)
+                .with { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
+                .with { fetchPromotions(ctx.prefs) }          // ┘ uses ctx from phase 1
+        }
+        .executeGraph()
     println(dashboard)
     // EnrichedDashboard(recs=recs-for-profile-user-42, promos=promos-for-dark-mode)
 }

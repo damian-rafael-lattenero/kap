@@ -33,7 +33,7 @@ class CircuitBreakerConcurrencyTest {
             (1..20).map {
                 async {
                     try {
-                        Async { failingComp }
+                        failingComp.executeGraph()
                         "success"
                     } catch (e: CircuitBreakerOpenException) {
                         "open"
@@ -73,7 +73,7 @@ class CircuitBreakerConcurrencyTest {
 
         // Trip the breaker
         repeat(2) {
-            try { Async { failingComp } } catch (_: Exception) {}
+            try { failingComp.executeGraph() } catch (_: Exception) {}
         }
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
 
@@ -83,7 +83,7 @@ class CircuitBreakerConcurrencyTest {
         // Next call should trigger half-open probe
         val succeedingComp = Kap { "recovered" }.withCircuitBreaker(breaker)
 
-        val result = Async { succeedingComp }
+        val result = succeedingComp.executeGraph()
         assertEquals("recovered", result)
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
@@ -96,18 +96,18 @@ class CircuitBreakerConcurrencyTest {
         val failComp = Kap<String> { throw IllegalStateException("fail") }
             .withCircuitBreaker(breaker)
         repeat(2) {
-            try { Async { failComp } } catch (_: Exception) {}
+            try { failComp.executeGraph() } catch (_: Exception) {}
         }
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
 
         // 1 success resets the counter
         val successComp = Kap { "ok" }.withCircuitBreaker(breaker)
-        Async { successComp }
+        successComp.executeGraph()
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
 
         // 2 more failures should NOT trip the breaker (counter was reset)
         repeat(2) {
-            try { Async { failComp } } catch (_: Exception) {}
+            try { failComp.executeGraph() } catch (_: Exception) {}
         }
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
@@ -134,7 +134,7 @@ class CircuitBreakerConcurrencyTest {
 
         // Trip the breaker
         repeat(2) {
-            try { Async { failComp } } catch (_: Exception) {}
+            try { failComp.executeGraph() } catch (_: Exception) {}
         }
 
         assertTrue(transitions.contains(CircuitBreaker.State.Closed to CircuitBreaker.State.Open))
@@ -142,7 +142,7 @@ class CircuitBreakerConcurrencyTest {
         // Advance past reset timeout and probe
         testTimeSource.now = 150
         val successComp = Kap { "ok" }.withCircuitBreaker(breaker)
-        Async { successComp }
+        successComp.executeGraph()
 
         assertTrue(transitions.contains(CircuitBreaker.State.Open to CircuitBreaker.State.HalfOpen))
         assertTrue(transitions.contains(CircuitBreaker.State.HalfOpen to CircuitBreaker.State.Closed))
@@ -162,7 +162,7 @@ class CircuitBreakerConcurrencyTest {
         // Cancel via timeout — should NOT increment failure count
         repeat(3) {
             try {
-                Async { slowComp.timeout(10.milliseconds) }
+                slowComp.timeout(10.milliseconds).executeGraph()
             } catch (_: Exception) {}
         }
 

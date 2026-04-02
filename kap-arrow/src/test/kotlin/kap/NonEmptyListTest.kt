@@ -340,14 +340,12 @@ class NonEmptyListTest {
     @Test
     fun `traverseSettled collects ALL results including failures`() = runTest {
         val nel = nonEmptyListOf(1, 2, 3, 4, 5)
-        val results = Async {
-            nel.traverseSettled { i ->
-                Kap {
-                    if (i % 2 == 0) throw RuntimeException("fail-$i")
-                    "ok-$i"
-                }
+        val results = nel.traverseSettled { i ->
+            Kap {
+                if (i % 2 == 0) throw RuntimeException("fail-$i")
+                "ok-$i"
             }
-        }
+        }.executeGraph()
 
         assertEquals(5, results.size)
         assertTrue(results[0].isSuccess)
@@ -362,14 +360,12 @@ class NonEmptyListTest {
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `traverseSettled runs in parallel — proven by virtual time`() = runTest {
-        val results = Async {
-            nonEmptyListOf(1, 2, 3, 4, 5).traverseSettled { i ->
-                Kap {
-                    delay(50.milliseconds)
-                    "done-$i"
-                }
+        val results = nonEmptyListOf(1, 2, 3, 4, 5).traverseSettled { i ->
+            Kap {
+                delay(50.milliseconds)
+                "done-$i"
             }
-        }
+        }.executeGraph()
 
         assertEquals(50L, currentTime, "5 parallel tasks @ 50ms should complete in 50ms")
         assertTrue(results.all { it.isSuccess })
@@ -380,16 +376,14 @@ class NonEmptyListTest {
     fun `traverseSettled does NOT cancel siblings on failure`() = runTest {
         val completed = mutableListOf<Int>()
 
-        val results = Async {
-            nonEmptyListOf(1, 2, 3).traverseSettled { i ->
-                Kap {
-                    delay(if (i == 1) 10.milliseconds else 50.milliseconds)
-                    if (i == 1) throw RuntimeException("fast-fail")
-                    synchronized(completed) { completed.add(i) }
-                    "ok-$i"
-                }
+        val results = nonEmptyListOf(1, 2, 3).traverseSettled { i ->
+            Kap {
+                delay(if (i == 1) 10.milliseconds else 50.milliseconds)
+                if (i == 1) throw RuntimeException("fast-fail")
+                synchronized(completed) { completed.add(i) }
+                "ok-$i"
             }
-        }
+        }.executeGraph()
 
         assertEquals(3, results.size)
         assertTrue(results[0].isFailure)
@@ -400,14 +394,12 @@ class NonEmptyListTest {
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `traverseSettled bounded respects concurrency limit`() = runTest {
-        val results = Async {
-            nonEmptyListOf(1, 2, 3, 4, 5, 6).traverseSettled(2) { i ->
-                Kap {
-                    delay(30.milliseconds)
-                    "ok-$i"
-                }
+        val results = nonEmptyListOf(1, 2, 3, 4, 5, 6).traverseSettled(2) { i ->
+            Kap {
+                delay(30.milliseconds)
+                "ok-$i"
             }
-        }
+        }.executeGraph()
 
         assertEquals(90L, currentTime)
         assertTrue(results.all { it.isSuccess })
@@ -416,11 +408,9 @@ class NonEmptyListTest {
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `traverseSettled on single element`() = runTest {
-        val results = Async {
-            nonEmptyListOf(42).traverseSettled { i ->
-                Kap { i * 2 }
-            }
-        }
+        val results = nonEmptyListOf(42).traverseSettled { i ->
+            Kap { i * 2 }
+        }.executeGraph()
 
         assertEquals(1, results.size)
         assertEquals(84, results[0].getOrThrow())
@@ -435,7 +425,7 @@ class NonEmptyListTest {
             Kap { "c" },
         )
 
-        val results = Async { computations.sequenceSettled() }
+        val results = computations.sequenceSettled().executeGraph()
 
         assertEquals(3, results.size)
         assertTrue(results[0].isSuccess)
@@ -453,7 +443,7 @@ class NonEmptyListTest {
             Kap { delay(25.milliseconds); "d" },
         )
 
-        val results = Async { computations.sequenceSettled(2) }
+        val results = computations.sequenceSettled(2).executeGraph()
 
         assertEquals(50L, currentTime)
         assertTrue(results.all { it.isSuccess })

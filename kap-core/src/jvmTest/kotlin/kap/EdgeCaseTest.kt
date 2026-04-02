@@ -33,12 +33,10 @@ class EdgeCaseTest {
     @Test
     fun `then failure propagates the barrier exception`() = runTest {
         val result = runCatching {
-            Async {
-                kap<String, String, String, String> { a, b, c -> "$a|$b|$c" }
+            kap<String, String, String, String> { a, b, c -> "$a|$b|$c" }
                     .with { delay(10); "A" }
                     .then(Kap<String> { throw RuntimeException("barrier failed") })
-                    .with { delay(10); "C" }
-            }
+                    .with { delay(10); "C" }.executeGraph()
         }
         assertTrue(result.isFailure)
         assertEquals("barrier failed", result.exceptionOrNull()!!.message)
@@ -49,12 +47,10 @@ class EdgeCaseTest {
         // Proves that when a barrier fails, the whole computation fails
         // even if there are concurrent with branches running.
         val result = runCatching {
-            Async {
-                kap<String, String, String, String> { a, b, c -> "$a|$b|$c" }
+            kap<String, String, String, String> { a, b, c -> "$a|$b|$c" }
                     .with { delay(200); "A" }
                     .then(Kap<String> { delay(10); throw RuntimeException("boom") })
-                    .with { delay(100); "C" }
-            }
+                    .with { delay(100); "C" }.executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -74,11 +70,11 @@ class EdgeCaseTest {
             "result-$callCount"
         }.memoize()
 
-        val first = Async { comp }
+        val first = comp.executeGraph()
         assertEquals("result-1", first)
         assertEquals(1, callCount)
 
-        val second = Async { comp }
+        val second = comp.executeGraph()
         assertEquals("result-1", second)
         assertEquals(1, callCount, "Should not re-execute — result is cached")
     }
@@ -93,16 +89,16 @@ class EdgeCaseTest {
         }.memoizeOnSuccess()
 
         // First call fails
-        assertFailsWith<RuntimeException> { Async { comp }; Unit }
+        assertFailsWith<RuntimeException> { comp.executeGraph(); Unit }
         assertEquals(1, callCount)
 
         // Second call retries and succeeds
-        val result = Async { comp }
+        val result = comp.executeGraph()
         assertEquals("success-2", result)
         assertEquals(2, callCount)
 
         // Third call returns cached success
-        val cached = Async { comp }
+        val cached = comp.executeGraph()
         assertEquals("success-2", cached)
         assertEquals(2, callCount, "Should not re-execute — success is cached")
     }
@@ -115,11 +111,11 @@ class EdgeCaseTest {
             throw RuntimeException("permanent failure #$callCount")
         }.memoize()
 
-        val ex1 = assertFailsWith<RuntimeException> { Async { comp } }
+        val ex1 = assertFailsWith<RuntimeException> { comp.executeGraph() }
         assertEquals("permanent failure #1", ex1.message)
         assertEquals(1, callCount)
 
-        val ex2 = assertFailsWith<RuntimeException> { Async { comp } }
+        val ex2 = assertFailsWith<RuntimeException> { comp.executeGraph() }
         assertEquals("permanent failure #1", ex2.message)
         assertEquals(1, callCount, "Should not retry — failure is cached in memoize()")
     }
@@ -133,11 +129,9 @@ class EdgeCaseTest {
             "shared-$callCount"
         }.memoize()
 
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with(shared)
-                .with(shared)
-        }
+                .with(shared).executeGraph()
         assertEquals("shared-1|shared-1", result)
         assertEquals(1, callCount, "Memoized computation should execute only once even in parallel")
     }
@@ -148,14 +142,12 @@ class EdgeCaseTest {
 
     @Test
     fun `race - slow racer with internal timeout loses to fast racer`() = runTest {
-        val result = Async {
-            race(
+        val result = race(
                 Kap {
                     withTimeout(10) { delay(100); "slow" }
                 },
                 Kap { delay(5); "fast" },
-            )
-        }
+            ).executeGraph()
         assertEquals("fast", result)
         assertEquals(5, currentTime, "Fast racer wins at 5ms")
     }
@@ -163,12 +155,10 @@ class EdgeCaseTest {
     @Test
     fun `race - both fail, exception propagates`() = runTest {
         val result = runCatching {
-            Async {
-                race(
+            race(
                     Kap { delay(10); throw RuntimeException("err-A") },
                     Kap { delay(20); throw RuntimeException("err-B") },
-                )
-            }
+                ).executeGraph()
         }
         assertTrue(result.isFailure, "Race with all failures should fail")
         val ex = result.exceptionOrNull()!!
@@ -177,13 +167,11 @@ class EdgeCaseTest {
 
     @Test
     fun `raceN - one succeeds among multiple failures`() = runTest {
-        val result = Async {
-            raceN(
+        val result = raceN(
                 Kap { delay(10); throw RuntimeException("fail-1") },
                 Kap { delay(20); throw RuntimeException("fail-2") },
                 Kap { delay(15); "winner" },
-            )
-        }
+            ).executeGraph()
         assertEquals("winner", result)
         assertEquals(15, currentTime, "Winner completes at 15ms")
     }
@@ -194,29 +182,25 @@ class EdgeCaseTest {
 
     @Test
     fun `multiple then barriers chain correctly`() = runTest {
-        val result = Async {
-            kap { a: String, b: String, c: String, d: String, e: String ->
+        val result = kap { a: String, b: String, c: String, d: String, e: String ->
                 "$a|$b|$c|$d|$e"
             }
                 .with { delay(20); "A" }
                 .then { delay(10); "B" }
                 .then { delay(10); "C" }
                 .then { delay(10); "D" }
-                .then { delay(10); "E" }
-        }
+                .then { delay(10); "E" }.executeGraph()
         assertEquals("A|B|C|D|E", result)
         assertEquals(60, currentTime, "Sequential barriers: 20+10+10+10+10=60ms")
     }
 
     @Test
     fun `ap after multiple barriers launches only after last barrier`() = runTest {
-        val result = Async {
-            kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+        val result = kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
                 .with { delay(20); "A" }
                 .then { delay(20); "B" }
                 .then { delay(20); "C" }
-                .with { delay(20); "D" }
-        }
+                .with { delay(20); "D" }.executeGraph()
         assertEquals("A|B|C|D", result)
         assertEquals(80, currentTime, "D waits for both barriers: 20+20+20+20=80ms")
     }

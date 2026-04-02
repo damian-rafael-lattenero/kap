@@ -64,13 +64,11 @@ open class ArrowBenchmark {
     // ════════════════════════════════════════════════════════════════════════
 
     @Benchmark fun kap_withV_latency_all_pass(): String = runBlocking {
-        val result = Async {
-            kapV<String, String, String, String, String, String> { a, b, c, d -> "$a|$b|$c|$d" }
-                .withV { validate("card", 40, pass = true) }
-                .withV { validate("stock", 40, pass = true) }
-                .withV { validate("address", 40, pass = true) }
-                .withV { validate("age", 40, pass = true) }
-        }
+        val result = kapV<String, String, String, String, String, String> { a, b, c, d -> "$a|$b|$c|$d" }
+            .withV { validate("card", 40, pass = true) }
+            .withV { validate("stock", 40, pass = true) }
+            .withV { validate("address", 40, pass = true) }
+            .withV { validate("age", 40, pass = true) }.executeGraph()
         when (result) {
             is Either.Right -> result.value
             is Either.Left -> "errors:${result.value}"
@@ -111,13 +109,11 @@ open class ArrowBenchmark {
     }
 
     @Benchmark fun kap_withV_latency_all_fail(): String = runBlocking {
-        val result = Async {
-            kapV<String, String, String, String, String, String> { a, b, c, d -> "$a|$b|$c|$d" }
-                .withV { validate("card", 40, pass = false) }
-                .withV { validate("stock", 40, pass = false) }
-                .withV { validate("address", 40, pass = false) }
-                .withV { validate("age", 40, pass = false) }
-        }
+        val result = kapV<String, String, String, String, String, String> { a, b, c, d -> "$a|$b|$c|$d" }
+            .withV { validate("card", 40, pass = false) }
+            .withV { validate("stock", 40, pass = false) }
+            .withV { validate("address", 40, pass = false) }
+            .withV { validate("age", 40, pass = false) }.executeGraph()
         when (result) {
             is Either.Right -> result.value
             is Either.Left -> "errors:${result.value.size}"
@@ -148,14 +144,12 @@ open class ArrowBenchmark {
     // ════════════════════════════════════════════════════════════════════════
 
     @Benchmark fun kap_zipV_mixed(): String = runBlocking {
-        val result = Async {
-            zipV(
-                { validate("card", 40, pass = true) },
-                { validate("stock", 40, pass = false) },
-                { validate("address", 40, pass = true) },
-                { validate("age", 40, pass = false) },
-            ) { a, b, c, d -> "$a|$b|$c|$d" }
-        }
+        val result = zipV(
+            { validate("card", 40, pass = true) },
+            { validate("stock", 40, pass = false) },
+            { validate("address", 40, pass = true) },
+            { validate("age", 40, pass = false) },
+        ) { a, b, c, d -> "$a|$b|$c|$d" }.executeGraph()
         when (result) {
             is Either.Right -> result.value
             is Either.Left -> "errors:${result.value.size}"
@@ -167,11 +161,9 @@ open class ArrowBenchmark {
     // ════════════════════════════════════════════════════════════════════════
 
     @Benchmark fun kap_traverseV_10_all_pass(): String = runBlocking {
-        val result = Async {
-            (1..10).toList().traverseV { i ->
-                Kap<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = true) }
-            }
-        }
+        val result = (1..10).toList().traverseV { i ->
+            Kap<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = true) }
+        }.executeGraph()
         when (result) {
             is Either.Right -> "ok:${result.value.size}"
             is Either.Left -> "errors:${result.value.size}"
@@ -179,11 +171,9 @@ open class ArrowBenchmark {
     }
 
     @Benchmark fun kap_traverseV_10_half_fail(): String = runBlocking {
-        val result = Async {
-            (1..10).toList().traverseV { i ->
-                Kap<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = i % 2 == 0) }
-            }
-        }
+        val result = (1..10).toList().traverseV { i ->
+            Kap<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = i % 2 == 0) }
+        }.executeGraph()
         when (result) {
             is Either.Right -> "ok:${result.value.size}"
             is Either.Left -> "errors:${result.value.size}"
@@ -195,11 +185,9 @@ open class ArrowBenchmark {
     // ════════════════════════════════════════════════════════════════════════
 
     @Benchmark fun kap_traverseV_bounded_20_c5_pass(): String = runBlocking {
-        val result = Async {
-            (1..20).toList().traverseV(concurrency = 5) { i ->
-                Kap<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = true) }
-            }
-        }
+        val result = (1..20).toList().traverseV(concurrency = 5) { i ->
+            Kap<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = true) }
+        }.executeGraph()
         when (result) {
             is Either.Right -> "ok:${result.value.size}"
             is Either.Left -> "errors:${result.value.size}"
@@ -207,11 +195,9 @@ open class ArrowBenchmark {
     }
 
     @Benchmark fun kap_traverseV_bounded_20_c5_half_fail(): String = runBlocking {
-        val result = Async {
-            (1..20).toList().traverseV(concurrency = 5) { i ->
-                Kap<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = i % 2 == 0) }
-            }
-        }
+        val result = (1..20).toList().traverseV(concurrency = 5) { i ->
+            Kap<Either<NonEmptyList<String>, String>> { validate("item-$i", 30, pass = i % 2 == 0) }
+        }.executeGraph()
         when (result) {
             is Either.Right -> "ok:${result.value.size}"
             is Either.Left -> "errors:${result.value.size}"
@@ -243,12 +229,10 @@ open class ArrowBenchmark {
     }
 
     @Benchmark fun kap_raceEither_latency(): String = runBlocking {
-        val result = Async {
-            raceEither(
-                Kap { networkCall("cache", 30) },
-                Kap { networkCall("network", 100) },
-            )
-        }
+        val result = raceEither(
+            Kap { networkCall("cache", 30) },
+            Kap { networkCall("network", 100) },
+        ).executeGraph()
         when (result) {
             is Either.Left -> "cache:${result.value}"
             is Either.Right -> "network:${result.value}"
@@ -256,21 +240,17 @@ open class ArrowBenchmark {
     }
 
     @Benchmark fun kap_race_homogeneous_overhead(): String = runBlocking {
-        Async {
-            race(
-                Kap { compute(1) },
-                Kap { compute(2) },
-            )
-        }
+                race(
+            Kap { compute(1) },
+            Kap { compute(2) },
+        ).executeGraph()
     }
 
     @Benchmark fun kap_raceEither_heterogeneous_overhead(): String = runBlocking {
-        val result = Async {
-            raceEither(
-                Kap { compute(1) },
-                Kap { 42 },
-            )
-        }
+        val result = raceEither(
+            Kap { compute(1) },
+            Kap { 42 },
+        ).executeGraph()
         when (result) {
             is Either.Left -> result.value
             is Either.Right -> "n:${result.value}"
@@ -282,9 +262,7 @@ open class ArrowBenchmark {
     // ════════════════════════════════════════════════════════════════════════
 
     @Benchmark fun kap_ensureV_pass(): String = runBlocking {
-        val result = Async {
-            Kap { 25 }.ensureV({ "too young" }) { it >= 18 }
-        }
+        val result = Kap { 25 }.ensureV({ "too young" }) { it >= 18 }.executeGraph()
         when (result) {
             is Either.Right -> "ok:${result.value}"
             is Either.Left -> "fail:${result.value}"
@@ -292,9 +270,7 @@ open class ArrowBenchmark {
     }
 
     @Benchmark fun kap_ensureV_fail(): String = runBlocking {
-        val result = Async {
-            Kap { 15 }.ensureV({ "too young" }) { it >= 18 }
-        }
+        val result = Kap { 15 }.ensureV({ "too young" }) { it >= 18 }.executeGraph()
         when (result) {
             is Either.Right -> "ok:${result.value}"
             is Either.Left -> "fail:${result.value.head}"
@@ -338,9 +314,7 @@ open class ArrowBenchmark {
     }
 
     @Benchmark fun kap_attempt_success(): String = runBlocking {
-        val result = Async {
-            Kap { compute(1) }.attempt()
-        }
+        val result = Kap { compute(1) }.attempt().executeGraph()
         when (result) {
             is Either.Right -> result.value
             is Either.Left -> "error"
@@ -348,9 +322,7 @@ open class ArrowBenchmark {
     }
 
     @Benchmark fun kap_attempt_failure(): String = runBlocking {
-        val result = Async {
-            Kap<String> { error("boom") }.attempt()
-        }
+        val result = Kap<String> { error("boom") }.attempt().executeGraph()
         when (result) {
             is Either.Right -> result.value
             is Either.Left -> "caught:${result.value.message}"
@@ -362,9 +334,7 @@ open class ArrowBenchmark {
     // ════════════════════════════════════════════════════════════════════════
 
     @Benchmark fun kap_catching_success(): String = runBlocking {
-        val result = Async {
-            Kap { compute(1) }.catching { "caught: ${it.message}" }
-        }
+        val result = Kap { compute(1) }.catching { "caught: ${it.message}" }.executeGraph()
         when (result) {
             is Either.Right -> result.value
             is Either.Left -> "fail:${result.value}"
@@ -372,9 +342,7 @@ open class ArrowBenchmark {
     }
 
     @Benchmark fun kap_catching_failure(): String = runBlocking {
-        val result = Async {
-            Kap<String> { error("boom") }.catching { "caught: ${it.message}" }
-        }
+        val result = Kap<String> { error("boom") }.catching { "caught: ${it.message}" }.executeGraph()
         when (result) {
             is Either.Right -> result.value
             is Either.Left -> result.value.head
@@ -400,14 +368,12 @@ open class ArrowBenchmark {
     }
 
     @Benchmark fun kap_validated_builder(): String = runBlocking {
-        val result = Async {
-            validated<String, String> {
-                val name = Kap<Either<NonEmptyList<String>, String>> { Either.Right("Alice") }.bindV()
-                val email = Kap<Either<NonEmptyList<String>, String>> { Either.Right("alice@example.com") }.bindV()
-                val age = Kap<Either<NonEmptyList<String>, Int>> { Either.Right(25) }.bindV()
-                "$name|$email|$age"
-            }
-        }
+        val result = validated<String, String> {
+            val name = Kap<Either<NonEmptyList<String>, String>> { Either.Right("Alice") }.bindV()
+            val email = Kap<Either<NonEmptyList<String>, String>> { Either.Right("alice@example.com") }.bindV()
+            val age = Kap<Either<NonEmptyList<String>, Int>> { Either.Right(25) }.bindV()
+            "$name|$email|$age"
+        }.executeGraph()
         when (result) {
             is Either.Right -> result.value
             is Either.Left -> "errors:${result.value.size}"
@@ -433,16 +399,14 @@ open class ArrowBenchmark {
     }
 
     @Benchmark fun kap_andThenV_phased(): String = runBlocking {
-        val result = Async {
-            zipV(
-                { validate("name", 40, true) },
-                { validate("email", 40, true) },
-            ) { n, e -> n to e }
-            .andThenV { (name, email) ->
-                Kap { validate("age", 40, true) }
-                    .mapV { age -> "$name|$email|$age" }
-            }
-        }
+        val result = zipV(
+            { validate("name", 40, true) },
+            { validate("email", 40, true) },
+        ) { n, e -> n to e }
+        .andThenV { (name, email) ->
+            Kap { validate("age", 40, true) }
+                .mapV { age -> "$name|$email|$age" }
+        }.executeGraph()
         when (result) {
             is Either.Right -> result.value
             is Either.Left -> "errors:${result.value.size}"

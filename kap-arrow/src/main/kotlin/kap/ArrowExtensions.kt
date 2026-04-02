@@ -31,9 +31,8 @@ typealias Nel<A> = NonEmptyList<A>
  * cancellation always propagates.
  *
  * ```
- * val result: Either<Throwable, User> = Async {
- *     Kap { fetchUser() }.attempt()
- * }
+ * val result: Either<Throwable, User> = Kap { fetchUser() }.attempt()
+ *     .executeGraph()
  * ```
  */
 fun <A> Kap<A>.attempt(): Kap<Either<Throwable, A>> = Kap {
@@ -56,12 +55,10 @@ fun <A> Kap<A>.attempt(): Kap<Either<Throwable, A>> = Kap {
  * the second as a suppressed exception.
  *
  * ```
- * val result: Either<CachedData, FreshData> = Async {
- *     raceEither(
- *         fa = Kap { fetchFromCache() },
- *         fb = Kap { fetchFromNetwork() },
- *     )
- * }
+ * val result: Either<CachedData, FreshData> = raceEither(
+ *     fa = Kap { fetchFromCache() },
+ *     fb = Kap { fetchFromNetwork() },
+ * ).executeGraph()
  * ```
  */
 @OptIn(ExperimentalCoroutinesApi::class)

@@ -54,29 +54,25 @@ class ResilienceComparisonTest {
 
     @Test fun `retry - kap - Schedule times + spaced`() = runTest {
         var attempts = 0
-        val result = Async {
-            Kap {
-                attempts++
-                if (attempts < 3) throw RuntimeException("flaky")
-                "success"
-            }.retry(Schedule.times<Throwable>(3) and Schedule.spaced(10.milliseconds))
-        }
+        val result = Kap {
+            attempts++
+            if (attempts < 3) throw RuntimeException("flaky")
+            "success"
+        }.retry(Schedule.times<Throwable>(3) and Schedule.spaced(10.milliseconds)).executeGraph()
         assertEquals("success", result)
     }
 
     @Test fun `retry - kap - Schedule exponential + jittered`() = runTest {
         var attempts = 0
-        val result = Async {
-            Kap {
-                attempts++
-                if (attempts < 3) throw RuntimeException("flaky")
-                "success"
-            }.retry(
-                Schedule.times<Throwable>(5)
-                    .and(Schedule.exponential(1.milliseconds))
-                    .jittered()
-            )
-        }
+        val result = Kap {
+            attempts++
+            if (attempts < 3) throw RuntimeException("flaky")
+            "success"
+        }.retry(
+            Schedule.times<Throwable>(5)
+                .and(Schedule.exponential(1.milliseconds))
+                .jittered()
+        ).executeGraph()
         assertEquals("success", result)
     }
 
@@ -104,17 +100,15 @@ class ResilienceComparisonTest {
 
     @Test fun `bracket - kap`() = runTest {
         val log = mutableListOf<String>()
-        val result = Async {
-            bracket(
-                acquire = { "db-conn".also { log += "acquired:$it" } },
-                use = { conn ->
-                    kap { a: String, b: String -> "$a|$b" }
-                        .with { networkCall("q1", 50) }
-                        .with { networkCall("q2", 50) }
-                },
-                release = { conn -> log += "released:$conn" },
-            )
-        }
+        val result = bracket(
+            acquire = { "db-conn".also { log += "acquired:$it" } },
+            use = { conn ->
+                kap { a: String, b: String -> "$a|$b" }
+                    .with { networkCall("q1", 50) }
+                    .with { networkCall("q2", 50) }
+            },
+            release = { conn -> log += "released:$conn" },
+        ).executeGraph()
         assertTrue(result.contains("q1"))
         assertTrue(log.contains("acquired:db-conn"))
         assertTrue(log.contains("released:db-conn"))
@@ -141,19 +135,17 @@ class ResilienceComparisonTest {
 
     @Test fun `bracketCase - kap`() = runTest {
         val log = mutableListOf<String>()
-        val result = Async {
-            bracketCase(
-                acquire = { "txn-conn" },
-                use = { Kap { "success" } },
-                release = { conn, case ->
-                    when (case) {
-                        is ExitCase.Completed<*> -> log += "$conn:completed"
-                        is ExitCase.Failed -> log += "$conn:failed"
-                        is ExitCase.Cancelled -> log += "$conn:cancelled"
-                    }
-                },
-            )
-        }
+        val result = bracketCase(
+            acquire = { "txn-conn" },
+            use = { Kap { "success" } },
+            release = { conn, case ->
+                when (case) {
+                    is ExitCase.Completed<*> -> log += "$conn:completed"
+                    is ExitCase.Failed -> log += "$conn:failed"
+                    is ExitCase.Cancelled -> log += "$conn:cancelled"
+                }
+            },
+        ).executeGraph()
         assertEquals("success", result)
         assertEquals("txn-conn:completed", log.first())
     }
@@ -175,24 +167,20 @@ class ResilienceComparisonTest {
 
     @Test fun `guarantee - kap`() = runTest {
         val log = mutableListOf<String>()
-        val result = Async {
-            Kap { "success" }.guarantee { log += "finalized" }
-        }
+        val result = Kap { "success" }.guarantee { log += "finalized" }.executeGraph()
         assertEquals("success", result)
         assertTrue("finalized" in log)
     }
 
     @Test fun `guaranteeCase - kap`() = runTest {
         val log = mutableListOf<String>()
-        val result = Async {
-            Kap { "success" }.guaranteeCase { case ->
-                when (case) {
-                    is ExitCase.Completed<*> -> log += "completed"
-                    is ExitCase.Failed -> log += "failed"
-                    ExitCase.Cancelled -> log += "cancelled"
-                }
+        val result = Kap { "success" }.guaranteeCase { case ->
+            when (case) {
+                is ExitCase.Completed<*> -> log += "completed"
+                is ExitCase.Failed -> log += "failed"
+                ExitCase.Cancelled -> log += "cancelled"
             }
-        }
+        }.executeGraph()
         assertEquals("success", result)
         assertEquals("completed", log.first())
     }
@@ -260,26 +248,26 @@ class ResilienceComparisonTest {
 
     @Test fun `circuitBreaker - kap - closed state`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 30_000.milliseconds)
-        val result = Async { Kap { "ok" }.withCircuitBreaker(breaker) }
+        val result = Kap { "ok" }.withCircuitBreaker(breaker).executeGraph()
         assertEquals("ok", result)
     }
 
     @Test fun `circuitBreaker - kap - trips on failures`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 1000.milliseconds)
         repeat(2) {
-            runCatching { Async { Kap<String> { error("fail") }.withCircuitBreaker(breaker) } }
+            runCatching { Kap<String> { error("fail") }.withCircuitBreaker(breaker).executeGraph() }
         }
-        val error = runCatching { Async { Kap { "ok" }.withCircuitBreaker(breaker) } }
+        val error = runCatching { Kap { "ok" }.withCircuitBreaker(breaker).executeGraph() }
         assertTrue(error.isFailure)
         assertTrue(error.exceptionOrNull() is CircuitBreakerOpenException)
     }
 
     @Test fun `circuitBreaker - kap - half-open recovery`() = kotlinx.coroutines.runBlocking {
         val breaker = CircuitBreaker(maxFailures = 1, resetTimeout = 5.milliseconds)
-        runCatching { Async { Kap<String> { error("trip") }.withCircuitBreaker(breaker) } }
+        runCatching { Kap<String> { error("trip") }.withCircuitBreaker(breaker).executeGraph() }
         // Real sleep so monotonic clock advances past resetTimeout
         delay(20.milliseconds)
-        val result = Async { Kap { "recovered" }.withCircuitBreaker(breaker) }
+        val result = Kap { "recovered" }.withCircuitBreaker(breaker).executeGraph()
         assertEquals("recovered", result)
     }
 
@@ -298,18 +286,14 @@ class ResilienceComparisonTest {
     }
 
     @Test fun `timeoutRace - kap - primary wins`() = runTest {
-        val result = Async {
-            Kap { networkCall("primary", 30) }
-                .timeoutRace(100.milliseconds, Kap { networkCall("fallback", 80) })
-        }
+        val result = Kap { networkCall("primary", 30) }
+            .timeoutRace(100.milliseconds, Kap { networkCall("fallback", 80) }).executeGraph()
         assertEquals("primary", result)
     }
 
     @Test fun `timeoutRace - kap - fallback wins`() = runTest {
-        val result = Async {
-            Kap { networkCall("primary", 200) }
-                .timeoutRace(50.milliseconds, Kap { networkCall("fallback", 30) })
-        }
+        val result = Kap { networkCall("primary", 200) }
+            .timeoutRace(50.milliseconds, Kap { networkCall("fallback", 30) }).executeGraph()
         assertEquals("fallback", result)
     }
 
@@ -336,30 +320,26 @@ class ResilienceComparisonTest {
     }
 
     @Test fun `raceQuorum - kap - 2 of 5`() = runTest {
-        val result = Async {
-            raceQuorum(
-                required = 2,
-                Kap { networkCall("replica-1", 100) },
-                Kap { networkCall("replica-2", 30) },
-                Kap { networkCall("replica-3", 80) },
-                Kap { networkCall("replica-4", 50) },
-                Kap { networkCall("replica-5", 200) },
-            )
-        }
+        val result = raceQuorum(
+            required = 2,
+            Kap { networkCall("replica-1", 100) },
+            Kap { networkCall("replica-2", 30) },
+            Kap { networkCall("replica-3", 80) },
+            Kap { networkCall("replica-4", 50) },
+            Kap { networkCall("replica-5", 200) },
+        ).executeGraph()
         assertEquals(2, result.size)
     }
 
     @Test fun `raceQuorum - kap - 3 of 5`() = runTest {
-        val result = Async {
-            raceQuorum(
-                required = 3,
-                Kap { networkCall("replica-1", 100) },
-                Kap { networkCall("replica-2", 30) },
-                Kap { networkCall("replica-3", 80) },
-                Kap { networkCall("replica-4", 50) },
-                Kap { networkCall("replica-5", 200) },
-            )
-        }
+        val result = raceQuorum(
+            required = 3,
+            Kap { networkCall("replica-1", 100) },
+            Kap { networkCall("replica-2", 30) },
+            Kap { networkCall("replica-3", 80) },
+            Kap { networkCall("replica-4", 50) },
+            Kap { networkCall("replica-5", 200) },
+        ).executeGraph()
         assertEquals(3, result.size)
     }
 
@@ -371,13 +351,11 @@ class ResilienceComparisonTest {
         val policy = Schedule.times<Throwable>(3)
             .fold(0) { count, _ -> count + 1 }
         var attempts = 0
-        val result = Async {
-            Kap {
-                attempts++
-                if (attempts < 3) error("flaky")
-                "ok"
-            }.retry(policy)
-        }
+        val result = Kap {
+            attempts++
+            if (attempts < 3) error("flaky")
+            "ok"
+        }.retry(policy).executeGraph()
         assertEquals("ok", result)
         assertEquals(3, attempts)
     }
@@ -387,14 +365,12 @@ class ResilienceComparisonTest {
         val policy = Schedule.times<Throwable>(5)
             .and(Schedule.exponential(1.milliseconds))
             .jittered()
-        val result = Async {
-            Kap {
-                attempts++
-                if (attempts < 3) error("flaky")
-                "ok"
-            }.retry(policy)
-                .recover { "fallback" }
-        }
+        val result = Kap {
+            attempts++
+            if (attempts < 3) error("flaky")
+            "ok"
+        }.retry(policy)
+            .recover { "fallback" }.executeGraph()
         assertEquals("ok", result)
     }
 }

@@ -73,12 +73,11 @@ suspend fun main() {
     println("1. Parallel fetch: GitHub user + repos + cat fact\n")
 
     val (profile, duration) = measureTimedValue {
-        Async {
-            kap(::DeveloperProfile)
+        kap(::DeveloperProfile)
                 .with { fetchGithubUser(username) }     // ┐
                 .with { fetchGithubRepos(username) }     // ├─ all three in parallel
                 .with { fetchCatFact().fact }             // ┘
-        }
+                .executeGraph()
     }
 
     println("   User: ${profile.user.login} (${profile.user.name})")
@@ -94,14 +93,13 @@ suspend fun main() {
     data class PhasedResult(val user: GithubUser, val repos: List<GithubRepo>)
 
     val (phased, phasedDuration) = measureTimedValue {
-        Async {
-            Kap { fetchGithubUser(username) }
+        Kap { fetchGithubUser(username) }
                 .andThen { user ->
                     println("   Phase 1 done: ${user.login} has ${user.publicRepos} repos")
                     Kap { fetchGithubRepos(user.login) }
                         .map { repos -> PhasedResult(user, repos) }
                 }
-        }
+                .executeGraph()
     }
 
     println("   Phase 2 done: top repo is ${phased.repos.firstOrNull()?.name}")
@@ -115,11 +113,10 @@ suspend fun main() {
         Schedule.exponential(100.milliseconds)
 
     val (retryResult, retryDuration) = measureTimedValue {
-        Async {
-            Kap { fetchCatFact() }
+        Kap { fetchCatFact() }
                 .retry(retryPolicy)
                 .map { it.fact }
-        }
+                .executeGraph()
     }
 
     println("   Fact: $retryResult")
@@ -130,12 +127,10 @@ suspend fun main() {
     println("4. Race: two cat fact sources, fastest wins\n")
 
     val (raceResult, raceDuration) = measureTimedValue {
-        Async {
-            race(
+        race(
                 Kap { fetchCatFact().fact },
                 Kap { delay(50); "Cats sleep 70% of their lives (cached fallback)" },
-            )
-        }
+            ).executeGraph()
     }
 
     println("   Winner: $raceResult")
@@ -147,11 +142,9 @@ suspend fun main() {
 
     val users = listOf("torvalds", "gaearon", "sindresorhus", "tj", "yyx990803")
     val (profiles, traverseDuration) = measureTimedValue {
-        Async {
-            users.traverse(concurrency = 3) { user ->
+        users.traverse(concurrency = 3) { user ->
                 Kap { fetchGithubUser(user) }
-            }
-        }
+            }.executeGraph()
     }
 
     profiles.forEach { println("   ${it.login}: ${it.publicRepos} repos, ${it.followers} followers") }
@@ -164,12 +157,11 @@ suspend fun main() {
     data class MultiResult(val real: Result<GithubUser>, val fake: Result<GithubUser>, val fact: String)
 
     val (settled, settledDuration) = measureTimedValue {
-        Async {
-            kap(::MultiResult)
+        kap(::MultiResult)
                 .with(Kap { fetchGithubUser("torvalds") }.settled())
                 .with(Kap { fetchGithubUser("this-user-definitely-does-not-exist-xyz") }.settled())
                 .with { fetchCatFact().fact }
-        }
+                .executeGraph()
     }
 
     println("   Real user: ${settled.real.getOrNull()?.login ?: "failed"}")

@@ -12,13 +12,13 @@ class TimingMatchersTest {
 
     @Test
     fun `shouldBeMillis passes on exact match`() = runTest {
-        Async { Kap { delay(100) } }
+        Kap { delay(100) }.executeGraph()
         currentTime.shouldBeMillis(100)
     }
 
     @Test
     fun `shouldBeMillis fails on mismatch`() = runTest {
-        Async { Kap { delay(100) } }
+        Kap { delay(100) }.executeGraph()
         assertFailsWith<AssertionError> {
             currentTime.shouldBeMillis(50)
         }
@@ -26,13 +26,13 @@ class TimingMatchersTest {
 
     @Test
     fun `shouldBeAtMostMillis passes when under`() = runTest {
-        Async { Kap { delay(50) } }
+        Kap { delay(50) }.executeGraph()
         currentTime.shouldBeAtMostMillis(100)
     }
 
     @Test
     fun `shouldBeAtMostMillis fails when over`() = runTest {
-        Async { Kap { delay(200) } }
+        Kap { delay(200) }.executeGraph()
         assertFailsWith<AssertionError> {
             currentTime.shouldBeAtMostMillis(100)
         }
@@ -40,18 +40,17 @@ class TimingMatchersTest {
 
     @Test
     fun `shouldProveParallel passes for parallel execution`() = runTest {
-        Async {
-            kap { a: Unit, b: Unit, c: Unit -> Triple(a, b, c) }
-                .with(Kap { delay(50) })
-                .with(Kap { delay(50) })
-                .with(Kap { delay(50) })
-        }
+        kap { a: Unit, b: Unit, c: Unit -> Triple(a, b, c) }
+            .with(Kap { delay(50) })
+            .with(Kap { delay(50) })
+            .with(Kap { delay(50) })
+            .executeGraph()
         currentTime.shouldProveParallel(taskCount = 3, taskDurationMs = 50)
     }
 
     @Test
     fun `shouldProveParallel fails for sequential execution`() = runTest {
-        Async { Kap { delay(50) }.andThen { Kap { delay(50) }.andThen { Kap { delay(50) } } } }
+        Kap { delay(50) }.andThen { Kap { delay(50) }.andThen { Kap { delay(50) } } }.executeGraph()
         assertFailsWith<AssertionError> {
             currentTime.shouldProveParallel(taskCount = 3, taskDurationMs = 50)
         }

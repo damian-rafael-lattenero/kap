@@ -183,11 +183,10 @@ fun <A, B : Any> Kap<A>.ensureNotNull(
  * [CancellationException] always propagates — never falls through to [other].
  *
  * ```
- * val user = Async {
- *     Kap { fetchFromPrimary() }
- *         .orElse(Kap { fetchFromReplica() })
- *         .orElse(Kap { User.cached() })
- * }
+ * val user = Kap { fetchFromPrimary() }
+ *     .orElse(Kap { fetchFromReplica() })
+ *     .orElse(Kap { User.cached() })
+ *     .executeGraph()
  * ```
  */
 infix fun <A> Kap<A>.orElse(other: Kap<A>): Kap<A> = Kap {
@@ -209,13 +208,11 @@ infix fun <A> Kap<A>.orElse(other: Kap<A>): Kap<A> = Kap {
  * [CancellationException] always propagates — never falls through to the next.
  *
  * ```
- * val data = Async {
- *     firstSuccessOf(
- *         Kap { fetchFromPrimary() },
- *         Kap { fetchFromSecondary() },
- *         Kap { fetchFromCache() },
- *     )
- * }
+ * val data = firstSuccessOf(
+ *     Kap { fetchFromPrimary() },
+ *     Kap { fetchFromSecondary() },
+ *     Kap { fetchFromCache() },
+ * ).executeGraph()
  * ```
  */
 fun <A> firstSuccessOf(vararg computations: Kap<A>): Kap<A> {

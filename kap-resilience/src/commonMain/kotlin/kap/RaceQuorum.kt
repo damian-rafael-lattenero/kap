@@ -23,14 +23,12 @@ import kotlinx.coroutines.supervisorScope
  * - Redundancy: run 5 health checks, need 3 to pass
  *
  * ```
- * val (fast1, fast2) = Async {
- *     raceQuorum(
- *         required = 2,
- *         Kap { fetchFromReplicaA() },
- *         Kap { fetchFromReplicaB() },
- *         Kap { fetchFromReplicaC() },
- *     )
- * }
+ * val (fast1, fast2) = raceQuorum(
+ *     required = 2,
+ *     Kap { fetchFromReplicaA() },
+ *     Kap { fetchFromReplicaB() },
+ *     Kap { fetchFromReplicaC() },
+ * ).executeGraph()
  * ```
  *
  * @param required number of successes needed (must be in `1..computations.size`)

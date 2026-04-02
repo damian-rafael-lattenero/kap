@@ -21,44 +21,34 @@ class CombinatorsTest {
 
     @Test
     fun `timeout returns result when computation completes in time`() = runTest {
-        val result = Async {
-            Kap.of(42).timeout(1.seconds)
-        }
+        val result = Kap.of(42).timeout(1.seconds).executeGraph()
         assertEquals(42, result)
     }
 
     @Test
     fun `timeout throws when computation exceeds duration`() = runTest {
         val result = runCatching {
-            Async {
-                Kap<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds)
-            }
+            Kap<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds).executeGraph()
         }
         assertTrue(result.isFailure)
     }
 
     @Test
     fun `timeout with default returns default on timeout`() = runTest {
-        val result = Async {
-            Kap<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds, default = -1)
-        }
+        val result = Kap<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds, default = -1).executeGraph()
         assertEquals(-1, result)
     }
 
     @Test
     fun `timeout with default returns result when fast enough`() = runTest {
-        val result = Async {
-            Kap.of(42).timeout(1.seconds, default = -1)
-        }
+        val result = Kap.of(42).timeout(1.seconds, default = -1).executeGraph()
         assertEquals(42, result)
     }
 
     @Test
     fun `timeout with fallback computation runs fallback on timeout`() = runTest {
-        val result = Async {
-            Kap<String> { delay(10.seconds); "slow" }
-                .timeout(100.milliseconds, Kap.of("fallback"))
-        }
+        val result = Kap<String> { delay(10.seconds); "slow" }
+                .timeout(100.milliseconds, Kap.of("fallback")).executeGraph()
         assertEquals("fallback", result)
     }
 
@@ -68,28 +58,22 @@ class CombinatorsTest {
 
     @Test
     fun `recover catches exception and maps to value`() = runTest {
-        val result = Async {
-            Kap<String> { throw RuntimeException("boom") }
-                .recover { "recovered: ${it.message}" }
-        }
+        val result = Kap<String> { throw RuntimeException("boom") }
+                .recover { "recovered: ${it.message}" }.executeGraph()
         assertEquals("recovered: boom", result)
     }
 
     @Test
     fun `recover passes through successful computation`() = runTest {
-        val result = Async {
-            Kap.of("ok").recover { "recovered" }
-        }
+        val result = Kap.of("ok").recover { "recovered" }.executeGraph()
         assertEquals("ok", result)
     }
 
     @Test
     fun `recover does not catch CancellationException`() = runTest {
         val result = runCatching {
-            Async {
-                Kap<String> { throw CancellationException("cancelled") }
-                    .recover { "recovered" }
-            }
+            Kap<String> { throw CancellationException("cancelled") }
+                    .recover { "recovered" }.executeGraph()
         }
         assertTrue(result.isFailure)
         assertIs<CancellationException>(result.exceptionOrNull())
@@ -97,10 +81,8 @@ class CombinatorsTest {
 
     @Test
     fun `recoverWith switches to recovery computation`() = runTest {
-        val result = Async {
-            Kap<String> { throw RuntimeException("boom") }
-                .recoverWith { Kap.of("recovered from: ${it.message}") }
-        }
+        val result = Kap<String> { throw RuntimeException("boom") }
+                .recoverWith { Kap.of("recovered from: ${it.message}") }.executeGraph()
         assertEquals("recovered from: boom", result)
     }
 
@@ -110,17 +92,13 @@ class CombinatorsTest {
 
     @Test
     fun `fallback switches to alternative on failure`() = runTest {
-        val result = Async {
-            Kap<String> { throw RuntimeException("boom") } fallback Kap.of("backup")
-        }
+        val result = (Kap<String> { throw RuntimeException("boom") } fallback Kap.of("backup")).executeGraph()
         assertEquals("backup", result)
     }
 
     @Test
     fun `fallback returns primary on success`() = runTest {
-        val result = Async {
-            Kap.of("primary") fallback Kap.of("backup")
-        }
+        val result = (Kap.of("primary") fallback Kap.of("backup")).executeGraph()
         assertEquals("primary", result)
     }
 
@@ -131,9 +109,7 @@ class CombinatorsTest {
     @Test
     fun `retry succeeds on first attempt`() = runTest {
         var attempts = 0
-        val result = Async {
-            Kap<String> { attempts++; "ok" }.retry(3)
-        }
+        val result = Kap<String> { attempts++; "ok" }.retry(3).executeGraph()
         assertEquals("ok", result)
         assertEquals(1, attempts)
     }
@@ -141,13 +117,11 @@ class CombinatorsTest {
     @Test
     fun `retry succeeds on later attempt`() = runTest {
         var attempts = 0
-        val result = Async {
-            Kap<String> {
+        val result = Kap<String> {
                 attempts++
                 if (attempts < 3) throw RuntimeException("fail #$attempts")
                 "ok"
-            }.retry(3)
-        }
+            }.retry(3).executeGraph()
         assertEquals("ok", result)
         assertEquals(3, attempts)
     }
@@ -156,12 +130,10 @@ class CombinatorsTest {
     fun `retry exhausts all attempts then throws`() = runTest {
         var attempts = 0
         val result = runCatching {
-            Async {
-                Kap<String> {
+            Kap<String> {
                     attempts++
                     throw RuntimeException("fail #$attempts")
-                }.retry(3)
-            }
+                }.retry(3).executeGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(3, attempts)
@@ -172,12 +144,10 @@ class CombinatorsTest {
     fun `retry does not catch CancellationException`() = runTest {
         var attempts = 0
         val result = runCatching {
-            Async {
-                Kap<String> {
+            Kap<String> {
                     attempts++
                     throw CancellationException("cancelled")
-                }.retry(3)
-            }
+                }.retry(3).executeGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(1, attempts) // no retry on cancellation
@@ -192,11 +162,9 @@ class CombinatorsTest {
             "retried"
         }.retry(3)
 
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with { with(retryable) { execute() } }
-                .with { "ok" }
-        }
+                .with { "ok" }.executeGraph()
         assertEquals("retried|ok", result)
     }
 
@@ -206,32 +174,26 @@ class CombinatorsTest {
 
     @Test
     fun `timeout with default plus recover compose naturally`() = runTest {
-        val result = Async {
-            Kap<String> { delay(10.seconds); "slow" }
-                .timeout(100.milliseconds, "timed-out")
-        }
+        val result = Kap<String> { delay(10.seconds); "slow" }
+                .timeout(100.milliseconds, "timed-out").executeGraph()
         assertEquals("timed-out", result)
     }
 
     @Test
     fun `timeout exception plus fallback compose naturally`() = runTest {
-        val result = Async {
-            Kap<String> { delay(10.seconds); "slow" }
-                .timeout(100.milliseconds, Kap.of("fallback-value"))
-        }
+        val result = Kap<String> { delay(10.seconds); "slow" }
+                .timeout(100.milliseconds, Kap.of("fallback-value")).executeGraph()
         assertEquals("fallback-value", result)
     }
 
     @Test
     fun `retry plus timeout compose naturally`() = runTest {
         var attempts = 0
-        val result = Async {
-            Kap<String> {
+        val result = Kap<String> {
                 attempts++
                 if (attempts < 3) throw RuntimeException("fail")
                 "ok"
-            }.retry(3).timeout(5.seconds)
-        }
+            }.retry(3).timeout(5.seconds).executeGraph()
         assertEquals("ok", result)
         assertEquals(3, attempts)
     }
@@ -242,26 +204,20 @@ class CombinatorsTest {
 
     @Test
     fun `timeout with default preserves null as a valid result`() = runTest {
-        val result = Async {
-            Kap<String?> { null }.timeout(1.seconds, default = "fallback")
-        }
+        val result = Kap<String?> { null }.timeout(1.seconds, default = "fallback").executeGraph()
         // The computation completed with null — should NOT fall through to default
         assertEquals(null, result)
     }
 
     @Test
     fun `timeout with fallback preserves null as a valid result`() = runTest {
-        val result = Async {
-            Kap<String?> { null }.timeout(1.seconds, Kap.of("fallback"))
-        }
+        val result = Kap<String?> { null }.timeout(1.seconds, Kap.of("fallback")).executeGraph()
         assertEquals(null, result)
     }
 
     @Test
     fun `timeout with default still returns default on actual timeout`() = runTest {
-        val result = Async {
-            Kap<String?> { delay(10.seconds); null }.timeout(100.milliseconds, default = "timed-out")
-        }
+        val result = Kap<String?> { delay(10.seconds); null }.timeout(100.milliseconds, default = "timed-out").executeGraph()
         assertEquals("timed-out", result)
     }
 
@@ -275,8 +231,8 @@ class CombinatorsTest {
         val counter = AtomicInteger(0)
         val expensive = Kap { counter.incrementAndGet(); "result" }.memoize()
 
-        val result1 = Async { expensive }
-        val result2 = Async { expensive }
+        val result1 = expensive.executeGraph()
+        val result2 = expensive.executeGraph()
 
         assertEquals("result", result1)
         assertEquals("result", result2)
@@ -293,11 +249,9 @@ class CombinatorsTest {
             "data"
         }.memoize()
 
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with(expensive)
-                .with(expensive)
-        }
+                .with(expensive).executeGraph()
 
         assertEquals("data|data", result)
         assertEquals(1, counter.get(), "Memoized computation should run once even in parallel")
@@ -312,7 +266,7 @@ class CombinatorsTest {
             throw RuntimeException("boom")
         }.memoize()
 
-        val result = runCatching { Async { failing } }
+        val result = runCatching { failing.executeGraph() }
         assertTrue(result.isFailure)
         assertEquals("boom", result.exceptionOrNull()?.message)
         assertEquals(1, counter.get(), "Should only execute once even on failure")

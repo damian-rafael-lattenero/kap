@@ -33,14 +33,12 @@ class ConcurrencyProofTest {
 
     @Test
     fun `5 parallel 50ms calls complete in 50ms virtual time not 250ms`() = runTest {
-        Async {
-            kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
+        kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
                 .with { delay(50); "A" }
                 .with { delay(50); "B" }
                 .with { delay(50); "C" }
                 .with { delay(50); "D" }
-                .with { delay(50); "E" }
-        }
+                .with { delay(50); "E" }.executeGraph()
 
         // If sequential: 250ms. If parallel: 50ms.
         assertEquals(50, currentTime,
@@ -49,16 +47,14 @@ class ConcurrencyProofTest {
 
     @Test
     fun `10 parallel 30ms calls complete in 30ms virtual time not 300ms`() = runTest {
-        Async {
-            kap { a: String, b: String, c: String, d: String, e: String,
+        kap { a: String, b: String, c: String, d: String, e: String,
                      f: String, g: String, h: String, i: String, j: String ->
                 listOf(a, b, c, d, e, f, g, h, i, j).joinToString("|")
             }
                 .with { delay(30); "v1" }.with { delay(30); "v2" }.with { delay(30); "v3" }
                 .with { delay(30); "v4" }.with { delay(30); "v5" }.with { delay(30); "v6" }
                 .with { delay(30); "v7" }.with { delay(30); "v8" }.with { delay(30); "v9" }
-                .with { delay(30); "v10" }
-        }
+                .with { delay(30); "v10" }.executeGraph()
 
         assertEquals(30, currentTime,
             "Expected 30ms virtual time (parallel). Got ${currentTime}ms (sequential would be 300ms)")
@@ -66,11 +62,9 @@ class ConcurrencyProofTest {
 
     @Test
     fun `traverse with concurrency 3 over 9 items takes 3x longer than unbounded`() = runTest {
-        Async {
-            (1..9).toList().traverse(3) { i ->
+        (1..9).toList().traverse(3) { i ->
                 Kap { delay(30); "v$i" }
-            }
-        }
+            }.executeGraph()
         // Bounded (3 at a time, 9 items, 30ms each): 3 batches × 30ms = 90ms
         assertEquals(90, currentTime,
             "Bounded traverse should take 90ms (3 batches of 3 at 30ms each). Got ${currentTime}ms")
@@ -90,13 +84,11 @@ class ConcurrencyProofTest {
         //   t=30: A, B complete. then runs C
         //   t=80: C completes. Barrier signal fires. D launches.
         //   t=110: D completes.
-        val result = Async {
-            kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+        val result = kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
                 .with { delay(30); "A" }
                 .with { delay(30); "B" }
                 .then { delay(50); "C" }
-                .with { delay(30); "D" }
-        }
+                .with { delay(30); "D" }.executeGraph()
 
         assertEquals("A|B|C|D", result)
         // Phase 1: max(30,30) = 30. Barrier: 50. Phase 2: 30. Total: 110ms
@@ -108,13 +100,11 @@ class ConcurrencyProofTest {
     fun `thenValue preserves old eager-launch semantics - no barrier`() = runTest {
         // thenValue fills a slot sequentially but does NOT gate subsequent with calls.
         // D launches at t=0 and overlaps with everything.
-        val result = Async {
-            kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+        val result = kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
                 .with { delay(30); "A" }
                 .with { delay(30); "B" }
                 .thenValue { delay(50); "C" }
-                .with { delay(30); "D" }
-        }
+                .with { delay(30); "D" }.executeGraph()
 
         assertEquals("A|B|C|D", result)
         // D launches eagerly at t=0. Total: max(30,30) + 50 = 80ms (D overlaps)
@@ -128,13 +118,11 @@ class ConcurrencyProofTest {
         // even though subsequent with computations launch eagerly.
         val order = mutableListOf<String>()
 
-        val result = Async {
-            kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+        val result = kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
                 .with { order.add("A"); "A" }
                 .with { order.add("B"); "B" }
                 .then { order.add("C"); "C" }
-                .then { order.add("D"); "D" }
-        }
+                .then { order.add("D"); "D" }.executeGraph()
 
         assertEquals("A|B|C|D", result)
         // C must come after both A and B (barrier semantics)
@@ -151,8 +139,7 @@ class ConcurrencyProofTest {
         // Barrier D: starts at t=40, ends at t=70
         // Phase 2: E, F launch in parallel AFTER barrier (40ms)
         // Total: 40 + 30 + 40 = 110ms
-        val result = Async {
-            kap { a: String, b: String, c: String, d: String, e: String, f: String ->
+        val result = kap { a: String, b: String, c: String, d: String, e: String, f: String ->
                 "$a|$b|$c|$d|$e|$f"
             }
                 .with { delay(40); "A" }            // ┐ phase 1: parallel
@@ -161,7 +148,7 @@ class ConcurrencyProofTest {
                 .then { delay(30); "D" }    // ── barrier
                 .with { delay(40); "E" }            // ┐ phase 2: parallel (after barrier)
                 .with { delay(40); "F" }            // ┘
-        }
+                .executeGraph()
 
         assertEquals("A|B|C|D|E|F", result)
         assertEquals(110, currentTime,
@@ -171,8 +158,7 @@ class ConcurrencyProofTest {
     @Test
     fun `multiple with calls after then all run in parallel`() = runTest {
         // Proves that post-barrier with calls launch SIMULTANEOUSLY when the barrier fires
-        val result = Async {
-            kap { a: String, b: String, c: String, d: String, e: String ->
+        val result = kap { a: String, b: String, c: String, d: String, e: String ->
                 "$a|$b|$c|$d|$e"
             }
                 .with { delay(20); "A" }
@@ -180,7 +166,7 @@ class ConcurrencyProofTest {
                 .with { delay(40); "C" }    // ┐ all three launch when barrier fires
                 .with { delay(40); "D" }    // │ at t=50, and complete at t=90
                 .with { delay(40); "E" }    // ┘
-        }
+                .executeGraph()
 
         assertEquals("A|B|C|D|E", result)
         // 20(A) + 30(B barrier) + 40(C,D,E parallel) = 90ms
@@ -198,8 +184,7 @@ class ConcurrencyProofTest {
         val allStarted = (0 until 10).map { CompletableDeferred<Unit>() }
 
         runCatching {
-            Async {
-                kap { a: String, b: String, c: String, d: String, e: String,
+            kap { a: String, b: String, c: String, d: String, e: String,
                          f: String, g: String, h: String, i: String, j: String ->
                     "$a|$b|$c|$d|$e|$f|$g|$h|$i|$j"
                 }
@@ -217,8 +202,7 @@ class ConcurrencyProofTest {
                         allStarted[9].complete(Unit)
                         allStarted.forEach { it.await() }
                         throw RuntimeException("crash")
-                    }
-            }
+                    }.executeGraph()
         }
 
         // ALL 9 siblings must have been cancelled
@@ -245,14 +229,12 @@ class ConcurrencyProofTest {
         val rawTime = currentTime
 
         // Library (starts from same virtual clock)
-        Async {
-            kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
+        kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
                 .with { delay(50); "A" }
                 .with { delay(50); "B" }
                 .with { delay(50); "C" }
                 .with { delay(50); "D" }
-                .with { delay(50); "E" }
-        }
+                .with { delay(50); "E" }.executeGraph()
         val libTime = currentTime - rawTime
 
         // Both should be exactly 50ms in virtual time
@@ -266,8 +248,7 @@ class ConcurrencyProofTest {
         // Barrier 1: valid (30ms) → t=70
         // Phase 2: shipping, tax launch in parallel (40ms) → t=110
         // Barrier 2: pay (50ms) → t=160
-        Async {
-            kap { a: String, b: String, c: String, d: String, e: String, f: String, g: String ->
+        kap { a: String, b: String, c: String, d: String, e: String, f: String, g: String ->
                 "$a|$b|$c|$d|$e|$f|$g"
             }
                 .with { delay(40); "user" }           // ┐ phase 1
@@ -277,7 +258,7 @@ class ConcurrencyProofTest {
                 .with { delay(40); "shipping" }       // ┐ phase 2 (after barrier 1)
                 .with { delay(40); "tax" }            // ┘
                 .then { delay(50); "pay" }    // ── barrier 2
-        }
+                .executeGraph()
 
         // 40(phase1) + 30(barrier1) + 40(phase2) + 50(barrier2) = 160ms
         assertEquals(160, currentTime,
@@ -297,8 +278,7 @@ class ConcurrencyProofTest {
         // Phase 3: 3 calls @ 30ms parallel = 30ms → t=130
         // Total: 30 + 20 + 30 + 20 + 30 = 130ms
         // Sequential would be: 14*30 + 2*20 = 460ms (3.5x speedup)
-        val result = Async {
-            kap { v1: String, v2: String, v3: String, v4: String,
+        val result = kap { v1: String, v2: String, v3: String, v4: String,
                      v5: String,
                      v6: String, v7: String, v8: String, v9: String, v10: String,
                      v11: String,
@@ -319,7 +299,7 @@ class ConcurrencyProofTest {
                 .with { delay(30); "notifs" }        // ┐ phase 3
                 .with { delay(30); "cart" }          // │
                 .with { delay(30); "wishlist" }      // ┘
-        }
+                .executeGraph()
 
         assertEquals(14, result.split("|").size)
         assertEquals(130, currentTime,

@@ -68,20 +68,19 @@ val checkout = coroutineScope {
 **With KAP:**
 
 ```kotlin
-val checkout: CheckoutResult = Async {
-    kap(::CheckoutResult)
-        .with { fetchUser() }              // ┐
-        .with { fetchCart() }               // ├─ phase 1: parallel
-        .with { fetchPromos() }             // │
-        .with { fetchInventory() }          // ┘
-        .then { validateStock() }           // ── phase 2: barrier
-        .with { calcShipping() }            // ┐
-        .with { calcTax() }                 // ├─ phase 3: parallel
-        .with { calcDiscounts() }           // ┘
-        .then { reservePayment() }          // ── phase 4: barrier
-        .with { generateConfirmation() }    // ┐ phase 5: parallel
-        .with { sendEmail() }              // ┘
-}
+val checkout: CheckoutResult = kap(::CheckoutResult)
+    .with { fetchUser() }              // ┐
+    .with { fetchCart() }               // ├─ phase 1: parallel
+    .with { fetchPromos() }             // │
+    .with { fetchInventory() }          // ┘
+    .then { validateStock() }           // ── phase 2: barrier
+    .with { calcShipping() }            // ┐
+    .with { calcTax() }                 // ├─ phase 3: parallel
+    .with { calcDiscounts() }           // ┘
+    .then { reservePayment() }          // ── phase 4: barrier
+    .with { generateConfirmation() }    // ┐ phase 5: parallel
+    .with { sendEmail() }              // ┘
+    .executeGraph()
 ```
 
 **30 lines vs 12.** Invisible phases vs explicit phases. Silent bugs vs compile-time safety. **Swap any two `.with` lines and the compiler rejects it** — each service returns a distinct type, and the typed function chain locks parameter order.
@@ -112,24 +111,23 @@ Real APIs have dependencies: phase 2 needs phase 1's results. With raw coroutine
 ```kotlin
 val userId = "user-42"
 
-val dashboard: FinalDashboard = Async {
-    kap(::UserContext)
-        .with { fetchProfile(userId) }       // ┐
-        .with { fetchPreferences(userId) }   // ├─ phase 1: parallel
-        .with { fetchLoyaltyTier(userId) }   // ┘
-        .andThen { ctx ->                    // ── barrier: ctx available
-            kap(::EnrichedContent)
-                .with { fetchRecommendations(ctx.profile) }  // ┐
-                .with { fetchPromotions(ctx.tier) }           // ├─ phase 2: parallel
-                .with { fetchTrending(ctx.prefs) }            // │
-                .with { fetchHistory(ctx.profile) }           // ┘
-                .andThen { enriched ->                         // ── barrier
-                    kap(::FinalDashboard)
-                        .with { renderLayout(ctx, enriched) }     // ┐ phase 3
-                        .with { trackAnalytics(ctx, enriched) }   // ┘
-                }
-        }
-}
+val dashboard: FinalDashboard = kap(::UserContext)
+    .with { fetchProfile(userId) }       // ┐
+    .with { fetchPreferences(userId) }   // ├─ phase 1: parallel
+    .with { fetchLoyaltyTier(userId) }   // ┘
+    .andThen { ctx ->                    // ── barrier: ctx available
+        kap(::EnrichedContent)
+            .with { fetchRecommendations(ctx.profile) }  // ┐
+            .with { fetchPromotions(ctx.tier) }           // ├─ phase 2: parallel
+            .with { fetchTrending(ctx.prefs) }            // │
+            .with { fetchHistory(ctx.profile) }           // ┘
+            .andThen { enriched ->                         // ── barrier
+                kap(::FinalDashboard)
+                    .with { renderLayout(ctx, enriched) }     // ┐ phase 3
+                    .with { trackAnalytics(ctx, enriched) }   // ┘
+            }
+    }
+    .executeGraph()
 ```
 
 ```
@@ -157,16 +155,15 @@ t=115ms ─── FinalDashboard ready
 val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 val retryPolicy = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
 
-val result = Async {
-    kap(::Dashboard)
-        .with(Kap { fetchUser() }
-            .withCircuitBreaker(breaker)      // protect downstream
-            .retry(retryPolicy))              // exponential backoff
-        .with(Kap { fetchFromSlowApi() }
-            .timeoutRace(100.milliseconds,    // both start at t=0
-                Kap { fetchFromCache() }))    // fallback already running
-        .with { fetchPromos() }
-}
+val result = kap(::Dashboard)
+    .with(Kap { fetchUser() }
+        .withCircuitBreaker(breaker)      // protect downstream
+        .retry(retryPolicy))              // exponential backoff
+    .with(Kap { fetchFromSlowApi() }
+        .timeoutRace(100.milliseconds,    // both start at t=0
+            Kap { fetchFromCache() }))    // fallback already running
+    .with { fetchPromos() }
+    .executeGraph()
 ```
 
 ---
@@ -174,14 +171,13 @@ val result = Async {
 ## Collect every validation error at once
 
 ```kotlin
-val result: Either<NonEmptyList<RegError>, User> = Async {
-    zipV(
-        { validateName("A") },           // ← too short
-        { validateEmail("bad") },         // ← invalid
-        { validateAge(10) },              // ← too young
-        { checkUsername("al") },          // ← too short
-    ) { name, email, age, username -> User(name, email, age, username) }
-}
+val result: Either<NonEmptyList<RegError>, User> = zipV(
+    { validateName("A") },           // ← too short
+    { validateEmail("bad") },         // ← invalid
+    { validateAge(10) },              // ← too young
+    { checkUsername("al") },          // ← too short
+) { name, email, age, username -> User(name, email, age, username) }
+    .executeGraph()
 // result = Left(NonEmptyList(NameTooShort, InvalidEmail, AgeTooLow, UsernameTaken))
 // ALL 4 errors in ONE response. No round trips.
 ```
@@ -234,7 +230,7 @@ Scales to **22 validators** (Arrow's `zipOrAccumulate` maxes at 9).
 - [`traced` / `KapTracer`](modules/kap-core.md#observability) — structured observability hooks
 - [`combine` / `pair` / `triple` / `zip`](modules/kap-core.md#utilities) — parallel combinators
 - [`named` / `on` / `discard` / `peek`](modules/kap-core.md#oncontext-namedname) — chain modifiers
-- [`delayed` / `.await`](modules/kap-core.md#delayedduration-value-withornull) — execution control
+- [`delayed` / `.executeGraph`](modules/kap-core.md#delayedduration-value-withornull) — execution control
 
 ---
 

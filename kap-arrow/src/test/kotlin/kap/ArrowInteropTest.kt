@@ -24,17 +24,13 @@ class ArrowInteropTest {
 
     @Test
     fun `attempt wraps success in Right`() = runTest {
-        val result = Async {
-            Kap.of(42).attempt()
-        }
+        val result = Kap.of(42).attempt().executeGraph()
         assertEquals(Either.Right(42), result)
     }
 
     @Test
     fun `attempt wraps exception in Left`() = runTest {
-        val result = Async {
-            Kap<Int> { throw RuntimeException("boom") }.attempt()
-        }
+        val result = Kap<Int> { throw RuntimeException("boom") }.attempt().executeGraph()
         assertIs<Either.Left<Throwable>>(result)
         assertEquals("boom", result.value.message)
     }
@@ -42,9 +38,7 @@ class ArrowInteropTest {
     @Test
     fun `attempt does not catch CancellationException`() = runTest {
         val result = runCatching {
-            Async {
-                Kap<Int> { throw CancellationException("cancelled") }.attempt()
-            }
+            Kap<Int> { throw CancellationException("cancelled") }.attempt().executeGraph()
         }
         assertTrue(result.isFailure)
         assertIs<CancellationException>(result.exceptionOrNull())
@@ -52,11 +46,9 @@ class ArrowInteropTest {
 
     @Test
     fun `attempt composes with validated operations via catching`() = runTest {
-        val result = Async {
-            kapV<String, Int, Int, Int> { a, b -> a + b }
-                .withV(Kap { 1 }.catching { it.message ?: "unknown" })
-                .withV(Kap { 2 }.catching { it.message ?: "unknown" })
-        }
+        val result = kapV<String, Int, Int, Int> { a, b -> a + b }
+            .withV(Kap { 1 }.catching { it.message ?: "unknown" })
+            .withV(Kap { 2 }.catching { it.message ?: "unknown" }).executeGraph()
         assertEquals(Either.Right(3), result)
     }
 
@@ -66,23 +58,19 @@ class ArrowInteropTest {
 
     @Test
     fun `raceEither returns Left when first computation wins`() = runTest {
-        val result = Async {
-            raceEither(
-                fa = Kap.of("fast"),
-                fb = Kap { delay(10_000); 42 },
-            )
-        }
+        val result = raceEither(
+            fa = Kap.of("fast"),
+            fb = Kap { delay(10_000); 42 },
+        ).executeGraph()
         assertEquals(Either.Left("fast"), result)
     }
 
     @Test
     fun `raceEither returns Right when second computation wins`() = runTest {
-        val result = Async {
-            raceEither(
-                fa = Kap { delay(10_000); "slow" },
-                fb = Kap.of(42),
-            )
-        }
+        val result = raceEither(
+            fa = Kap { delay(10_000); "slow" },
+            fb = Kap.of(42),
+        ).executeGraph()
         assertEquals(Either.Right(42), result)
     }
 
@@ -144,17 +132,13 @@ class ArrowInteropTest {
 
     @Test
     fun `Result success converts to valid computation`() = runTest {
-        val result = Async {
-            Result.success(42).toValidated { "error: ${it.message}" }
-        }
+        val result = Result.success(42).toValidated { "error: ${it.message}" }.executeGraph()
         assertEquals(Either.Right(42), result)
     }
 
     @Test
     fun `Result failure converts to invalid computation`() = runTest {
-        val result = Async {
-            Result.failure<Int>(RuntimeException("boom")).toValidated { "error: ${it.message}" }
-        }
+        val result = Result.failure<Int>(RuntimeException("boom")).toValidated { "error: ${it.message}" }.executeGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals("error: boom", result.value.head)
     }
@@ -165,19 +149,15 @@ class ArrowInteropTest {
 
     @Test
     fun `fromArrow wraps suspend lambda into Kap`() = runTest {
-        val result = Async {
-            fromArrow { 42 }
-        }
+        val result = fromArrow { 42 }.executeGraph()
         assertEquals(42, result)
     }
 
     @Test
     fun `fromArrow composes with ap`() = runTest {
-        val result = Async {
-            kap { a: Int, b: String -> "$b=$a" }
-                .with(fromArrow { 42 })
-                .with(fromArrow { "answer" })
-        }
+        val result = kap { a: Int, b: String -> "$b=$a" }
+            .with(fromArrow { 42 })
+            .with(fromArrow { "answer" }).executeGraph()
         assertEquals("answer=42", result)
     }
 
@@ -226,14 +206,14 @@ class ArrowInteropTest {
     @Test
     fun `Validated typealias works for valid computations`() = runTest {
         val v: Validated<String, Int> = valid(42)
-        val result = Async { v }
+        val result = v.executeGraph()
         assertEquals(Either.Right(42), result)
     }
 
     @Test
     fun `Validated typealias works for invalid computations`() = runTest {
         val v: Validated<String, Int> = invalid("oops")
-        val result = Async { v }
+        val result = v.executeGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(nonEmptyListOf("oops"), result.value)
     }

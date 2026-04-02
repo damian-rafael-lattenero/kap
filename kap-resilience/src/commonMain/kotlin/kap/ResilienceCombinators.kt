@@ -145,10 +145,9 @@ data class RetryResult<out A>(
  * Useful for telemetry, logging, and understanding retry behavior:
  *
  * ```
- * val (user, attempts, totalDelay) = Async {
- *     Kap { fetchUser() }
- *         .retryWithResult(Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds))
- * }
+ * val (user, attempts, totalDelay) = Kap { fetchUser() }
+ *     .retryWithResult(Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds))
+ *     .executeGraph()
  * logger.info("Fetched user after $attempts retries (${totalDelay} delay)")
  * ```
  */

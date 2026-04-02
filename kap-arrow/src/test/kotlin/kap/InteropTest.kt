@@ -23,7 +23,7 @@ class InteropTest {
     @Test
     fun `Deferred toKap awaits the deferred`() = runTest {
         val deferred = CompletableDeferred(42)
-        val result = Async { deferred.toKap() }
+        val result = deferred.toKap().executeGraph()
         assertEquals(42, result)
     }
 
@@ -32,11 +32,9 @@ class InteropTest {
         val deferredA = CompletableDeferred("hello")
         val deferredB = CompletableDeferred("world")
 
-        val result = Async {
-            kap { a: String, b: String -> "$a $b" }
-                .with { with(deferredA.toKap()) { execute() } }
-                .with { with(deferredB.toKap()) { execute() } }
-        }
+        val result = kap { a: String, b: String -> "$a $b" }
+            .with { with(deferredA.toKap()) { execute() } }
+            .with { with(deferredB.toKap()) { execute() } }.executeGraph()
         assertEquals("hello world", result)
     }
 
@@ -60,17 +58,15 @@ class InteropTest {
     @Test
     fun `Flow firstAsKap takes first emission`() = runTest {
         val flow = flowOf("first", "second", "third")
-        val result = Async { flow.firstAsKap() }
+        val result = flow.firstAsKap().executeGraph()
         assertEquals("first", result)
     }
 
     @Test
     fun `Flow firstAsKap composes with kap+with`() = runTest {
-        val result = Async {
-            kap { a: String, b: Int -> "$a=$b" }
-                .with { with(flowOf("count").firstAsKap()) { execute() } }
-                .with { with(flowOf(42).firstAsKap()) { execute() } }
-        }
+        val result = kap { a: String, b: Int -> "$a=$b" }
+            .with { with(flowOf("count").firstAsKap()) { execute() } }
+            .with { with(flowOf(42).firstAsKap()) { execute() } }.executeGraph()
         assertEquals("count=42", result)
     }
 
@@ -81,7 +77,7 @@ class InteropTest {
     @Test
     fun `suspend lambda toKap wraps correctly`() = runTest {
         val fn: suspend () -> Int = { 42 }
-        val result = Async { fn.toKap() }
+        val result = fn.toKap().executeGraph()
         assertEquals(42, result)
     }
 
@@ -90,11 +86,9 @@ class InteropTest {
         val fetchUser: suspend () -> String = { "Alice" }
         val fetchAge: suspend () -> Int = { 30 }
 
-        val result = Async {
-            kap { name: String, age: Int -> "$name($age)" }
-                .with { with(fetchUser.toKap()) { execute() } }
-                .with { with(fetchAge.toKap()) { execute() } }
-        }
+        val result = kap { name: String, age: Int -> "$name($age)" }
+            .with { with(fetchUser.toKap()) { execute() } }
+            .with { with(fetchAge.toKap()) { execute() } }.executeGraph()
         assertEquals("Alice(30)", result)
     }
 
@@ -158,17 +152,13 @@ class InteropTest {
 
     @Test
     fun `Result success converts to valid computation`() = runTest {
-        val result = Async {
-            Result.success(42).toValidated { "error: ${it.message}" }
-        }
+        val result = Result.success(42).toValidated { "error: ${it.message}" }.executeGraph()
         assertEquals(Either.Right(42), result)
     }
 
     @Test
     fun `Result failure converts to invalid computation`() = runTest {
-        val result = Async {
-            Result.failure<Int>(RuntimeException("boom")).toValidated { "error: ${it.message}" }
-        }
+        val result = Result.failure<Int>(RuntimeException("boom")).toValidated { "error: ${it.message}" }.executeGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals("error: boom", result.value.head)
     }
@@ -179,31 +169,27 @@ class InteropTest {
 
     @Test
     fun `delayed returns value after duration`() = runTest {
-        val result = Async { delayed(100.milliseconds, 42) }
+        val result = delayed(100.milliseconds, 42).executeGraph()
         assertEquals(42, result)
     }
 
     @Test
     fun `delayed with block executes block after duration`() = runTest {
         var executed = false
-        val result = Async {
-            delayed(100.milliseconds) {
-                executed = true
-                "done"
-            }
-        }
+        val result = delayed(100.milliseconds) {
+            executed = true
+            "done"
+        }.executeGraph()
         assertEquals("done", result)
         assertTrue(executed)
     }
 
     @Test
     fun `delayed composes with race`() = runTest {
-        val result = Async {
-            race(
-                delayed(10_000.milliseconds, "slow"),
-                Kap.of("fast"),
-            )
-        }
+        val result = race(
+            delayed(10_000.milliseconds, "slow"),
+            Kap.of("fast"),
+        ).executeGraph()
         assertEquals("fast", result)
     }
 
@@ -216,32 +202,28 @@ class InteropTest {
         val deferred = CompletableDeferred<String>()
         val computation = deferred.toKap()
 
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
-                .with {
-                    kotlinx.coroutines.delay(50)
-                    deferred.complete("resolved")
-                    "trigger"
-                }
-                .with { with(computation) { execute() } }
-        }
+        val result = kap { a: String, b: String -> "$a|$b" }
+            .with {
+                kotlinx.coroutines.delay(50)
+                deferred.complete("resolved")
+                "trigger"
+            }
+            .with { with(computation) { execute() } }.executeGraph()
         assertEquals("trigger|resolved", result)
     }
 
     @Test
     fun `delayed timing is exact in virtual time`() = runTest {
-        val result = Async { delayed(100.milliseconds, "hello") }
+        val result = delayed(100.milliseconds, "hello").executeGraph()
         assertEquals("hello", result)
     }
 
     @Test
     fun `catching preserves CancellationException`() = runTest {
         val result = runCatching {
-            Async {
-                catching {
-                    throw kotlinx.coroutines.CancellationException("cancelled")
-                }
-            }
+                        catching {
+                throw kotlinx.coroutines.CancellationException("cancelled")
+            }.executeGraph()
         }
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is kotlinx.coroutines.CancellationException)
@@ -249,9 +231,7 @@ class InteropTest {
 
     @Test
     fun `catching wraps non-cancellation exceptions in Result`() = runTest {
-        val result = Async {
-            catching { throw RuntimeException("boom") }
-        }
+        val result = catching { throw RuntimeException("boom") }.executeGraph()
         assertTrue(result.isFailure)
         assertEquals("boom", result.exceptionOrNull()?.message)
     }
@@ -261,11 +241,9 @@ class InteropTest {
         val good = Result.success(42).toValidated { "error: ${it.message}" }
         val bad = Result.failure<Int>(RuntimeException("oops")).toValidated { "error: ${it.message}" }
 
-        val result = Async {
-            kapV<String, Int, Int, Int> { a, b -> a + b }
-                .withV(good)
-                .withV(bad)
-        }
+        val result = kapV<String, Int, Int, Int> { a, b -> a + b }
+            .withV(good)
+            .withV(bad).executeGraph()
 
         assertTrue(result is Either.Left)
         assertEquals("error: oops", (result as Either.Left).value.head)

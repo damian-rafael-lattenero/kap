@@ -40,8 +40,7 @@ class CompositionProofTest {
     fun `andThen prevents eager launch - post-andThen with waits for andThen result`() = runTest {
         // With then, the ap{D@30} would launch at t=0.
         // With andThen, the ap{D@30} cannot exist until andThen's lambda runs (t=80).
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with { delay(30); "A" }
                 .with { delay(30); "B" }
                 .andThen { ab ->
@@ -50,8 +49,7 @@ class CompositionProofTest {
                     kap { c: String, d: String -> "$ab|$c|$d" }
                         .with { delay(50); "C" }
                         .with { delay(50); "D" }
-                }
-        }
+                }.executeGraph()
 
         assertEquals("A|B|C|D", result)
         // t=0: A, B launch. t=30: A, B done, andThen lambda runs, C+D launch.
@@ -63,17 +61,15 @@ class CompositionProofTest {
     @Test
     fun `then and andThen both create true phase boundaries`() = runTest {
         // then version: C waits for barrier (true phase boundary)
-        val thenResult = Async {
-            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val thenResult = kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with { delay(30); "A" }
                 .then { delay(50); "B" }  // barrier
-                .with { delay(30); "C" }          // waits for barrier, launches at t=80
-        }
+                .with { delay(30); "C" }  // waits for barrier, launches at t=80
+                .executeGraph()
         val thenTime = currentTime  // 30 + 50 + 30 = 110ms
 
         // andThen version: same timing, but passes value
-        Async {
-            Kap.of(Unit).andThen {
+        Kap.of(Unit).andThen {
                 kap { a: String, b: String -> "$a|$b" }
                     .with { delay(30); "A" }
                     .with { delay(30); "B" }
@@ -81,8 +77,7 @@ class CompositionProofTest {
                 kap { c: String, d: String -> "$ab|$c|$d" }
                     .with { delay(50); "C" }
                     .with { delay(50); "D" }
-            }
-        }
+            }.executeGraph()
         val andThenTime = currentTime - thenTime  // 30 + 50 = 80ms
 
         assertEquals("A|B|C", thenResult)
@@ -93,12 +88,11 @@ class CompositionProofTest {
     @Test
     fun `thenValue vs then - thenValue allows eager launch`() = runTest {
         // thenValue: C launches eagerly at t=0 (old behavior)
-        val thenValueResult = Async {
-            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val thenValueResult = kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with { delay(30); "A" }
                 .thenValue { delay(50); "B" }
                 .with { delay(30); "C" }          // launches at t=0, overlaps
-        }
+                .executeGraph()
         val thenValueTime = currentTime  // 30 + 50 = 80ms (C was already done)
 
         assertEquals("A|B|C", thenValueResult)
@@ -107,15 +101,13 @@ class CompositionProofTest {
 
     @Test
     fun `andThen enables value-dependent parallel fan-out with timing proof`() = runTest {
-        val result = Async {
-            Kap { delay(20); 10 }.andThen { base ->
+        val result = Kap { delay(20); 10 }.andThen { base ->
                 // base is available here — fan out with computed values
                 kap { a: Int, b: Int, c: Int -> a + b + c }
                     .with { delay(30); base * 2 }  // 20
                     .with { delay(30); base * 3 }  // 30
                     .with { delay(30); base * 4 }  // 40
-            }
-        }
+            }.executeGraph()
 
         assertEquals(90, result) // 20 + 30 + 40
         // t=0-20: compute base. t=20-50: three parallel multiplications. Total: 50ms
@@ -129,15 +121,13 @@ class CompositionProofTest {
 
     @Test
     fun `timeout inside with - slow branch gets default while others proceed`() = runTest {
-        val result = Async {
-            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with { delay(30); "fast-A" }
                 .with {
                     with(Kap { delay(500); "slow-B" }
                         .timeout(50.milliseconds, "timeout-B")) { execute() }
                 }
-                .with { delay(30); "fast-C" }
-        }
+                .with { delay(30); "fast-C" }.executeGraph()
 
         assertEquals("fast-A|timeout-B|fast-C", result)
         // All launch at t=0. A done at 30, C done at 30, B times out at 50.
@@ -147,14 +137,12 @@ class CompositionProofTest {
 
     @Test
     fun `timeout inside with - fast branch returns before timeout`() = runTest {
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with {
                     with(Kap { delay(20); "fast" }
                         .timeout(100.milliseconds, "timeout")) { execute() }
                 }
-                .with { delay(30); "other" }
-        }
+                .with { delay(30); "other" }.executeGraph()
 
         assertEquals("fast|other", result)
         assertEquals(30, currentTime, "Max(20,30) = 30ms")
@@ -168,8 +156,7 @@ class CompositionProofTest {
     fun `retry inside with - flaky branch retries while others proceed`() = runTest {
         var attempts = 0
 
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with {
                     with(Kap {
                         attempts++
@@ -177,8 +164,7 @@ class CompositionProofTest {
                         delay(20); "recovered-B"
                     }.retry(3, delay = 10.milliseconds)) { execute() }
                 }
-                .with { delay(30); "stable-A" }
-        }
+                .with { delay(30); "stable-A" }.executeGraph()
 
         assertEquals("recovered-B|stable-A", result)
         assertEquals(3, attempts)
@@ -195,15 +181,13 @@ class CompositionProofTest {
 
     @Test
     fun `recover inside with - one branch fails and recovers without affecting siblings`() = runTest {
-        val result = Async {
-            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with { delay(30); "A" }
                 .with {
                     with(Kap<String> { throw RuntimeException("boom") }
                         .recover { "recovered" }) { execute() }
                 }
-                .with { delay(30); "C" }
-        }
+                .with { delay(30); "C" }.executeGraph()
 
         // B failed and recovered immediately. A and C completed normally.
         assertEquals("A|recovered|C", result)
@@ -215,16 +199,14 @@ class CompositionProofTest {
         // Branch A recovers its own error. Branch B throws.
         // B's error should propagate — recover on A doesn't affect B.
         val result = runCatching {
-            Async {
-                kap { a: String, b: String -> "$a|$b" }
+            kap { a: String, b: String -> "$a|$b" }
                     .with {
                         with(Kap<String> { throw RuntimeException("A-error") }
                             .recover { "A-recovered" }) { execute() }
                     }
                     .with {
                         throw RuntimeException("B-crash")
-                    }
-            }
+                    }.executeGraph()
         }
 
         assertTrue(result.isFailure, "B's exception should propagate")
@@ -237,12 +219,10 @@ class CompositionProofTest {
 
     @Test
     fun `race completes in min time not max`() = runTest {
-        val result = Async {
-            race(
+        val result = race(
                 Kap { delay(100); "slow" },
                 Kap { delay(20); "fast" },
-            )
-        }
+            ).executeGraph()
 
         assertEquals("fast", result)
         assertEquals(20, currentTime,
@@ -251,14 +231,12 @@ class CompositionProofTest {
 
     @Test
     fun `raceN with 4 branches completes in fastest time`() = runTest {
-        val result = Async {
-            raceN(
+        val result = raceN(
                 Kap { delay(100); "a" },
                 Kap { delay(200); "b" },
                 Kap { delay(10); "c" },
                 Kap { delay(150); "d" },
-            )
-        }
+            ).executeGraph()
 
         assertEquals("c", result)
         assertEquals(10, currentTime,
@@ -267,16 +245,14 @@ class CompositionProofTest {
 
     @Test
     fun `race inside with chain - use fastest data source`() = runTest {
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with {
                     with(race(
                         Kap { delay(100); "primary-A" },
                         Kap { delay(20); "cache-A" },
                     )) { execute() }
                 }
-                .with { delay(30); "B" }
-        }
+                .with { delay(30); "B" }.executeGraph()
 
         assertEquals("cache-A|B", result)
         // race(100,20) = 20ms, B = 30ms. All parallel. Total = max(20,30) = 30ms
@@ -292,8 +268,7 @@ class CompositionProofTest {
     fun `production pattern - timeout + retry + recover + race inside with chain`() = runTest {
         var fetchAttempts = 0
 
-        val result = Async {
-            kap { user: String, cart: String, promos: String, shipping: String ->
+        val result = kap { user: String, cart: String, promos: String, shipping: String ->
                 "$user|$cart|$promos|$shipping"
             }
                 // Branch 1: normal fast call
@@ -317,8 +292,7 @@ class CompositionProofTest {
                         Kap { delay(100); "shipping-api" },
                         Kap { delay(15); "shipping-cache" },
                     )) { execute() }
-                }
-        }
+                }.executeGraph()
 
         assertEquals("user-data|cart-data|promos-cached|shipping-cache", result)
         assertEquals(2, fetchAttempts)
@@ -337,13 +311,11 @@ class CompositionProofTest {
 
     @Test
     fun `consecutive then barriers are strictly sequential`() = runTest {
-        val result = Async {
-            kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+        val result = kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
                 .then { delay(20); "A" }
                 .then { delay(30); "B" }
                 .then { delay(40); "C" }
-                .then { delay(10); "D" }
-        }
+                .then { delay(10); "D" }.executeGraph()
 
         assertEquals("A|B|C|D", result)
         // All barriers sequential: 20 + 30 + 40 + 10 = 100ms
@@ -353,14 +325,12 @@ class CompositionProofTest {
 
     @Test
     fun `sequence unbounded completes in max element time`() = runTest {
-        val result = Async {
-            listOf(
+        val result = listOf(
                 Kap { delay(30); "A" },
                 Kap { delay(50); "B" },
                 Kap { delay(20); "C" },
                 Kap { delay(40); "D" },
-            ).sequence()
-        }
+            ).sequence().executeGraph()
 
         assertEquals(listOf("A", "B", "C", "D"), result)
         assertEquals(50, currentTime,
@@ -385,8 +355,8 @@ class CompositionProofTest {
         assertEquals(false, executed, "Kap should NOT execute during construction")
 
         // Now execute
-        val result = Async { graph }
-        assertEquals(true, executed, "Kap should execute inside Async {}")
+        val result = graph.executeGraph()
+        assertEquals(true, executed, "Kap should execute inside ")
         assertEquals("A|B|C", result)
     }
 
@@ -396,9 +366,9 @@ class CompositionProofTest {
 
         val graph = Kap { ++counter }
 
-        val r1 = Async { graph }
-        val r2 = Async { graph }
-        val r3 = Async { graph }
+        val r1 = graph.executeGraph()
+        val r2 = graph.executeGraph()
+        val r3 = graph.executeGraph()
 
         assertEquals(1, r1)
         assertEquals(2, r2)

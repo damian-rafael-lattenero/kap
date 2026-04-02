@@ -43,14 +43,13 @@ implementation("io.github.damian-rafael-lattenero:kap-arrow:2.5.0")
 === "KAP (max 22 validators, parallel)"
 
     ```kotlin
-    val result: Either<NonEmptyList<RegError>, User> = Async {
-        zipV(
-            { validateName(name) },
-            { validateEmail(email) },
-            { validateAge(age) },
-            { checkUsername(username) },
-        ) { n, e, a, u -> User(n, e, a, u) }
-    }
+    val result: Either<NonEmptyList<RegError>, User> = zipV(
+        { validateName(name) },
+        { validateEmail(email) },
+        { validateAge(age) },
+        { checkUsername(username) },
+    ) { n, e, a, u -> User(n, e, a, u) }
+        .executeGraph()
     // All errors at once + all validators run in PARALLEL + scales to 22
     ```
 
@@ -124,14 +123,13 @@ suspend fun checkUsername(username: String): Either<NonEmptyList<RegError>, Vali
 === "KAP"
 
     ```kotlin
-    val valid: Either<NonEmptyList<RegError>, User> = Async {
-        zipV(
-            { validateName("Alice") },
-            { validateEmail("alice@example.com") },
-            { validateAge(25) },
-            { checkUsername("alice") },
-        ) { name, email, age, username -> User(name, email, age, username) }
-    }
+    val valid: Either<NonEmptyList<RegError>, User> = zipV(
+        { validateName("Alice") },
+        { validateEmail("alice@example.com") },
+        { validateAge(25) },
+        { checkUsername("alice") },
+    ) { name, email, age, username -> User(name, email, age, username) }
+        .executeGraph()
     // Right(User(ValidName(Alice), ValidEmail(alice@example.com), ValidAge(25), ValidUsername(alice)))
     ```
 
@@ -167,14 +165,13 @@ suspend fun checkUsername(username: String): Either<NonEmptyList<RegError>, Vali
 === "KAP"
 
     ```kotlin
-    val invalid: Either<NonEmptyList<RegError>, User> = Async {
-        zipV(
-            { validateName("A") },           // ← too short
-            { validateEmail("bad") },         // ← no @
-            { validateAge(10) },              // ← under 18
-            { checkUsername("al") },          // ← too short
-        ) { name, email, age, username -> User(name, email, age, username) }
-    }
+    val invalid: Either<NonEmptyList<RegError>, User> = zipV(
+        { validateName("A") },           // ← too short
+        { validateEmail("bad") },         // ← no @
+        { validateAge(10) },              // ← under 18
+        { checkUsername("al") },          // ← too short
+    ) { name, email, age, username -> User(name, email, age, username) }
+        .executeGraph()
     // Left(NonEmptyList(InvalidName, InvalidEmail, InvalidAge, UsernameTaken))
     // ALL 4 errors in ONE response. All ran in parallel.
     ```
@@ -216,13 +213,12 @@ Same parallel execution and error accumulation, typed chain syntax:
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
-            .withV { validateName("Alice") }
-            .withV { validateEmail("alice@example.com") }
-            .withV { validateAge(25) }
-            .withV { checkUsername("alice") }
-    }
+    val result = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+        .withV { validateName("Alice") }
+        .withV { validateEmail("alice@example.com") }
+        .withV { validateAge(25) }
+        .withV { checkUsername("alice") }
+        .executeGraph()
     ```
 
 === "Arrow"
@@ -247,26 +243,24 @@ Some validations depend on earlier results. Phase 1 collects all basic errors. O
     data class Clearance(val notBlocked: Boolean, val available: Boolean)
     data class Registration(val identity: Identity, val clearance: Clearance)
 
-    val result: Either<NonEmptyList<RegError>, Registration> = Async {
-        accumulate {
-            // Phase 1: validate basic fields in parallel, collect ALL errors
-            val identity = zipV(
-                { validateName("Alice") },
-                { validateEmail("alice@example.com") },
-                { validateAge(25) },
-            ) { name, email, age -> Identity(name, email, age) }
-                .bindV()  // short-circuits if phase 1 fails
+    val result: Either<NonEmptyList<RegError>, Registration> = accumulate {
+        // Phase 1: validate basic fields in parallel, collect ALL errors
+        val identity = zipV(
+            { validateName("Alice") },
+            { validateEmail("alice@example.com") },
+            { validateAge(25) },
+        ) { name, email, age -> Identity(name, email, age) }
+            .bindV()  // short-circuits if phase 1 fails
 
-            // Phase 2: only runs if phase 1 passed — uses identity result
-            val cleared = zipV(
-                { checkNotBlacklisted(identity) },
-                { checkUsernameAvailable(identity.email.value) },
-            ) { a, b -> Clearance(a, b) }
-                .bindV()
+        // Phase 2: only runs if phase 1 passed — uses identity result
+        val cleared = zipV(
+            { checkNotBlacklisted(identity) },
+            { checkUsernameAvailable(identity.email.value) },
+        ) { a, b -> Clearance(a, b) }
+            .bindV()
 
-            Registration(identity, cleared)
-        }
-    }
+        Registration(identity, cleared)
+    }.executeGraph()
     ```
 
 === "Raw Coroutines"
@@ -297,11 +291,9 @@ val multiError: Validated<RegError, ValidName> = invalidAll(
 ### `catching(toError) { }` — Exception to error bridge
 
 ```kotlin
-val result = Async {
-    catching<RegError, String>({ e -> RegError.InvalidName(e.message ?: "unknown") }) {
-        riskyOperation()
-    }
-}
+val result = catching<RegError, String>({ e -> RegError.InvalidName(e.message ?: "unknown") }) {
+    riskyOperation()
+}.executeGraph()
 ```
 
 ---
@@ -333,22 +325,20 @@ val result = Async {
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        valid(ValidAge(15))
-            .ensureV(RegError.InvalidAge("Must be 18+")) { it.value >= 18 }
-    }
+    val result = valid(ValidAge(15))
+        .ensureV(RegError.InvalidAge("Must be 18+")) { it.value >= 18 }
+        .executeGraph()
     // Left(NonEmptyList(InvalidAge("Must be 18+")))
 
-    val result2 = Async {
-        valid(ValidPassword("123"))
-            .ensureVAll { password ->
-                buildList {
-                    if (password.value.length < 8) add(RegError.WeakPassword("Too short"))
-                    if (!password.value.any { it.isUpperCase() }) add(RegError.WeakPassword("No uppercase"))
-                    if (!password.value.any { it.isDigit() }) add(RegError.WeakPassword("No digit"))
-                }.let { if (it.isEmpty()) null else nonEmptyListOf(it.first(), *it.drop(1).toTypedArray()) }
-            }
-    }
+    val result2 = valid(ValidPassword("123"))
+        .ensureVAll { password ->
+            buildList {
+                if (password.value.length < 8) add(RegError.WeakPassword("Too short"))
+                if (!password.value.any { it.isUpperCase() }) add(RegError.WeakPassword("No uppercase"))
+                if (!password.value.any { it.isDigit() }) add(RegError.WeakPassword("No digit"))
+            }.let { if (it.isEmpty()) null else nonEmptyListOf(it.first(), *it.drop(1).toTypedArray()) }
+        }
+        .executeGraph()
     // Left(NonEmptyList(WeakPassword("Too short"), WeakPassword("No uppercase")))
     ```
 
@@ -359,44 +349,40 @@ val result = Async {
 ### `.mapV { }` — Transform success
 
 ```kotlin
-val result = Async {
-    valid(ValidName("alice"))
-        .mapV { it.value.uppercase() }
-}
+val result = valid(ValidName("alice"))
+    .mapV { it.value.uppercase() }
+    .executeGraph()
 // Right("ALICE")
 ```
 
 ### `.mapError { }` — Transform error type
 
 ```kotlin
-val result = Async {
-    invalid(RegError.InvalidName("too short"))
-        .mapError { ApiError(it.message) }
-}
+val result = invalid(RegError.InvalidName("too short"))
+    .mapError { ApiError(it.message) }
+    .executeGraph()
 ```
 
 ### `.recoverV { }` — Recover from validation errors
 
 ```kotlin
-val result = Async {
-    invalid(RegError.InvalidName("too short"))
-        .recoverV { errors -> ValidName("default-${errors.size}-errors") }
-}
+val result = invalid(RegError.InvalidName("too short"))
+    .recoverV { errors -> ValidName("default-${errors.size}-errors") }
+    .executeGraph()
 // Right(ValidName("default-1-errors"))
 ```
 
 ### `.orThrow()` — Unwrap or throw
 
 ```kotlin
-val user: User = Async {
-    zipV(
-        { validateName("Alice") },
-        { validateEmail("alice@example.com") },
-        { validateAge(25) },
-        { checkUsername("alice") },
-    ) { name, email, age, username -> User(name, email, age, username) }
-        .orThrow()  // Right → value, Left → throws
-}
+val user: User = zipV(
+    { validateName("Alice") },
+    { validateEmail("alice@example.com") },
+    { validateAge(25) },
+    { checkUsername("alice") },
+) { name, email, age, username -> User(name, email, age, username) }
+    .orThrow()  // Right → value, Left → throws
+    .executeGraph()
 ```
 
 ---
@@ -409,9 +395,8 @@ val user: User = Async {
 
     ```kotlin
     val emails = listOf("alice@example.com", "bad", "bob@example.com", "also-bad")
-    val result = Async {
-        emails.traverseV { email -> validateEmail(email) }
-    }
+    val result = emails.traverseV { email -> validateEmail(email) }
+        .executeGraph()
     // Left(NonEmptyList(InvalidEmail("bad"), InvalidEmail("also-bad")))
     // ALL invalid emails reported, not just the first
     ```
@@ -465,7 +450,7 @@ val user: User = Async {
     val validated: List<Validated<RegError, ValidEmail>> = emails.map { email ->
         Kap { validateEmail(email) }
     }
-    val result = Async { validated.sequenceV() }
+    val result = validated.sequenceV().executeGraph()
     ```
 
 ---
@@ -487,14 +472,11 @@ val user: User = Async {
 === "KAP"
 
     ```kotlin
-    val success: Either<Throwable, String> = Async {
-        Kap { "hello" }.attempt()
-    }
+    val success: Either<Throwable, String> = Kap { "hello" }.attempt().executeGraph()
     // Right("hello")
 
-    val failure: Either<Throwable, String> = Async {
-        Kap<String> { throw RuntimeException("boom") }.attempt()
-    }
+    val failure: Either<Throwable, String> = Kap<String> { throw RuntimeException("boom") }
+        .attempt().executeGraph()
     // Left(RuntimeException("boom"))
     ```
 
@@ -503,12 +485,10 @@ val user: User = Async {
 === "KAP"
 
     ```kotlin
-    val result: Either<String, Int> = Async {
-        raceEither(
-            fa = Kap { delay(30); "fast-string" },
-            fb = Kap { delay(100); 42 },
-        )
-    }
+    val result: Either<String, Int> = raceEither(
+        fa = Kap { delay(30); "fast-string" },
+        fb = Kap { delay(100); 42 },
+    ).executeGraph()
     // Left("fast-string") — String won the race
     // Loser cancelled automatically
     ```
@@ -560,24 +540,22 @@ For imperative-style validation with `.bindV()`:
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        accumulate<RegError, Registration> {
-            val identity = zipV(
-                { validateName("Alice") },
-                { validateEmail("alice@example.com") },
-                { validateAge(25) },
-            ) { name, email, age -> Identity(name, email, age) }
-                .bindV()  // short-circuits if phase 1 fails
+    val result = accumulate<RegError, Registration> {
+        val identity = zipV(
+            { validateName("Alice") },
+            { validateEmail("alice@example.com") },
+            { validateAge(25) },
+        ) { name, email, age -> Identity(name, email, age) }
+            .bindV()  // short-circuits if phase 1 fails
 
-            val cleared = zipV(
-                { checkNotBlacklisted(identity) },
-                { checkUsernameAvailable(identity.email.value) },
-            ) { a, b -> Clearance(a, b) }
-                .bindV()
+        val cleared = zipV(
+            { checkNotBlacklisted(identity) },
+            { checkUsernameAvailable(identity.email.value) },
+        ) { a, b -> Clearance(a, b) }
+            .bindV()
 
-            Registration(identity, cleared)
-        }
-    }
+        Registration(identity, cleared)
+    }.executeGraph()
     ```
 
 === "Arrow"

@@ -14,17 +14,15 @@ import kotlinx.coroutines.withContext
  * This mirrors Kotlin's `use {}` semantics.
  *
  * ```
- * val result = Async {
- *     bracket(
- *         acquire = { openConnection() },
- *         use = { conn ->
- *             kap(::Result)
- *                 .with { conn.fetchUser() }
- *                 .with { conn.fetchCart() }
- *         },
- *         release = { conn -> conn.close() },
- *     )
- * }
+ * val result = bracket(
+ *     acquire = { openConnection() },
+ *     use = { conn ->
+ *         kap(::Result)
+ *             .with { conn.fetchUser() }
+ *             .with { conn.fetchCart() }
+ *     },
+ *     release = { conn -> conn.close() },
+ * ).executeGraph()
  * ```
  *
  * @param acquire suspending function that acquires the resource.

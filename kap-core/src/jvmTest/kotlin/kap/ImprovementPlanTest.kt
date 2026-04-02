@@ -28,11 +28,9 @@ class ImprovementPlanTest {
 
     @Test
     fun `await executes computation and returns result`() = runTest {
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
-                .with { Kap { delay(30); "fast" }.timeout(100.milliseconds, "timeout").await() }
-                .with { delay(30); "other" }
-        }
+        val result = kap { a: String, b: String -> "$a|$b" }
+                .with { Kap { delay(30); "fast" }.timeout(100.milliseconds, "timeout").executeGraph() }
+                .with { delay(30); "other" }.executeGraph()
 
         assertEquals("fast|other", result)
         assertEquals(30, currentTime, "Max(30,30) = 30ms")
@@ -40,12 +38,10 @@ class ImprovementPlanTest {
 
     @Test
     fun `await with timeout fallback inside with branch`() = runTest {
-        val result = Async {
-            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with { delay(30); "A" }
-                .with { Kap { delay(500); "slow-B" }.timeout(50.milliseconds, "timeout-B").await() }
-                .with { delay(30); "C" }
-        }
+                .with { Kap { delay(500); "slow-B" }.timeout(50.milliseconds, "timeout-B").executeGraph() }
+                .with { delay(30); "C" }.executeGraph()
 
         assertEquals("A|timeout-B|C", result)
         assertEquals(50, currentTime, "Timeout at 50ms determines total")
@@ -54,17 +50,15 @@ class ImprovementPlanTest {
     @Test
     fun `await with retry inside with branch`() = runTest {
         var attempts = 0
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with {
                     Kap {
                         attempts++
                         if (attempts < 3) throw RuntimeException("flaky")
                         delay(20); "recovered"
-                    }.retry(3, delay = 10.milliseconds).await()
+                    }.retry(3, delay = 10.milliseconds).executeGraph()
                 }
-                .with { delay(30); "stable" }
-        }
+                .with { delay(30); "stable" }.executeGraph()
 
         assertEquals("recovered|stable", result)
         assertEquals(3, attempts)
@@ -73,15 +67,13 @@ class ImprovementPlanTest {
 
     @Test
     fun `await with recover inside with branch`() = runTest {
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with {
                     Kap<String> { throw RuntimeException("boom") }
                         .recover { "recovered" }
-                        .await()
+                        .executeGraph()
                 }
-                .with { delay(30); "B" }
-        }
+                .with { delay(30); "B" }.executeGraph()
 
         assertEquals("recovered|B", result)
     }
@@ -90,11 +82,9 @@ class ImprovementPlanTest {
     fun `await preserves structured concurrency`() = runTest {
         // If one branch fails, the other should be cancelled
         val result = runCatching {
-            Async {
-                kap { a: String, b: String -> "$a|$b" }
-                    .with { Kap<String> { throw RuntimeException("crash") }.await() }
-                    .with { delay(1000); "never" }
-            }
+            kap { a: String, b: String -> "$a|$b" }
+                    .with { Kap<String> { throw RuntimeException("crash") }.executeGraph() }
+                    .with { delay(1000); "never" }.executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -110,12 +100,11 @@ class ImprovementPlanTest {
         // If the barrier throws, the gated with branch should see the failure
         // through structured concurrency cancellation, NOT hang forever.
         val result = runCatching {
-            Async {
-                kap { a: String, b: String, c: String -> "$a|$b|$c" }
+            kap { a: String, b: String, c: String -> "$a|$b|$c" }
                     .with { delay(30); "A" }
                     .then { throw RuntimeException("barrier-crash") }
                     .with { delay(30); "C" }  // gated — should NOT hang
-            }
+                    .executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -126,14 +115,12 @@ class ImprovementPlanTest {
     fun `PhaseBarrier completes signal on exception with recover in chain`() = runTest {
         // More subtle: if the barrier fails but there's a recover higher up,
         // the signal must still fire so gated branches don't deadlock.
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with { delay(20); "A" }
                 .then {
                     with(Kap<String> { throw RuntimeException("barrier-fail") }
                         .recover { "recovered" }) { execute() }
-                }
-        }
+                }.executeGraph()
 
         assertEquals("A|recovered", result)
     }
@@ -144,20 +131,16 @@ class ImprovementPlanTest {
 
     @Test
     fun `orElse returns primary on success`() = runTest {
-        val result = Async {
-            Kap { "primary" }
-                .orElse(Kap { "fallback" })
-        }
+        val result = Kap { "primary" }
+                .orElse(Kap { "fallback" }).executeGraph()
 
         assertEquals("primary", result)
     }
 
     @Test
     fun `orElse returns fallback on primary failure`() = runTest {
-        val result = Async {
-            Kap<String> { throw RuntimeException("primary-fail") }
-                .orElse(Kap { delay(30); "fallback" })
-        }
+        val result = Kap<String> { throw RuntimeException("primary-fail") }
+                .orElse(Kap { delay(30); "fallback" }).executeGraph()
 
         assertEquals("fallback", result)
         assertEquals(30, currentTime, "Fallback starts only after primary fails")
@@ -165,11 +148,9 @@ class ImprovementPlanTest {
 
     @Test
     fun `orElse chains three levels`() = runTest {
-        val result = Async {
-            Kap<String> { throw RuntimeException("fail1") }
+        val result = Kap<String> { throw RuntimeException("fail1") }
                 .orElse(Kap { throw RuntimeException("fail2") })
-                .orElse(Kap { "last-resort" })
-        }
+                .orElse(Kap { "last-resort" }).executeGraph()
 
         assertEquals("last-resort", result)
     }
@@ -177,10 +158,8 @@ class ImprovementPlanTest {
     @Test
     fun `orElse propagates CancellationException`() = runTest {
         val result = runCatching {
-            Async {
-                Kap<String> { throw CancellationException("cancel") }
-                    .orElse(Kap { "should-not-reach" })
-            }
+            Kap<String> { throw CancellationException("cancel") }
+                    .orElse(Kap { "should-not-reach" }).executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -189,10 +168,8 @@ class ImprovementPlanTest {
 
     @Test
     fun `orElse is sequential not concurrent - timing proof`() = runTest {
-        val result = Async {
-            Kap<String> { delay(20); throw RuntimeException("fail") }
-                .orElse(Kap { delay(30); "fallback" })
-        }
+        val result = Kap<String> { delay(20); throw RuntimeException("fail") }
+                .orElse(Kap { delay(30); "fallback" }).executeGraph()
 
         assertEquals("fallback", result)
         assertEquals(50, currentTime, "Sequential: 20ms (fail) + 30ms (fallback) = 50ms")
@@ -200,14 +177,12 @@ class ImprovementPlanTest {
 
     @Test
     fun `firstSuccessOf returns first successful computation`() = runTest {
-        val result = Async {
-            firstSuccessOf(
+        val result = firstSuccessOf(
                 Kap { throw RuntimeException("fail1") },
                 Kap { throw RuntimeException("fail2") },
                 Kap { delay(30); "third" },
                 Kap { delay(30); "fourth" }, // never tried
-            )
-        }
+            ).executeGraph()
 
         assertEquals("third", result)
     }
@@ -215,13 +190,11 @@ class ImprovementPlanTest {
     @Test
     fun `firstSuccessOf throws last error when all fail`() = runTest {
         val result = runCatching {
-            Async {
-                firstSuccessOf(
+            firstSuccessOf(
                     Kap<String> { throw RuntimeException("err1") },
                     Kap { throw RuntimeException("err2") },
                     Kap { throw RuntimeException("err3") },
-                )
-            }
+                ).executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -253,12 +226,10 @@ class ImprovementPlanTest {
 
     @Test
     fun `firstSuccessOf is sequential - timing proof`() = runTest {
-        val result = Async {
-            firstSuccessOf(
+        val result = firstSuccessOf(
                 Kap { delay(20); throw RuntimeException("fail") },
                 Kap { delay(30); "success" },
-            )
-        }
+            ).executeGraph()
 
         assertEquals("success", result)
         assertEquals(50, currentTime, "Sequential: 20ms (fail) + 30ms (success) = 50ms")
@@ -270,7 +241,7 @@ class ImprovementPlanTest {
             Kap<String> { throw RuntimeException("fail") },
             Kap { "success" },
         )
-        val result = Async { computations.firstSuccess() }
+        val result = computations.firstSuccess().executeGraph()
 
         assertEquals("success", result)
     }
@@ -281,16 +252,14 @@ class ImprovementPlanTest {
 
     @Test
     fun `integration - await inside with with firstSuccessOf`() = runTest {
-        val result = Async {
-            kap { a: String, b: String -> "$a|$b" }
+        val result = kap { a: String, b: String -> "$a|$b" }
                 .with {
                     firstSuccessOf(
                         Kap { delay(20); throw RuntimeException("primary-down") },
                         Kap { delay(30); "replica-data" },
-                    ).await()
+                    ).executeGraph()
                 }
-                .with { delay(60); "other" }
-        }
+                .with { delay(60); "other" }.executeGraph()
 
         assertEquals("replica-data|other", result)
         // firstSuccessOf: 20 + 30 = 50ms. Other: 60ms. Parallel: max(50,60) = 60ms

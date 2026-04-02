@@ -3,8 +3,8 @@ package kap.ktor
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kap.Async
 import kap.Kap
+import kap.executeGraph
 
 /**
  * Execute a KAP computation and respond with the result.
@@ -24,7 +24,7 @@ suspend inline fun <reified T : Any> RoutingCall.respondAsync(
     block: () -> Kap<T>
 ) {
     val kap = block()
-    val result = Async { kap }
+    val result = kap.executeGraph()
     respond(status, result)
 }
 
@@ -34,11 +34,10 @@ suspend inline fun <reified T : Any> RoutingCall.respondAsync(
  * ```kotlin
  * get("/user/{id}") {
  *     call.respondKap {
- *         Async {
- *             kap(::UserResponse)
- *                 .with { fetchProfile(id) }
- *                 .with { fetchPreferences(id) }
- *         }
+ *         kap(::UserResponse)
+ *             .with { fetchProfile(id) }
+ *             .with { fetchPreferences(id) }
+ *             .executeGraph()
  *     }
  * }
  * ```

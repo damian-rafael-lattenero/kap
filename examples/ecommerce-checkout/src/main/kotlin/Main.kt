@@ -58,8 +58,7 @@ suspend fun main() {
 
     // Type safety: swap any two .with lines and the compiler rejects it.
     // Each slot expects a specific type — UserProfile, ShoppingCart, etc.
-    val result = Async {
-        kap(::CheckoutResult)
+    val result = kap(::CheckoutResult)
             // Phase 1: Fetch everything we need (parallel)
             .with { fetchUser() }
             .with { fetchCart() }
@@ -76,7 +75,7 @@ suspend fun main() {
             // Phase 5: Confirmation + email (parallel)
             .with { generateConfirmation() }
             .with { sendEmail() }
-    }
+            .executeGraph()
 
     val elapsed = System.currentTimeMillis() - start
     println("Result: $result")

@@ -14,8 +14,8 @@ class MemoizeOnSuccessTest {
     fun `caches successful result`() = runTest {
         var callCount = 0
         val comp = Kap { callCount++; "result" }.memoizeOnSuccess()
-        assertEquals("result", Async { comp })
-        assertEquals("result", Async { comp })
+        assertEquals("result", comp.executeGraph())
+        assertEquals("result", comp.executeGraph())
         assertEquals(1, callCount, "Should execute only once on success")
     }
 
@@ -29,15 +29,15 @@ class MemoizeOnSuccessTest {
         }.memoizeOnSuccess()
 
         // First two calls fail
-        runCatching { Async { comp } }
+        runCatching { comp.executeGraph() }
         assertEquals(1, callCount)
-        runCatching { Async { comp } }
+        runCatching { comp.executeGraph() }
         assertEquals(2, callCount)
 
         // Third call succeeds and gets cached
-        assertEquals("success", Async { comp })
+        assertEquals("success", comp.executeGraph())
         assertEquals(3, callCount)
-        assertEquals("success", Async { comp })
+        assertEquals("success", comp.executeGraph())
         assertEquals(3, callCount, "Should not execute again after success")
     }
 
@@ -45,14 +45,14 @@ class MemoizeOnSuccessTest {
     fun `memoize caches failure forever vs memoizeOnSuccess retries`() = runTest {
         var c1 = 0
         val memoized = Kap { c1++; if (c1 == 1) throw RuntimeException("fail"); "ok" }.memoize()
-        assertTrue(runCatching { Async { memoized } }.isFailure)
-        assertTrue(runCatching { Async { memoized } }.isFailure) // cached failure
+        assertTrue(runCatching { memoized.executeGraph() }.isFailure)
+        assertTrue(runCatching { memoized.executeGraph() }.isFailure) // cached failure
         assertEquals(1, c1)
 
         var c2 = 0
         val retryable = Kap { c2++; if (c2 == 1) throw RuntimeException("fail"); "ok" }.memoizeOnSuccess()
-        assertTrue(runCatching { Async { retryable } }.isFailure)
-        assertEquals("ok", Async { retryable }) // retried
+        assertTrue(runCatching { retryable.executeGraph() }.isFailure)
+        assertEquals("ok", retryable.executeGraph()) // retried
         assertEquals(2, c2)
     }
 
@@ -64,7 +64,7 @@ class MemoizeOnSuccessTest {
         val a = shared
         val b = shared
         val graph = kap { x: String, y: String -> "$x|$y" }.with(a).with(b)
-        val result = Async { graph }
+        val result = graph.executeGraph()
         assertEquals("shared|shared", result)
         assertEquals(1, callCount, "Parallel branches should share single execution")
     }
@@ -86,7 +86,7 @@ class MemoizeOnSuccessTest {
         }
 
         val graph = kap { a: String, b: String -> "$a+$b" }.with(compA).with(compB)
-        assertEquals("data+data", Async { graph })
+        assertEquals("data+data", graph.executeGraph())
         assertTrue(callCount <= 1)
     }
 
@@ -97,8 +97,8 @@ class MemoizeOnSuccessTest {
             callCount++; if (callCount < 2) throw RuntimeException("transient"); "ok"
         }.memoizeOnSuccess()
 
-        assertEquals("ok", Async { comp.retry(3) })
-        assertEquals("ok", Async { comp }) // cached
+        assertEquals("ok", comp.retry(3).executeGraph())
+        assertEquals("ok", comp.executeGraph()) // cached
         assertEquals(2, callCount)
     }
 }

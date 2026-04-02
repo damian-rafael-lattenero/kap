@@ -39,17 +39,13 @@ class FlowIntegrationTest {
 
     @Test
     fun `collectAsKap collects all emissions`() = runTest {
-        val result = Async {
-            flowOf(1, 2, 3).collectAsKap()
-        }
+        val result = flowOf(1, 2, 3).collectAsKap().executeGraph()
         assertEquals(listOf(1, 2, 3), result)
     }
 
     @Test
     fun `collectAsKap handles empty flow`() = runTest {
-        val result = Async {
-            flowOf<Int>().collectAsKap()
-        }
+        val result = flowOf<Int>().collectAsKap().executeGraph()
         assertEquals(emptyList(), result)
     }
 
@@ -282,12 +278,10 @@ class FlowIntegrationTest {
 
     @Test
     fun `full pipeline - toFlow, mapKap, filterKap, collectAsKap`() = runTest {
-        val result = Async {
-            flowOf(1, 2, 3, 4, 5)
+        val result = flowOf(1, 2, 3, 4, 5)
                 .mapKap { n -> Kap { n * 10 } }
                 .filterKap { n -> Kap { n > 20 } }
-                .collectAsKap()
-        }
+                .collectAsKap().executeGraph()
 
         assertEquals(listOf(30, 40, 50), result)
     }

@@ -19,12 +19,11 @@ import kotlinx.coroutines.async
  * Runs two suspend lambdas in parallel and combines their results.
  *
  * ```
- * val dashboard = Async {
- *     combine(
- *         { fetchUser(id) },
- *         { fetchCart(id) },
- *     ) { user, cart -> Dashboard(user, cart) }
- * }
+ * val dashboard = combine(
+ *     { fetchUser(id) },
+ *     { fetchCart(id) },
+ * ) { user, cart -> Dashboard(user, cart) }
+ *     .executeGraph()
  * ```
  */
 fun <A, B, R> combine(
@@ -41,13 +40,12 @@ fun <A, B, R> combine(
  * Runs three suspend lambdas in parallel and combines their results.
  *
  * ```
- * val dashboard = Async {
- *     combine(
- *         { fetchUser(id) },
- *         { fetchCart(id) },
- *         { fetchPromos(id) },
- *     ) { user, cart, promos -> Dashboard(user, cart, promos) }
- * }
+ * val dashboard = combine(
+ *     { fetchUser(id) },
+ *     { fetchCart(id) },
+ *     { fetchPromos(id) },
+ * ) { user, cart, promos -> Dashboard(user, cart, promos) }
+ *     .executeGraph()
  * ```
  */
 fun <A, B, C, R> combine(
@@ -104,9 +102,8 @@ fun <A, B, C, D, E, R> combine(
  * Runs two suspend lambdas in parallel and returns their results as a [Pair].
  *
  * ```
- * val (user, cart) = Async {
- *     pair({ fetchUser(id) }, { fetchCart(id) })
- * }
+ * val (user, cart) = pair({ fetchUser(id) }, { fetchCart(id) })
+ *     .executeGraph()
  * ```
  */
 fun <A, B> pair(
@@ -118,9 +115,8 @@ fun <A, B> pair(
  * Runs three suspend lambdas in parallel and returns their results as a [Triple].
  *
  * ```
- * val (user, cart, promos) = Async {
- *     triple({ fetchUser(id) }, { fetchCart(id) }, { fetchPromos(id) })
- * }
+ * val (user, cart, promos) = triple({ fetchUser(id) }, { fetchCart(id) }, { fetchPromos(id) })
+ *     .executeGraph()
  * ```
  */
 fun <A, B, C> triple(

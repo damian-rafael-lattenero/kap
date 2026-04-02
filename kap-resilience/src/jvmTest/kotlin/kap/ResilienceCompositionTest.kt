@@ -21,12 +21,10 @@ class ResilienceCompositionTest {
     fun `retryOrElse invokes fallback when schedule exhausted`() = runTest {
         val schedule = Schedule.times<Throwable>(2)
         var attempts = 0
-        val result = Async {
-            Kap<String> {
-                attempts++
-                error("always fails")
-            }.retryOrElse(schedule) { err -> "fallback: ${err.message}" }
-        }
+        val result = Kap<String> {
+            attempts++
+            error("always fails")
+        }.retryOrElse(schedule) { err -> "fallback: ${err.message}" }.executeGraph()
         assertEquals("fallback: always fails", result)
         assertEquals(3, attempts, "1 initial + 2 retries = 3 attempts")
     }
@@ -35,13 +33,11 @@ class ResilienceCompositionTest {
     fun `retryOrElse succeeds before exhaustion`() = runTest {
         val schedule = Schedule.times<Throwable>(5)
         var attempts = 0
-        val result = Async {
-            Kap {
-                attempts++
-                if (attempts < 3) error("retry me")
-                "success"
-            }.retryOrElse(schedule) { "should not reach" }
-        }
+        val result = Kap {
+            attempts++
+            if (attempts < 3) error("retry me")
+            "success"
+        }.retryOrElse(schedule) { "should not reach" }.executeGraph()
         assertEquals("success", result)
         assertEquals(3, attempts)
     }
@@ -52,16 +48,14 @@ class ResilienceCompositionTest {
         val comp = Kap<String> {
             throw CancellationException("cancel")
         }.retryOrElse(schedule) { "should not reach" }
-        assertFailsWith<CancellationException> { val r = Async { comp } }
+        assertFailsWith<CancellationException> { val r = comp.executeGraph() }
     }
 
     @Test
     fun `retryOrElse with zero retries goes directly to fallback`() = runTest {
         val schedule = Schedule.times<Throwable>(0)
-        val result = Async {
-            Kap<String> { error("fail") }
-                .retryOrElse(schedule) { "fallback" }
-        }
+        val result = Kap<String> { error("fail") }
+            .retryOrElse(schedule) { "fallback" }.executeGraph()
         assertEquals("fallback", result)
     }
 
@@ -71,13 +65,11 @@ class ResilienceCompositionTest {
     fun `retryWithResult returns metadata on success after retries`() = runTest {
         val schedule = Schedule.times<Throwable>(5) and Schedule.spaced(10.milliseconds)
         var attempts = 0
-        val result = Async {
-            Kap {
-                attempts++
-                if (attempts < 4) error("retry")
-                "value"
-            }.retryWithResult(schedule)
-        }
+        val result = Kap {
+            attempts++
+            if (attempts < 4) error("retry")
+            "value"
+        }.retryWithResult(schedule).executeGraph()
         assertEquals("value", result.value)
         assertEquals(3, result.attempts, "3 retries before success")
         assertEquals(30.milliseconds, result.totalDelay, "3 × 10ms = 30ms delay")
@@ -86,9 +78,7 @@ class ResilienceCompositionTest {
     @Test
     fun `retryWithResult with immediate success has zero retries`() = runTest {
         val schedule = Schedule.times<Throwable>(5)
-        val result = Async {
-            Kap { "immediate" }.retryWithResult(schedule)
-        }
+        val result = Kap { "immediate" }.retryWithResult(schedule).executeGraph()
         assertEquals("immediate", result.value)
         assertEquals(0, result.attempts)
         assertEquals(kotlin.time.Duration.ZERO, result.totalDelay)
@@ -99,20 +89,18 @@ class ResilienceCompositionTest {
         val schedule = Schedule.times<Throwable>(2)
         val comp = Kap<String> { error("always fails") }
             .retryWithResult(schedule)
-        assertFailsWith<IllegalStateException> { val r = Async { comp } }
+        assertFailsWith<IllegalStateException> { val r = comp.executeGraph() }
     }
 
     // ── firstSuccessOf ──────────────────────────────────────────────────
 
     @Test
     fun `firstSuccessOf returns first success value`() = runTest {
-        val result = Async {
-            firstSuccessOf(
-                Kap<String> { error("fail-1") },
-                Kap { "success-2" },
-                Kap { "success-3" },
-            )
-        }
+        val result = firstSuccessOf(
+            Kap<String> { error("fail-1") },
+            Kap { "success-2" },
+            Kap { "success-3" },
+        ).executeGraph()
         assertEquals("success-2", result)
     }
 
@@ -123,16 +111,14 @@ class ResilienceCompositionTest {
             Kap<String> { error("fail-2") },
             Kap<String> { error("fail-3") },
         )
-        val ex = assertFailsWith<IllegalStateException> { val r = Async { comp } }
+        val ex = assertFailsWith<IllegalStateException> { val r = comp.executeGraph() }
         // The last error is the one that propagates
         assertEquals("fail-3", ex.message)
     }
 
     @Test
     fun `firstSuccessOf single computation delegates`() = runTest {
-        val result = Async {
-            firstSuccessOf(Kap { "only" })
-        }
+        val result = firstSuccessOf(Kap { "only" }).executeGraph()
         assertEquals("only", result)
     }
 
@@ -142,7 +128,7 @@ class ResilienceCompositionTest {
             Kap<String> { throw CancellationException("cancel") },
             Kap { "should not reach" },
         )
-        assertFailsWith<CancellationException> { val r = Async { comp } }
+        assertFailsWith<CancellationException> { val r = comp.executeGraph() }
     }
 
     @Test
@@ -159,7 +145,7 @@ class ResilienceCompositionTest {
             Kap<String> { error("2") },
             Kap { "third" },
         )
-        val result = Async { computations.firstSuccess() }
+        val result = computations.firstSuccess().executeGraph()
         assertEquals("third", result)
     }
 
@@ -167,20 +153,16 @@ class ResilienceCompositionTest {
 
     @Test
     fun `orElse runs fallback on failure`() = runTest {
-        val result = Async {
-            Kap<String> { error("primary down") }
-                .orElse(Kap { "replica" })
-        }
+        val result = Kap<String> { error("primary down") }
+            .orElse(Kap { "replica" }).executeGraph()
         assertEquals("replica", result)
     }
 
     @Test
     fun `orElse does not run fallback on success`() = runTest {
         var fallbackRan = false
-        val result = Async {
-            Kap { "primary" }
-                .orElse(Kap { fallbackRan = true; "replica" })
-        }
+        val result = Kap { "primary" }
+            .orElse(Kap { fallbackRan = true; "replica" }).executeGraph()
         assertEquals("primary", result)
         assertEquals(false, fallbackRan)
     }
@@ -189,16 +171,14 @@ class ResilienceCompositionTest {
     fun `orElse propagates CancellationException`() = runTest {
         val comp = Kap<String> { throw CancellationException("cancel") }
             .orElse(Kap { "should not reach" })
-        assertFailsWith<CancellationException> { val r = Async { comp } }
+        assertFailsWith<CancellationException> { val r = comp.executeGraph() }
     }
 
     @Test
     fun `orElse chain 3 deep - middle succeeds`() = runTest {
-        val result = Async {
-            Kap<String> { error("fail-1") }
-                .orElse(Kap { "success-2" })
-                .orElse(Kap { "should not reach" })
-        }
+        val result = Kap<String> { error("fail-1") }
+            .orElse(Kap { "success-2" })
+            .orElse(Kap { "should not reach" }).executeGraph()
         assertEquals("success-2", result)
     }
 
@@ -206,24 +186,20 @@ class ResilienceCompositionTest {
 
     @Test
     fun `ensure inside orElse chain`() = runTest {
-        val result = Async {
-            Kap { -1 }
-                .ensure({ IllegalStateException("negative") }) { it > 0 }
-                .orElse(Kap.of(42))
-        }
+        val result = Kap { -1 }
+            .ensure({ IllegalStateException("negative") }) { it > 0 }
+            .orElse(Kap.of(42)).executeGraph()
         assertEquals(42, result)
     }
 
     @Test
     fun `ensureNotNull inside retry`() = runTest {
         var attempts = 0
-        val result = Async {
-            Kap {
-                attempts++
-                if (attempts < 3) null else "found"
-            }.ensureNotNull({ IllegalStateException("null") }) { it }
-             .retry(5)
-        }
+        val result = Kap {
+            attempts++
+            if (attempts < 3) null else "found"
+        }.ensureNotNull({ IllegalStateException("null") }) { it }
+         .retry(5).executeGraph()
         assertEquals("found", result)
         assertEquals(3, attempts)
     }
@@ -235,17 +211,15 @@ class ResilienceCompositionTest {
         val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 100.milliseconds)
         var attempts = 0
 
-        val result = Async {
-            Kap {
-                attempts++
-                if (attempts <= 2) error("transient")
-                "recovered"
-            }
-            .timeout(50.milliseconds)
-            .withCircuitBreaker(breaker)
-            .retry(Schedule.times<Throwable>(5) and Schedule.spaced(1.milliseconds))
-            .recover { "fallback" }
+        val result = Kap {
+            attempts++
+            if (attempts <= 2) error("transient")
+            "recovered"
         }
+        .timeout(50.milliseconds)
+        .withCircuitBreaker(breaker)
+        .retry(Schedule.times<Throwable>(5) and Schedule.spaced(1.milliseconds))
+        .recover { "fallback" }.executeGraph()
         // After 2 failures the breaker opens, retry catches CircuitBreakerOpenException,
         // eventually the breaker half-opens and the 3rd attempt succeeds
         assertTrue(result == "recovered" || result == "fallback")
@@ -253,21 +227,19 @@ class ResilienceCompositionTest {
 
     @Test
     fun `liftA with individual branch resilience`() = runTest {
-        val result = Async {
-            combine(
-                { Kap { "user" }.retry(2).await() },
-                {
-                    Kap<String> { error("down") }
-                        .recover { "cached-cart" }
-                        .await()
-                },
-                {
-                    Kap { delay(200); "slow-promos" }
-                        .timeout(50.milliseconds, default = "cached-promos")
-                        .await()
-                },
-            ) { user, cart, promos -> "$user|$cart|$promos" }
-        }
+        val result = combine(
+            { Kap { "user" }.retry(2).executeGraph() },
+            {
+                Kap<String> { error("down") }
+                    .recover { "cached-cart" }
+                    .executeGraph()
+            },
+            {
+                Kap { delay(200); "slow-promos" }
+                    .timeout(50.milliseconds, default = "cached-promos")
+                    .executeGraph()
+            },
+        ) { user, cart, promos -> "$user|$cart|$promos" }.executeGraph()
         assertEquals("user|cached-cart|cached-promos", result)
     }
 
@@ -275,12 +247,10 @@ class ResilienceCompositionTest {
     fun `retryOrElse with exponential backoff`() = runTest {
         val schedule = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
         var attempts = 0
-        val result = Async {
-            Kap<String> {
-                attempts++
-                error("fail $attempts")
-            }.retryOrElse(schedule) { err -> "gave up after $attempts: ${err.message}" }
-        }
+        val result = Kap<String> {
+            attempts++
+            error("fail $attempts")
+        }.retryOrElse(schedule) { err -> "gave up after $attempts: ${err.message}" }.executeGraph()
         assertEquals("gave up after 4: fail 4", result)
         // Delays: 10 + 20 + 40 = 70ms
     }

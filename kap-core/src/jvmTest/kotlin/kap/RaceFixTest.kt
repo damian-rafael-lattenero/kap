@@ -30,12 +30,10 @@ class RaceFixTest {
 
     @Test
     fun `race returns faster successful result`() = runTest {
-        val result = Async {
-            race(
+        val result = race(
                 Kap { delay(100); "slow" },
                 Kap { delay(20); "fast" },
-            )
-        }
+            ).executeGraph()
 
         assertEquals("fast", result)
         assertEquals(20, currentTime)
@@ -43,12 +41,10 @@ class RaceFixTest {
 
     @Test
     fun `race returns second if first fails`() = runTest {
-        val result = Async {
-            race(
+        val result = race(
                 Kap<String> { delay(10); throw RuntimeException("first-fail") },
                 Kap { delay(50); "second-ok" },
-            )
-        }
+            ).executeGraph()
 
         assertEquals("second-ok", result)
         assertEquals(50, currentTime)
@@ -57,12 +53,10 @@ class RaceFixTest {
     @Test
     fun `race throws when both fail`() = runTest {
         val result = runCatching {
-            Async {
-                race(
+            race(
                     Kap<String> { delay(10); throw RuntimeException("err-A") },
                     Kap<String> { delay(20); throw RuntimeException("err-B") },
-                )
-            }
+                ).executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -84,12 +78,10 @@ class RaceFixTest {
         // Old code: select picks A (failure). Then checks da.isCompleted (true).
         // If db ALSO completed between select and isCompleted check,
         // old code awaits db correctly. But the fix is more robust.
-        val result = Async {
-            race(
+        val result = race(
                 Kap<String> { delay(10); throw RuntimeException("fail-fast") },
                 Kap { delay(30); "success-slow" },
-            )
-        }
+            ).executeGraph()
 
         assertEquals("success-slow", result)
         assertEquals(30, currentTime)
@@ -99,8 +91,7 @@ class RaceFixTest {
     fun `race - failure first then success completes - success is returned`() = runTest {
         // Racer A fails at t=10, racer B succeeds at t=30.
         // Race should wait for B and return its success.
-        val result = Async {
-            race(
+        val result = race(
                 Kap<String> {
                     delay(10)
                     throw RuntimeException("concurrent-fail")
@@ -109,8 +100,7 @@ class RaceFixTest {
                     delay(30)
                     "concurrent-success"
                 },
-            )
-        }
+            ).executeGraph()
 
         assertEquals("concurrent-success", result)
         assertEquals(30, currentTime, "Should wait for second racer after first fails")
@@ -122,14 +112,12 @@ class RaceFixTest {
 
     @Test
     fun `raceN picks fastest success among mixed results`() = runTest {
-        val result = Async {
-            raceN(
+        val result = raceN(
                 Kap<String> { delay(10); throw RuntimeException("err-1") },
                 Kap<String> { delay(20); throw RuntimeException("err-2") },
                 Kap { delay(30); "winner" },
                 Kap { delay(40); "slow-ok" },
-            )
-        }
+            ).executeGraph()
 
         assertEquals("winner", result)
         assertEquals(30, currentTime)
@@ -138,13 +126,11 @@ class RaceFixTest {
     @Test
     fun `raceN - all fail, first error propagated`() = runTest {
         val result = runCatching {
-            Async {
-                raceN(
+            raceN(
                     Kap<String> { delay(10); throw RuntimeException("e1") },
                     Kap<String> { delay(20); throw RuntimeException("e2") },
                     Kap<String> { delay(30); throw RuntimeException("e3") },
-                )
-            }
+                ).executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -154,13 +140,11 @@ class RaceFixTest {
 
     @Test
     fun `raceN - first two fail, third succeeds - timing proof`() = runTest {
-        val result = Async {
-            raceN(
+        val result = raceN(
                 Kap<String> { delay(10); throw RuntimeException("fast-fail") },
                 Kap<String> { delay(20); throw RuntimeException("medium-fail") },
                 Kap { delay(50); "late-success" },
-            )
-        }
+            ).executeGraph()
 
         assertEquals("late-success", result)
         assertEquals(50, currentTime,
@@ -171,8 +155,7 @@ class RaceFixTest {
     fun `raceN cancels remaining on first success`() = runTest {
         val cancelled = CompletableDeferred<Boolean>()
 
-        val result = Async {
-            raceN(
+        val result = raceN(
                 Kap { delay(20); "winner" },
                 Kap {
                     try {
@@ -183,8 +166,7 @@ class RaceFixTest {
                         throw e
                     }
                 },
-            )
-        }
+            ).executeGraph()
 
         assertEquals("winner", result)
         assertTrue(cancelled.await(), "Loser should have been cancelled")
@@ -196,8 +178,7 @@ class RaceFixTest {
 
     @Test
     fun `race inside parallel with branches - each branch races independently`() = runTest {
-        val result = Async {
-            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
                 .with {
                     with(race(
                         Kap { delay(100); "primary-A" },
@@ -210,8 +191,7 @@ class RaceFixTest {
                         Kap { delay(80); "cache-B" },
                     )) { execute() }
                 }
-                .with { delay(30); "direct-C" }
-        }
+                .with { delay(30); "direct-C" }.executeGraph()
 
         assertEquals("cache-A|primary-B|direct-C", result)
         // max(20, 15, 30) = 30ms
@@ -227,7 +207,7 @@ class RaceFixTest {
             Kap { delay(50); "medium" },
         )
 
-        val result = Async { computations.raceAll() }
+        val result = computations.raceAll().executeGraph()
 
         assertEquals("fast", result)
         assertEquals(10, currentTime)

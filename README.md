@@ -26,12 +26,11 @@ You have three async calls. They should run in parallel. Your code doesn't show 
 
 ```kotlin
 // KAP — what you mean is what you write
-val dashboard: Dashboard = Async {
-    kap(::Dashboard)
-        .with { fetchUser() }       // ┐ all three start at t=0
-        .with { fetchCart() }        // │ total time = max(30, 20, 10) = 30ms
-        .with { fetchPromos() }      // ┘ not 60ms sequential
-}
+val dashboard: Dashboard = kap(::Dashboard)
+    .with { fetchUser() }       // ┐ all three start at t=0
+    .with { fetchCart() }        // │ total time = max(30, 20, 10) = 30ms
+    .with { fetchPromos() }      // ┘ not 60ms sequential
+    .executeGraph()
 ```
 
 <details>
@@ -56,18 +55,17 @@ Now add a dependency: phase 2 needs phase 1's results.
 
 ```kotlin
 // Fetch context first, then personalize — two phases, one chain
-val dashboard = Async {
-    kap(::UserContext)
-        .with { fetchProfile(id) }           // ┐ phase 1: parallel
-        .with { fetchPreferences(id) }       // │
-        .with { fetchLoyaltyTier(id) }       // ┘
-        .andThen { ctx ->                    // ── barrier: ctx available
-            kap(::PersonalizedDashboard)
-                .with { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
-                .with { fetchPromotions(ctx.tier) }           // │ uses ctx
-                .with { fetchTrending(ctx.prefs) }            // ┘
-        }
-}
+val dashboard = kap(::UserContext)
+    .with { fetchProfile(id) }           // ┐ phase 1: parallel
+    .with { fetchPreferences(id) }       // │
+    .with { fetchLoyaltyTier(id) }       // ┘
+    .andThen { ctx ->                    // ── barrier: ctx available
+        kap(::PersonalizedDashboard)
+            .with { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
+            .with { fetchPromotions(ctx.tier) }           // │ uses ctx
+            .with { fetchTrending(ctx.prefs) }            // ┘
+    }
+    .executeGraph()
 ```
 
 <details>
@@ -106,20 +104,19 @@ val dashboard = coroutineScope {
 11 microservice calls. 5 phases. Dependencies between them. One flat chain:
 
 ```kotlin
-val checkout: CheckoutResult = Async {
-    kap(::CheckoutResult)
-        .with { fetchUser() }               // ┐
-        .with { fetchCart() }               // ├─ phase 1: parallel
-        .with { fetchPromos() }             // │
-        .with { fetchInventory() }          // ┘
-        .then { validateStock() }           // ── phase 2: barrier
-        .with { calcShipping() }            // ┐
-        .with { calcTax() }                 // ├─ phase 3: parallel
-        .with { calcDiscounts() }           // ┘
-        .then { reservePayment() }          // ── phase 4: barrier
-        .with { generateConfirmation() }    // ┐ phase 5: parallel
-        .with { sendEmail() }              // ┘
-}
+val checkout: CheckoutResult = kap(::CheckoutResult)
+    .with { fetchUser() }               // ┐
+    .with { fetchCart() }               // ├─ phase 1: parallel
+    .with { fetchPromos() }             // │
+    .with { fetchInventory() }          // ┘
+    .then { validateStock() }           // ── phase 2: barrier
+    .with { calcShipping() }            // ┐
+    .with { calcTax() }                 // ├─ phase 3: parallel
+    .with { calcDiscounts() }           // ┘
+    .then { reservePayment() }          // ── phase 4: barrier
+    .with { generateConfirmation() }    // ┐ phase 5: parallel
+    .with { sendEmail() }              // ┘
+    .executeGraph()
 ```
 
 <details>

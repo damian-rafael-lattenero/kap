@@ -19,14 +19,12 @@ class TraverseSettledTest {
 
     @Test
     fun `traverseSettled collects ALL results including failures`() = runTest {
-        val results = Async {
-            listOf(1, 2, 3, 4, 5).traverseSettled { i ->
+        val results = listOf(1, 2, 3, 4, 5).traverseSettled { i ->
                 Kap {
                     if (i % 2 == 0) throw RuntimeException("fail-$i")
                     "ok-$i"
                 }
-            }
-        }
+            }.executeGraph()
 
         assertEquals(5, results.size)
         assertTrue(results[0].isSuccess)
@@ -43,14 +41,12 @@ class TraverseSettledTest {
 
     @Test
     fun `traverseSettled runs in parallel — proven by virtual time`() = runTest {
-        val results = Async {
-            (1..5).toList().traverseSettled { i ->
+        val results = (1..5).toList().traverseSettled { i ->
                 Kap {
                     delay(50.milliseconds)
                     "done-$i"
                 }
-            }
-        }
+            }.executeGraph()
 
         assertEquals(50L, currentTime, "5 parallel tasks @ 50ms should complete in 50ms")
         assertTrue(results.all { it.isSuccess })
@@ -60,16 +56,14 @@ class TraverseSettledTest {
     fun `traverseSettled does NOT cancel siblings on failure`() = runTest {
         val completed = mutableListOf<Int>()
 
-        val results = Async {
-            (1..5).toList().traverseSettled { i ->
+        val results = (1..5).toList().traverseSettled { i ->
                 Kap {
                     delay(if (i == 1) 10.milliseconds else 50.milliseconds)
                     if (i == 1) throw RuntimeException("fast-fail")
                     synchronized(completed) { completed.add(i) }
                     "ok-$i"
                 }
-            }
-        }
+            }.executeGraph()
 
         assertEquals(5, results.size)
         assertTrue(results[0].isFailure, "first should fail")
@@ -80,11 +74,9 @@ class TraverseSettledTest {
 
     @Test
     fun `traverseSettled with all success returns all Right`() = runTest {
-        val results = Async {
-            listOf("a", "b", "c").traverseSettled { s ->
+        val results = listOf("a", "b", "c").traverseSettled { s ->
                 Kap { s.uppercase() }
-            }
-        }
+            }.executeGraph()
 
         assertEquals(
             listOf("A", "B", "C"),
@@ -94,11 +86,9 @@ class TraverseSettledTest {
 
     @Test
     fun `traverseSettled with all failures returns all failures`() = runTest {
-        val results = Async {
-            listOf(1, 2, 3).traverseSettled { i ->
+        val results = listOf(1, 2, 3).traverseSettled { i ->
                 Kap<String> { throw RuntimeException("err-$i") }
-            }
-        }
+            }.executeGraph()
 
         assertTrue(results.all { it.isFailure })
         assertEquals(
@@ -113,14 +103,12 @@ class TraverseSettledTest {
 
     @Test
     fun `traverseSettled bounded respects concurrency limit`() = runTest {
-        val results = Async {
-            (1..9).toList().traverseSettled(3) { i ->
+        val results = (1..9).toList().traverseSettled(3) { i ->
                 Kap {
                     delay(30.milliseconds)
                     "ok-$i"
                 }
-            }
-        }
+            }.executeGraph()
 
         // 9 items / 3 concurrency = 3 batches × 30ms = 90ms
         assertEquals(90L, currentTime, "bounded traverseSettled should batch correctly")
@@ -129,15 +117,13 @@ class TraverseSettledTest {
 
     @Test
     fun `traverseSettled bounded collects failures without cancelling`() = runTest {
-        val results = Async {
-            (1..6).toList().traverseSettled(2) { i ->
+        val results = (1..6).toList().traverseSettled(2) { i ->
                 Kap {
                     delay(30.milliseconds)
                     if (i % 3 == 0) throw RuntimeException("fail-$i")
                     "ok-$i"
                 }
-            }
-        }
+            }.executeGraph()
 
         assertEquals(6, results.size)
         assertEquals(4, results.count { it.isSuccess })
@@ -156,7 +142,7 @@ class TraverseSettledTest {
             Kap { "c" },
         )
 
-        val results = Async { computations.sequenceSettled() }
+        val results = computations.sequenceSettled().executeGraph()
 
         assertEquals(3, results.size)
         assertTrue(results[0].isSuccess)
@@ -173,7 +159,7 @@ class TraverseSettledTest {
             }
         }
 
-        val results = Async { computations.sequenceSettled(4) }
+        val results = computations.sequenceSettled(4).executeGraph()
 
         // 8 items / 4 concurrency = 2 batches × 25ms = 50ms
         assertEquals(50L, currentTime)
@@ -186,9 +172,7 @@ class TraverseSettledTest {
 
     @Test
     fun `settled wraps success in Result`() = runTest {
-        val result = Async {
-            Kap { 42 }.settled()
-        }
+        val result = Kap { 42 }.settled().executeGraph()
 
         assertTrue(result.isSuccess)
         assertEquals(42, result.getOrThrow())
@@ -198,12 +182,10 @@ class TraverseSettledTest {
     fun `settled wraps failure in Result without cancelling siblings`() = runTest {
         data class Dashboard(val user: Result<String>, val cart: String, val config: String)
 
-        val result = Async {
-            kap(::Dashboard)
-                .with { Kap<String> { throw RuntimeException("user-down") }.settled().await() }
+        val result = kap(::Dashboard)
+                .with { Kap<String> { throw RuntimeException("user-down") }.settled().executeGraph() }
                 .with { delay(50.milliseconds); "cart-ok" }
-                .with { delay(50.milliseconds); "config-ok" }
-        }
+                .with { delay(50.milliseconds); "config-ok" }.executeGraph()
 
         assertTrue(result.user.isFailure)
         assertEquals("user-down", result.user.exceptionOrNull()!!.message)
@@ -215,14 +197,12 @@ class TraverseSettledTest {
     fun `settled inside with chain — proven parallel by virtual time`() = runTest {
         data class R(val a: Result<String>, val b: String)
 
-        val result = Async {
-            kap(::R)
+        val result = kap(::R)
                 .with {
                     delay(50.milliseconds)
-                    Kap<String> { throw RuntimeException("err") }.settled().await()
+                    Kap<String> { throw RuntimeException("err") }.settled().executeGraph()
                 }
-                .with { delay(50.milliseconds); "ok" }
-        }
+                .with { delay(50.milliseconds); "ok" }.executeGraph()
 
         assertEquals(50L, currentTime, "both branches should run in parallel")
         assertTrue(result.a.isFailure)

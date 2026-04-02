@@ -25,24 +25,21 @@ class Phase6Test {
 
     @Test
     fun `combine (6) runs 6 lambdas in parallel`() = runTest {
-        val result = Async {
-            combine(
+        val result = combine(
                 { delay(50.milliseconds); 1 },
                 { delay(50.milliseconds); 2 },
                 { delay(50.milliseconds); 3 },
                 { delay(50.milliseconds); 4 },
                 { delay(50.milliseconds); 5 },
                 { delay(50.milliseconds); 6 },
-            ) { a, b, c, d, e, f -> a + b + c + d + e + f }
-        }
+            ) { a, b, c, d, e, f -> a + b + c + d + e + f }.executeGraph()
         assertEquals(21, result)
         assertEquals(50, currentTime)
     }
 
     @Test
     fun `combine (7) runs 7 lambdas in parallel`() = runTest {
-        val result = Async {
-            combine(
+        val result = combine(
                 { delay(50.milliseconds); 1 },
                 { delay(50.milliseconds); 2 },
                 { delay(50.milliseconds); 3 },
@@ -50,16 +47,14 @@ class Phase6Test {
                 { delay(50.milliseconds); 5 },
                 { delay(50.milliseconds); 6 },
                 { delay(50.milliseconds); 7 },
-            ) { a, b, c, d, e, f, g -> a + b + c + d + e + f + g }
-        }
+            ) { a, b, c, d, e, f, g -> a + b + c + d + e + f + g }.executeGraph()
         assertEquals(28, result)
         assertEquals(50, currentTime)
     }
 
     @Test
     fun `combine (8) runs 8 lambdas in parallel`() = runTest {
-        val result = Async {
-            combine(
+        val result = combine(
                 { delay(50.milliseconds); 1 },
                 { delay(50.milliseconds); 2 },
                 { delay(50.milliseconds); 3 },
@@ -68,16 +63,14 @@ class Phase6Test {
                 { delay(50.milliseconds); 6 },
                 { delay(50.milliseconds); 7 },
                 { delay(50.milliseconds); 8 },
-            ) { a, b, c, d, e, f, g, h -> a + b + c + d + e + f + g + h }
-        }
+            ) { a, b, c, d, e, f, g, h -> a + b + c + d + e + f + g + h }.executeGraph()
         assertEquals(36, result)
         assertEquals(50, currentTime)
     }
 
     @Test
     fun `combine (9) runs 9 lambdas in parallel`() = runTest {
-        val result = Async {
-            combine(
+        val result = combine(
                 { delay(50.milliseconds); 1 },
                 { delay(50.milliseconds); 2 },
                 { delay(50.milliseconds); 3 },
@@ -87,8 +80,7 @@ class Phase6Test {
                 { delay(50.milliseconds); 7 },
                 { delay(50.milliseconds); 8 },
                 { delay(50.milliseconds); 9 },
-            ) { a, b, c, d, e, f, g, h, i -> a + b + c + d + e + f + g + h + i }
-        }
+            ) { a, b, c, d, e, f, g, h, i -> a + b + c + d + e + f + g + h + i }.executeGraph()
         assertEquals(45, result)
         assertEquals(50, currentTime)
     }
@@ -96,8 +88,7 @@ class Phase6Test {
     @Test
     fun `combine (9) propagates failure correctly`() = runTest {
         val result = runCatching {
-            Async {
-                combine(
+            combine(
                     { 1 },
                     { 2 },
                     { throw IllegalStateException("boom"); @Suppress("UNREACHABLE_CODE") 3 },
@@ -109,8 +100,7 @@ class Phase6Test {
                     { 9 },
                 ) { a: Int, b: Int, c: Int, d: Int, e: Int, f: Int, g: Int, h: Int, i: Int ->
                     a + b + c + d + e + f + g + h + i
-                }
-            }
+                }.executeGraph()
         }
         assertTrue(result.isFailure)
         assertEquals("boom", result.exceptionOrNull()?.message)
@@ -123,14 +113,12 @@ class Phase6Test {
     @Test
     fun `traverse_ executes all side-effects in parallel`() = runTest {
         val log = mutableListOf<Int>()
-        Async {
-            (1..5).toList().traverseDiscard { i ->
+        (1..5).toList().traverseDiscard { i ->
                 Kap {
                     delay(50.milliseconds)
                     synchronized(log) { log.add(i) }
                 }
-            }
-        }
+            }.executeGraph()
         assertEquals(50, currentTime)
         assertEquals(5, log.size)
         assertEquals(setOf(1, 2, 3, 4, 5), log.toSet())
@@ -139,14 +127,12 @@ class Phase6Test {
     @Test
     fun `traverse_ with concurrency limit`() = runTest {
         val log = mutableListOf<Int>()
-        Async {
-            (1..6).toList().traverseDiscard(3) { i ->
+        (1..6).toList().traverseDiscard(3) { i ->
                 Kap {
                     delay(50.milliseconds)
                     synchronized(log) { log.add(i) }
                 }
-            }
-        }
+            }.executeGraph()
         // 6 items, concurrency 3 → 2 batches × 50ms = 100ms
         assertTrue(currentTime >= 100)
         assertEquals(6, log.size)
@@ -160,7 +146,7 @@ class Phase6Test {
             Kap { delay(50.milliseconds); synchronized(log) { log.add("b") }; Unit },
             Kap { delay(50.milliseconds); synchronized(log) { log.add("c") }; Unit },
         )
-        Async { computations.sequenceDiscard() }
+        computations.sequenceDiscard().executeGraph()
         assertEquals(50, currentTime)
         assertEquals(3, log.size)
     }
@@ -171,7 +157,7 @@ class Phase6Test {
         val computations: List<Kap<Unit>> = (1..4).map { i ->
             Kap { delay(50.milliseconds); synchronized(log) { log.add("$i") }; Unit }
         }
-        Async { computations.sequenceDiscard(2) }
+        computations.sequenceDiscard(2).executeGraph()
         // 4 items, concurrency 2 → 2 batches × 50ms = 100ms
         assertTrue(currentTime >= 100)
         assertEquals(4, log.size)
@@ -189,9 +175,9 @@ class Phase6Test {
             null  // null is the actual result
         }.memoize()
 
-        val first = Async { comp }
-        val second = Async { comp }
-        val third = Async { comp }
+        val first = comp.executeGraph()
+        val second = comp.executeGraph()
+        val third = comp.executeGraph()
 
         assertEquals(null, first)
         assertEquals(null, second)
@@ -207,8 +193,8 @@ class Phase6Test {
             null
         }.memoizeOnSuccess()
 
-        val first = Async { comp }
-        val second = Async { comp }
+        val first = comp.executeGraph()
+        val second = comp.executeGraph()
 
         assertEquals(null, first)
         assertEquals(null, second)
@@ -224,11 +210,9 @@ class Phase6Test {
             null
         }.memoize()
 
-        val result = Async {
-            kap { a: String?, b: String? -> "${a}|${b}" }
-                .with { nullComp.await() }
-                .with { nullComp.await() }
-        }
+        val result = kap { a: String?, b: String? -> "${a}|${b}" }
+                .with { nullComp.executeGraph() }
+                .with { nullComp.executeGraph() }.executeGraph()
         assertEquals("null|null", result)
         assertEquals(1, callCount)
         assertEquals(50, currentTime) // parallel

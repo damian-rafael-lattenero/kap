@@ -28,13 +28,12 @@ dependencies {
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        combine(
-            { fetchUser() },
-            { fetchCart() },
-            { fetchPromos() },
-        ) { user, cart, promos -> Dashboard(user, cart, promos) }
-    }
+    val result = combine(
+        { fetchUser() },
+        { fetchCart() },
+        { fetchPromos() },
+    ) { user, cart, promos -> Dashboard(user, cart, promos) }
+        .executeGraph()
     ```
 
 Almost identical. KAP's `combine` is Arrow's `parZip` equivalent.
@@ -55,11 +54,10 @@ Almost identical. KAP's `combine` is Arrow's `parZip` equivalent.
 
     ```kotlin
     // Typed chain — swap .with lines? COMPILE ERROR.
-    val result = Async {
-        kap(::Page)
-            .with { fetchUser() }
-            .with { fetchCart() }
-    }
+    val result = kap(::Page)
+        .with { fetchUser() }
+        .with { fetchCart() }
+        .executeGraph()
     ```
 
 ## Multi-phase: sequential `parZip` → flat chain
@@ -88,14 +86,13 @@ This is where KAP shines. Arrow requires separate `parZip` calls with intermedia
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        kap(::Result)
-            .with { fetchUser() }       // ┐ phase 1
-            .with { fetchCart() }        // ┘
-            .then { validate() }         // ── phase 2: barrier
-            .with { calcShipping() }     // ┐ phase 3
-            .with { calcTax() }          // ┘
-    }
+    val result = kap(::Result)
+        .with { fetchUser() }       // ┐ phase 1
+        .with { fetchCart() }        // ┘
+        .then { validate() }         // ── phase 2: barrier
+        .with { calcShipping() }     // ┐ phase 3
+        .with { calcTax() }          // ┘
+        .executeGraph()
     ```
 
 ## Value-dependent phases: nested `parZip` → `.andThen`
@@ -116,16 +113,15 @@ This is where KAP shines. Arrow requires separate `parZip` calls with intermedia
 === "KAP"
 
     ```kotlin
-    val enriched = Async {
-        kap(::UserContext)
-            .with { fetchProfile(userId) }
-            .with { fetchPrefs(userId) }
-            .andThen { ctx ->
-                kap(::Enriched)
-                    .with { fetchRecs(ctx.profile) }
-                    .with { fetchPromos(ctx.prefs) }
-            }
-    }
+    val enriched = kap(::UserContext)
+        .with { fetchProfile(userId) }
+        .with { fetchPrefs(userId) }
+        .andThen { ctx ->
+            kap(::Enriched)
+                .with { fetchRecs(ctx.profile) }
+                .with { fetchPromos(ctx.prefs) }
+        }
+        .executeGraph()
     ```
 
 ## Validation: `zipOrAccumulate` → `zipV`
@@ -143,13 +139,12 @@ This is where KAP shines. Arrow requires separate `parZip` calls with intermedia
 === "KAP (max 22, parallel)"
 
     ```kotlin
-    val result = Async {
-        zipV(
-            { validateName(name) },
-            { validateEmail(email) },
-            { validateAge(age) },
-        ) { n, e, a -> User(n, e, a) }
-    }
+    val result = zipV(
+        { validateName(name) },
+        { validateEmail(email) },
+        { validateAge(age) },
+    ) { n, e, a -> User(n, e, a) }
+        .executeGraph()
     // Same error accumulation, but validators run in parallel, and scales to 22
     ```
 

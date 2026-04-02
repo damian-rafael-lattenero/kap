@@ -9,20 +9,13 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 
-/**
- * Marks the [Async] DSL scope to prevent accidental outer-scope resolution
- * in nested builders.
- */
-@DslMarker
-@Target(AnnotationTarget.CLASS)
-annotation class AsyncDsl
 
 /**
  * A lazy computation that produces [A] when executed inside a [CoroutineScope].
  *
- * Kaps are descriptions — they don't run until [Async.invoke] executes them.
+ * Kaps are descriptions — they don't run until [executeGraph] executes them.
  * They can be composed outside the DSL using [map], [with], [then], [andThen], [zip],
- * and other top-level combinators, then executed via `Async { computation }`.
+ * and other top-level combinators, then executed via `.executeGraph()`.
  *
  * ## Design note: `suspend fun CoroutineScope.execute()`
  *
@@ -35,7 +28,7 @@ annotation class AsyncDsl
  * - **suspend** — branches call `await()`, `withContext()`, `withTimeout()`, etc.
  *
  * This is safe because **users never call [execute] directly** — they compose
- * via [with], [then], [andThen], and execute via [Async.invoke].
+ * via [with], [then], [andThen], and execute via [executeGraph].
  * The dual contract is an internal implementation detail, not a public API concern.
  *
  * This mirrors `kotlinx.coroutines.async {}` and `launch {}`, whose blocks are
@@ -336,14 +329,12 @@ fun <A> Kap<A>.on(context: CoroutineContext): Kap<A> = Kap {
  * into computation chains:
  *
  * ```
- * Async {
- *     context.andThen { ctx ->
- *         val traceId = ctx[TraceKey]
- *         kap(::build)
- *             .with { fetchUser(traceId) }
- *             .with { fetchCart(traceId) }
- *     }
- * }
+ * context.andThen { ctx ->
+ *     val traceId = ctx[TraceKey]
+ *     kap(::build)
+ *         .with { fetchUser(traceId) }
+ *         .with { fetchCart(traceId) }
+ * }.executeGraph()
  * ```
  */
 val context: Kap<CoroutineContext> = Kap { coroutineContext }
@@ -447,11 +438,10 @@ fun <A, B> Kap<A>.keepSecond(other: Kap<B>): Kap<B> = Kap {
  * ```
  * val expensive = Kap { fetchExpensiveData() }.memoize()
  *
- * Async {
- *     kap(::combine)
- *         .with { expensive }   // executes the original
- *         .with { expensive }   // reuses cached result
- * }
+ * kap(::combine)
+ *     .with { expensive }   // executes the original
+ *     .with { expensive }   // reuses cached result
+ *     .executeGraph()
  * ```
  */
 fun <A> Kap<A>.memoize(): Kap<A> =
@@ -516,11 +506,10 @@ private class Memoized<A>(private val original: Kap<A>) : Kap<A> {
  * ```
  * val config = Kap { fetchRemoteConfig() }.memoizeOnSuccess()
  *
- * Async {
- *     kap(::combine)
- *         .with { config }   // first call fetches
- *         .with { config }   // reuses cached result (or retries if first failed)
- * }
+ * kap(::combine)
+ *     .with { config }   // first call fetches
+ *     .with { config }   // reuses cached result (or retries if first failed)
+ *     .executeGraph()
  * ```
  */
 fun <A> Kap<A>.memoizeOnSuccess(): Kap<A> =
@@ -548,36 +537,37 @@ private class MemoizedOnSuccess<A>(private val original: Kap<A>) : Kap<A> {
     }
 }
 
-// ── await: execute a Kap from any suspend context ────────────────
+// ── executeGraph: execute a Kap computation graph ────────────────
 
 /**
- * Executes this [Kap] from any suspend context, creating a
- * [coroutineScope] for structured concurrency.
+ * Executes this [Kap] computation graph from any suspend context,
+ * creating a [coroutineScope] for structured concurrency.
  *
- * This is the ergonomic bridge for using combinators like [timeout],
- * [retry], and [recover] inside `.with` lambdas without the verbose
- * `with(computation) { execute() }` pattern:
+ * This is the primary entry point for running a [Kap] computation.
+ * All parallel branches launched by [with] are scoped here: if any
+ * computation fails, all siblings are automatically cancelled.
  *
  * ```
- * // Before (verbose):
- * kap(::Dashboard)
- *     .with {
- *         with(Kap { fetchUser() }
- *             .timeout(200.milliseconds, User.cached())) { execute() }
- *     }
- *     .with { fetchCart() }
- *
- * // After (clean):
- * kap(::Dashboard)
- *     .with { Kap { fetchUser() }.timeout(200.milliseconds, User.cached()).await() }
- *     .with { fetchCart() }
+ * val checkout: CheckoutResult =
+ *     kap(::CheckoutResult)
+ *         .with { fetchUser() }
+ *         .with { fetchCart() }
+ *         .then { validate() }
+ *         .with { calcShipping() }
+ *         .executeGraph()
  * ```
  *
- * **Note:** Creates a [coroutineScope] internally, which correctly maintains
- * structured concurrency guarantees. For top-level execution, use [Async] instead.
+ * Also useful inside `.with` lambdas for composing sub-graphs with
+ * combinators like [timeout], [retry], and [recover]:
+ *
+ * ```
+ * kap(::Dashboard)
+ *     .with { Kap { fetchUser() }.timeout(200.milliseconds, User.cached()).executeGraph() }
+ *     .with { fetchCart() }
+ * ```
  */
-suspend fun <A> Kap<A>.await(): A =
-    coroutineScope { with(this@await) { execute() } }
+suspend fun <A> Kap<A>.executeGraph(): A =
+    coroutineScope { with(this@executeGraph) { execute() } }
 
 // ── settled: capture result without cancelling siblings ──────────────────
 
@@ -610,40 +600,3 @@ fun <A> Kap<A>.settled(): Kap<Result<A>> = Kap {
     }
 }
 
-// ── DSL entry point ─────────────────────────────────────────────────────
-
-/**
- * Declarative dependency-graph DSL for Kotlin coroutines.
- *
- * Executes the [Kap] built inside [block] within a [coroutineScope],
- * providing structured concurrency guarantees: if any computation fails,
- * all siblings are automatically cancelled.
- *
- * ```
- * val result = Async {
- *     kap(::buildDashboard)
- *         .with { fetchUser() }              // parallel
- *         .with { fetchConfig() }            // parallel
- *         .then { validate() }         // sequential barrier
- *         .with { calcShipping() }           // parallel again
- * }
- * ```
- */
-@AsyncDsl
-object Async {
-
-    suspend operator fun <A> invoke(block: Async.() -> Kap<A>): A =
-        coroutineScope { with(block()) { execute() } }
-
-    /**
-     * Runs the computation graph on the given [context], preserving the same
-     * structured concurrency guarantee as the no-arg overload.
-     *
-     * Uses `coroutineScope` inside `withContext` so that failures propagate
-     * and cancel siblings identically to `Async { }`.
-     */
-    suspend operator fun <A> invoke(
-        context: CoroutineContext,
-        block: Async.() -> Kap<A>,
-    ): A = withContext(context) { coroutineScope { with(block()) { execute() } } }
-}

@@ -31,16 +31,14 @@ class NewCombinatorsTest {
     fun `bracketCase releases with Completed on success`() = runTest {
         val events = CopyOnWriteArrayList<String>()
 
-        val result = Async {
-            bracketCase(
-                acquire = { events.add("acquire"); "conn" },
-                use = { r -> Kap { delay(50); "result-$r" } },
-                release = { r, case ->
-                    assertIs<ExitCase.Completed<*>>(case)
-                    events.add("release:$r:completed")
-                },
-            )
-        }
+        val result = bracketCase(
+            acquire = { events.add("acquire"); "conn" },
+            use = { r -> Kap { delay(50); "result-$r" } },
+            release = { r, case ->
+                assertIs<ExitCase.Completed<*>>(case)
+                events.add("release:$r:completed")
+            },
+        ).executeGraph()
 
         assertEquals("result-conn", result)
         assertEquals(listOf("acquire", "release:conn:completed"), events)
@@ -51,17 +49,15 @@ class NewCombinatorsTest {
         val events = CopyOnWriteArrayList<String>()
 
         assertFailsWith<RuntimeException>("boom") {
-            Async {
-                bracketCase(
-                    acquire = { events.add("acquire"); "conn" },
-                    use = { _ -> Kap { throw RuntimeException("boom") } },
-                    release = { r, case ->
-                        assertIs<ExitCase.Failed>(case)
-                        assertEquals("boom", (case as ExitCase.Failed).error.message)
-                        events.add("release:$r:failed")
-                    },
-                )
-            }
+                        bracketCase(
+                acquire = { events.add("acquire"); "conn" },
+                use = { _ -> Kap { throw RuntimeException("boom") } },
+                release = { r, case ->
+                    assertIs<ExitCase.Failed>(case)
+                    assertEquals("boom", (case as ExitCase.Failed).error.message)
+                    events.add("release:$r:failed")
+                },
+            ).executeGraph()
         }
 
         assertEquals(listOf("acquire", "release:conn:failed"), events)
@@ -72,16 +68,14 @@ class NewCombinatorsTest {
         val events = CopyOnWriteArrayList<String>()
 
         val job = launch {
-            Async {
-                bracketCase(
-                    acquire = { events.add("acquire"); "conn" },
-                    use = { _ -> Kap { awaitCancellation() } },
-                    release = { r, case ->
-                        assertIs<ExitCase.Cancelled>(case)
-                        events.add("release:$r:cancelled")
-                    },
-                )
-            }
+                        bracketCase(
+                acquire = { events.add("acquire"); "conn" },
+                use = { _ -> Kap { awaitCancellation() } },
+                release = { r, case ->
+                    assertIs<ExitCase.Cancelled>(case)
+                    events.add("release:$r:cancelled")
+                },
+            ).executeGraph()
         }
 
         delay(10)
@@ -96,33 +90,29 @@ class NewCombinatorsTest {
         val events = CopyOnWriteArrayList<String>()
 
         // Success path → commit
-        Async {
-            bracketCase(
+                bracketCase(
+            acquire = { "tx" },
+            use = { Kap { "ok" } },
+            release = { _, case ->
+                when (case) {
+                    is ExitCase.Completed<*> -> events.add("commit")
+                    else -> events.add("rollback")
+                }
+            },
+        ).executeGraph()
+
+        // Failure path → rollback
+        runCatching {
+                        bracketCase(
                 acquire = { "tx" },
-                use = { Kap { "ok" } },
+                use = { Kap { error("fail") } },
                 release = { _, case ->
                     when (case) {
                         is ExitCase.Completed<*> -> events.add("commit")
                         else -> events.add("rollback")
                     }
                 },
-            )
-        }
-
-        // Failure path → rollback
-        runCatching {
-            Async {
-                bracketCase(
-                    acquire = { "tx" },
-                    use = { Kap { error("fail") } },
-                    release = { _, case ->
-                        when (case) {
-                            is ExitCase.Completed<*> -> events.add("commit")
-                            else -> events.add("rollback")
-                        }
-                    },
-                )
-            }
+            ).executeGraph()
         }
 
         assertEquals(listOf("commit", "rollback"), events)
@@ -176,7 +166,7 @@ class NewCombinatorsTest {
 
         val failing: Kap<String> = Kap { attempts++; throw RuntimeException("fail") }
         assertFailsWith<RuntimeException> {
-            Async<String> { failing.retry(schedule) }
+            failing.retry(schedule).executeGraph()
         }
 
         assertEquals(5, attempts) // 1 initial + 4 retries

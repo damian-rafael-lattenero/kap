@@ -166,13 +166,11 @@ class ResourceTest {
 
         val combined = Resource.zip(dbResource, cacheResource) { db, cache -> db to cache }
 
-        val result = Async {
-            combined.useKap { (db, cache) ->
-                kap { a: String, b: String -> "$a|$b" }
-                    .with { delay(40); "data-from-$db" }
-                    .with { delay(40); "data-from-$cache" }
-            }
-        }
+        val result = combined.useKap { (db, cache) ->
+            kap { a: String, b: String -> "$a|$b" }
+                .with { delay(40); "data-from-$db" }
+                .with { delay(40); "data-from-$cache" }
+        }.executeGraph()
 
         assertEquals("data-from-db-conn|data-from-cache-conn", result)
         assertEquals(40, currentTime, "ap branches should run in parallel")
@@ -241,13 +239,11 @@ class ResourceTest {
         val resource = Resource({ "conn" }, { releases.add("release:$it") })
 
         val result = runCatching {
-            Async {
-                resource.useKap { _ ->
-                    kap { a: String, b: String -> "$a|$b" }
-                        .with { "ok" }
-                        .with { throw RuntimeException("branch failed") }
-                }
-            }
+                        resource.useKap { _ ->
+                kap { a: String, b: String -> "$a|$b" }
+                    .with { "ok" }
+                    .with { throw RuntimeException("branch failed") }
+            }.executeGraph()
         }
 
         assertTrue(result.isFailure)

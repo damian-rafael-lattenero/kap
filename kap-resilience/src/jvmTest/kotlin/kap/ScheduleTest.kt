@@ -25,12 +25,10 @@ class ScheduleTest {
     fun `recurs retries exactly n times`() = runTest {
         var attempts = 0
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    throw RuntimeException("fail #$attempts")
-                }.retry(Schedule.times(3))
-            }
+                        Kap<String> {
+                attempts++
+                throw RuntimeException("fail #$attempts")
+            }.retry(Schedule.times(3)).executeGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(4, attempts, "Should attempt 1 + 3 retries = 4 total")
@@ -39,13 +37,11 @@ class ScheduleTest {
     @Test
     fun `recurs succeeds on retry`() = runTest {
         var attempts = 0
-        val result = Async {
-            Kap {
-                attempts++
-                if (attempts < 3) throw RuntimeException("fail")
-                "ok"
-            }.retry(Schedule.times(5))
-        }
+        val result = Kap {
+            attempts++
+            if (attempts < 3) throw RuntimeException("fail")
+            "ok"
+        }.retry(Schedule.times(5)).executeGraph()
         assertEquals("ok", result)
         assertEquals(3, attempts)
     }
@@ -58,14 +54,12 @@ class ScheduleTest {
     fun `exponential produces increasing delays`() = runTest {
         val delays = mutableListOf<Long>()
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    throw RuntimeException("fail")
-                }.retry(
-                    Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds),
-                    onRetry = { _, _, _ -> delays.add(currentTime) },
-                )
-            }
+                        Kap<String> {
+                throw RuntimeException("fail")
+            }.retry(
+                Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds),
+                onRetry = { _, _, _ -> delays.add(currentTime) },
+            ).executeGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(3, delays.size)
@@ -84,12 +78,10 @@ class ScheduleTest {
     fun `spaced uses fixed delay`() = runTest {
         var attempts = 0
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    throw RuntimeException("fail")
-                }.retry(Schedule.times<Throwable>(3) and Schedule.spaced(50.milliseconds))
-            }
+                        Kap<String> {
+                attempts++
+                throw RuntimeException("fail")
+            }.retry(Schedule.times<Throwable>(3) and Schedule.spaced(50.milliseconds)).executeGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(4, attempts)
@@ -104,13 +96,11 @@ class ScheduleTest {
     fun `doWhile stops on non-matching exception`() = runTest {
         var attempts = 0
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    if (attempts <= 2) throw IOException("network")
-                    throw IllegalStateException("bad state")
-                }.retry(Schedule.doWhile { it is IOException })
-            }
+                        Kap<String> {
+                attempts++
+                if (attempts <= 2) throw IOException("network")
+                throw IllegalStateException("bad state")
+            }.retry(Schedule.doWhile { it is IOException }).executeGraph()
         }
         assertTrue(result.isFailure)
         assertIs<IllegalStateException>(result.exceptionOrNull())
@@ -126,12 +116,10 @@ class ScheduleTest {
         var attempts = 0
         // recurs(2) allows 2 retries, doWhile always true → limited by recurs
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    throw RuntimeException("fail")
-                }.retry(Schedule.times<Throwable>(2) and Schedule.doWhile { true })
-            }
+                        Kap<String> {
+                attempts++
+                throw RuntimeException("fail")
+            }.retry(Schedule.times<Throwable>(2) and Schedule.doWhile { true }).executeGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(3, attempts, "recurs(2) limits to 3 total attempts")
@@ -142,12 +130,10 @@ class ScheduleTest {
         var attempts = 0
         // recurs(1) allows 1 retry, but or with recurs(3) allows 3
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    throw RuntimeException("fail")
-                }.retry(Schedule.times<Throwable>(1) or Schedule.times(3))
-            }
+                        Kap<String> {
+                attempts++
+                throw RuntimeException("fail")
+            }.retry(Schedule.times<Throwable>(1) or Schedule.times(3)).executeGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(4, attempts, "or takes the more permissive schedule: 3 retries = 4 attempts")
@@ -235,12 +221,10 @@ class ScheduleTest {
 
         var attempts = 0
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    throw RuntimeException("fail #$attempts")
-                }.retry(policy)
-            }
+                        Kap<String> {
+                attempts++
+                throw RuntimeException("fail #$attempts")
+            }.retry(policy).executeGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(4, attempts, "recurs(3) limits to 4 total attempts")
@@ -287,12 +271,10 @@ class ScheduleTest {
             Schedule.fibonacci(50.milliseconds)
 
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    throw RuntimeException("fail")
-                }.retry(policy)
-            }
+                        Kap<String> {
+                attempts++
+                throw RuntimeException("fail")
+            }.retry(policy).executeGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(5, attempts) // 1 initial + 4 retries
@@ -330,12 +312,10 @@ class ScheduleTest {
             .withMaxDuration(350.milliseconds)
 
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    throw RuntimeException("fail")
-                }.retry(policy)
-            }
+                        Kap<String> {
+                attempts++
+                throw RuntimeException("fail")
+            }.retry(policy).executeGraph()
         }
         assertTrue(result.isFailure)
         // With 100ms spacing and 350ms max: attempts at t=0, t=100, t=200, t=300, then t=400 would exceed
@@ -349,12 +329,10 @@ class ScheduleTest {
             .withMaxDuration(500.milliseconds)
 
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    throw RuntimeException("fail")
-                }.retry(policy)
-            }
+                        Kap<String> {
+                attempts++
+                throw RuntimeException("fail")
+            }.retry(policy).executeGraph()
         }
         assertTrue(result.isFailure)
         // Delays: 100ms (t=100), 200ms (t=300), 400ms would push to t=700 > 500 → Done
@@ -373,17 +351,15 @@ class ScheduleTest {
             Schedule.doWhile { it is IOException }
 
         val result = runCatching {
-            Async {
-                Kap<String> {
-                    attempts++
-                    when (attempts) {
-                        1 -> throw IOException("net #1")
-                        2 -> throw IOException("net #2")
-                        3 -> throw IllegalStateException("bad")
-                        else -> "ok"
-                    }
-                }.retry(policy)
-            }
+                        Kap<String> {
+                attempts++
+                when (attempts) {
+                    1 -> throw IOException("net #1")
+                    2 -> throw IOException("net #2")
+                    3 -> throw IllegalStateException("bad")
+                    else -> "ok"
+                }
+            }.retry(policy).executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -412,13 +388,11 @@ class ScheduleTest {
         }
 
         var attempts = 0
-        val result = Async {
-            Kap<String> {
-                attempts++
-                if (attempts <= 3) throw RuntimeException("fail-$attempts")
-                "ok"
-            }.retry(foldPolicy)
-        }
+        val result = Kap<String> {
+            attempts++
+            if (attempts <= 3) throw RuntimeException("fail-$attempts")
+            "ok"
+        }.retry(foldPolicy).executeGraph()
 
         assertEquals("ok", result)
         assertEquals(3, errorLog.size)
@@ -434,13 +408,11 @@ class ScheduleTest {
         var attempts = 0
         val policy = Schedule.times<Throwable>(3) and Schedule.spaced(50.milliseconds)
 
-        val retryResult = Async {
-            Kap<String> {
-                attempts++
-                if (attempts <= 2) throw RuntimeException("fail")
-                "ok"
-            }.retryWithResult(policy)
-        }
+        val retryResult = Kap<String> {
+            attempts++
+            if (attempts <= 2) throw RuntimeException("fail")
+            "ok"
+        }.retryWithResult(policy).executeGraph()
 
         assertEquals("ok", retryResult.value)
         assertEquals(2, retryResult.attempts, "2 retries before success")
@@ -452,9 +424,7 @@ class ScheduleTest {
     fun `retryWithResult reports zero attempts on immediate success`() = runTest {
         val policy = Schedule.times<Throwable>(3)
 
-        val retryResult = Async {
-            Kap { "instant" }.retryWithResult(policy)
-        }
+        val retryResult = Kap { "instant" }.retryWithResult(policy).executeGraph()
 
         assertEquals("instant", retryResult.value)
         assertEquals(0, retryResult.attempts)
@@ -466,10 +436,8 @@ class ScheduleTest {
         val policy = Schedule.times<Throwable>(2)
 
         val result = runCatching {
-            Async {
-                Kap<String> { throw RuntimeException("always fail") }
-                    .retryWithResult(policy)
-            }
+                        Kap<String> { throw RuntimeException("always fail") }
+                .retryWithResult(policy).executeGraph()
         }
 
         assertTrue(result.isFailure)

@@ -38,31 +38,28 @@ suspend fun main() {
     println("=== KSP Type-Safe Demo ===\n")
 
     // Class: no prefix, short extensions
-    val safeUser = Async {
-        kapSafe(::User)
+    val safeUser = kapSafe(::User)
             .with { fetchFirstName().toFirstName() }
             .with { fetchLastName().toLastName() }
             .with { fetchAge().toAge() }
-    }
+            .executeGraph()
     println("  User (no prefix): $safeUser")
 
     // Dashboard: prefix = "Dashboard" → .toDashboardUserName()
-    val safeDash = Async {
-        kapSafeBuildDashboard(::buildDashboard)
+    val safeDash = kapSafeBuildDashboard(::buildDashboard)
             .with { fetchUserName().toDashboardUserName() }
             .with { fetchCartSummary().toDashboardCartSummary() }
             .with { fetchPromoCode().toDashboardPromoCode() }
-    }
+            .executeGraph()
     println("  Dashboard:        $safeDash")
 
     // Report: prefix = "Report" → .toReportUserName()
     // Same "userName" param — NO collision with Dashboard!
-    val safeReport = Async {
-        kapSafeBuildReport(::buildReport)
+    val safeReport = kapSafeBuildReport(::buildReport)
             .with { fetchUserName().toReportUserName() }
             .with { fetchDateRange().toReportDateRange() }
             .with { fetchFormat().toReportFormat() }
-    }
+            .executeGraph()
     println("  Report:           $safeReport")
 
     println("\n  Both Dashboard and Report have 'userName: String'")

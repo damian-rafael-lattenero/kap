@@ -10,13 +10,11 @@ import kotlinx.coroutines.CoroutineScope
  * steps depend on earlier values:
  *
  * ```
- * val result = Async {
- *     computation {
- *         val user = bind { fetchUser(id) }
- *         val cart = bind { fetchCart(user.cartId) }
- *         Dashboard(user, cart)
- *     }
- * }
+ * val result = computation {
+ *     val user = bind { fetchUser(id) }
+ *     val cart = bind { fetchCart(user.cartId) }
+ *     Dashboard(user, cart)
+ * }.executeGraph()
  * ```
  */
 class KapScope @PublishedApi internal constructor(

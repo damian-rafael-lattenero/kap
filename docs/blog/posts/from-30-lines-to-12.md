@@ -104,20 +104,19 @@ Better — parallel within phases. But you still need intermediate data classes,
 Code that looks like the execution plan:
 
 ```kotlin
-val checkout: CheckoutResult = Async {
-    kap(::CheckoutResult)
-        .with { fetchUser() }              // ┐
-        .with { fetchCart() }               // ├─ phase 1: parallel
-        .with { fetchPromos() }             // │
-        .with { fetchInventory() }          // ┘
-        .then { validateStock() }           // ── phase 2: barrier
-        .with { calcShipping() }            // ┐
-        .with { calcTax() }                 // ├─ phase 3: parallel
-        .with { calcDiscounts() }           // ┘
-        .then { reservePayment() }          // ── phase 4: barrier
-        .with { generateConfirmation() }    // ┐ phase 5: parallel
-        .with { sendEmail() }              // ┘
-}
+val checkout: CheckoutResult = kap(::CheckoutResult)
+    .with { fetchUser() }              // ┐
+    .with { fetchCart() }               // ├─ phase 1: parallel
+    .with { fetchPromos() }             // │
+    .with { fetchInventory() }          // ┘
+    .then { validateStock() }           // ── phase 2: barrier
+    .with { calcShipping() }            // ┐
+    .with { calcTax() }                 // ├─ phase 3: parallel
+    .with { calcDiscounts() }           // ┘
+    .then { reservePayment() }          // ── phase 4: barrier
+    .with { generateConfirmation() }    // ┐ phase 5: parallel
+    .with { sendEmail() }              // ┘
+    .executeGraph()
 ```
 
 12 lines. Phases are explicit. And here's the key: **swap any two `.with` lines and the compiler rejects it.** Each service returns a distinct type, and the typed function chain locks parameter order at compile time.
@@ -131,24 +130,23 @@ val checkout: CheckoutResult = Async {
 `.andThen { ctx -> }` does the same but passes the accumulated result — so phase 2 can use phase 1's data:
 
 ```kotlin
-val dashboard: FinalDashboard = Async {
-    kap(::UserContext)
-        .with { fetchProfile(userId) }       // ┐
-        .with { fetchPreferences(userId) }   // ├─ phase 1
-        .with { fetchLoyaltyTier(userId) }   // ┘
-        .andThen { ctx ->                    // ── barrier: ctx available
-            kap(::EnrichedContent)
-                .with { fetchRecommendations(ctx.profile) }  // ┐
-                .with { fetchPromotions(ctx.tier) }           // ├─ phase 2
-                .with { fetchTrending(ctx.prefs) }            // │
-                .with { fetchHistory(ctx.profile) }           // ┘
-                .andThen { enriched ->                         // ── barrier
-                    kap(::FinalDashboard)
-                        .with { renderLayout(ctx, enriched) }     // ┐ phase 3
-                        .with { trackAnalytics(ctx, enriched) }   // ┘
-                }
-        }
-}
+val dashboard: FinalDashboard = kap(::UserContext)
+    .with { fetchProfile(userId) }       // ┐
+    .with { fetchPreferences(userId) }   // ├─ phase 1
+    .with { fetchLoyaltyTier(userId) }   // ┘
+    .andThen { ctx ->                    // ── barrier: ctx available
+        kap(::EnrichedContent)
+            .with { fetchRecommendations(ctx.profile) }  // ┐
+            .with { fetchPromotions(ctx.tier) }           // ├─ phase 2
+            .with { fetchTrending(ctx.prefs) }            // │
+            .with { fetchHistory(ctx.profile) }           // ┘
+            .andThen { enriched ->                         // ── barrier
+                kap(::FinalDashboard)
+                    .with { renderLayout(ctx, enriched) }     // ┐ phase 3
+                    .with { trackAnalytics(ctx, enriched) }   // ┘
+            }
+    }
+    .executeGraph()
 ```
 
 14 calls, 3 phases, 115ms vs 460ms sequential. No reflection. No runtime code generation. Pure Kotlin type system.
@@ -190,13 +188,12 @@ One annotation. Zero runtime overhead (value classes are inlined). Every same-ty
 Once you have a composable `Kap<A>` type, you can chain everything:
 
 ```kotlin
-val result = Async {
-    Kap { fetchUser() }
-        .timeout(500.milliseconds)
-        .withCircuitBreaker(breaker)
-        .retry(Schedule.times<Throwable>(3) and Schedule.exponential(50.milliseconds))
-        .recover { "cached-user" }
-}
+val result = Kap { fetchUser() }
+    .timeout(500.milliseconds)
+    .withCircuitBreaker(breaker)
+    .retry(Schedule.times<Throwable>(3) and Schedule.exponential(50.milliseconds))
+    .recover { "cached-user" }
+    .executeGraph()
 ```
 
 Timeout → circuit breaker → retry with exponential backoff → fallback. One flat chain.
@@ -204,13 +201,12 @@ Timeout → circuit breaker → retry with exponential backoff → fallback. One
 For validation, `zipV` runs all validators in parallel and collects every error:
 
 ```kotlin
-val result = Async {
-    zipV(
-        { validateName("A") },
-        { validateEmail("bad") },
-        { validateAge(10) },
-    ) { name, email, age -> User(name, email, age) }
-}
+val result = zipV(
+    { validateName("A") },
+    { validateEmail("bad") },
+    { validateAge(10) },
+) { name, email, age -> User(name, email, age) }
+    .executeGraph()
 // Left(NonEmptyList(NameTooShort, InvalidEmail, AgeTooLow))
 // ALL 3 errors in one response. Scales to 22 validators (Arrow maxes at 9).
 ```

@@ -105,12 +105,11 @@ class Resource<out A> @PublishedApi internal constructor(
      * Terminal operation returning a [Kap] — integrates with [with] chains.
      *
      * ```
-     * val result = Async {
-     *     dbResource.use { conn ->
-     *         kap(::Result)
-     *             .with { Kap { conn.query("...") } }
-     *             .with { Kap { conn.fetchMeta() } }
-     *     }
+     * val result = dbResource.use { conn ->
+     *     kap(::Result)
+     *         .with { Kap { conn.query("...") } }
+     *         .with { Kap { conn.fetchMeta() } }
+     *         .executeGraph()
      * }
      * ```
      */

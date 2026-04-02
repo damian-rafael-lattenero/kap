@@ -36,7 +36,7 @@ class CancellationPropertyTest {
 
         assertFailsWith<CancellationException> {
             withTimeout(50.milliseconds) {
-                comp.await()
+                comp.executeGraph()
             }
         }
         assertFalse(recovered.get(), "recover should NEVER catch CancellationException")
@@ -51,7 +51,7 @@ class CancellationPropertyTest {
 
         assertFailsWith<CancellationException> {
             withTimeout(50.milliseconds) {
-                comp.await()
+                comp.executeGraph()
             }
         }
     }
@@ -67,7 +67,7 @@ class CancellationPropertyTest {
 
         assertFailsWith<CancellationException> {
             withTimeout(50.milliseconds) {
-                comp.await()
+                comp.executeGraph()
             }
         }
         assertEquals(1, attemptCount.get(), "Should not retry on CancellationException")
@@ -86,7 +86,7 @@ class CancellationPropertyTest {
 
         assertFailsWith<CancellationException> {
             withTimeout(50.milliseconds) {
-                comp.await()
+                comp.executeGraph()
             }
         }
         assertFalse(fallbackCalled.get())
@@ -96,8 +96,7 @@ class CancellationPropertyTest {
     fun `ap cancels sibling branches when one fails`() = runTest {
         val siblingCancelled = AtomicBoolean(false)
         val result = runCatching {
-            Async {
-                kap { a: String, b: String -> "$a$b" }
+            kap { a: String, b: String -> "$a$b" }
                     .with {
                         delay(10)
                         throw IllegalStateException("fail fast")
@@ -110,8 +109,7 @@ class CancellationPropertyTest {
                             siblingCancelled.set(true)
                             throw e
                         }
-                    }
-            }
+                    }.executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -130,12 +128,12 @@ class CancellationPropertyTest {
         // First call gets cancelled
         try {
             withTimeout(50.milliseconds) {
-                comp.await()
+                comp.executeGraph()
             }
         } catch (_: CancellationException) {}
 
         // Second call should retry (not return cached CancellationException)
-        val result = comp.await()
+        val result = comp.executeGraph()
         assertEquals("done", result)
         assertEquals(2, attemptCount.get(), "Should retry after cancellation")
     }

@@ -14,14 +14,12 @@ class RaceQuorumTest {
 
     @Test
     fun `quorum of 1 from 3 returns first success`() = runTest {
-        val result = Async {
-            raceQuorum(
-                required = 1,
-                Kap { delay(100); "slow" },
-                Kap { delay(10); "fast" },
-                Kap { delay(50); "medium" },
-            )
-        }
+        val result = raceQuorum(
+            required = 1,
+            Kap { delay(100); "slow" },
+            Kap { delay(10); "fast" },
+            Kap { delay(50); "medium" },
+        ).executeGraph()
 
         assertEquals(1, result.size)
         assertEquals("fast", result[0])
@@ -30,14 +28,12 @@ class RaceQuorumTest {
 
     @Test
     fun `quorum of 2 from 3 returns two fastest successes`() = runTest {
-        val result = Async {
-            raceQuorum(
-                required = 2,
-                Kap { delay(100); "slow" },
-                Kap { delay(10); "fast" },
-                Kap { delay(50); "medium" },
-            )
-        }
+        val result = raceQuorum(
+            required = 2,
+            Kap { delay(100); "slow" },
+            Kap { delay(10); "fast" },
+            Kap { delay(50); "medium" },
+        ).executeGraph()
 
         assertEquals(2, result.size)
         assertTrue(result.contains("fast"))
@@ -47,14 +43,12 @@ class RaceQuorumTest {
 
     @Test
     fun `quorum of 3 from 3 waits for all — same as sequence`() = runTest {
-        val result = Async {
-            raceQuorum(
-                required = 3,
-                Kap { delay(10); "A" },
-                Kap { delay(50); "B" },
-                Kap { delay(30); "C" },
-            )
-        }
+        val result = raceQuorum(
+            required = 3,
+            Kap { delay(10); "A" },
+            Kap { delay(50); "B" },
+            Kap { delay(30); "C" },
+        ).executeGraph()
 
         assertEquals(3, result.size)
         assertTrue(result.containsAll(listOf("A", "B", "C")))
@@ -64,29 +58,25 @@ class RaceQuorumTest {
     @Test
     fun `quorum with required equals size and one failure throws`() = runTest {
         val error = assertFailsWith<RuntimeException> {
-            val r: List<String> = Async {
-                raceQuorum(
-                    required = 3,
-                    Kap { delay(10); "A" },
-                    Kap<String> { delay(20); throw RuntimeException("fail") },
-                    Kap { delay(30); "C" },
-                )
-            }
+            val r: List<String> =             raceQuorum(
+                required = 3,
+                Kap { delay(10); "A" },
+                Kap<String> { delay(20); throw RuntimeException("fail") },
+                Kap { delay(30); "C" },
+            ).executeGraph()
         }
         assertTrue(error.message == "fail")
     }
 
     @Test
     fun `quorum tolerates failures up to allowed limit`() = runTest {
-        val result = Async {
-            raceQuorum(
-                required = 2,
-                Kap { delay(10); throw RuntimeException("fail-1") },
-                Kap { delay(20); "B" },
-                Kap { delay(30); "C" },
-                Kap { delay(40); "D" },
-            )
-        }
+        val result = raceQuorum(
+            required = 2,
+            Kap { delay(10); throw RuntimeException("fail-1") },
+            Kap { delay(20); "B" },
+            Kap { delay(30); "C" },
+            Kap { delay(40); "D" },
+        ).executeGraph()
 
         assertEquals(2, result.size)
         assertEquals("B", result[0])
@@ -97,14 +87,12 @@ class RaceQuorumTest {
     @Test
     fun `quorum fails when too many computations fail`() = runTest {
         val error = assertFailsWith<RuntimeException> {
-            val r: List<String> = Async {
-                raceQuorum(
-                    required = 2,
-                    Kap { delay(10); throw RuntimeException("fail-1") },
-                    Kap { delay(20); throw RuntimeException("fail-2") },
-                    Kap { delay(30); "C" },
-                )
-            }
+            val r: List<String> =             raceQuorum(
+                required = 2,
+                Kap { delay(10); throw RuntimeException("fail-1") },
+                Kap { delay(20); throw RuntimeException("fail-2") },
+                Kap { delay(30); "C" },
+            ).executeGraph()
         }
 
         // The last failure is thrown. Prior failures may be suppressed.
@@ -114,12 +102,10 @@ class RaceQuorumTest {
 
     @Test
     fun `quorum of 1 from 1 returns the single result`() = runTest {
-        val result = Async {
-            raceQuorum(
-                required = 1,
-                Kap { delay(10); "only" },
-            )
-        }
+        val result = raceQuorum(
+            required = 1,
+            Kap { delay(10); "only" },
+        ).executeGraph()
 
         assertEquals(listOf("only"), result)
     }
@@ -137,21 +123,19 @@ class RaceQuorumTest {
     @Test
     fun `quorum cancels remaining after reaching required count`() = runTest {
         var slowCancelled = false
-        val result = Async {
-            raceQuorum(
-                required = 2,
-                Kap { delay(10); "fast" },
-                Kap { delay(20); "medium" },
-                Kap {
-                    try {
-                        delay(1000); "slow"
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        slowCancelled = true
-                        throw e
-                    }
-                },
-            )
-        }
+        val result = raceQuorum(
+            required = 2,
+            Kap { delay(10); "fast" },
+            Kap { delay(20); "medium" },
+            Kap {
+                try {
+                    delay(1000); "slow"
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    slowCancelled = true
+                    throw e
+                }
+            },
+        ).executeGraph()
 
         assertEquals(2, result.size)
         assertTrue(slowCancelled, "Slow computation should have been cancelled")
@@ -166,7 +150,7 @@ class RaceQuorumTest {
             Kap { delay(30); "C" },
         )
 
-        val result = Async { computations.raceQuorum(2) }
+        val result = computations.raceQuorum(2).executeGraph()
 
         assertEquals(2, result.size)
         assertEquals("A", result[0])
@@ -175,16 +159,14 @@ class RaceQuorumTest {
 
     @Test
     fun `quorum virtual time proof — 2 of 5 at different speeds`() = runTest {
-        val result = Async {
-            raceQuorum(
-                required = 2,
-                Kap { delay(50); "A" },
-                Kap { delay(30); "B" },
-                Kap { delay(10); "C" },
-                Kap { delay(40); "D" },
-                Kap { delay(20); "E" },
-            )
-        }
+        val result = raceQuorum(
+            required = 2,
+            Kap { delay(50); "A" },
+            Kap { delay(30); "B" },
+            Kap { delay(10); "C" },
+            Kap { delay(40); "D" },
+            Kap { delay(20); "E" },
+        ).executeGraph()
 
         assertEquals(2, result.size)
         // Fastest two: C@10ms, E@20ms

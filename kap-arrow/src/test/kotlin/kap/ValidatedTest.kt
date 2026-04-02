@@ -43,11 +43,9 @@ class ValidatedTest {
 
     @Test
     fun `liftV+apV accumulates errors from two failures`() = runTest {
-        val result = Async {
-            kapV<Err, ValidCard, StockStatus, Pair<ValidCard, StockStatus>> { card, stock -> card to stock }
-                .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("expired"))) }
-                .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-99"))) }
-        }
+        val result = kapV<Err, ValidCard, StockStatus, Pair<ValidCard, StockStatus>> { card, stock -> card to stock }
+            .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("expired"))) }
+            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-99"))) }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(2, result.value.size)
@@ -57,12 +55,10 @@ class ValidatedTest {
 
     @Test
     fun `liftV+apV accumulates errors from three failures`() = runTest {
-        val result = Async {
-            kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
-                .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("expired"))) }
-                .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }
-                .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }
-        }
+        val result = kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
+            .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("expired"))) }
+            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }
+            .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(3, result.value.size)
@@ -73,12 +69,10 @@ class ValidatedTest {
 
     @Test
     fun `liftV+apV returns Right when all succeed`() = runTest {
-        val result = Async {
-            kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
-                .withV { Either.Right(ValidCard("4111-1111-1111-1111")) as Either<NonEmptyList<Err>, ValidCard> }
-                .withV { Either.Right(StockStatus("sku-42")) }
-                .withV { Either.Right(VerifiedAddress("123 Main St")) }
-        }
+        val result = kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
+            .withV { Either.Right(ValidCard("4111-1111-1111-1111")) as Either<NonEmptyList<Err>, ValidCard> }
+            .withV { Either.Right(StockStatus("sku-42")) }
+            .withV { Either.Right(VerifiedAddress("123 Main St")) }.executeGraph()
 
         assertEquals(
             Either.Right(ValidatedCheckout(ValidCard("4111-1111-1111-1111"), StockStatus("sku-42"), VerifiedAddress("123 Main St"))),
@@ -88,12 +82,10 @@ class ValidatedTest {
 
     @Test
     fun `liftV+apV with mix of success and failure returns only failures`() = runTest {
-        val result = Async {
-            kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
-                .withV { Either.Right(ValidCard("4111-1111-1111-1111")) as Either<NonEmptyList<Err>, ValidCard> }
-                .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }
-                .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }
-        }
+        val result = kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
+            .withV { Either.Right(ValidCard("4111-1111-1111-1111")) as Either<NonEmptyList<Err>, ValidCard> }
+            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }
+            .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(2, result.value.size)
@@ -103,11 +95,9 @@ class ValidatedTest {
 
     @Test
     fun `liftV+apV single failure returns that error`() = runTest {
-        val result = Async {
-            kapV<Err, ValidCard, StockStatus, Pair<ValidCard, StockStatus>> { card, stock -> card to stock }
-                .withV { Either.Right(ValidCard("4111-1111-1111-1111")) as Either<NonEmptyList<Err>, ValidCard> }
-                .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }
-        }
+        val result = kapV<Err, ValidCard, StockStatus, Pair<ValidCard, StockStatus>> { card, stock -> card to stock }
+            .withV { Either.Right(ValidCard("4111-1111-1111-1111")) as Either<NonEmptyList<Err>, ValidCard> }
+            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(1, result.value.size)
@@ -123,19 +113,17 @@ class ValidatedTest {
         val latchA = CompletableDeferred<Unit>()
         val latchB = CompletableDeferred<Unit>()
 
-        val result = Async {
-            kapV<Err, ValidCard, StockStatus, Pair<ValidCard, StockStatus>> { card, stock -> card to stock }
-                .withV {
-                    latchA.complete(Unit)
-                    latchB.await()
-                    Either.Right(ValidCard("4111"))
-                }
-                .withV {
-                    latchB.complete(Unit)
-                    latchA.await()
-                    Either.Right(StockStatus("sku-1"))
-                }
-        }
+        val result = kapV<Err, ValidCard, StockStatus, Pair<ValidCard, StockStatus>> { card, stock -> card to stock }
+            .withV {
+                latchA.complete(Unit)
+                latchB.await()
+                Either.Right(ValidCard("4111"))
+            }
+            .withV {
+                latchB.complete(Unit)
+                latchA.await()
+                Either.Right(StockStatus("sku-1"))
+            }.executeGraph()
 
         // Would deadlock if sequential
         assertEquals(Either.Right(ValidCard("4111") to StockStatus("sku-1")), result)
@@ -145,14 +133,12 @@ class ValidatedTest {
     fun `liftV+apV with five parallel validations - barrier proof`() = runTest {
         val latches = (0 until 5).map { CompletableDeferred<Unit>() }
 
-        val result = Async {
-            kapV<String, String, String, String, String, String, String> { a, b, c, d, e -> "$a|$b|$c|$d|$e" }
-                .withV { latches[0].complete(Unit); latches.awaitOthers(0); Either.Right("A") }
-                .withV { latches[1].complete(Unit); latches.awaitOthers(1); Either.Right("B") }
-                .withV { latches[2].complete(Unit); latches.awaitOthers(2); Either.Right("C") }
-                .withV { latches[3].complete(Unit); latches.awaitOthers(3); Either.Right("D") }
-                .withV { latches[4].complete(Unit); latches.awaitOthers(4); Either.Right("E") }
-        }
+        val result = kapV<String, String, String, String, String, String, String> { a, b, c, d, e -> "$a|$b|$c|$d|$e" }
+            .withV { latches[0].complete(Unit); latches.awaitOthers(0); Either.Right("A") }
+            .withV { latches[1].complete(Unit); latches.awaitOthers(1); Either.Right("B") }
+            .withV { latches[2].complete(Unit); latches.awaitOthers(2); Either.Right("C") }
+            .withV { latches[3].complete(Unit); latches.awaitOthers(3); Either.Right("D") }
+            .withV { latches[4].complete(Unit); latches.awaitOthers(4); Either.Right("E") }.executeGraph()
 
         assertEquals(Either.Right("A|B|C|D|E"), result)
     }
@@ -163,11 +149,9 @@ class ValidatedTest {
 
     @Test
     fun `sequential liftV+apV accumulates errors across phases`() = runTest {
-        val result = Async {
-            kapV<Err, ValidCard, StockStatus, Pair<ValidCard, StockStatus>> { card, stock -> card to stock }
-                .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("declined"))) }
-                .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-7"))) }
-        }
+        val result = kapV<Err, ValidCard, StockStatus, Pair<ValidCard, StockStatus>> { card, stock -> card to stock }
+            .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("declined"))) }
+            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-7"))) }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(2, result.value.size)
@@ -179,11 +163,9 @@ class ValidatedTest {
     fun `sequential thenV enforces order`() = runTest {
         val order = mutableListOf<String>()
 
-        val result = Async {
-            kapV<String, String, String, Pair<String, String>> { a, b -> a to b }
-                .withV { order.add("first"); Either.Right("A") as Either<NonEmptyList<String>, String> }
-                .thenV { order.add("second"); Either.Right("B") as Either<NonEmptyList<String>, String> }
-        }
+        val result = kapV<String, String, String, Pair<String, String>> { a, b -> a to b }
+            .withV { order.add("first"); Either.Right("A") as Either<NonEmptyList<String>, String> }
+            .thenV { order.add("second"); Either.Right("B") as Either<NonEmptyList<String>, String> }.executeGraph()
 
         assertEquals(Either.Right("A" to "B"), result)
         assertEquals(listOf("first", "second"), order)
@@ -193,14 +175,12 @@ class ValidatedTest {
     fun `thenV short-circuits on left error - does not execute right side`() = runTest {
         val secondCalled = CompletableDeferred<Boolean>()
 
-        val result = Async {
-            kapV<String, String, String, Pair<String, String>> { a, b -> a to b }
-                .withV { Either.Left(nonEmptyListOf("left failed")) as Either<NonEmptyList<String>, String> }
-                .thenV {
-                    secondCalled.complete(true)
-                    Either.Right("should not run") as Either<NonEmptyList<String>, String>
-                }
-        }
+        val result = kapV<String, String, String, Pair<String, String>> { a, b -> a to b }
+            .withV { Either.Left(nonEmptyListOf("left failed")) as Either<NonEmptyList<String>, String> }
+            .thenV {
+                secondCalled.complete(true)
+                Either.Right("should not run") as Either<NonEmptyList<String>, String>
+            }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("left failed"), result.value.toList())
@@ -214,12 +194,10 @@ class ValidatedTest {
     @Test
     fun `liftV+apV e-commerce validation accumulates all errors`() = runTest {
         // All three validations fail
-        val result = Async {
-            kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
-                .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("expired"))) }
-                .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }
-                .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }
-        }
+        val result = kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
+            .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("expired"))) }
+            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }
+            .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(3, result.value.size)
@@ -234,10 +212,8 @@ class ValidatedTest {
 
     @Test
     fun `catching wraps exception as Left`() = runTest {
-        val result = Async {
-            Kap<String> { throw RuntimeException("boom") }
-                .catching { it.message ?: "unknown" }
-        }
+        val result = Kap<String> { throw RuntimeException("boom") }
+            .catching { it.message ?: "unknown" }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("boom"), result.value.toList())
@@ -245,9 +221,7 @@ class ValidatedTest {
 
     @Test
     fun `catching wraps success as Right`() = runTest {
-        val result = Async {
-            Kap.of("ok").catching { it.message ?: "unknown" }
-        }
+        val result = Kap.of("ok").catching { it.message ?: "unknown" }.executeGraph()
 
         assertEquals(Either.Right("ok"), result)
     }
@@ -255,10 +229,8 @@ class ValidatedTest {
     @Test
     fun `catching does not catch CancellationException`() = runTest {
         val result = runCatching {
-            Async {
-                Kap<String> { throw CancellationException("cancelled") }
-                    .catching { "caught" }
-            }
+                        Kap<String> { throw CancellationException("cancelled") }
+                .catching { "caught" }.executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -267,17 +239,15 @@ class ValidatedTest {
 
     @Test
     fun `catching composes with liftV+apV for mixed error sources`() = runTest {
-        val result = Async {
-            kapV<String, String, String, String> { a, b -> "$a|$b" }
-                .withV {
-                    try {
-                        Either.Right(throw RuntimeException("network error")) as Either<NonEmptyList<String>, String>
-                    } catch (e: Throwable) {
-                        Either.Left(nonEmptyListOf(e.message ?: "unknown"))
-                    }
+        val result = kapV<String, String, String, String> { a, b -> "$a|$b" }
+            .withV {
+                try {
+                    Either.Right(throw RuntimeException("network error")) as Either<NonEmptyList<String>, String>
+                } catch (e: Throwable) {
+                    Either.Left(nonEmptyListOf(e.message ?: "unknown"))
                 }
-                .withV { Either.Left(nonEmptyListOf("validation error")) }
-        }
+            }
+            .withV { Either.Left(nonEmptyListOf("validation error")) }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("network error", "validation error"), result.value.toList())
@@ -289,17 +259,13 @@ class ValidatedTest {
 
     @Test
     fun `validate passes when predicate returns null`() = runTest {
-        val result = Async {
-            Kap.of(42).validate<String, Int> { if (it > 0) null else "must be positive" }
-        }
+        val result = Kap.of(42).validate<String, Int> { if (it > 0) null else "must be positive" }.executeGraph()
         assertEquals(Either.Right(42), result)
     }
 
     @Test
     fun `validate fails when predicate returns error`() = runTest {
-        val result = Async {
-            Kap.of(-1).validate<String, Int> { if (it > 0) null else "must be positive" }
-        }
+        val result = Kap.of(-1).validate<String, Int> { if (it > 0) null else "must be positive" }.executeGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("must be positive"), result.value.toList())
     }
@@ -310,12 +276,10 @@ class ValidatedTest {
 
     @Test
     fun `traverseV accumulates all errors from collection`() = runTest {
-        val result = Async {
-            listOf(1, -2, 3, -4, 5).traverseV<String, Int, String> { n ->
-                if (n > 0) valid(n.toString())
-                else invalid("negative: $n")
-            }
-        }
+        val result = listOf(1, -2, 3, -4, 5).traverseV<String, Int, String> { n ->
+            if (n > 0) valid(n.toString())
+            else invalid("negative: $n")
+        }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("negative: -2", "negative: -4"), result.value.toList())
@@ -323,9 +287,7 @@ class ValidatedTest {
 
     @Test
     fun `traverseV returns all results when all succeed`() = runTest {
-        val result = Async {
-            listOf(1, 2, 3).traverseV<String, Int, Int> { n -> valid(n * 10) }
-        }
+        val result = listOf(1, 2, 3).traverseV<String, Int, Int> { n -> valid(n * 10) }.executeGraph()
         assertEquals(Either.Right(listOf(10, 20, 30)), result)
     }
 
@@ -333,24 +295,20 @@ class ValidatedTest {
     fun `traverseV runs in parallel - barrier proof`() = runTest {
         val latches = (0 until 3).map { CompletableDeferred<Unit>() }
 
-        val result = Async {
-            (0 until 3).toList().traverseV<String, Int, String> { i ->
-                Kap {
-                    latches[i].complete(Unit)
-                    latches.awaitOthers(i)
-                    Either.Right("v$i")
-                }
+        val result = (0 until 3).toList().traverseV<String, Int, String> { i ->
+            Kap {
+                latches[i].complete(Unit)
+                latches.awaitOthers(i)
+                Either.Right("v$i")
             }
-        }
+        }.executeGraph()
 
         assertEquals(Either.Right(listOf("v0", "v1", "v2")), result)
     }
 
     @Test
     fun `traverseV on empty list returns Right empty list`() = runTest {
-        val result = Async {
-            emptyList<Int>().traverseV<String, Int, Int> { n -> valid(n) }
-        }
+        val result = emptyList<Int>().traverseV<String, Int, Int> { n -> valid(n) }.executeGraph()
         assertEquals(Either.Right(emptyList<Int>()), result)
     }
 
@@ -360,18 +318,14 @@ class ValidatedTest {
 
     @Test
     fun `orThrow returns value on Right`() = runTest {
-        val result = Async {
-            valid<String, Int>(42).orThrow()
-        }
+        val result = valid<String, Int>(42).orThrow().executeGraph()
         assertEquals(42, result)
     }
 
     @Test
     fun `orThrow throws ValidationException on Left`() = runTest {
         val result = runCatching {
-            Async {
-                invalid<String, Int>("err1").orThrow()
-            }
+            invalid<String, Int>("err1").orThrow().executeGraph()
         }
 
         assertTrue(result.isFailure)
@@ -393,7 +347,7 @@ class ValidatedTest {
             invalid<String, Int>("err2"),
         )
 
-        val result = Async { computations.sequenceV() }
+        val result = computations.sequenceV().executeGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("err1", "err2"), result.value.toList())
@@ -407,7 +361,7 @@ class ValidatedTest {
             valid<String, Int>(3),
         )
 
-        val result = Async { computations.sequenceV() }
+        val result = computations.sequenceV().executeGraph()
         assertEquals(Either.Right(listOf(1, 2, 3)), result)
     }
 
@@ -423,7 +377,7 @@ class ValidatedTest {
             }
         }
 
-        val result = Async { computations.sequenceV() }
+        val result = computations.sequenceV().executeGraph()
         assertEquals(Either.Right(listOf("v0", "v1", "v2")), result)
     }
 
@@ -433,10 +387,8 @@ class ValidatedTest {
 
     @Test
     fun `andThenV chains on success`() = runTest {
-        val result = Async {
-            valid<String, Int>(42)
-                .andThenV { n -> valid<String, String>("result=$n") }
-        }
+        val result = valid<String, Int>(42)
+            .andThenV { n -> valid<String, String>("result=$n") }.executeGraph()
         assertEquals(Either.Right("result=42"), result)
     }
 
@@ -444,13 +396,11 @@ class ValidatedTest {
     fun `andThenV short-circuits on first error`() = runTest {
         val secondCalled = CompletableDeferred<Boolean>()
 
-        val result = Async {
-            invalid<String, Int>("first error")
-                .andThenV { n ->
-                    secondCalled.complete(true)
-                    valid<String, String>("result=$n")
-                }
-        }
+        val result = invalid<String, Int>("first error")
+            .andThenV { n ->
+                secondCalled.complete(true)
+                valid<String, String>("result=$n")
+            }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("first error"), result.value.toList())
@@ -460,10 +410,8 @@ class ValidatedTest {
 
     @Test
     fun `andThenV propagates error from second step`() = runTest {
-        val result = Async {
-            valid<String, Int>(42)
-                .andThenV { invalid<String, String>("second error") }
-        }
+        val result = valid<String, Int>(42)
+            .andThenV { invalid<String, String>("second error") }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("second error"), result.value.toList())
@@ -471,12 +419,10 @@ class ValidatedTest {
 
     @Test
     fun `andThenV chains multiple steps`() = runTest {
-        val result = Async {
-            valid<String, Int>(10)
-                .andThenV { n -> valid<String, Int>(n + 1) }
-                .andThenV { n -> valid<String, Int>(n * 2) }
-                .andThenV { n -> valid<String, String>("final=$n") }
-        }
+        val result = valid<String, Int>(10)
+            .andThenV { n -> valid<String, Int>(n + 1) }
+            .andThenV { n -> valid<String, Int>(n * 2) }
+            .andThenV { n -> valid<String, String>("final=$n") }.executeGraph()
         assertEquals(Either.Right("final=22"), result)
     }
 
@@ -489,14 +435,12 @@ class ValidatedTest {
         fun checkNotTaken(name: String, email: String): Kap<Either<NonEmptyList<String>, Pair<String, String>>> =
             valid(name to email) // pretend it's available
 
-        val result = Async {
-            // Phase 1: parallel validation with error accumulation
-            kapV<String, String, String, Pair<String, String>> { a, b -> a to b }
-                .withV(validateName("Alice"))
-                .withV(validateEmail("alice@test.com"))
-                // Phase 2: sequential check depending on phase 1 values
-                .andThenV { (name, email) -> checkNotTaken(name, email) }
-        }
+        val result = // Phase 1: parallel validation with error accumulation
+        kapV<String, String, String, Pair<String, String>> { a, b -> a to b }
+            .withV(validateName("Alice"))
+            .withV(validateEmail("alice@test.com"))
+            // Phase 2: sequential check depending on phase 1 values
+            .andThenV { (name, email) -> checkNotTaken(name, email) }.executeGraph()
 
         assertEquals(Either.Right("Alice" to "alice@test.com"), result)
     }
@@ -520,23 +464,19 @@ class ValidatedTest {
             else Either.Left(nonEmptyListOf(RegError.TooYoung("Must be >= 18")))
 
         // All invalid
-        val allBad = Async {
-            kapV<RegError, String, String, Int, User>(::User)
-                .withV { validateName("X") }
-                .withV { validateEmail("bad") }
-                .withV { validateAge(15) }
-        }
+        val allBad = kapV<RegError, String, String, Int, User>(::User)
+            .withV { validateName("X") }
+            .withV { validateEmail("bad") }
+            .withV { validateAge(15) }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<RegError>>>(allBad)
         assertEquals(3, allBad.value.size)
 
         // All valid
-        val allGood = Async {
-            kapV<RegError, String, String, Int, User>(::User)
-                .withV { validateName("Alice") }
-                .withV { validateEmail("alice@example.com") }
-                .withV { validateAge(25) }
-        }
+        val allGood = kapV<RegError, String, String, Int, User>(::User)
+            .withV { validateName("Alice") }
+            .withV { validateEmail("alice@example.com") }
+            .withV { validateAge(25) }.executeGraph()
 
         assertEquals(Either.Right(User("Alice", "alice@example.com", 25)), allGood)
     }
@@ -560,26 +500,22 @@ class ValidatedTest {
             else Either.Left(nonEmptyListOf("too young"))
 
         // No type params needed — compare with kapV<String, String, String, Int, User>(::User)
-        val result = Async {
-            zipV(
-                { validateName("Alice") },
-                { validateEmail("alice@test.com") },
-                { validateAge(25) },
-            ) { name, email, age -> User(name, email, age) }
-        }
+        val result = zipV(
+            { validateName("Alice") },
+            { validateEmail("alice@test.com") },
+            { validateAge(25) },
+        ) { name, email, age -> User(name, email, age) }.executeGraph()
 
         assertEquals(Either.Right(User("Alice", "alice@test.com", 25)), result)
     }
 
     @Test
     fun `zipV accumulates errors from all branches`() = runTest {
-        val result = Async {
-            zipV(
-                { Either.Left(nonEmptyListOf("err1")) },
-                { Either.Left(nonEmptyListOf("err2")) },
-                { Either.Left(nonEmptyListOf("err3")) },
-            ) { a: String, b: String, c: String -> "$a|$b|$c" }
-        }
+        val result = zipV(
+            { Either.Left(nonEmptyListOf("err1")) },
+            { Either.Left(nonEmptyListOf("err2")) },
+            { Either.Left(nonEmptyListOf("err3")) },
+        ) { a: String, b: String, c: String -> "$a|$b|$c" }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("err1", "err2", "err3"), result.value.toList())
@@ -589,25 +525,21 @@ class ValidatedTest {
     fun `zipV runs in parallel - barrier proof`() = runTest {
         val latches = (0 until 3).map { CompletableDeferred<Unit>() }
 
-        val result = Async {
-            zipV(
-                { latches[0].complete(Unit); latches.awaitOthers(0); Either.Right("A") as Either<NonEmptyList<String>, String> },
-                { latches[1].complete(Unit); latches.awaitOthers(1); Either.Right("B") },
-                { latches[2].complete(Unit); latches.awaitOthers(2); Either.Right("C") },
-            ) { a, b, c -> "$a|$b|$c" }
-        }
+        val result = zipV(
+            { latches[0].complete(Unit); latches.awaitOthers(0); Either.Right("A") as Either<NonEmptyList<String>, String> },
+            { latches[1].complete(Unit); latches.awaitOthers(1); Either.Right("B") },
+            { latches[2].complete(Unit); latches.awaitOthers(2); Either.Right("C") },
+        ) { a, b, c -> "$a|$b|$c" }.executeGraph()
 
         assertEquals(Either.Right("A|B|C"), result)
     }
 
     @Test
     fun `zipV2 with two validations`() = runTest {
-        val result = Async {
-            zipV(
-                { Either.Left(nonEmptyListOf("e1")) },
-                { Either.Left(nonEmptyListOf("e2")) },
-            ) { a: String, b: String -> "$a|$b" }
-        }
+        val result = zipV(
+            { Either.Left(nonEmptyListOf("e1")) },
+            { Either.Left(nonEmptyListOf("e2")) },
+        ) { a: String, b: String -> "$a|$b" }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("e1", "e2"), result.value.toList())
@@ -615,14 +547,12 @@ class ValidatedTest {
 
     @Test
     fun `zipV4 with four validations`() = runTest {
-        val result = Async {
-            zipV(
-                { Either.Right("a") as Either<NonEmptyList<String>, String> },
-                { Either.Right("b") },
-                { Either.Right("c") },
-                { Either.Right("d") },
-            ) { a, b, c, d -> "$a$b$c$d" }
-        }
+        val result = zipV(
+            { Either.Right("a") as Either<NonEmptyList<String>, String> },
+            { Either.Right("b") },
+            { Either.Right("c") },
+            { Either.Right("d") },
+        ) { a, b, c, d -> "$a$b$c$d" }.executeGraph()
 
         assertEquals(Either.Right("abcd"), result)
     }
@@ -701,24 +631,22 @@ class ValidatedTest {
 
     @Test
     fun `zipV12 - all valid - full user onboarding`() = runTest {
-        val result = Async {
-            zipV(
-                { valFirstName("Alice") },
-                { valLastName("Smith") },
-                { valEmail("alice@example.com") },
-                { valPhone("+541155551234") },
-                { valPassword("s3cur3p@ss") },
-                { valBirthDate("1990-05-15") },
-                { valCountry("AR") },
-                { valCity("Buenos Aires") },
-                { valZipCode("1425") },
-                { valAddress("Av. Corrientes 1234") },
-                { valTaxId("20345678901") },
-                { valTerms(true) },
-            ) { fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm ->
-                UserOnboarding(fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm)
-            }
-        }
+        val result = zipV(
+            { valFirstName("Alice") },
+            { valLastName("Smith") },
+            { valEmail("alice@example.com") },
+            { valPhone("+541155551234") },
+            { valPassword("s3cur3p@ss") },
+            { valBirthDate("1990-05-15") },
+            { valCountry("AR") },
+            { valCity("Buenos Aires") },
+            { valZipCode("1425") },
+            { valAddress("Av. Corrientes 1234") },
+            { valTaxId("20345678901") },
+            { valTerms(true) },
+        ) { fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm ->
+            UserOnboarding(fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm)
+        }.executeGraph()
 
         assertEquals(
             Either.Right(UserOnboarding(
@@ -735,24 +663,22 @@ class ValidatedTest {
 
     @Test
     fun `zipV12 - all invalid - accumulates 12 errors`() = runTest {
-        val result = Async {
-            zipV(
-                { valFirstName("A") },           // too short
-                { valLastName("B") },             // too short
-                { valEmail("bad") },              // missing @
-                { valPhone("123") },              // too short
-                { valPassword("1234") },          // too weak
-                { valBirthDate("not-a-date") },   // bad format
-                { valCountry("ARG") },            // not ISO 2-letter
-                { valCity("") },                  // blank
-                { valZipCode("ab") },             // invalid
-                { valAddress("Hi") },             // too short
-                { valTaxId("123") },              // invalid format
-                { valTerms(false) },              // must accept
-            ) { fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm ->
-                UserOnboarding(fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm)
-            }
-        }
+        val result = zipV(
+            { valFirstName("A") },           // too short
+            { valLastName("B") },             // too short
+            { valEmail("bad") },              // missing @
+            { valPhone("123") },              // too short
+            { valPassword("1234") },          // too weak
+            { valBirthDate("not-a-date") },   // bad format
+            { valCountry("ARG") },            // not ISO 2-letter
+            { valCity("") },                  // blank
+            { valZipCode("ab") },             // invalid
+            { valAddress("Hi") },             // too short
+            { valTaxId("123") },              // invalid format
+            { valTerms(false) },              // must accept
+        ) { fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm ->
+            UserOnboarding(fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm)
+        }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<OnboardingError>>>(result)
         assertEquals(12, result.value.size)
@@ -773,24 +699,22 @@ class ValidatedTest {
 
     @Test
     fun `zipV12 - mix of valid and invalid - accumulates only failures`() = runTest {
-        val result = Async {
-            zipV(
-                { valFirstName("Alice") },        // OK
-                { valLastName("B") },             // FAIL
-                { valEmail("alice@test.com") },   // OK
-                { valPhone("123") },              // FAIL
-                { valPassword("s3cur3p@ss") },    // OK
-                { valBirthDate("not-a-date") },   // FAIL
-                { valCountry("AR") },             // OK
-                { valCity("Buenos Aires") },      // OK
-                { valZipCode("ab") },             // FAIL
-                { valAddress("Av. Corrientes") }, // OK
-                { valTaxId("123") },              // FAIL
-                { valTerms(true) },               // OK
-            ) { fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm ->
-                UserOnboarding(fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm)
-            }
-        }
+        val result = zipV(
+            { valFirstName("Alice") },        // OK
+            { valLastName("B") },             // FAIL
+            { valEmail("alice@test.com") },   // OK
+            { valPhone("123") },              // FAIL
+            { valPassword("s3cur3p@ss") },    // OK
+            { valBirthDate("not-a-date") },   // FAIL
+            { valCountry("AR") },             // OK
+            { valCity("Buenos Aires") },      // OK
+            { valZipCode("ab") },             // FAIL
+            { valAddress("Av. Corrientes") }, // OK
+            { valTaxId("123") },              // FAIL
+            { valTerms(true) },               // OK
+        ) { fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm ->
+            UserOnboarding(fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm)
+        }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<OnboardingError>>>(result)
         assertEquals(5, result.value.size)
@@ -824,28 +748,26 @@ class ValidatedTest {
 
     @Test
     fun `zipV + andThenV - phased validation - both phases pass`() = runTest {
-        val result = Async {
-            // Phase 1: identity (6 parallel validations)
+        val result = // Phase 1: identity (6 parallel validations)
+        zipV(
+            { valFirstName("Alice") },
+            { valLastName("Smith") },
+            { valEmail("alice@test.com") },
+            { valPhone("+541155551234") },
+            { valPassword("s3cur3p@ss") },
+            { valBirthDate("1990-05-15") },
+        ) { fn, ln, em, ph, pw, bd -> IdentityInfo(fn, ln, em, ph, pw, bd) }
+        // Phase 2: address + extras (4 parallel validations, only if phase 1 passes)
+        .andThenV { identity ->
             zipV(
-                { valFirstName("Alice") },
-                { valLastName("Smith") },
-                { valEmail("alice@test.com") },
-                { valPhone("+541155551234") },
-                { valPassword("s3cur3p@ss") },
-                { valBirthDate("1990-05-15") },
-            ) { fn, ln, em, ph, pw, bd -> IdentityInfo(fn, ln, em, ph, pw, bd) }
-            // Phase 2: address + extras (4 parallel validations, only if phase 1 passes)
-            .andThenV { identity ->
-                zipV(
-                    { valCountry("AR") },
-                    { valCity("Buenos Aires") },
-                    { valZipCode("1425") },
-                    { valAddress("Av. Corrientes 1234") },
-                    { valTaxId("20345678901") },
-                    { valTerms(true) },
-                ) { co, ci, zc, ad, tx, tm -> FullRegistration(identity, AddressInfo(co, ci, zc, ad), tx, tm) }
-            }
-        }
+                { valCountry("AR") },
+                { valCity("Buenos Aires") },
+                { valZipCode("1425") },
+                { valAddress("Av. Corrientes 1234") },
+                { valTaxId("20345678901") },
+                { valTerms(true) },
+            ) { co, ci, zc, ad, tx, tm -> FullRegistration(identity, AddressInfo(co, ci, zc, ad), tx, tm) }
+        }.executeGraph()
 
         assertIs<Either.Right<FullRegistration>>(result)
         assertEquals("Alice", result.value.identity.firstName.v)
@@ -856,27 +778,25 @@ class ValidatedTest {
     fun `zipV + andThenV - phase 1 fails - phase 2 never runs`() = runTest {
         var phase2Ran = false
 
-        val result = Async {
+        val result = zipV(
+            { valFirstName("A") },       // FAIL
+            { valLastName("B") },         // FAIL
+            { valEmail("bad") },          // FAIL
+            { valPhone("123") },          // FAIL
+            { valPassword("weak") },      // FAIL
+            { valBirthDate("nope") },     // FAIL
+        ) { fn, ln, em, ph, pw, bd -> IdentityInfo(fn, ln, em, ph, pw, bd) }
+        .andThenV { identity ->
+            phase2Ran = true
             zipV(
-                { valFirstName("A") },       // FAIL
-                { valLastName("B") },         // FAIL
-                { valEmail("bad") },          // FAIL
-                { valPhone("123") },          // FAIL
-                { valPassword("weak") },      // FAIL
-                { valBirthDate("nope") },     // FAIL
-            ) { fn, ln, em, ph, pw, bd -> IdentityInfo(fn, ln, em, ph, pw, bd) }
-            .andThenV { identity ->
-                phase2Ran = true
-                zipV(
-                    { valCountry("AR") },
-                    { valCity("Buenos Aires") },
-                    { valZipCode("1425") },
-                    { valAddress("Av. Corrientes 1234") },
-                    { valTaxId("20345678901") },
-                    { valTerms(true) },
-                ) { co, ci, zc, ad, tx, tm -> FullRegistration(identity, AddressInfo(co, ci, zc, ad), tx, tm) }
-            }
-        }
+                { valCountry("AR") },
+                { valCity("Buenos Aires") },
+                { valZipCode("1425") },
+                { valAddress("Av. Corrientes 1234") },
+                { valTaxId("20345678901") },
+                { valTerms(true) },
+            ) { co, ci, zc, ad, tx, tm -> FullRegistration(identity, AddressInfo(co, ci, zc, ad), tx, tm) }
+        }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<OnboardingError>>>(result)
         assertEquals(6, result.value.size)  // all 6 phase-1 errors accumulated
@@ -885,26 +805,24 @@ class ValidatedTest {
 
     @Test
     fun `zipV + andThenV - phase 1 passes - phase 2 fails and accumulates`() = runTest {
-        val result = Async {
+        val result = zipV(
+            { valFirstName("Alice") },
+            { valLastName("Smith") },
+            { valEmail("alice@test.com") },
+            { valPhone("+541155551234") },
+            { valPassword("s3cur3p@ss") },
+            { valBirthDate("1990-05-15") },
+        ) { fn, ln, em, ph, pw, bd -> IdentityInfo(fn, ln, em, ph, pw, bd) }
+        .andThenV { identity ->
             zipV(
-                { valFirstName("Alice") },
-                { valLastName("Smith") },
-                { valEmail("alice@test.com") },
-                { valPhone("+541155551234") },
-                { valPassword("s3cur3p@ss") },
-                { valBirthDate("1990-05-15") },
-            ) { fn, ln, em, ph, pw, bd -> IdentityInfo(fn, ln, em, ph, pw, bd) }
-            .andThenV { identity ->
-                zipV(
-                    { valCountry("ARG") },   // FAIL — not ISO 2-letter
-                    { valCity("") },          // FAIL — blank
-                    { valZipCode("ab") },     // FAIL — invalid
-                    { valAddress("Hi") },     // FAIL — too short
-                    { valTaxId("123") },      // FAIL — invalid
-                    { valTerms(false) },      // FAIL — must accept
-                ) { co, ci, zc, ad, tx, tm -> FullRegistration(identity, AddressInfo(co, ci, zc, ad), tx, tm) }
-            }
-        }
+                { valCountry("ARG") },   // FAIL — not ISO 2-letter
+                { valCity("") },          // FAIL — blank
+                { valZipCode("ab") },     // FAIL — invalid
+                { valAddress("Hi") },     // FAIL — too short
+                { valTaxId("123") },      // FAIL — invalid
+                { valTerms(false) },      // FAIL — must accept
+            ) { co, ci, zc, ad, tx, tm -> FullRegistration(identity, AddressInfo(co, ci, zc, ad), tx, tm) }
+        }.executeGraph()
 
         assertIs<Either.Left<NonEmptyList<OnboardingError>>>(result)
         assertEquals(6, result.value.size)  // all 6 phase-2 errors accumulated

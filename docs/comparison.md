@@ -120,20 +120,19 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
 === "KAP (12 lines)"
 
     ```kotlin
-    val checkout: CheckoutResult = Async {
-        kap(::CheckoutResult)
-            .with { fetchUser() }              // ┐
-            .with { fetchCart() }               // ├─ phase 1: parallel
-            .with { fetchPromos() }             // │
-            .with { fetchInventory() }          // ┘
-            .then { validateStock() }           // ── phase 2: barrier
-            .with { calcShipping() }            // ┐
-            .with { calcTax() }                 // ├─ phase 3: parallel
-            .with { calcDiscounts() }           // ┘
-            .then { reservePayment() }          // ── phase 4: barrier
-            .with { generateConfirmation() }    // ┐ phase 5: parallel
-            .with { sendEmail() }              // ┘
-    }
+    val checkout: CheckoutResult = kap(::CheckoutResult)
+        .with { fetchUser() }              // ┐
+        .with { fetchCart() }               // ├─ phase 1: parallel
+        .with { fetchPromos() }             // │
+        .with { fetchInventory() }          // ┘
+        .then { validateStock() }           // ── phase 2: barrier
+        .with { calcShipping() }            // ┐
+        .with { calcTax() }                 // ├─ phase 3: parallel
+        .with { calcDiscounts() }           // ┘
+        .then { reservePayment() }          // ── phase 4: barrier
+        .with { generateConfirmation() }    // ┐ phase 5: parallel
+        .with { sendEmail() }              // ┘
+        .executeGraph()
     // 12 lines. Phases explicit. Swap any .with → compile error.
     // No shuttle variables. No intermediate data classes.
     ```
@@ -186,14 +185,13 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
     ```kotlin
     val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
-    val result = Async {
-        Kap { fetchUser() }
-            .timeout(500.milliseconds)
-            .withCircuitBreaker(breaker)
-            .retry(Schedule.times<Throwable>(3)
-                and Schedule.exponential(50.milliseconds).jittered())
-            .recover { "cached-user" }
-    }
+    val result = Kap { fetchUser() }
+        .timeout(500.milliseconds)
+        .withCircuitBreaker(breaker)
+        .retry(Schedule.times<Throwable>(3)
+            and Schedule.exponential(50.milliseconds).jittered())
+        .recover { "cached-user" }
+        .executeGraph()
     // 8 lines. Composable. timeout → breaker → retry → fallback.
     ```
 
@@ -228,14 +226,13 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
 
     ```kotlin
     // Parallel execution + error accumulation + scales to 22
-    val result: Either<NonEmptyList<RegError>, User> = Async {
-        zipV(
-            { validateName("A") },
-            { validateEmail("bad") },
-            { validateAge(10) },
-            { checkUsername("al") },
-        ) { name, email, age, username -> User(name, email, age, username) }
-    }
+    val result: Either<NonEmptyList<RegError>, User> = zipV(
+        { validateName("A") },
+        { validateEmail("bad") },
+        { validateAge(10) },
+        { checkUsername("al") },
+    ) { name, email, age, username -> User(name, email, age, username) }
+        .executeGraph()
     // 4 errors in one response. All validators ran in parallel.
     // Scales to 22 validators. Arrow maxes at 9.
     ```

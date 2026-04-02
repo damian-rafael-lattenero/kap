@@ -26,7 +26,7 @@ class ApplicativeLawsTest {
     @Test
     fun `functor identity - map id == id`() = runTest {
         checkAll(Arb.int()) { x ->
-            val result = Async { Kap.of(x).map { it } }
+            val result = Kap.of(x).map { it }.executeGraph()
             assertEquals(x, result)
         }
     }
@@ -37,8 +37,8 @@ class ApplicativeLawsTest {
         val g: (Int) -> String = { "v=$it" }
 
         checkAll(Arb.int()) { x ->
-            val composed = Async { Kap.of(x).map { g(f(it)) } }
-            val chained = Async { Kap.of(x).map(f).map(g) }
+            val composed = Kap.of(x).map { g(f(it)) }.executeGraph()
+            val chained = Kap.of(x).map(f).map(g).executeGraph()
             assertEquals(composed, chained)
         }
     }
@@ -52,7 +52,7 @@ class ApplicativeLawsTest {
         val id: (Int) -> Int = { it }
 
         checkAll(Arb.int()) { x ->
-            val result = Async { Kap.of(id) with Kap.of(x) }
+            val result = (Kap.of(id) with Kap.of(x)).executeGraph()
             assertEquals(x, result)
         }
     }
@@ -62,8 +62,8 @@ class ApplicativeLawsTest {
         val f: (Int) -> String = { "v=$it" }
 
         checkAll(Arb.int()) { x ->
-            val left = Async { Kap.of(f) with Kap.of(x) }
-            val right = Async { Kap.of(f(x)) }
+            val left = (Kap.of(f) with Kap.of(x)).executeGraph()
+            val right = Kap.of(f(x)).executeGraph()
             assertEquals(left, right)
         }
     }
@@ -73,9 +73,9 @@ class ApplicativeLawsTest {
         val u: Kap<(Int) -> String> = Kap.of { n: Int -> "v=$n" }
 
         checkAll(Arb.int()) { y ->
-            val left = Async { u with Kap.of(y) }
+            val left = (u with Kap.of(y)).executeGraph()
             val applyY: ((Int) -> String) -> String = { fn -> fn(y) }
-            val right = Async { Kap.of(applyY) with u }
+            val right = (Kap.of(applyY) with u).executeGraph()
             assertEquals(left, right)
         }
     }
@@ -89,8 +89,8 @@ class ApplicativeLawsTest {
             { f -> { g -> { a -> f(g(a)) } } }
 
         checkAll(Arb.int()) { x ->
-            val left = Async { Kap.of(compose) with u with v with Kap.of(x) }
-            val right = Async { u with (v with Kap.of(x)) }
+            val left = (Kap.of(compose) with u with v with Kap.of(x)).executeGraph()
+            val right = (u with (v with Kap.of(x))).executeGraph()
             assertEquals(left, right)
         }
     }
@@ -104,8 +104,8 @@ class ApplicativeLawsTest {
         val f: (Int) -> Kap<String> = { n -> Kap.of("v=$n") }
 
         checkAll(Arb.int()) { a ->
-            val left = Async { Kap.of(a).andThen(f) }
-            val right = Async { f(a) }
+            val left = Kap.of(a).andThen(f).executeGraph()
+            val right = f(a).executeGraph()
             assertEquals(left, right)
         }
     }
@@ -113,8 +113,8 @@ class ApplicativeLawsTest {
     @Test
     fun `monad right identity - m andThen pure == m`() = runTest {
         checkAll(Arb.int()) { x ->
-            val left = Async { Kap.of(x).andThen { Kap.of(it) } }
-            val right = Async { Kap.of(x) }
+            val left = Kap.of(x).andThen { Kap.of(it) }.executeGraph()
+            val right = Kap.of(x).executeGraph()
             assertEquals(left, right)
         }
     }
@@ -125,8 +125,8 @@ class ApplicativeLawsTest {
         val g: (Int) -> Kap<String> = { n -> Kap.of("v=$n") }
 
         checkAll(Arb.int()) { x ->
-            val left = Async { Kap.of(x).andThen(f).andThen(g) }
-            val right = Async { Kap.of(x).andThen { a -> f(a).andThen(g) } }
+            val left = Kap.of(x).andThen(f).andThen(g).executeGraph()
+            val right = Kap.of(x).andThen { a -> f(a).andThen(g) }.executeGraph()
             assertEquals(left, right)
         }
     }
@@ -141,7 +141,7 @@ class ApplicativeLawsTest {
 
         checkAll(Arb.int()) { x ->
             val effectful = Kap { kotlinx.coroutines.delay(1); x }
-            val result = Async { Kap.of(id) with effectful }
+            val result = (Kap.of(id) with effectful).executeGraph()
             assertEquals(x, result)
         }
     }
@@ -160,8 +160,8 @@ class ApplicativeLawsTest {
 
         checkAll(Arb.int()) { x ->
             val effectful = Kap { kotlinx.coroutines.delay(1); x }
-            val left = Async { Kap.of(compose) with u with v with effectful }
-            val right = Async { u with (v with effectful) }
+            val left = (Kap.of(compose) with u with v with effectful).executeGraph()
+            val right = (u with (v with effectful)).executeGraph()
             assertEquals(left, right)
         }
     }
@@ -173,8 +173,8 @@ class ApplicativeLawsTest {
 
         checkAll(Arb.int()) { x ->
             val m = Kap { kotlinx.coroutines.delay(1); x }
-            val left = Async { m.andThen(f).andThen(g) }
-            val right = Async { m.andThen { a -> f(a).andThen(g) } }
+            val left = m.andThen(f).andThen(g).executeGraph()
+            val right = m.andThen { a -> f(a).andThen(g) }.executeGraph()
             assertEquals(left, right)
         }
     }
@@ -186,8 +186,8 @@ class ApplicativeLawsTest {
 
         checkAll(Arb.int()) { x ->
             val effectful = Kap { kotlinx.coroutines.delay(1); x }
-            val composed = Async { effectful.map { g(f(it)) } }
-            val chained = Async { effectful.map(f).map(g) }
+            val composed = effectful.map { g(f(it)) }.executeGraph()
+            val chained = effectful.map(f).map(g).executeGraph()
             assertEquals(composed, chained)
         }
     }
@@ -201,8 +201,8 @@ class ApplicativeLawsTest {
         val f: (Int, String) -> String = { n, s -> "$s=$n" }
 
         checkAll(Arb.int(), Arb.string()) { n, s ->
-            val viaLift = Async { kap(f).with(Kap.of(n)).with(Kap.of(s)) }
-            val viaZip = Async { Kap.of(n).zip(Kap.of(s)) { a, b -> f(a, b) } }
+            val viaLift = kap(f).with(Kap.of(n)).with(Kap.of(s)).executeGraph()
+            val viaZip = Kap.of(n).zip(Kap.of(s)) { a, b -> f(a, b) }.executeGraph()
             assertEquals(viaLift, viaZip)
         }
     }
@@ -212,10 +212,8 @@ class ApplicativeLawsTest {
         val f: (Int, Int, Int) -> Int = { a, b, c -> a + b + c }
 
         checkAll(Arb.int(), Arb.int(), Arb.int()) { a, b, c ->
-            val viaLift = Async { kap(f) with Kap.of(a) with Kap.of(b) with Kap.of(c) }
-            val viaZip = Async {
-                Kap.of(a).zip(Kap.of(b)) { x, y -> x to y }.zip(Kap.of(c)) { (x, y), z -> f(x, y, z) }
-            }
+            val viaLift = (kap(f) with Kap.of(a) with Kap.of(b) with Kap.of(c)).executeGraph()
+            val viaZip = Kap.of(a).zip(Kap.of(b)) { x, y -> x to y }.zip(Kap.of(c)) { (x, y), z -> f(x, y, z) }.executeGraph()
             assertEquals(viaLift, viaZip)
         }
     }

@@ -21,19 +21,17 @@ class NamedAndUnitTest {
 
     @Test
     fun `Kap empty returns Unit`() = runTest {
-        val result = Async { Kap.empty }
+        val result = Kap.empty.executeGraph()
         assertEquals(Unit, result)
     }
 
     @Test
     fun `Kap empty works as then barrier value`() = runTest {
         // Kap.empty is just Kap.of(Unit), usable as a barrier value in phase chains
-        val result = Async {
-            kap { a: String, _: Unit, b: Int -> "$a=$b" }
+        val result = kap { a: String, _: Unit, b: Int -> "$a=$b" }
                 .with { delay(30); "hello" }
                 .then(Kap.empty)
-                .with { delay(30); 42 }
-        }
+                .with { delay(30); 42 }.executeGraph()
         assertEquals("hello=42", result)
         // phase 1: 30ms, barrier: 0ms (Kap.empty is instant), phase 2: 30ms
         assertEquals(60, currentTime)
@@ -45,18 +43,15 @@ class NamedAndUnitTest {
 
     @Test
     fun `named sets CoroutineName in coroutineContext`() = runTest {
-        val result = Async {
-            Kap {
+        val result = Kap {
                 coroutineContext[CoroutineName]?.name ?: "missing"
-            }.named("my-computation")
-        }
+            }.named("my-computation").executeGraph()
         assertEquals("my-computation", result)
     }
 
     @Test
     fun `named composes with with - each branch has its own name`() = runTest {
-        val result = Async {
-            kap { a: String, b: String, c: String -> listOf(a, b, c) }
+        val result = kap { a: String, b: String, c: String -> listOf(a, b, c) }
                 .with(Kap<String> {
                     coroutineContext[CoroutineName]?.name ?: "missing"
                 }.named("branch-a"))
@@ -65,16 +60,13 @@ class NamedAndUnitTest {
                 }.named("branch-b"))
                 .with(Kap<String> {
                     coroutineContext[CoroutineName]?.name ?: "missing"
-                }.named("branch-c"))
-        }
+                }.named("branch-c")).executeGraph()
         assertEquals(listOf("branch-a", "branch-b", "branch-c"), result)
     }
 
     @Test
     fun `named does not affect computation result`() = runTest {
-        val result = Async {
-            Kap { delay(30); 42 }.named("answer")
-        }
+        val result = Kap { delay(30); 42 }.named("answer").executeGraph()
         assertEquals(42, result)
         assertEquals(30, currentTime)
     }
@@ -84,9 +76,7 @@ class NamedAndUnitTest {
         val events = mutableListOf<TraceEvent>()
         val tracer = KapTracer { events += it }
 
-        val result = Async {
-            Kap.of(42).named("x").traced("x", tracer)
-        }
+        val result = Kap.of(42).named("x").traced("x", tracer).executeGraph()
 
         assertEquals(42, result)
         assertEquals(2, events.size)
@@ -102,18 +92,14 @@ class NamedAndUnitTest {
 
     @Test
     fun `catching returns Result success on success`() = runTest {
-        val result: Result<Int> = Async {
-            catching { 42 }
-        }
+        val result: Result<Int> = catching { 42 }.executeGraph()
         assertTrue(result.isSuccess)
         assertEquals(42, result.getOrNull())
     }
 
     @Test
     fun `catching returns Result failure on exception`() = runTest {
-        val result: Result<String> = Async {
-            catching<String> { throw IllegalStateException("boom") }
-        }
+        val result: Result<String> = catching<String> { throw IllegalStateException("boom") }.executeGraph()
         assertTrue(result.isFailure)
         assertIs<IllegalStateException>(result.exceptionOrNull())
         assertEquals("boom", result.exceptionOrNull()?.message)
@@ -122,9 +108,7 @@ class NamedAndUnitTest {
     @Test
     fun `catching does not catch CancellationException`() = runTest {
         val result = runCatching {
-            Async {
-                catching<String> { throw CancellationException("cancelled") }
-            }
+            catching<String> { throw CancellationException("cancelled") }.executeGraph()
         }
         assertTrue(result.isFailure)
         assertIs<CancellationException>(result.exceptionOrNull())
@@ -132,11 +116,9 @@ class NamedAndUnitTest {
 
     @Test
     fun `catching composes with with branches in parallel`() = runTest {
-        val result = Async {
-            kap { a: Result<Int>, b: Result<String> -> a to b }
+        val result = kap { a: Result<Int>, b: Result<String> -> a to b }
                 .with(catching<Int> { delay(30); 42 })
-                .with(catching<String> { delay(30); "hello" })
-        }
+                .with(catching<String> { delay(30); "hello" }).executeGraph()
         assertTrue(result.first.isSuccess)
         assertEquals(42, result.first.getOrNull())
         assertTrue(result.second.isSuccess)

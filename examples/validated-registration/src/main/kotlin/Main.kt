@@ -78,13 +78,12 @@ suspend fun main() {
     // Type safety: swap any two .withV calls and it won't compile!
     // The types ValidName, ValidEmail, ValidAge, ValidUsername are all distinct,
     // so the compiler enforces the correct order of arguments.
-    val result1 = Async {
-        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+    val result1 = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
             .withV { validateName("Alice") }
             .withV { validateEmail("alice@example.com") }
             .withV { validateAge(28) }
             .withV { checkUsernameAvailable("alice_new") }
-    }
+            .executeGraph()
 
     when (result1) {
         is Either.Right -> println("  Success: ${result1.value}")
@@ -94,13 +93,12 @@ suspend fun main() {
     // ── Scenario 2: Multiple validations fail ──
     println("\n=== Scenario 2: Multiple failures (all errors collected) ===\n")
 
-    val result2 = Async {
-        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+    val result2 = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
             .withV { validateName("A") }           // too short
             .withV { validateEmail("not-an-email") } // no @
             .withV { validateAge(5) }               // too young
             .withV { checkUsernameAvailable("admin") } // taken
-    }
+            .executeGraph()
 
     when (result2) {
         is Either.Right -> println("  Success: ${result2.value}")
@@ -113,8 +111,7 @@ suspend fun main() {
     // ── Scenario 3: Phased validation (validate fields, then check availability) ──
     println("\n=== Scenario 3: Phased validation with andThenV ===\n")
 
-    val result3 = Async {
-        kapV<RegError, ValidName, ValidEmail, ValidAge, Triple<ValidName, ValidEmail, ValidAge>>(::Triple)
+    val result3 = kapV<RegError, ValidName, ValidEmail, ValidAge, Triple<ValidName, ValidEmail, ValidAge>>(::Triple)
             .withV { validateName("Bob") }
             .withV { validateEmail("bob@test.com") }
             .withV { validateAge(25) }
@@ -123,7 +120,7 @@ suspend fun main() {
                     User(name, email, age, username)
                 }
             }
-    }
+            .executeGraph()
 
     when (result3) {
         is Either.Right -> println("  Success: ${result3.value}")
@@ -136,14 +133,13 @@ suspend fun main() {
     // ── Scenario 4: Password with multiple errors ──
     println("\n=== Scenario 4: Password with multiple rule violations ===\n")
 
-    val result4 = Async {
-        kapV<RegError, ValidName, ValidEmail, ValidPassword, String> { name, email, _ ->
+    val result4 = kapV<RegError, ValidName, ValidEmail, ValidPassword, String> { name, email, _ ->
             "${name.value} (${email.value}) - password accepted"
         }
             .withV { validateName("Charlie") }
             .withV { validateEmail("charlie@test.com") }
             .withV { validatePassword("abc") }  // too short, no digit, no uppercase
-    }
+            .executeGraph()
 
     when (result4) {
         is Either.Right -> println("  Success: ${result4.value}")

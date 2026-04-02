@@ -35,11 +35,9 @@ class RespondAsyncTest {
         routing {
             get("/dashboard") {
                 call.respondKap {
-                    Async {
-                        kap(::TestDashboard)
-                            .with { "Alice" }
-                            .with { "3 items" }
-                    }
+                    kap(::TestDashboard)
+                        .with { "Alice" }
+                        .with { "3 items" }.executeGraph()
                 }
             }
         }
@@ -60,11 +58,9 @@ class RespondAsyncTest {
         routing {
             post("/users") {
                 call.respondKap(HttpStatusCode.Created) {
-                    Async {
-                        kap(::TestUser)
-                            .with { "Bob" }
-                            .with { 30 }
-                    }
+                    kap(::TestUser)
+                        .with { "Bob" }
+                        .with { 30 }.executeGraph()
                 }
             }
         }
@@ -86,9 +82,7 @@ class RespondAsyncTest {
         routing {
             get("/fail") {
                 call.respondKap<String> {
-                    Async {
-                        Kap<String> { throw IllegalArgumentException("bad param") }
-                    }
+                    Kap<String> { throw IllegalArgumentException("bad param") }.executeGraph()
                 }
             }
         }
@@ -104,11 +98,9 @@ class RespondAsyncTest {
 
         routing {
             get("/user") {
-                call.respondAsync {
-                    kap(::TestUser)
-                        .with { "Charlie" }
-                        .with { 25 }
-                }
+                call.respond(kap(::TestUser)
+                    .with { "Charlie" }
+                    .with { 25 }.executeGraph())
             }
         }
 
@@ -128,9 +120,7 @@ class RespondAsyncTest {
 
         routing {
             get("/fail") {
-                call.respondAsync<String> {
-                    Kap { throw IllegalArgumentException("nope") }
-                }
+                call.respondKap<String> { throw IllegalArgumentException("nope") }
             }
         }
 

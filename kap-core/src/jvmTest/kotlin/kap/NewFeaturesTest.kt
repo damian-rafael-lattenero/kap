@@ -25,9 +25,9 @@ class NewFeaturesTest {
             "expensive"
         }.memoize()
 
-        val r1 = Async { memoized }
-        val r2 = Async { memoized }
-        val r3 = Async { memoized }
+        val r1 = memoized.executeGraph()
+        val r2 = memoized.executeGraph()
+        val r3 = memoized.executeGraph()
 
         assertEquals("expensive", r1)
         assertEquals("expensive", r2)
@@ -43,11 +43,9 @@ class NewFeaturesTest {
             value * 10
         }.memoize()
 
-        val result = Async {
-            kap { a: Int, b: Int -> a + b }
+        val result = kap { a: Int, b: Int -> a + b }
                 .with(memoized)
-                .with(memoized)
-        }
+                .with(memoized).executeGraph()
 
         assertEquals(20, result, "Both branches should get cached value 10")
         assertEquals(1, counter.get(), "Kap should execute exactly once even in parallel ap")
@@ -60,7 +58,7 @@ class NewFeaturesTest {
     @Test
     fun `failed throws the given exception when executed`() = runTest {
         val result = runCatching {
-            Async { Kap.failed(IllegalStateException("boom")) }
+            Kap.failed(IllegalStateException("boom")).executeGraph()
         }
         assertTrue(result.isFailure)
         assertIs<IllegalStateException>(result.exceptionOrNull())
@@ -69,19 +67,15 @@ class NewFeaturesTest {
 
     @Test
     fun `failed works with recover`() = runTest {
-        val result = Async {
-            Kap.failed(RuntimeException("oops"))
-                .recover { "recovered: ${it.message}" }
-        }
+        val result = Kap.failed(RuntimeException("oops"))
+                .recover { "recovered: ${it.message}" }.executeGraph()
         assertEquals("recovered: oops", result)
     }
 
     @Test
     fun `failed works with recoverWith`() = runTest {
-        val result = Async {
-            Kap.failed(RuntimeException("oops"))
-                .recoverWith { Kap.of("recovered via: ${it.message}") }
-        }
+        val result = Kap.failed(RuntimeException("oops"))
+                .recoverWith { Kap.of("recovered via: ${it.message}") }.executeGraph()
         assertEquals("recovered via: oops", result)
     }
 
@@ -100,7 +94,7 @@ class NewFeaturesTest {
 
         assertEquals(0, constructed.get(), "Block should not be called until execution")
 
-        val result = Async { deferred }
+        val result = deferred.executeGraph()
 
         assertEquals("lazy", result)
         assertEquals(1, constructed.get(), "Block should be called exactly once on execution")
@@ -119,12 +113,12 @@ class NewFeaturesTest {
         assertEquals(0, callLog.get(), "defer block must not run eagerly")
 
         // First execution
-        val r1 = Async { deferred }
+        val r1 = deferred.executeGraph()
         assertEquals(1, r1)
         assertEquals(1, callLog.get())
 
         // Second execution — defer re-evaluates the block each time
-        val r2 = Async { deferred }
+        val r2 = deferred.executeGraph()
         assertEquals(2, r2)
         assertEquals(2, callLog.get(), "defer should re-evaluate on each execution")
     }

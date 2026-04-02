@@ -142,12 +142,11 @@ suspend fun main() {
 
     // Scenario A: all valid
     println("  Scenario A: valid input")
-    val validResult = Async {
-        kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
+    val validResult = kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
             .withV { validateItem("ITEM-12345") }
             .withV { validateQuantity(3) }
             .withV { validateAddress("123 Main St", "Springfield", "62701") }
-    }
+            .executeGraph()
 
     when (validResult) {
         is Either.Right -> println("    OK: ${validResult.value}")
@@ -156,12 +155,11 @@ suspend fun main() {
 
     // Scenario B: multiple failures accumulated in parallel
     println("  Scenario B: invalid input (errors accumulated)")
-    val invalidResult = Async {
-        kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
+    val invalidResult = kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
             .withV { validateItem("bad") }
             .withV { validateQuantity(0) }
             .withV { validateAddress("", "", "abc") }
-    }
+            .executeGraph()
 
     when (invalidResult) {
         is Either.Right -> println("    OK: ${invalidResult.value}")
@@ -180,8 +178,7 @@ suspend fun main() {
     val retryPolicy = Schedule.times<Throwable>(4) and
         Schedule.exponential<Throwable>(30.milliseconds).jittered()
 
-    val fetched = Async {
-        kap(::FetchedData)
+    val fetched = kap(::FetchedData)
             // Retry flaky inventory API with exponential backoff
             .with(
                 Kap { checkInventory(order.item.value) }
@@ -194,7 +191,7 @@ suspend fun main() {
                 Kap { fetchLivePricing(order.item.value) }
                     .timeoutRace(100.milliseconds, Kap { fetchCachedPricing(order.item.value) })
             )
-    }
+            .executeGraph()
 
     println("  Inventory: ${fetched.inventory.warehouse} (available=${fetched.inventory.available})")
     println("  Pricing: $${fetched.pricing.unitPrice} (discount=${(fetched.pricing.discount * 100).toInt()}%)")
@@ -211,11 +208,10 @@ suspend fun main() {
 
     val totalAmount = order.qty.value * fetched.pricing.unitPrice * (1 - fetched.pricing.discount)
 
-    val payment = Async {
-        Kap { processPayment(totalAmount) }
+    val payment = Kap { processPayment(totalAmount) }
             .withCircuitBreaker(breaker)
             .retry(Schedule.times<Throwable>(2) and Schedule.spaced(50.milliseconds))
-    }
+            .executeGraph()
 
     println("  Payment: txId=${payment.txId}, amount=$${String.format("%.2f", payment.amount)}")
     println("  (${elapsed()})\n")
@@ -223,8 +219,7 @@ suspend fun main() {
     // ─── Phase 4: Confirmation with bracket (kap-resilience) ────────
     println("=== Phase 4: Order confirmation with bracket-safe DB ===\n")
 
-    val confirmation = Async {
-        bracket(
+    val confirmation = bracket(
             acquire = {
                 openOrderDb().also { println("  Acquired DB: ${it.name}") }
             },
@@ -235,8 +230,7 @@ suspend fun main() {
                 db.close()
                 println("  Released DB: ${db.name} (closed=${db.closed})")
             },
-        )
-    }
+        ).executeGraph()
 
     println("  Confirmation: ${confirmation.orderId}")
     println("  Delivery: ${confirmation.estimatedDelivery}")
@@ -245,17 +239,14 @@ suspend fun main() {
     // ─── Phase 5: attempt() + raceEither (kap-arrow) ────────────────
     println("=== Phase 5: attempt() and raceEither from kap-arrow ===\n")
 
-    val attemptResult: Either<Throwable, String> = Async {
-        Kap { "Order ${confirmation.orderId} processed successfully" }.attempt()
-    }
+    val attemptResult: Either<Throwable, String> = Kap { "Order ${confirmation.orderId} processed successfully" }.attempt()
+            .executeGraph()
     println("  attempt() result: $attemptResult")
 
-    val raceResult: Either<String, Int> = Async {
-        raceEither(
+    val raceResult: Either<String, Int> = raceEither(
             fa = Kap { delay(50); "fast-notification-sent" },
             fb = Kap { delay(200); 42 },
-        )
-    }
+        ).executeGraph()
     println("  raceEither winner: $raceResult")
     println("  (${elapsed()})\n")
 
@@ -267,17 +258,15 @@ suspend fun main() {
     val pipeStart = System.currentTimeMillis()
 
     // Step 1: validate input (kap-arrow)
-    val validated = Async {
-        kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
+    val validated = kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
             .withV { validateItem("ITEM-99999") }
             .withV { validateQuantity(2) }
             .withV { validateAddress("456 Oak Ave", "Shelbyville", "62702") }
             .orThrow()
-    }
+            .executeGraph()
 
     // Step 2: orchestrate with kap+with+then (all three modules)
-    val fullOrder = Async {
-        kap(::PlacedOrder)
+    val fullOrder = kap(::PlacedOrder)
             .with { validated }
             // Phase: inventory + pricing in parallel (kap-resilience)
             .with(
@@ -302,7 +291,7 @@ suspend fun main() {
                     release = { db -> db.close() },
                 )
             )
-    }
+            .executeGraph()
 
     val pipeElapsed = System.currentTimeMillis() - pipeStart
     println("  Order:        ${fullOrder.order}")

@@ -13,11 +13,9 @@ class NullableTest {
 
     @Test
     fun `withOrNull with null literal passes null to function`() = runTest {
-        val result = Async {
-            kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
+        val result = kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
                 .with { "fixed" }
-                .withOrNull(null)
-        }
+                .withOrNull(null).executeGraph()
         assertEquals("fixed|nil", result)
     }
 
@@ -29,11 +27,9 @@ class NullableTest {
     fun `withOrNull with nullable Kap - non-null executes`() = runTest {
         val comp: Kap<String>? = Kap.of("yes")
 
-        val result = Async {
-            kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
+        val result = kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
                 .with { "fixed" }
-                .withOrNull(comp)
-        }
+                .withOrNull(comp).executeGraph()
         assertEquals("fixed|yes", result)
     }
 
@@ -41,11 +37,9 @@ class NullableTest {
     fun `withOrNull with nullable Kap - null passes null`() = runTest {
         val comp: Kap<String>? = null
 
-        val result = Async {
-            kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
+        val result = kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
                 .with { "fixed" }
-                .withOrNull(comp)
-        }
+                .withOrNull(comp).executeGraph()
         assertEquals("fixed|nil", result)
     }
 
@@ -58,12 +52,10 @@ class NullableTest {
         val present: Kap<String>? = Kap.of("yes")
         val absent: Kap<String>? = null
 
-        val result = Async {
-            kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
+        val result = kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
                 .with { "fixed" }
                 .withOrNull(present)
-                .withOrNull(absent)
-        }
+                .withOrNull(absent).executeGraph()
 
         assertEquals("fixed|yes|nil", result)
     }
@@ -72,24 +64,20 @@ class NullableTest {
     fun `chain with literal null and nullable variable`() = runTest {
         val present: Kap<String>? = Kap.of("yes")
 
-        val result = Async {
-            kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
+        val result = kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
                 .with { "fixed" }
                 .withOrNull(present)
-                .withOrNull(null)
-        }
+                .withOrNull(null).executeGraph()
 
         assertEquals("fixed|yes|nil", result)
     }
 
     @Test
     fun `all null parameters`() = runTest {
-        val result = Async {
-            kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
+        val result = kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
                 .with { "fixed" }
                 .withOrNull(null)
-                .withOrNull(null)
-        }
+                .withOrNull(null).executeGraph()
 
         assertEquals("fixed|nil|nil", result)
     }
@@ -115,12 +103,10 @@ class NullableTest {
         }
 
         // Would deadlock if withOrNull ran sequentially
-        val result = Async {
-            kap { a: String?, b: String?, c: String -> "${a ?: "nil"}|${b ?: "nil"}|$c" }
+        val result = kap { a: String?, b: String?, c: String -> "${a ?: "nil"}|${b ?: "nil"}|$c" }
                 .withOrNull(compA)
                 .withOrNull(compB)
-                .with { "C" }
-        }
+                .with { "C" }.executeGraph()
 
         assertEquals("A|B|C", result)
     }
@@ -138,14 +124,12 @@ class NullableTest {
             val total: OrderTotal,
         )
 
-        val result = Async {
-            kap(::BookingDetails)
+        val result = kap(::BookingDetails)
                 .with { UserProfile("Alice", 42) }
                 .with { CartSummary(3) }
                 .withOrNull(optionalDiscount)
                 .withOrNull(noInsurance)
-                .then { OrderTotal(42.0) }
-        }
+                .then { OrderTotal(42.0) }.executeGraph()
 
         assertEquals(BookingDetails(
             user = UserProfile("Alice", 42),

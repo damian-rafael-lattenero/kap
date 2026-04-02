@@ -16,10 +16,8 @@ class NewApiTest {
 
     @Test
     fun `raceAgainst returns faster computation result`() = runTest {
-        val result = Async {
-            Kap { delay(100); "slow" }
-                .raceAgainst(Kap { delay(10); "fast" })
-        }
+        val result = Kap { delay(100); "slow" }
+                .raceAgainst(Kap { delay(10); "fast" }).executeGraph()
         assertEquals("fast", result)
     }
 
@@ -28,27 +26,23 @@ class NewApiTest {
         val primary = Kap { delay(10); "primary" }
         val secondary = Kap { delay(100); "secondary" }
 
-        val viaExtension = Async { primary.raceAgainst(secondary) }
-        val viaTopLevel = Async { race(primary, secondary) }
+        val viaExtension = primary.raceAgainst(secondary).executeGraph()
+        val viaTopLevel = race(primary, secondary).executeGraph()
         assertEquals(viaTopLevel, viaExtension)
     }
 
     @Test
     fun `raceAgainst falls back when primary fails`() = runTest {
-        val result = Async {
-            Kap<String> { error("primary failed") }
-                .raceAgainst(Kap { delay(10); "fallback" })
-        }
+        val result = Kap<String> { error("primary failed") }
+                .raceAgainst(Kap { delay(10); "fallback" }).executeGraph()
         assertEquals("fallback", result)
     }
 
     @Test
     fun `raceAgainst chains with other combinators`() = runTest {
-        val result = Async {
-            Kap { delay(200); "slow-primary" }
+        val result = Kap { delay(200); "slow-primary" }
                 .raceAgainst(Kap { delay(10); "fast-replica" })
-                .map { it.uppercase() }
-        }
+                .map { it.uppercase() }.executeGraph()
         assertEquals("FAST-REPLICA", result)
     }
 }

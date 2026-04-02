@@ -52,12 +52,11 @@ You have multiple async calls. Some parallel, some sequential. kap-core gives yo
 === "KAP"
 
     ```kotlin
-    val dashboard: Dashboard = Async {
-        kap(::Dashboard)
-            .with { fetchUser() }     // ┐ all three start at t=0
-            .with { fetchCart() }      // │ total time = max(individual)
-            .with { fetchPromos() }    // ┘ swap any two? COMPILE ERROR
-    }
+    val dashboard: Dashboard = kap(::Dashboard)
+        .with { fetchUser() }     // ┐ all three start at t=0
+        .with { fetchCart() }      // │ total time = max(individual)
+        .with { fetchPromos() }    // ┘ swap any two? COMPILE ERROR
+        .executeGraph()
     ```
 
 KAP's typed function chain enforces argument order. Each `.with` must provide the next expected type.
@@ -81,12 +80,11 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        kap(::Result)
-            .with { fetchA() }         // ┐ parallel
-            .with { fetchB() }         // ┘
-            .then { validate() }       // ── barrier: waits for A and B
-    }
+    val result = kap(::Result)
+        .with { fetchA() }         // ┐ parallel
+        .with { fetchB() }         // ┘
+        .then { validate() }       // ── barrier: waits for A and B
+        .executeGraph()
     ```
 
 `.then` creates an explicit synchronization point. Everything above must complete before anything below starts.
@@ -122,24 +120,23 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
 === "KAP"
 
     ```kotlin
-    val dashboard: FinalDashboard = Async {
-        kap(::UserContext)
-            .with { fetchProfile(userId) }       // ┐
-            .with { fetchPreferences(userId) }   // ├─ phase 1
-            .with { fetchLoyaltyTier(userId) }   // ┘
-            .andThen { ctx ->                    // ── barrier: ctx available
-                kap(::EnrichedContent)
-                    .with { fetchRecommendations(ctx.profile) }  // ┐
-                    .with { fetchPromotions(ctx.tier) }           // ├─ phase 2
-                    .with { fetchTrending(ctx.prefs) }            // │
-                    .with { fetchHistory(ctx.profile) }           // ┘
-                    .andThen { enriched ->                         // ── barrier
-                        kap(::FinalDashboard)
-                            .with { renderLayout(ctx, enriched) }     // ┐ phase 3
-                            .with { trackAnalytics(ctx, enriched) }   // ┘
-                    }
-            }
-    }
+    val dashboard: FinalDashboard = kap(::UserContext)
+        .with { fetchProfile(userId) }       // ┐
+        .with { fetchPreferences(userId) }   // ├─ phase 1
+        .with { fetchLoyaltyTier(userId) }   // ┘
+        .andThen { ctx ->                    // ── barrier: ctx available
+            kap(::EnrichedContent)
+                .with { fetchRecommendations(ctx.profile) }  // ┐
+                .with { fetchPromotions(ctx.tier) }           // ├─ phase 2
+                .with { fetchTrending(ctx.prefs) }            // │
+                .with { fetchHistory(ctx.profile) }           // ┘
+                .andThen { enriched ->                         // ── barrier
+                    kap(::FinalDashboard)
+                        .with { renderLayout(ctx, enriched) }     // ┐ phase 3
+                        .with { trackAnalytics(ctx, enriched) }   // ┘
+                }
+        }
+        .executeGraph()
     ```
 
 24 lines of nested `coroutineScope`/`async`/`await` vs 14 lines of flat chain. The dependency graph **is** the code shape.
@@ -153,43 +150,40 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
 === "kap + with (type-safe order)"
 
     ```kotlin
-    val result = Async {
-        kap(::Dashboard)
-            .with { fetchUser() }
-            .with { fetchCart() }
-            .with { fetchPromos() }
-    }
+    val result = kap(::Dashboard)
+        .with { fetchUser() }
+        .with { fetchCart() }
+        .with { fetchPromos() }
+        .executeGraph()
     ```
 
 === "combine (suspend lambdas)"
 
     ```kotlin
-    val result = Async {
-        combine(
-            { fetchUser() },
-            { fetchCart() },
-            { fetchPromos() },
-        ) { user, cart, promos -> Dashboard(user, cart, promos) }
-    }
+    val result = combine(
+        { fetchUser() },
+        { fetchCart() },
+        { fetchPromos() },
+    ) { user, cart, promos -> Dashboard(user, cart, promos) }
+        .executeGraph()
     ```
 
 === "zip (pre-built Kaps)"
 
     ```kotlin
-    val result = Async {
-        zip(
-            Kap { fetchUser() },
-            Kap { fetchCart() },
-            Kap { fetchPromos() },
-        ) { user, cart, promos -> Dashboard(user, cart, promos) }
-    }
+    val result = zip(
+        Kap { fetchUser() },
+        Kap { fetchCart() },
+        Kap { fetchPromos() },
+    ) { user, cart, promos -> Dashboard(user, cart, promos) }
+        .executeGraph()
     ```
 
 === "pair / triple"
 
     ```kotlin
-    val (user, cart) = Async { pair({ fetchUser() }, { fetchCart() }) }
-    val (a, b, c) = Async { triple({ fetchA() }, { fetchB() }, { fetchC() }) }
+    val (user, cart) = pair({ fetchUser() }, { fetchCart() }).executeGraph()
+    val (a, b, c) = triple({ fetchA() }, { fetchB() }, { fetchC() }).executeGraph()
     ```
 
 `zip` and `combine` support arities 2-22.
@@ -218,12 +212,11 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
     **Without `settled` — one failure cancels everything:**
 
     ```kotlin
-    val dashboard = Async {
-        kap(::Dashboard)
-            .with { fetchUser() }     // throws! → cart and config CANCELLED
-            .with { fetchCart() }      // never runs
-            .with { fetchConfig() }    // never runs
-    }
+    val dashboard = kap(::Dashboard)
+        .with { fetchUser() }     // throws! → cart and config CANCELLED
+        .with { fetchCart() }      // never runs
+        .with { fetchConfig() }    // never runs
+        .executeGraph()
     // RuntimeException — entire dashboard lost. Cart and config were fine.
     ```
 
@@ -233,12 +226,11 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
     // The type changes: user becomes Result<String> instead of String
     data class Dashboard(val user: Result<String>, val cart: String, val config: String)
 
-    val dashboard = Async {
-        kap(::Dashboard)
-            .with(settled { fetchUser() })   // Result<String> — won't cancel siblings
-            .with { fetchCart() }              // String — runs normally
-            .with { fetchConfig() }            // String — runs normally
-    }
+    val dashboard = kap(::Dashboard)
+        .with(settled { fetchUser() })   // Result<String> — won't cancel siblings
+        .with { fetchCart() }              // String — runs normally
+        .with { fetchConfig() }            // String — runs normally
+        .executeGraph()
     // Dashboard(user=Result.failure(RuntimeException), cart=cart-ok, config=config-ok)
 
     // Use the result with a fallback:
@@ -265,14 +257,12 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
 
     ```kotlin
     val ids = listOf(1, 2, 3, 4, 5)
-    val results: List<Result<String>> = Async {
-        ids.traverseSettled { id ->
-            Kap {
-                if (id % 2 == 0) throw RuntimeException("fail-$id")
-                "user-$id"
-            }
+    val results: List<Result<String>> = ids.traverseSettled { id ->
+        Kap {
+            if (id % 2 == 0) throw RuntimeException("fail-$id")
+            "user-$id"
         }
-    }
+    }.executeGraph()
     // successes=[user-1, user-3, user-5], failures=[fail-2, fail-4]
     ```
 
@@ -309,11 +299,9 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
 === "KAP"
 
     ```kotlin
-    val results = Async {
-        userIds.traverse(concurrency = 10) { id ->
-            Kap { fetchUser(id) }
-        }
-    }
+    val results = userIds.traverse(concurrency = 10) { id ->
+        Kap { fetchUser(id) }
+    }.executeGraph()
     ```
 
 #### `traverseDiscard` — Fire-and-forget
@@ -344,11 +332,9 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
 === "KAP"
 
     ```kotlin
-    Async {
-        userIds.traverseDiscard(concurrency = 5) { id ->
-            Kap { notifyUser(id) }
-        }
-    }
+    userIds.traverseDiscard(concurrency = 5) { id ->
+        Kap { notifyUser(id) }
+    }.executeGraph()
     ```
 
 #### `sequence` / `sequence(concurrency)`
@@ -378,7 +364,7 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
 
     ```kotlin
     val kaps: List<Kap<String>> = userIds.map { id -> Kap { fetchUser(id) } }
-    val results: List<String> = Async { kaps.sequence(concurrency = 10) }
+    val results: List<String> = kaps.sequence(concurrency = 10).executeGraph()
     ```
 
 ### Error handling
@@ -403,10 +389,9 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        Kap { fetchSlowService() }
-            .timeout(500.milliseconds) { "fallback-value" }
-    }
+    val result = Kap { fetchSlowService() }
+        .timeout(500.milliseconds) { "fallback-value" }
+        .executeGraph()
     ```
 
 #### `.recover { }` / `.recoverWith { }`
@@ -431,10 +416,9 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        Kap<String> { throw RuntimeException("fail") }
-            .recover { "recovered" }
-    }
+    val result = Kap<String> { throw RuntimeException("fail") }
+        .recover { "recovered" }
+        .executeGraph()
     ```
 
 #### `.retry(maxAttempts, delay, backoff)`
@@ -470,10 +454,9 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        Kap { flakyService() }
-            .retry(3, delay = 10.milliseconds)
-    }
+    val result = Kap { flakyService() }
+        .retry(3, delay = 10.milliseconds)
+        .executeGraph()
     ```
 
 #### `.ensure(error) { predicate }` / `.ensureNotNull(error) { extract }`
@@ -508,15 +491,13 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        Kap { fetchAge() }
-            .ensure(IllegalArgumentException("Must be 18+")) { it >= 18 }
-    }
+    val result = Kap { fetchAge() }
+        .ensure(IllegalArgumentException("Must be 18+")) { it >= 18 }
+        .executeGraph()
 
-    val result2 = Async {
-        Kap { fetchUserOrNull() }
-            .ensureNotNull(NoSuchElementException("User not found")) { it }
-    }
+    val result2 = Kap { fetchUserOrNull() }
+        .ensureNotNull(NoSuchElementException("User not found")) { it }
+        .executeGraph()
     ```
 
 #### `catching { }` — Exception-safe Result
@@ -564,19 +545,16 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        firstSuccessOf(
-            Kap { source1() },  // fails
-            Kap { source2() },  // fails
-            Kap { source3() },  // wins
-        )
-    }
+    val result = firstSuccessOf(
+        Kap { source1() },  // fails
+        Kap { source2() },  // fails
+        Kap { source3() },  // wins
+    ).executeGraph()
 
     // Or: chained fallback
-    val result2 = Async {
-        Kap<String> { throw RuntimeException("fail") }
-            .orElse(Kap { "fallback-ok" })
-    }
+    val result2 = Kap<String> { throw RuntimeException("fail") }
+        .orElse(Kap { "fallback-ok" })
+        .executeGraph()
     ```
 
 ### Racing
@@ -612,13 +590,11 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
 === "KAP"
 
     ```kotlin
-    val fastest = Async {
-        raceN(
-            Kap { fetchFromRegionUS() },   // 100ms
-            Kap { fetchFromRegionEU() },   // 30ms
-            Kap { fetchFromRegionAP() },   // 60ms
-        )
-    }
+    val fastest = raceN(
+        Kap { fetchFromRegionUS() },   // 100ms
+        Kap { fetchFromRegionEU() },   // 30ms
+        Kap { fetchFromRegionAP() },   // 60ms
+    ).executeGraph()
     // Returns EU at 30ms. US and AP cancelled automatically.
     ```
 
@@ -649,12 +625,10 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
 === "KAP"
 
     ```kotlin
-    val winner = Async {
-        race(
-            Kap { delay(100); "slow" },
-            Kap { delay(30); "fast" },
-        )
-    }
+    val winner = race(
+        Kap { delay(100); "slow" },
+        Kap { delay(30); "fast" },
+    ).executeGraph()
     // "fast" at 30ms, loser cancelled automatically
     ```
 
@@ -695,7 +669,7 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
 
     ```kotlin
     val replicas = regions.map { region -> Kap { fetchFrom(region) } }
-    val fastest = Async { raceAll(replicas) }
+    val fastest = raceAll(replicas).executeGraph()
     // Losers cancelled automatically
     ```
 
@@ -709,7 +683,7 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
 
 ```kotlin
 val effect: Kap<String> = Kap { fetchUser() }  // nothing runs yet
-val result: String = Async { effect }            // NOW it runs
+val result: String = effect.executeGraph()       // NOW it runs
 ```
 
 #### `kap(f)` — Curry a function for `.with` chains
@@ -718,15 +692,15 @@ Works with constructor refs, function refs, and lambdas:
 
 ```kotlin
 // Constructor reference
-val g1 = Async { kap(::Greeting).with { fetchName() }.with { "hello" } }
+val g1 = kap(::Greeting).with { fetchName() }.with { "hello" }.executeGraph()
 
 // Lambda
 val greet: (String, Int) -> String = { name, age -> "Hi $name, you're $age" }
-val g2 = Async { kap(greet).with { fetchName() }.with { fetchAge() } }
+val g2 = kap(greet).with { fetchName() }.with { fetchAge() }.executeGraph()
 
 // Function reference
 fun buildSummary(name: String, items: Int): String = "$name has $items items"
-val g3 = Async { kap(::buildSummary).with { fetchName() }.with { 5 } }
+val g3 = kap(::buildSummary).with { fetchName() }.with { 5 }.executeGraph()
 ```
 
 #### `Kap.of(value)` / `Kap.empty()` / `Kap.failed(error)` / `Kap.defer { }`
@@ -758,12 +732,11 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        kap(::Page)
-            .with { fetchContent() }           // parallel
-            .with { fetchSidebar() }           // parallel
-            .thenValue { computeTimestamp() }  // sequential fill, no barrier
-    }
+    val result = kap(::Page)
+        .with { fetchContent() }           // parallel
+        .with { fetchSidebar() }           // parallel
+        .thenValue { computeTimestamp() }  // sequential fill, no barrier
+        .executeGraph()
     ```
 
 ### Flow integration
@@ -831,7 +804,7 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
 
     ```kotlin
     val first: Kap<String> = userIdFlow.firstAsKap()
-    val result = Async { first }
+    val result = first.executeGraph()
     // Composable — can .map, .recover, .timeout, combine with other Kaps
     ```
 
@@ -860,8 +833,8 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
 
     ```kotlin
     val fetchOnce = Kap { expensiveCall() }.memoize()
-    val a = Async { fetchOnce } // runs the actual call
-    val b = Async { fetchOnce } // cached, instant
+    val a = fetchOnce.executeGraph() // runs the actual call
+    val b = fetchOnce.executeGraph() // cached, instant
     ```
 
 === "KAP — `.memoizeOnSuccess()`"
@@ -870,8 +843,8 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
     var callCount = 0
     val fetchOnce = Kap { callCount++; "expensive-result" }.memoizeOnSuccess()
 
-    val a = Async { fetchOnce }  // runs, callCount=1
-    val b = Async { fetchOnce }  // cached, callCount still 1
+    val a = fetchOnce.executeGraph()  // runs, callCount=1
+    val b = fetchOnce.executeGraph()  // cached, callCount still 1
     // If first call FAILS? Not cached. Next call retries.
     ```
 
@@ -884,7 +857,7 @@ Bridge between existing coroutine code and KAP. Useful when you have a `Deferred
 ```kotlin
 val deferred: Deferred<String> = scope.async { fetchUser() }
 val kap: Kap<String> = deferred.toKap()
-val result = Async { kap }
+val result = kap.executeGraph()
 ```
 
 #### `(suspend () -> A).toKap()`
@@ -920,13 +893,11 @@ val kap: Kap<String> = lambda.toKap()
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        computation {
-            val user = Kap { fetchDashUser() }.bind()
-            val cart = Kap { fetchDashCart() }.bind()
-            "$user has $cart"
-        }
-    }
+    val result = computation {
+        val user = Kap { fetchDashUser() }.bind()
+        val cart = Kap { fetchDashCart() }.bind()
+        "$user has $cart"
+    }.executeGraph()
     ```
 
 ### Observability
@@ -940,11 +911,10 @@ val tracer = KapTracer { event ->
     }
 }
 
-val result = Async {
-    kap(::Dashboard)
-        .with(Kap { fetchUser() }.traced("fetch-user", tracer))
-        .with(Kap { fetchConfig() }.traced("fetch-config", tracer))
-}
+val result = kap(::Dashboard)
+    .with(Kap { fetchUser() }.traced("fetch-user", tracer))
+    .with(Kap { fetchConfig() }.traced("fetch-config", tracer))
+    .executeGraph()
 ```
 
 ### Utilities
@@ -976,54 +946,49 @@ Run both in parallel, keep only one result:
 === "KAP"
 
     ```kotlin
-    val user = Async {
-        Kap { fetchUser() }
-            .keepFirst(Kap { logAccess() })  // both run, only user returned
-    }
+    val user = Kap { fetchUser() }
+        .keepFirst(Kap { logAccess() })  // both run, only user returned
+        .executeGraph()
     ```
 
 #### `.discard()` / `.peek { }`
 
 ```kotlin
-val unit = Async {
-    Kap { fetchUser() }.discard()  // runs but returns Unit
-}
+val unit = Kap { fetchUser() }.discard().executeGraph()  // runs but returns Unit
 
-val user = Async {
-    Kap { fetchUser() }
-        .peek { println("Fetched: $it") }  // side-effect, returns original value
-}
+val user = Kap { fetchUser() }
+    .peek { println("Fetched: $it") }  // side-effect, returns original value
+    .executeGraph()
 ```
 
 #### `.on(context)` / `.named(name)`
 
 ```kotlin
-val result = Async {
-    Kap { readFile() }
-        .on(Dispatchers.IO)          // switch dispatcher
-        .named("file-read")          // coroutine name for debugging
-}
+val result = Kap { readFile() }
+    .on(Dispatchers.IO)          // switch dispatcher
+    .named("file-read")          // coroutine name for debugging
+    .executeGraph()
 ```
 
-#### `.await()` — Execute from any suspend context
+#### `.executeGraph()` — Execute from any suspend context
 
 ```kotlin
 suspend fun myFunction(): String {
-    return Kap { fetchUser() }.await()  // no need for Async { }
+    return Kap { fetchUser() }.executeGraph()
 }
 ```
 
 #### `delayed(duration, value)` / `withOrNull`
 
 ```kotlin
-val result = Async { delayed(100.milliseconds, "delayed-value") }
+val result = delayed(100.milliseconds, "delayed-value").executeGraph()
 
 val maybeResult: String? = withOrNull { Kap { riskyOperation() } }
 ```
 
 ### Execution model
 
-`Kap<A>` is **lazy** — nothing runs until `Async { }`:
+`Kap<A>` is **lazy** — nothing runs until `.executeGraph()`:
 
 ```kotlin
 val plan: Kap<Dashboard> = kap(::Dashboard)
@@ -1034,14 +999,14 @@ val plan: Kap<Dashboard> = kap(::Dashboard)
 println("Plan built. Nothing has executed yet.")
 println("plan is: ${plan::class.simpleName}")
 
-val result: Dashboard = Async { plan }  // NOW it runs
+val result: Dashboard = plan.executeGraph()  // NOW it runs
 ```
 
 **Key guarantees:**
 
 - **Structured concurrency**: All parallel branches run inside `coroutineScope`. One fails → siblings cancel.
 - **Cancellation safety**: `CancellationException` is never caught. All combinators re-throw it.
-- **Context propagation**: `Async(MDCContext()) { ... }` propagates context to all branches.
+- **Context propagation**: `.executeGraph(MDCContext())` propagates context to all branches.
 - **No reflection**: All type safety is compile-time. Zero runtime overhead.
 - **Algebraic laws**: Functor, Applicative, Monad — property-tested via Kotest. See [LAWS.md](https://github.com/damian-rafael-lattenero/kap/blob/master/LAWS.md).
 

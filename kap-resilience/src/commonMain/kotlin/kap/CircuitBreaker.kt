@@ -123,12 +123,11 @@ class CircuitBreakerOpenException(
  * ```
  * val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 10.seconds)
  *
- * val result = Async {
- *     kap(::Dashboard)
- *         .with { fetchUser().withCircuitBreaker(breaker) }
- *         .with { fetchConfig() }
- *         .with { fetchCart() }
- * }
+ * val result = kap(::Dashboard)
+ *     .with { fetchUser().withCircuitBreaker(breaker) }
+ *     .with { fetchConfig() }
+ *     .with { fetchCart() }
+ *     .executeGraph()
  * ```
  */
 fun <A> Kap<A>.withCircuitBreaker(breaker: CircuitBreaker): Kap<A> {

@@ -34,9 +34,8 @@ fun <A> Kap<A>.toFlow(): Flow<A> = flow {
  * Creates a [Kap] that collects all emissions from this [Flow] into a [List].
  *
  * ```
- * val users: List<User> = Async {
- *     usersFlow.collectAsKap()
- * }
+ * val users: List<User> = usersFlow.collectAsKap()
+ *     .executeGraph()
  * ```
  */
 fun <A> Flow<A>.collectAsKap(): Kap<List<A>> = Kap {

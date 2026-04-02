@@ -28,12 +28,11 @@ suspend fun fetchCart(): String { delay(20); return "3 items" }
 suspend fun fetchPromos(): String { delay(10); return "SAVE20" }
 
 suspend fun main() {
-    val result: Dashboard = Async {
-        kap(::Dashboard)
-            .with { fetchUser() }     // ┐ all three start at t=0
-            .with { fetchCart() }      // │ total time = max(30, 20, 10) = 30ms
-            .with { fetchPromos() }    // ┘ not 60ms sequential
-    }
+    val result: Dashboard = kap(::Dashboard)
+        .with { fetchUser() }     // ┐ all three start at t=0
+        .with { fetchCart() }      // │ total time = max(30, 20, 10) = 30ms
+        .with { fetchPromos() }    // ┘ not 60ms sequential
+        .executeGraph()
     println(result)
     // Dashboard(user=Alice, cart=3 items, promos=SAVE20)
 }
@@ -79,20 +78,19 @@ suspend fun generateConfirmation(): OrderConfirmation { delay(30); return OrderC
 suspend fun sendEmail(): EmailReceipt { delay(20); return EmailReceipt("alice@example.com", "order-#90142") }
 
 suspend fun main() {
-    val checkout: CheckoutResult = Async {
-        kap(::CheckoutResult)
-            .with { fetchUser() }              // ┐
-            .with { fetchCart() }               // ├─ phase 1: parallel
-            .with { fetchPromos() }             // │
-            .with { fetchInventory() }          // ┘
-            .then { validateStock() }           // ── phase 2: barrier
-            .with { calcShipping() }            // ┐
-            .with { calcTax() }                 // ├─ phase 3: parallel
-            .with { calcDiscounts() }           // ┘
-            .then { reservePayment() }          // ── phase 4: barrier
-            .with { generateConfirmation() }    // ┐ phase 5: parallel
-            .with { sendEmail() }              // ┘
-    }
+    val checkout: CheckoutResult = kap(::CheckoutResult)
+        .with { fetchUser() }              // ┐
+        .with { fetchCart() }               // ├─ phase 1: parallel
+        .with { fetchPromos() }             // │
+        .with { fetchInventory() }          // ┘
+        .then { validateStock() }           // ── phase 2: barrier
+        .with { calcShipping() }            // ┐
+        .with { calcTax() }                 // ├─ phase 3: parallel
+        .with { calcDiscounts() }           // ┘
+        .then { reservePayment() }          // ── phase 4: barrier
+        .with { generateConfirmation() }    // ┐ phase 5: parallel
+        .with { sendEmail() }              // ┘
+        .executeGraph()
     println(checkout)
     // CheckoutResult(user=UserProfile(name=Alice, id=42), cart=ShoppingCart(items=3, total=147.5), ...)
     // 130ms total — not 460ms sequential
@@ -118,18 +116,17 @@ suspend fun fetchPromotions(tier: String): String { delay(30); return "promos-$t
 suspend fun fetchTrending(prefs: String): String { delay(20); return "trending-$prefs" }
 
 suspend fun main() {
-    val dashboard = Async {
-        kap(::UserContext)
-            .with { fetchProfile("user-1") }       // ┐ phase 1: parallel
-            .with { fetchPreferences("user-1") }   // │
-            .with { fetchLoyaltyTier("user-1") }   // ┘
-            .andThen { ctx ->                       // ── barrier: ctx available
-                kap(::PersonalizedDashboard)
-                    .with { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
-                    .with { fetchPromotions(ctx.tier) }           // │ uses ctx from phase 1
-                    .with { fetchTrending(ctx.prefs) }            // ┘
-            }
-    }
+    val dashboard = kap(::UserContext)
+        .with { fetchProfile("user-1") }       // ┐ phase 1: parallel
+        .with { fetchPreferences("user-1") }   // │
+        .with { fetchLoyaltyTier("user-1") }   // ┘
+        .andThen { ctx ->                       // ── barrier: ctx available
+            kap(::PersonalizedDashboard)
+                .with { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
+                .with { fetchPromotions(ctx.tier) }           // │ uses ctx from phase 1
+                .with { fetchTrending(ctx.prefs) }            // ┘
+        }
+        .executeGraph()
     println(dashboard)
     // PersonalizedDashboard(recs=recs-for-profile-user-1, promos=promos-gold, trending=trending-prefs-dark)
 }
@@ -152,12 +149,11 @@ suspend fun fetchCartAlways(): String { delay(20); return "cart-ok" }
 suspend fun fetchConfigAlways(): String { delay(15); return "config-ok" }
 
 suspend fun main() {
-    val dashboard = Async {
-        kap(::PartialDashboard)
-            .with(settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
-            .with { fetchCartAlways() }             // String — runs normally
-            .with { fetchConfigAlways() }            // String — runs normally
-    }
+    val dashboard = kap(::PartialDashboard)
+        .with(settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
+        .with { fetchCartAlways() }             // String — runs normally
+        .with { fetchConfigAlways() }            // String — runs normally
+        .executeGraph()
 
     println(dashboard)
     // PartialDashboard(user=Result.failure(RuntimeException), cart=cart-ok, config=config-ok)
@@ -177,14 +173,12 @@ import kap.*
 
 suspend fun main() {
     val ids = listOf(1, 2, 3, 4, 5)
-    val results: List<Result<String>> = Async {
-        ids.traverseSettled { id ->
-            Kap {
-                if (id % 2 == 0) throw RuntimeException("fail-$id")
-                "user-$id"
-            }
+    val results: List<Result<String>> = ids.traverseSettled { id ->
+        Kap {
+            if (id % 2 == 0) throw RuntimeException("fail-$id")
+            "user-$id"
         }
-    }
+    }.executeGraph()
     val successes = results.filter { it.isSuccess }.map { it.getOrThrow() }
     val failures = results.filter { it.isFailure }.map { it.exceptionOrNull()!!.message }
     println("successes=$successes, failures=$failures")
@@ -205,13 +199,11 @@ suspend fun fetchFromRegionEU(): String { delay(30); return "EU-data" }
 suspend fun fetchFromRegionAP(): String { delay(60); return "AP-data" }
 
 suspend fun main() {
-    val fastest = Async {
-        raceN(
-            Kap { fetchFromRegionUS() },   // 100ms
-            Kap { fetchFromRegionEU() },   // 30ms — wins
-            Kap { fetchFromRegionAP() },   // 60ms
-        )
-    }
+    val fastest = raceN(
+        Kap { fetchFromRegionUS() },   // 100ms
+        Kap { fetchFromRegionEU() },   // 30ms — wins
+        Kap { fetchFromRegionAP() },   // 60ms
+    ).executeGraph()
     println(fastest)
     // EU-data  (at ~30ms, US and AP cancelled automatically)
 }
@@ -232,13 +224,11 @@ suspend fun main() {
         Schedule.exponential(10.milliseconds) and
         Schedule.doWhile<Throwable> { it is RuntimeException }
 
-    val result = Async {
-        Kap {
-            attempts++
-            if (attempts <= 2) throw RuntimeException("flake #$attempts")
-            "success on attempt $attempts"
-        }.retry(policy)
-    }
+    val result = Kap {
+        attempts++
+        if (attempts <= 2) throw RuntimeException("flake #$attempts")
+        "success on attempt $attempts"
+    }.retry(policy).executeGraph()
     println(result)
     // success on attempt 3
 }
@@ -258,10 +248,9 @@ suspend fun fetchFromFallback(): String { delay(30); return "fallback-data" }
 
 suspend fun main() {
     val start = System.currentTimeMillis()
-    val result = Async {
-        Kap { fetchFromPrimary() }
-            .timeoutRace(100.milliseconds, Kap { fetchFromFallback() })
-    }
+    val result = Kap { fetchFromPrimary() }
+        .timeoutRace(100.milliseconds, Kap { fetchFromFallback() })
+        .executeGraph()
     val elapsed = System.currentTimeMillis() - start
     println("$result (${elapsed}ms — fallback won, both started at t=0)")
     // fallback-data (30ms — 2.6x faster than sequential timeout)
@@ -288,24 +277,23 @@ suspend fun openCache(): MockConnection { delay(10); return MockConnection("cach
 suspend fun openHttp(): MockConnection { delay(10); return MockConnection("http") }
 
 suspend fun main() {
-    val result = Async {
-        kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
-            .with(bracket(
-                acquire = { openDb() },
-                use = { conn -> Kap { conn.query("SELECT 1") } },
-                release = { conn -> conn.close() },  // guaranteed, even on failure
-            ))
-            .with(bracket(
-                acquire = { openCache() },
-                use = { conn -> Kap { conn.get("key") } },
-                release = { conn -> conn.close() },
-            ))
-            .with(bracket(
-                acquire = { openHttp() },
-                use = { client -> Kap { client.get("/api") } },
-                release = { client -> client.close() },
-            ))
-    }
+    val result = kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
+        .with(bracket(
+            acquire = { openDb() },
+            use = { conn -> Kap { conn.query("SELECT 1") } },
+            release = { conn -> conn.close() },  // guaranteed, even on failure
+        ))
+        .with(bracket(
+            acquire = { openCache() },
+            use = { conn -> Kap { conn.get("key") } },
+            release = { conn -> conn.close() },
+        ))
+        .with(bracket(
+            acquire = { openHttp() },
+            use = { client -> Kap { client.get("/api") } },
+            release = { client -> client.close() },
+        ))
+        .executeGraph()
     println(result)
     //   closed db
     //   closed cache
@@ -364,14 +352,13 @@ suspend fun checkUsername(username: String): Either<NonEmptyList<RegError>, Vali
 
 suspend fun main() {
     // All fail — every error collected in one response:
-    val result: Either<NonEmptyList<RegError>, User> = Async {
-        zipV(
-            { validateName("A") },           // too short
-            { validateEmail("bad") },         // no @
-            { validateAge(10) },              // under 18
-            { checkUsername("al") },           // too short
-        ) { name, email, age, username -> User(name, email, age, username) }
-    }
+    val result: Either<NonEmptyList<RegError>, User> = zipV(
+        { validateName("A") },           // too short
+        { validateEmail("bad") },         // no @
+        { validateAge(10) },              // under 18
+        { checkUsername("al") },           // too short
+    ) { name, email, age, username -> User(name, email, age, username) }
+        .executeGraph()
 
     when (result) {
         is Either.Right -> println("Valid: ${result.value}")
@@ -394,8 +381,8 @@ suspend fun main() {
     var callCount = 0
     val fetchOnce = Kap { callCount++; delay(30); "expensive-result" }.memoizeOnSuccess()
 
-    val a = Async { fetchOnce }  // runs the actual call, callCount=1
-    val b = Async { fetchOnce }  // cached, instant, callCount still 1
+    val a = fetchOnce.executeGraph()  // runs the actual call, callCount=1
+    val b = fetchOnce.executeGraph()  // cached, instant, callCount still 1
     println("a=$a, b=$b, callCount=$callCount")
     // a=expensive-result, b=expensive-result, callCount=1
     // If first call HAD failed? Not cached. Next call would retry.
@@ -454,12 +441,11 @@ suspend fun fetchCatFact(): CatFact =
     client.get("https://catfact.ninja/fact").body()
 
 suspend fun main() {
-    val profile = Async {
-        kap(::DeveloperProfile)
-            .with { fetchGithubUser("JetBrains") }      // ┐
-            .with { fetchGithubRepos("JetBrains") }      // ├─ all three in parallel
-            .with { fetchCatFact().fact }                  // ┘
-    }
+    val profile = kap(::DeveloperProfile)
+        .with { fetchGithubUser("JetBrains") }      // ┐
+        .with { fetchGithubRepos("JetBrains") }      // ├─ all three in parallel
+        .with { fetchCatFact().fact }                  // ┘
+        .executeGraph()
 
     println("User: ${profile.user.login} (${profile.user.name})")
     println("Repos: ${profile.user.publicRepos} public")

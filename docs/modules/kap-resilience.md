@@ -64,9 +64,7 @@ implementation("io.github.damian-rafael-lattenero:kap-resilience:2.5.0")
         return "success on attempt $attempts"
     }
 
-    val result = Async {
-        Kap { flakyService() }.retry(policy)
-    }
+    val result = Kap { flakyService() }.retry(policy).executeGraph()
     // "success on attempt 3"
     ```
 
@@ -161,12 +159,11 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        Kap { flakyService() }
-            .retryOrElse(
-                Schedule.times(2) and Schedule.spaced(100.milliseconds)
-            ) { "fallback-after-exhaustion" }
-    }
+    val result = Kap { flakyService() }
+        .retryOrElse(
+            Schedule.times(2) and Schedule.spaced(100.milliseconds)
+        ) { "fallback-after-exhaustion" }
+        .executeGraph()
     ```
 
 #### `.retryWithResult(schedule)` — Returns full context
@@ -207,11 +204,9 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
 === "KAP"
 
     ```kotlin
-    val retryResult = Async {
-        Kap { flakyService() }.retryWithResult(
-            Schedule.times<Throwable>(5) and Schedule.exponential(10.milliseconds)
-        )
-    }
+    val retryResult = Kap { flakyService() }.retryWithResult(
+        Schedule.times<Throwable>(5) and Schedule.exponential(10.milliseconds)
+    ).executeGraph()
     println(retryResult.value)       // "success"
     println(retryResult.attempts)    // 3
     println(retryResult.totalDelay)  // 70ms
@@ -282,10 +277,9 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
         onStateChange = { old, new -> println("CircuitBreaker: $old -> $new") }
     )
 
-    val result = Async {
-        Kap { fetchUser() }
-            .withCircuitBreaker(breaker)
-    }
+    val result = Kap { fetchUser() }
+        .withCircuitBreaker(breaker)
+        .executeGraph()
     // While Open: fails immediately with CircuitBreakerOpenException
     // After resetTimeout: tries one request (HalfOpen)
     // If it succeeds: back to Closed
@@ -294,14 +288,13 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
 ### Full composition
 
 ```kotlin
-val result = Async {
-    Kap { fetchUser() }
-        .timeout(500.milliseconds)                    // hard timeout
-        .withCircuitBreaker(breaker)                  // circuit breaker
-        .retry(Schedule.times<Throwable>(3)           // retry with backoff
-            and Schedule.exponential(10.milliseconds))
-        .recover { "cached-user" }                    // fallback on exhaustion
-}
+val result = Kap { fetchUser() }
+    .timeout(500.milliseconds)                    // hard timeout
+    .withCircuitBreaker(breaker)                  // circuit breaker
+    .retry(Schedule.times<Throwable>(3)           // retry with backoff
+        and Schedule.exponential(10.milliseconds))
+    .recover { "cached-user" }                    // fallback on exhaustion
+    .executeGraph()
 // timeout -> circuit breaker -> retry -> recover. All composable.
 ```
 
@@ -332,10 +325,9 @@ val result = Async {
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        Kap { fetchFromPrimary() }
-            .timeoutRace(100.milliseconds, Kap { fetchFromFallback() })
-    }
+    val result = Kap { fetchFromPrimary() }
+        .timeoutRace(100.milliseconds, Kap { fetchFromFallback() })
+        .executeGraph()
     // Both start at t=0. Fallback wins at ~30ms. Primary cancelled.
     ```
 
@@ -390,14 +382,12 @@ t=30ms   ─── fallback wins ───       ← 3x faster
 === "KAP"
 
     ```kotlin
-    val quorum: List<String> = Async {
-        raceQuorum(
-            required = 2,
-            Kap { fetchReplicaA() },  // 50ms
-            Kap { fetchReplicaB() },  // 20ms
-            Kap { fetchReplicaC() },  // 80ms
-        )
-    }
+    val quorum: List<String> = raceQuorum(
+        required = 2,
+        Kap { fetchReplicaA() },  // 50ms
+        Kap { fetchReplicaB() },  // 20ms
+        Kap { fetchReplicaC() },  // 80ms
+    ).executeGraph()
     // [replica-B, replica-A] — the 2 fastest. C cancelled.
     ```
 
@@ -451,24 +441,23 @@ Supports arities 2-22.
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
-            .with(bracket(
-                acquire = { openDbConnection() },
-                use = { conn -> Kap { conn.query("SELECT 1") } },
-                release = { conn -> conn.close() },
-            ))
-            .with(bracket(
-                acquire = { openCacheConnection() },
-                use = { conn -> Kap { conn.get("key") } },
-                release = { conn -> conn.close() },
-            ))
-            .with(bracket(
-                acquire = { openHttpClient() },
-                use = { client -> Kap { client.get("/api") } },
-                release = { client -> client.close() },
-            ))
-    }
+    val result = kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
+        .with(bracket(
+            acquire = { openDbConnection() },
+            use = { conn -> Kap { conn.query("SELECT 1") } },
+            release = { conn -> conn.close() },
+        ))
+        .with(bracket(
+            acquire = { openCacheConnection() },
+            use = { conn -> Kap { conn.get("key") } },
+            release = { conn -> conn.close() },
+        ))
+        .with(bracket(
+            acquire = { openHttpClient() },
+            use = { client -> Kap { client.get("/api") } },
+            release = { client -> client.close() },
+        ))
+        .executeGraph()
     // All 3 acquired, used in PARALLEL, ALL released even on failure.
     // Release runs in NonCancellable context — guaranteed.
     ```
@@ -505,20 +494,18 @@ Supports arities 2-22.
 === "KAP"
 
     ```kotlin
-    val result = Async {
-        bracketCase(
-            acquire = { openDbConnection() },
-            use = { tx -> Kap { tx.query("INSERT 1") } },
-            release = { tx, case ->
-                when (case) {
-                    is ExitCase.Completed<*> -> { println("commit"); tx.commit() }
-                    is ExitCase.Failed -> { println("rollback"); tx.rollback() }
-                    is ExitCase.Cancelled -> { println("rollback (cancelled)"); tx.rollback() }
-                }
-                tx.close()
-            },
-        )
-    }
+    val result = bracketCase(
+        acquire = { openDbConnection() },
+        use = { tx -> Kap { tx.query("INSERT 1") } },
+        release = { tx, case ->
+            when (case) {
+                is ExitCase.Completed<*> -> { println("commit"); tx.commit() }
+                is ExitCase.Failed -> { println("rollback"); tx.rollback() }
+                is ExitCase.Cancelled -> { println("rollback (cancelled)"); tx.rollback() }
+            }
+            tx.close()
+        },
+    ).executeGraph()
     ```
 
 ### `Resource` — Composable resource
@@ -568,14 +555,12 @@ Supports arities 2-22.
 
     val infra = Resource.zip(db, cache, http) { d, c, h -> Triple(d, c, h) }
 
-    val result = Async {
-        infra.useKap { (db, cache, http) ->
-            kap(::DashboardData)
-                .with { db.query("SELECT 1") }
-                .with { cache.get("user:prefs") }
-                .with { http.get("/recommendations") }
-        }
-    }
+    val result = infra.useKap { (db, cache, http) ->
+        kap(::DashboardData)
+            .with { db.query("SELECT 1") }
+            .with { cache.get("user:prefs") }
+            .with { http.get("/recommendations") }
+    }.executeGraph()
     // All acquired, used in parallel, released in reverse order. Guaranteed.
     ```
 
@@ -623,26 +608,22 @@ Supports arities 2-22.
 
     ```kotlin
     // guarantee: finalizer always runs, regardless of success or failure
-    val result = Async {
-        guarantee(
-            fa = { riskyOperation() },
-            finalizer = { cleanup() },
-        )
-    }
+    val result = guarantee(
+        fa = { riskyOperation() },
+        finalizer = { cleanup() },
+    ).executeGraph()
 
     // guaranteeCase: finalizer receives the exit case
-    val result2 = Async {
-        guaranteeCase(
-            fa = { riskyOperation() },
-            finalizer = { case ->
-                when (case) {
-                    is ExitCase.Completed<*> -> println("success cleanup")
-                    is ExitCase.Failed -> println("failure cleanup: ${case.error}")
-                    is ExitCase.Cancelled -> println("cancellation cleanup")
-                }
-            },
-        )
-    }
+    val result2 = guaranteeCase(
+        fa = { riskyOperation() },
+        finalizer = { case ->
+            when (case) {
+                is ExitCase.Completed<*> -> println("success cleanup")
+                is ExitCase.Failed -> println("failure cleanup: ${case.error}")
+                is ExitCase.Cancelled -> println("cancellation cleanup")
+            }
+        },
+    ).executeGraph()
     ```
 
 ---
@@ -731,14 +712,13 @@ All features composed in one chain:
     ```kotlin
     val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
-    val result = Async {
-        Kap { fetchData() }
-            .timeout(2.seconds)                              // hard timeout
-            .withCircuitBreaker(breaker)                     // circuit breaker
-            .retry(Schedule.times<Throwable>(3)              // retry with backoff + jitter
-                and Schedule.exponential(50.milliseconds)
-                .jittered()
-                .withMaxDuration(10.seconds))
-            .recover { cachedData() }                        // fallback on exhaustion
-    }
+    val result = Kap { fetchData() }
+        .timeout(2.seconds)                              // hard timeout
+        .withCircuitBreaker(breaker)                     // circuit breaker
+        .retry(Schedule.times<Throwable>(3)              // retry with backoff + jitter
+            and Schedule.exponential(50.milliseconds)
+            .jittered()
+            .withMaxDuration(10.seconds))
+        .recover { cachedData() }                        // fallback on exhaustion
+        .executeGraph()
     ```

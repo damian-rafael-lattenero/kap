@@ -67,8 +67,7 @@ suspend fun fetchDashPromos(): String { delay(10); return "SAVE20" }
 suspend fun heroCheckout() {
     println("=== Hero: KAP Checkout (11 services, 5 phases) ===\n")
 
-    val checkout: CheckoutResult = Async {
-        kap(::CheckoutResult)
+    val checkout: CheckoutResult = kap(::CheckoutResult)
             .with { fetchUser() }              // ┐
             .with { fetchCart() }               // ├─ phase 1: parallel
             .with { fetchPromos() }             // │
@@ -80,7 +79,7 @@ suspend fun heroCheckout() {
             .then { reservePayment() }    // ── phase 4: barrier
             .with { generateConfirmation() }    // ┐ phase 5: parallel
             .with { sendEmail() }               // ┘
-    }
+            .executeGraph()
 
     println("  Result: $checkout\n")
 }
@@ -169,39 +168,36 @@ suspend fun constructorIsAFunction() {
     println("=== A constructor is a function ===\n")
 
     // ::Greeting has type (String, String) -> Greeting
-    val g1: Greeting = Async {
-        kap(::Greeting)
+    val g1: Greeting = kap(::Greeting)
             .with { fetchName() }
             .with { "hello" }
-    }
+            .executeGraph()
     println("  Constructor ref: $g1")
 
     // Any (A, B) -> R function works:
     val greet: (String, Int) -> String = { name, age -> "Hi $name, you're $age" }
-    val g2: String = Async {
-        kap(greet)
+    val g2: String = kap(greet)
             .with { fetchName() }
             .with { fetchAge() }
-    }
+            .executeGraph()
     println("  Lambda function: $g2")
 
     // A regular function reference:
     fun buildSummary(name: String, items: Int): String = "$name has $items items"
 
-    val g3: String = Async {
-        kap(::buildSummary)
+    val g3: String = kap(::buildSummary)
             .with { fetchName() }
             .with { 5 }
-    }
+            .executeGraph()
     println("  Function ref:   $g3\n")
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-//  Section: Nothing Runs Until Async {}
+//  Section: Nothing Runs Until executeGraph()
 // ═══════════════════════════════════════════════════════════════════════
 
 suspend fun nothingRunsUntilAsync() {
-    println("=== Nothing runs until Async {} ===\n")
+    println("=== Nothing runs until executeGraph() ===\n")
 
     val plan: Kap<Dashboard> = kap(::Dashboard)
         .with { fetchDashUser() }
@@ -211,7 +207,7 @@ suspend fun nothingRunsUntilAsync() {
     println("  Plan built. Nothing has executed yet.")
     println("  plan is: ${plan::class.simpleName}")
 
-    val result: Dashboard = Async { plan }
+    val result: Dashboard = plan.executeGraph()
     println("  After Async: $result\n")
 }
 
@@ -235,11 +231,10 @@ suspend fun allValsNoNulls() {
     println("  Raw (var/null!!): $rawResult")
 
     // KAP: all val, no nulls
-    val kapResult: DashboardView = Async {
-        kap(::DashboardView)
+    val kapResult: DashboardView = kap(::DashboardView)
             .with { fetchDashUser() }
             .with { fetchDashCart() }
-    }
+            .executeGraph()
     println("  KAP (val, safe):  $kapResult\n")
 }
 
@@ -257,23 +252,21 @@ data class R3(val a: String, val b: String, val c: String)
 suspend fun threePrimitiveWith() {
     println("=== Primitive: .with (parallel) ===\n")
 
-    val result = Async {
-        kap(::AB)
+    val result = kap(::AB)
             .with { fetchA() }   // ┐ parallel
             .with { fetchB() }   // ┘
-    }
+            .executeGraph()
     println("  .with result: $result\n")
 }
 
 suspend fun threePrimitiveFollowedBy() {
     println("=== Primitive: .then (barrier) ===\n")
 
-    val result = Async {
-        kap(::R3)
+    val result = kap(::R3)
             .with { fetchA() }             // ┐ parallel
             .with { fetchB() }             // ┘
             .then { validate() }     // waits for A and B
-    }
+            .executeGraph()
     println("  .then result: $result\n")
 }
 
@@ -291,8 +284,7 @@ suspend fun threePrimitiveFlatMap() {
     println("=== Primitive: .andThen (value-dependent phases) ===\n")
 
     val userId = "user-1"
-    val dashboard = Async {
-        kap(::UserContext)
+    val dashboard = kap(::UserContext)
             .with { fetchProfile(userId) }       // ┐ phase 1: parallel
             .with { fetchPreferences(userId) }   // │
             .with { fetchLoyaltyTier(userId) }   // ┘
@@ -302,7 +294,7 @@ suspend fun threePrimitiveFlatMap() {
                     .with { fetchPromotions(ctx.tier) }           // │
                     .with { fetchTrending(ctx.prefs) }            // ┘
             }
-    }
+            .executeGraph()
     println("  .andThen result: $dashboard\n")
 }
 
@@ -353,8 +345,7 @@ suspend fun phasedFlatMapKap() {
     println("=== Phase Dependencies: KAP andThen ===\n")
     val userId = "user-42"
 
-    val dashboard: FinalDashboard = Async {
-        kap(::UserContext)
+    val dashboard: FinalDashboard = kap(::UserContext)
             .with { fetchProfile(userId) }
             .with { fetchPreferences(userId) }
             .with { fetchLoyaltyTier(userId) }
@@ -370,7 +361,7 @@ suspend fun phasedFlatMapKap() {
                             .with { trackAnalytics(ctx, enriched) }
                     }
             }
-    }
+            .executeGraph()
 
     println("  KAP result: $dashboard\n")
 }
@@ -382,12 +373,11 @@ suspend fun phasedFlatMapKap() {
 suspend fun quickStartBasic() {
     println("=== Quick Start: Basic ===\n")
 
-    val result = Async {
-        kap(::Dashboard)
+    val result = kap(::Dashboard)
             .with { fetchDashUser() }    // ┐ all three in parallel
             .with { fetchDashCart() }     // │ total time = max(individual)
             .with { fetchDashPromos() }   // ┘ not sum
-    }
+            .executeGraph()
     println("  Dashboard: $result\n")
 }
 
@@ -404,15 +394,14 @@ suspend fun quickStartResilience() {
     val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
     val retryPolicy = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
 
-    val result = Async {
-        kap(::Dashboard)
+    val result = kap(::Dashboard)
             .with(Kap { fetchDashUser() }
                 .withCircuitBreaker(breaker)
                 .retry(retryPolicy))
             .with(Kap { fetchFromSlowApi() }
                 .timeoutRace(100.milliseconds, Kap { fetchFromCache() }))
             .with { fetchDashPromos() }
-    }
+            .executeGraph()
     println("  Resilient dashboard: $result\n")
 }
 
@@ -460,25 +449,23 @@ suspend fun checkUsername(username: String): Either<NonEmptyList<RegError>, Vali
 suspend fun quickStartValidation() {
     println("=== Quick Start: Validation ===\n")
 
-    val valid: Either<NonEmptyList<RegError>, User> = Async {
-        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+    val valid: Either<NonEmptyList<RegError>, User> = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
             .withV { validateName("Alice") }
             .withV { validateEmail("alice@example.com") }
             .withV { validateAge(25) }
             .withV { checkUsername("alice") }
-    }
+            .executeGraph()
     when (valid) {
         is Either.Right -> println("  Valid: ${valid.value}")
         is Either.Left -> println("  Errors: ${valid.value.map { it.message }}")
     }
 
-    val invalid: Either<NonEmptyList<RegError>, User> = Async {
-        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+    val invalid: Either<NonEmptyList<RegError>, User> = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
             .withV { validateName("A") }
             .withV { validateEmail("bad") }
             .withV { validateAge(10) }
             .withV { checkUsername("al") }
-    }
+            .executeGraph()
     when (invalid) {
         is Either.Right -> println("  Valid: ${invalid.value}")
         is Either.Left -> println("  ${invalid.value.size} errors: ${invalid.value.map { it.message }}")
@@ -494,36 +481,33 @@ suspend fun chooseYourStyle() {
     println("=== Choose Your Style ===\n")
 
     // Style 1: kap + with — compile-time parameter order safety
-    val s1 = Async {
-        kap(::Dashboard)
+    val s1 = kap(::Dashboard)
             .with { fetchDashUser() }
             .with { fetchDashCart() }
             .with { fetchDashPromos() }
-    }
+            .executeGraph()
     println("  kap+with:  $s1")
 
     // Style 2: combine with suspend lambdas
-    val s2 = Async {
-        combine(
+    val s2 = combine(
             { fetchDashUser() },
             { fetchDashCart() },
             { fetchDashPromos() },
         ) { user: String, cart: String, promos: String -> Dashboard(user, cart, promos) }
-    }
+            .executeGraph()
     println("  combine:   $s2")
 
     // Style 3: combine with pre-built Kaps
-    val s3 = Async {
-        combine(
+    val s3 = combine(
             Kap { fetchDashUser() },
             Kap { fetchDashCart() },
             Kap { fetchDashPromos() },
         ) { user: String, cart: String, promos: String -> Dashboard(user, cart, promos) }
-    }
+            .executeGraph()
     println("  zip:       $s3")
 
     // Bonus: pair
-    val (user, cart) = Async { pair({ fetchDashUser() }, { fetchDashCart() }) }
+    val (user, cart) = pair({ fetchDashUser() }, { fetchDashCart() }).executeGraph()
     println("  pair:      ($user, $cart)\n")
 }
 
@@ -551,26 +535,23 @@ suspend fun featureSettled() {
     println("=== Feature: Partial Failure with .settled() ===\n")
 
     // settled { } wraps the result in Result<T> — failure doesn't cancel siblings
-    val dashboard = Async {
-        kap(::buildPartialDashboard)
+    val dashboard = kap(::buildPartialDashboard)
             .with(settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
             .with { fetchCartAlways() }             // normal String — failure here cancels all
             .with { fetchConfigAlways() }            // normal String
-    }
+            .executeGraph()
     println("  settled: $dashboard")
     // PartialDashboard(user=anonymous, cart=cart-ok, config=config-ok)
     // fetchUserMayFail() threw → settled { } wrapped as Result.failure → buildPartialDashboard used fallback
 
     // traverseSettled: process ALL items, no cancellation on failure
     val ids = listOf(1, 2, 3, 4, 5)
-    val results: List<Result<String>> = Async {
-        ids.traverseSettled { id ->
+    val results: List<Result<String>> = ids.traverseSettled { id ->
             Kap {
                 if (id % 2 == 0) throw RuntimeException("fail-$id")
                 "user-$id"
             }
-        }
-    }
+        }.executeGraph()
     val successes = results.filter { it.isSuccess }.map { it.getOrThrow() }
     val failures = results.filter { it.isFailure }.map { it.exceptionOrNull()!!.message }
     println("  traverseSettled: successes=$successes, failures=$failures\n")
@@ -587,10 +568,9 @@ suspend fun featureTimeoutRace() {
     suspend fun fetchFromFallback(): String { delay(30); return "fallback-data" }
 
     val start = System.currentTimeMillis()
-    val result = Async {
-        Kap { fetchFromPrimary() }
+    val result = Kap { fetchFromPrimary() }
             .timeoutRace(100.milliseconds, Kap { fetchFromFallback() })
-    }
+            .executeGraph()
     val elapsed = System.currentTimeMillis() - start
     println("  timeoutRace: $result (${elapsed}ms — fallback won)\n")
 }
@@ -613,20 +593,18 @@ suspend fun featureRetrySchedule() {
         Schedule.exponential(10.milliseconds) and
         Schedule.doWhile<Throwable> { it is RuntimeException }
 
-    val result = Async {
-        Kap { flakyService() }.retry(policy)
-    }
+    val result = Kap { flakyService() }.retry(policy)
+            .executeGraph()
     println("  Result: $result")
 
     // Inline retry with the simple core overload
     attempts = 0
     data class RetryResult(val user: String, val service: String)
-    val result2 = Async {
-        kap { user: String, service: String -> RetryResult(user, service) }
+    val result2 = kap { user: String, service: String -> RetryResult(user, service) }
             .with { fetchDashUser() }
             .with(Kap { flakyService() }
                 .retry(3, delay = 10.milliseconds))
-    }
+            .executeGraph()
     println("  Inline:  $result2\n")
 }
 
@@ -649,8 +627,7 @@ suspend fun featureResourceSafety() {
     println("=== Feature: Resource Safety ===\n")
 
     // bracket: acquire, use in parallel, guaranteed release
-    val result = Async {
-        kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
+    val result = kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
             .with(bracket(
                 acquire = { openDbConnection() },
                 use = { conn -> Kap { conn.query("SELECT 1") } },
@@ -666,7 +643,7 @@ suspend fun featureResourceSafety() {
                 use = { client -> Kap { client.get("/api") } },
                 release = { client -> client.close() },
             ))
-    }
+            .executeGraph()
     println("  bracket: $result")
 
     // Resource monad: compose first, use later
@@ -678,19 +655,16 @@ suspend fun featureResourceSafety() {
         Resource({ openHttpClient() }, { it.close() }),
     ) { db, cache, http -> Triple(db, cache, http) }
 
-    val result2 = Async {
-        infra.useKap { (db, cache, http) ->
+    val result2 = infra.useKap { (db, cache, http) ->
             kap(::DashboardData)
                 .with { db.query("SELECT 1") }
                 .with { cache.get("user:prefs") }
                 .with { http.get("/recommendations") }
-        }
-    }
+        }.executeGraph()
     println("  Resource: $result2")
 
     // bracketCase: release behavior depends on outcome
-    val result3 = Async {
-        bracketCase(
+    val result3 = bracketCase(
             acquire = { openDbConnection() },
             use = { tx -> Kap { tx.query("INSERT 1") } },
             release = { tx, case ->
@@ -700,8 +674,7 @@ suspend fun featureResourceSafety() {
                 }
                 tx.close()
             },
-        )
-    }
+        ).executeGraph()
     println("  bracketCase: $result3\n")
 }
 
@@ -716,22 +689,18 @@ suspend fun featureRacing() {
     suspend fun fetchFromRegionEU(): String { delay(30); return "EU-data" }
     suspend fun fetchFromRegionAP(): String { delay(60); return "AP-data" }
 
-    val fastest = Async {
-        raceN(
+    val fastest = raceN(
             Kap { fetchFromRegionUS() },
             Kap { fetchFromRegionEU() },
             Kap { fetchFromRegionAP() },
-        )
-    }
+        ).executeGraph()
     println("  raceN winner: $fastest")
 
     // raceEither with different types
-    val raceResult: Either<String, Int> = Async {
-        raceEither(
+    val raceResult: Either<String, Int> = raceEither(
             fa = Kap { delay(30); "fast-string" },
             fb = Kap { delay(100); 42 },
-        )
-    }
+        ).executeGraph()
     println("  raceEither: $raceResult\n")
 }
 
@@ -744,11 +713,9 @@ suspend fun featureTraverse() {
 
     val userIds = (1..10).toList()
 
-    val results = Async {
-        userIds.traverse(concurrency = 3) { id ->
+    val results = userIds.traverse(concurrency = 3) { id ->
             Kap { delay(20); "user-$id" }
-        }
-    }
+        }.executeGraph()
     println("  traverse(c=3): ${results.size} users fetched\n")
 }
 
@@ -763,14 +730,12 @@ suspend fun featureRaceQuorum() {
     suspend fun fetchReplicaB(): String { delay(20); return "replica-B" }
     suspend fun fetchReplicaC(): String { delay(80); return "replica-C" }
 
-    val quorum: List<String> = Async {
-        raceQuorum(
+    val quorum: List<String> = raceQuorum(
             required = 2,
             Kap { fetchReplicaA() },
             Kap { fetchReplicaB() },
             Kap { fetchReplicaC() },
-        )
-    }
+        ).executeGraph()
     println("  raceQuorum(2 of 3): $quorum\n")
 }
 
@@ -783,13 +748,12 @@ suspend fun featureCircuitBreaker() {
 
     val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
-    val result = Async {
-        Kap { fetchDashUser() }
+    val result = Kap { fetchDashUser() }
             .timeout(500.milliseconds)
             .withCircuitBreaker(breaker)
             .retry(Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds))
             .recover { "cached-user" }
-    }
+            .executeGraph()
     println("  Composable chain: $result\n")
 }
 
@@ -803,8 +767,8 @@ suspend fun featureMemoize() {
     var callCount = 0
     val fetchOnce = Kap { callCount++; delay(30); "expensive-result" }.memoizeOnSuccess()
 
-    val a = Async { fetchOnce }
-    val b = Async { fetchOnce }
+    val a = fetchOnce.executeGraph()
+    val b = fetchOnce.executeGraph()
     println("  memoizeOnSuccess: a=$a, b=$b, callCount=$callCount\n")
 }
 
@@ -815,27 +779,25 @@ suspend fun featureMemoize() {
 suspend fun featureParallelValidation() {
     println("=== Feature: Parallel Validation ===\n")
 
-    val result: Either<NonEmptyList<RegError>, User> = Async {
-        zipV(
+    val result: Either<NonEmptyList<RegError>, User> = zipV(
             { validateName("Alice") },
             { validateEmail("alice@example.com") },
             { validateAge(25) },
             { checkUsername("alice") },
         ) { name, email, age, username -> User(name, email, age, username) }
-    }
+            .executeGraph()
     when (result) {
         is Either.Right -> println("  All pass: ${result.value}")
         is Either.Left -> println("  Errors: ${result.value.map { it.message }}")
     }
 
-    val allFail: Either<NonEmptyList<RegError>, User> = Async {
-        zipV(
+    val allFail: Either<NonEmptyList<RegError>, User> = zipV(
             { validateName("A") },
             { validateEmail("bad") },
             { validateAge(10) },
             { checkUsername("al") },
         ) { name, email, age, username -> User(name, email, age, username) }
-    }
+            .executeGraph()
     when (allFail) {
         is Either.Right -> println("  All pass: ${allFail.value}")
         is Either.Left -> println("  ${allFail.value.size} errors: ${allFail.value.map { it.message }}")
@@ -862,8 +824,7 @@ suspend fun checkUsernameAvailable(email: String): Either<NonEmptyList<RegError>
 suspend fun featurePhasedValidation() {
     println("=== Feature: Phased Validation ===\n")
 
-    val result: Either<NonEmptyList<RegError>, Registration> = Async {
-        accumulate {
+    val result: Either<NonEmptyList<RegError>, Registration> = accumulate {
             val identity = zipV(
                 { validateName("Alice") },
                 { validateEmail("alice@example.com") },
@@ -878,8 +839,7 @@ suspend fun featurePhasedValidation() {
                 .bindV()
 
             Registration(identity, cleared)
-        }
-    }
+        }.executeGraph()
 
     when (result) {
         is Either.Right -> println("  Phased: ${result.value}")
@@ -895,14 +855,12 @@ suspend fun featurePhasedValidation() {
 suspend fun featureAttempt() {
     println("=== Feature: attempt() ===\n")
 
-    val success: Either<Throwable, String> = Async {
-        Kap { "hello" }.attempt()
-    }
+    val success: Either<Throwable, String> = Kap { "hello" }.attempt()
+            .executeGraph()
     println("  attempt success: $success")
 
-    val failure: Either<Throwable, String> = Async {
-        Kap<String> { throw RuntimeException("boom") }.attempt()
-    }
+    val failure: Either<Throwable, String> = Kap<String> { throw RuntimeException("boom") }.attempt()
+            .executeGraph()
     println("  attempt failure: $failure\n")
 }
 
@@ -913,19 +871,16 @@ suspend fun featureAttempt() {
 suspend fun featureFallbacks() {
     println("=== Feature: firstSuccessOf & orElse ===\n")
 
-    val result = Async {
-        Kap<String> { throw RuntimeException("fail-1") }
+    val result = Kap<String> { throw RuntimeException("fail-1") }
             .orElse(Kap { "fallback-ok" })
-    }
+            .executeGraph()
     println("  orElse: $result")
 
-    val result2 = Async {
-        firstSuccessOf(
+    val result2 = firstSuccessOf(
             Kap { throw RuntimeException("fail-1") },
             Kap { throw RuntimeException("fail-2") },
             Kap { "third-wins" },
-        )
-    }
+        ).executeGraph()
     println("  firstSuccessOf: $result2\n")
 }
 
@@ -936,13 +891,11 @@ suspend fun featureFallbacks() {
 suspend fun featureKapBuilder() {
     println("=== Feature: computation {} builder ===\n")
 
-    val result = Async {
-        computation {
+    val result = computation {
             val user = Kap { fetchDashUser() }.bind()
             val cart = Kap { fetchDashCart() }.bind()
             "$user has $cart"
-        }
-    }
+        }.executeGraph()
     println("  computation {}: $result\n")
 }
 
@@ -960,8 +913,8 @@ suspend fun executionModel() {
         .with { fetchB() }
 
     println("  graph built, not executed")
-    val result = Async { graph.with { "C" } }
-    println("  Async { graph }: $result\n")
+    val result = graph.with { "C" }.executeGraph()
+    println("  executeGraph(): $result\n")
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -978,25 +931,22 @@ suspend fun fetchParamD(): String { delay(10); return "D-val" }
 suspend fun reorderedWithoutBarrier() {
     println("=== Reordered: No barrier (all parallel, assemble freely) ===\n")
 
-    val result = Async {
-        combine(
+    val result = combine(
             pair({ fetchParamC() }, { fetchParamD() }),
             pair({ fetchParamA() }, { fetchParamB() }),
         ) { (c, d), (a, b) -> Page(a, b, c, d) }
-    }
+            .executeGraph()
     println("  result: $result\n")
 }
 
 suspend fun reorderedWithBarrier() {
     println("=== Reordered: With barrier (phase 1 -> barrier -> phase 2) ===\n")
 
-    val result = Async {
-        computation {
+    val result = computation {
             val (c, d) = pair({ fetchParamC() }, { fetchParamD() }).bind()
             val (a, b) = pair({ fetchParamA() }, { fetchParamB() }).bind()
             Page(a, b, c, d)
-        }
-    }
+        }.executeGraph()
     println("  result: $result\n")
 }
 
@@ -1024,8 +974,7 @@ suspend fun fetchNotifications(userId: String): Int {
 suspend fun bffMobileApp() {
     println("=== BFF: Mobile Home Page ===\n")
 
-    val homePage: MobileHomePage = Async {
-        Kap { fetchSession("tok-abc") }         // phase 1: authenticate
+    val homePage: MobileHomePage = Kap { fetchSession("tok-abc") }         // phase 1: authenticate
             .andThen { session ->                        // ── barrier: session ready
                 combine(                                 // phase 2: fan-out (all parallel)
                     { fetchProductFeed(session.prefs) },
@@ -1039,7 +988,7 @@ suspend fun bffMobileApp() {
                     )
                 }
             }
-    }
+            .executeGraph()
 
     println("  homePage: $homePage")
     assert(homePage.session.userId == "u-123")
@@ -1057,12 +1006,11 @@ data class Enriched(val a: String, val enriched: String, val c: String)
 suspend fun featureThenValue() {
     println("=== Feature: thenValue (no barrier) ===\n")
 
-    val result = Async {
-        kap(::Enriched)
+    val result = kap(::Enriched)
             .with { delay(30); "data-A" }        // launched at t=0
             .thenValue { delay(50); "enriched" }  // sequential value, no barrier
             .with { delay(20); "data-C" }         // launched at t=0 (overlaps!)
-    }
+            .executeGraph()
     println("  thenValue: $result\n")
 }
 
@@ -1076,11 +1024,9 @@ suspend fun featureTraverseDiscard() {
     val ids = listOf(1, 2, 3, 4, 5)
     val processed = mutableListOf<Int>()
 
-    Async {
-        ids.traverseDiscard(concurrency = 3) { id ->
+    ids.traverseDiscard(concurrency = 3) { id ->
             Kap { delay(10); synchronized(processed) { processed.add(id) } }
-        }
-    }
+        }.executeGraph()
     println("  traverseDiscard processed: $processed (fire-and-forget, results discarded)\n")
 }
 
@@ -1097,7 +1043,7 @@ suspend fun featureSequence() {
         Kap { delay(10); "gamma" },
     )
 
-    val results: List<String> = Async { computations.sequence(concurrency = 2) }
+    val results: List<String> = computations.sequence(concurrency = 2).executeGraph()
     println("  sequence(c=2): $results\n")
 }
 
@@ -1114,7 +1060,7 @@ suspend fun featureRaceAll() {
         Kap { delay(60); "replica-medium" },
     )
 
-    val winner = Async { replicas.raceAll() }
+    val winner = replicas.raceAll().executeGraph()
     println("  raceAll winner: $winner\n")
 }
 
@@ -1126,17 +1072,15 @@ suspend fun featureTimeout() {
     println("=== Feature: timeout ===\n")
 
     // timeout with default value
-    val result1 = Async {
-        Kap { delay(200); "slow-value" }
+    val result1 = Kap { delay(200); "slow-value" }
             .timeout(50.milliseconds, "default-value")
-    }
+            .executeGraph()
     println("  timeout(default): $result1")
 
     // timeout with fallback computation
-    val result2 = Async {
-        Kap { delay(200); "slow-value" }
+    val result2 = Kap { delay(200); "slow-value" }
             .timeout(50.milliseconds, Kap { delay(10); "fallback-value" })
-    }
+            .executeGraph()
     println("  timeout(fallback): $result2\n")
 }
 
@@ -1147,16 +1091,14 @@ suspend fun featureTimeout() {
 suspend fun featureRecover() {
     println("=== Feature: recover / recoverWith ===\n")
 
-    val result1 = Async {
-        Kap<String> { throw RuntimeException("oops") }
+    val result1 = Kap<String> { throw RuntimeException("oops") }
             .recover { err -> "recovered: ${err.message}" }
-    }
+            .executeGraph()
     println("  recover: $result1")
 
-    val result2 = Async {
-        Kap<String> { throw RuntimeException("oops") }
+    val result2 = Kap<String> { throw RuntimeException("oops") }
             .recoverWith { err -> Kap { delay(10); "recovered-with: ${err.message}" } }
-    }
+            .executeGraph()
     println("  recoverWith: $result2\n")
 }
 
@@ -1168,13 +1110,12 @@ suspend fun featureRetrySimple() {
     println("=== Feature: retry (simple) ===\n")
 
     var attempts = 0
-    val result = Async {
-        Kap {
+    val result = Kap {
             attempts++
             if (attempts < 3) throw RuntimeException("flake #$attempts")
             "success on attempt $attempts"
         }.retry(maxAttempts = 5, delay = 10.milliseconds, backoff = exponential)
-    }
+            .executeGraph()
     println("  retry: $result (took $attempts attempts)\n")
 }
 
@@ -1187,26 +1128,23 @@ data class UserRecord(val name: String, val profile: String?)
 suspend fun featureEnsure() {
     println("=== Feature: ensure / ensureNotNull ===\n")
 
-    val result1 = Async {
-        Kap { delay(10); 42 }
+    val result1 = Kap { delay(10); 42 }
             .ensure({ IllegalStateException("must be positive") }) { it > 0 }
-    }
+            .executeGraph()
     println("  ensure (pass): $result1")
 
     val failResult = try {
-        Async {
-            Kap { delay(10); -1 }
+        Kap { delay(10); -1 }
                 .ensure({ IllegalStateException("must be positive") }) { it > 0 }
-        }
+                .executeGraph()
     } catch (e: IllegalStateException) {
         "caught: ${e.message}"
     }
     println("  ensure (fail): $failResult")
 
-    val result2 = Async {
-        Kap { delay(10); UserRecord("Alice", "premium") }
+    val result2 = Kap { delay(10); UserRecord("Alice", "premium") }
             .ensureNotNull({ IllegalStateException("profile is null") }) { it.profile }
-    }
+            .executeGraph()
     println("  ensureNotNull: $result2\n")
 }
 
@@ -1217,10 +1155,10 @@ suspend fun featureEnsure() {
 suspend fun featureCatching() {
     println("=== Feature: catching ===\n")
 
-    val success: Result<String> = Async { catching { delay(10); "hello" } }
+    val success: Result<String> = catching { delay(10); "hello" }.executeGraph()
     println("  catching success: $success")
 
-    val failure: Result<String> = Async { catching { throw RuntimeException("boom") } }
+    val failure: Result<String> = catching { throw RuntimeException("boom") }.executeGraph()
     println("  catching failure: $failure\n")
 }
 
@@ -1259,9 +1197,8 @@ suspend fun featureFlowMapEffectOrdered() {
 suspend fun featureFlowFirstAsKap() {
     println("=== Feature: Flow.firstAsKap ===\n")
 
-    val result = Async {
-        flowOf("first", "second", "third").firstAsKap()
-    }
+    val result = flowOf("first", "second", "third").firstAsKap()
+            .executeGraph()
     println("  firstAsKap: $result\n")
 }
 
@@ -1274,7 +1211,7 @@ suspend fun featureDeferredToKap() {
 
     val result = coroutineScope {
         val deferred = async { delay(30); "deferred-value" }
-        Async { deferred.toKap() }
+        deferred.toKap().executeGraph()
     }
     println("  Deferred.toKap: $result\n")
 }
@@ -1286,14 +1223,12 @@ suspend fun featureDeferredToKap() {
 suspend fun featureComputation() {
     println("=== Feature: computation { bind() } ===\n")
 
-    val result = Async {
-        computation {
+    val result = computation {
             val userId = bind { delay(20); "user-42" }
             val profile = Kap { delay(15); "profile-for-$userId" }.bind()
             val cart = bind { delay(10); "cart-of-$userId" }
             "$profile | $cart"
-        }
-    }
+        }.executeGraph()
     println("  computation: $result\n")
 }
 
@@ -1304,16 +1239,14 @@ suspend fun featureComputation() {
 suspend fun featureKeepFirst() {
     println("=== Feature: keepFirst / keepSecond ===\n")
 
-    val user = Async {
-        Kap { delay(30); "Alice" }
+    val user = Kap { delay(30); "Alice" }
             .keepFirst(Kap { delay(20); println("    (side-effect: logged access)") })
-    }
+            .executeGraph()
     println("  keepFirst: $user")
 
-    val cart = Async {
-        Kap { delay(10); println("    (side-effect: tracked event)") }
+    val cart = Kap { delay(10); println("    (side-effect: tracked event)") }
             .keepSecond(Kap { delay(20); "3 items" })
-    }
+            .executeGraph()
     println("  keepSecond: $cart\n")
 }
 
@@ -1324,15 +1257,13 @@ suspend fun featureKeepFirst() {
 suspend fun featureDiscardAndPeek() {
     println("=== Feature: discard / peek ===\n")
 
-    val unit: Unit = Async {
-        Kap { delay(10); "some-value" }.discard()
-    }
+    val unit: Unit = Kap { delay(10); "some-value" }.discard()
+            .executeGraph()
     println("  discard: $unit (value discarded)")
 
-    val peeked = Async {
-        Kap { delay(10); "peek-value" }
+    val peeked = Kap { delay(10); "peek-value" }
             .peek { v -> println("    (peeked: $v)") }
-    }
+            .executeGraph()
     println("  peek returned: $peeked\n")
 }
 
@@ -1343,14 +1274,13 @@ suspend fun featureDiscardAndPeek() {
 suspend fun featureOnAndNamed() {
     println("=== Feature: on / named ===\n")
 
-    val result = Async {
-        kap { a: String, b: String -> "$a|$b" }
+    val result = kap { a: String, b: String -> "$a|$b" }
             .with(Kap { delay(20); "io-result" }
                 .on(Dispatchers.IO)
                 .named("io-task"))
             .with(Kap { delay(15); "default-result" }
                 .named("default-task"))
-    }
+            .executeGraph()
     println("  on/named: $result\n")
 }
 
@@ -1361,11 +1291,10 @@ suspend fun featureOnAndNamed() {
 suspend fun featureAwait() {
     println("=== Feature: await ===\n")
 
-    val result = Async {
-        kap { a: String, b: String -> "$a|$b" }
-            .with { Kap { delay(30); "fast" }.timeout(100.milliseconds, "cached").await() }
+    val result = kap { a: String, b: String -> "$a|$b" }
+            .with { Kap { delay(30); "fast" }.timeout(100.milliseconds, "cached").executeGraph() }
             .with { delay(20); "normal" }
-    }
+            .executeGraph()
     println("  await: $result\n")
 }
 
@@ -1377,12 +1306,10 @@ suspend fun featureDelayed() {
     println("=== Feature: delayed ===\n")
 
     val start = System.currentTimeMillis()
-    val result = Async {
-        raceN(
+    val result = raceN(
             Kap { delay(200); "slow-service" },
             delayed(50.milliseconds, "timeout-fallback"),
-        )
-    }
+        ).executeGraph()
     val elapsed = System.currentTimeMillis() - start
     println("  delayed race: $result (${elapsed}ms)\n")
 }
@@ -1403,11 +1330,10 @@ suspend fun featureTraced() {
         }
     }
 
-    val result = Async {
-        kap { a: String, b: String -> "$a|$b" }
+    val result = kap { a: String, b: String -> "$a|$b" }
             .with(Kap { delay(30); "user-data" }.traced("fetchUser", tracer))
             .with(Kap { delay(20); "cart-data" }.traced("fetchCart", tracer))
-    }
+            .executeGraph()
     println("  traced result: $result")
     println("  trace events: $events\n")
 }
@@ -1420,8 +1346,7 @@ suspend fun featureBracketCase() {
     println("=== Feature: bracketCase with ExitCase ===\n")
 
     // Success path — commit
-    val successResult = Async {
-        bracketCase(
+    val successResult = bracketCase(
             acquire = { delay(10); MockConnection("tx-db") },
             use = { tx -> Kap { tx.query("INSERT INTO orders VALUES (1)") } },
             release = { tx, case ->
@@ -1432,14 +1357,12 @@ suspend fun featureBracketCase() {
                 }
                 tx.close()
             },
-        )
-    }
+        ).executeGraph()
     println("  Success path: $successResult")
 
     // Failure path — rollback
     val fallbackResult = try {
-        Async {
-            bracketCase(
+        bracketCase(
                 acquire = { delay(10); MockConnection("tx-db-fail") },
                 use = { _: MockConnection -> Kap<String> { throw RuntimeException("constraint violation") } },
                 release = { tx, case ->
@@ -1450,8 +1373,7 @@ suspend fun featureBracketCase() {
                     }
                     tx.close()
                 },
-            )
-        }
+            ).executeGraph()
     } catch (e: RuntimeException) {
         "caught: ${e.message}"
     }
@@ -1475,14 +1397,12 @@ suspend fun featureResourceComposable() {
         Triple(db, cache, http)
     }
 
-    val result = Async {
-        combined.useKap { (db, cache, http) ->
+    val result = combined.useKap { (db, cache, http) ->
             kap(::InfraResult)
                 .with { db.query("SELECT * FROM users") }
                 .with { cache.get("session:abc") }
                 .with { http.get("/api/health") }
-        }
-    }
+        }.executeGraph()
     println("  Resource.zip + useKap: $result\n")
 }
 
@@ -1494,15 +1414,13 @@ suspend fun featureGuarantee() {
     println("=== Feature: guarantee & guaranteeCase ===\n")
 
     // guarantee: finalizer always runs
-    val result1 = Async {
-        Kap { delay(20); "fetched-data" }
+    val result1 = Kap { delay(20); "fetched-data" }
             .guarantee { println("    guarantee: cleanup ran (always)") }
-    }
+            .executeGraph()
     println("  guarantee result: $result1")
 
     // guaranteeCase: finalizer receives ExitCase
-    val result2 = Async {
-        Kap { delay(20); "metrics-data" }
+    val result2 = Kap { delay(20); "metrics-data" }
             .guaranteeCase { case ->
                 when (case) {
                     is ExitCase.Completed<*> -> println("    guaranteeCase: success -> record latency")
@@ -1510,13 +1428,12 @@ suspend fun featureGuarantee() {
                     is ExitCase.Cancelled -> println("    guaranteeCase: cancelled -> no-op")
                 }
             }
-    }
+            .executeGraph()
     println("  guaranteeCase result: $result2")
 
     // guaranteeCase on failure
     val result3 = try {
-        Async {
-            Kap<String> { throw RuntimeException("service down") }
+        Kap<String> { throw RuntimeException("service down") }
                 .guaranteeCase { case ->
                     when (case) {
                         is ExitCase.Completed<*> -> println("    guaranteeCase: success")
@@ -1524,7 +1441,7 @@ suspend fun featureGuarantee() {
                         is ExitCase.Cancelled -> println("    guaranteeCase: cancelled")
                     }
                 }
-        }
+                .executeGraph()
     } catch (e: RuntimeException) {
         "caught: ${e.message}"
     }
@@ -1546,10 +1463,9 @@ suspend fun featureRetryOrElse() {
 
     val policy = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
 
-    val result = Async {
-        Kap { unreliableService() }
+    val result = Kap { unreliableService() }
             .retryOrElse(policy) { err -> "fallback after $attempts attempts: ${err.message}" }
-    }
+            .executeGraph()
     println("  retryOrElse: $result\n")
 }
 
@@ -1569,9 +1485,8 @@ suspend fun featureRetryWithResult() {
 
     val policy = Schedule.times<Throwable>(5) and Schedule.exponential(10.milliseconds)
 
-    val retryResult: RetryResult<String> = Async {
-        Kap { flakyApi() }.retryWithResult(policy)
-    }
+    val retryResult: RetryResult<String> = Kap { flakyApi() }.retryWithResult(policy)
+            .executeGraph()
     println("  value:      ${retryResult.value}")
     println("  attempts:   ${retryResult.attempts}")
     println("  totalDelay: ${retryResult.totalDelay}\n")
@@ -1584,26 +1499,24 @@ suspend fun featureRetryWithResult() {
 suspend fun featureKapVWithV() {
     println("=== Feature: kapV + withV builder ===\n")
 
-    val result: Either<NonEmptyList<RegError>, User> = Async {
-        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+    val result: Either<NonEmptyList<RegError>, User> = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
             .withV { validateName("Bob") }
             .withV { validateEmail("bob@example.com") }
             .withV { validateAge(30) }
             .withV { checkUsername("bobby") }
-    }
+            .executeGraph()
     when (result) {
         is Either.Right -> println("  Valid user: ${result.value}")
         is Either.Left -> println("  Errors: ${result.value.map { it.message }}")
     }
 
     // All invalid — errors accumulate
-    val invalid: Either<NonEmptyList<RegError>, User> = Async {
-        kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
+    val invalid: Either<NonEmptyList<RegError>, User> = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
             .withV { validateName("X") }
             .withV { validateEmail("no-at-sign") }
             .withV { validateAge(5) }
             .withV { checkUsername("ab") }
-    }
+            .executeGraph()
     when (invalid) {
         is Either.Right -> println("  Valid: ${invalid.value}")
         is Either.Left -> println("  ${invalid.value.size} accumulated errors: ${invalid.value.map { it.message }}")
@@ -1618,21 +1531,17 @@ suspend fun featureKapVWithV() {
 suspend fun featureValidEntryPoints() {
     println("=== Feature: valid / invalid / invalidAll entry points ===\n")
 
-    val ok: Either<NonEmptyList<RegError>, ValidName> = Async {
-        valid<RegError, ValidName>(ValidName("Alice"))
-    }
+    val ok: Either<NonEmptyList<RegError>, ValidName> = valid<RegError, ValidName>(ValidName("Alice"))
+            .executeGraph()
     println("  valid():      $ok")
 
-    val err: Either<NonEmptyList<RegError>, ValidName> = Async {
-        invalid<RegError, ValidName>(RegError.NameTooShort("too short"))
-    }
+    val err: Either<NonEmptyList<RegError>, ValidName> = invalid<RegError, ValidName>(RegError.NameTooShort("too short"))
+            .executeGraph()
     println("  invalid():    $err")
 
-    val errs: Either<NonEmptyList<RegError>, ValidName> = Async {
-        invalidAll<RegError, ValidName>(
+    val errs: Either<NonEmptyList<RegError>, ValidName> = invalidAll<RegError, ValidName>(
             nonEmptyListOf(RegError.NameTooShort("too short"), RegError.InvalidEmail("bad email"))
-        )
-    }
+        ).executeGraph()
     println("  invalidAll(): $errs\n")
 }
 
@@ -1643,16 +1552,14 @@ suspend fun featureValidEntryPoints() {
 suspend fun featureValidCatching() {
     println("=== Feature: catching (exception -> validation error) ===\n")
 
-    val success: Either<NonEmptyList<RegError>, String> = Async {
-        Kap { delay(10); "valid-data" }
+    val success: Either<NonEmptyList<RegError>, String> = Kap { delay(10); "valid-data" }
             .catching { e -> RegError.NameTooShort("caught: ${e.message}") }
-    }
+            .executeGraph()
     println("  catching success: $success")
 
-    val failure: Either<NonEmptyList<RegError>, String> = Async {
-        Kap<String> { throw IllegalArgumentException("bad input") }
+    val failure: Either<NonEmptyList<RegError>, String> = Kap<String> { throw IllegalArgumentException("bad input") }
             .catching { e -> RegError.InvalidEmail("caught: ${e.message}") }
-    }
+            .executeGraph()
     println("  catching failure: $failure\n")
 }
 
@@ -1664,27 +1571,24 @@ suspend fun featureEnsureV() {
     println("=== Feature: ensureV & ensureVAll ===\n")
 
     // ensureV — single error on predicate failure
-    val pass: Either<NonEmptyList<RegError>, Int> = Async {
-        Kap { delay(10); 25 }
+    val pass: Either<NonEmptyList<RegError>, Int> = Kap { delay(10); 25 }
             .ensureV(
                 error = { age -> RegError.AgeTooLow("Age $age too low") },
                 predicate = { it >= 18 },
             )
-    }
+            .executeGraph()
     println("  ensureV pass: $pass")
 
-    val fail: Either<NonEmptyList<RegError>, Int> = Async {
-        Kap { delay(10); 12 }
+    val fail: Either<NonEmptyList<RegError>, Int> = Kap { delay(10); 12 }
             .ensureV(
                 error = { age -> RegError.AgeTooLow("Age $age too low") },
                 predicate = { it >= 18 },
             )
-    }
+            .executeGraph()
     println("  ensureV fail: $fail")
 
     // ensureVAll — multiple errors on predicate failure
-    val failAll: Either<NonEmptyList<RegError>, String> = Async {
-        Kap { delay(10); "X" }
+    val failAll: Either<NonEmptyList<RegError>, String> = Kap { delay(10); "X" }
             .ensureVAll(
                 errors = { name ->
                     nonEmptyListOf(
@@ -1694,7 +1598,7 @@ suspend fun featureEnsureV() {
                 },
                 predicate = { it.length >= 3 },
             )
-    }
+            .executeGraph()
     println("  ensureVAll fail: $failAll\n")
 }
 
@@ -1705,10 +1609,9 @@ suspend fun featureEnsureV() {
 suspend fun featureMapV() {
     println("=== Feature: mapV ===\n")
 
-    val result: Either<NonEmptyList<RegError>, String> = Async {
-        Kap { delay(10); Either.Right(ValidName("Alice")) as Either<NonEmptyList<RegError>, ValidName> }
+    val result: Either<NonEmptyList<RegError>, String> = Kap { delay(10); Either.Right(ValidName("Alice")) as Either<NonEmptyList<RegError>, ValidName> }
             .mapV { name -> "Hello, ${name.value}!" }
-    }
+            .executeGraph()
     println("  mapV: $result\n")
 }
 
@@ -1719,15 +1622,13 @@ suspend fun featureMapV() {
 suspend fun featureMapError() {
     println("=== Feature: mapError ===\n")
 
-    val original: Either<NonEmptyList<RegError>, ValidName> = Async {
-        invalid<RegError, ValidName>(RegError.NameTooShort("too short"))
-    }
+    val original: Either<NonEmptyList<RegError>, ValidName> = invalid<RegError, ValidName>(RegError.NameTooShort("too short"))
+            .executeGraph()
     println("  original errors: $original")
 
-    val mapped: Either<NonEmptyList<String>, ValidName> = Async {
-        invalid<RegError, ValidName>(RegError.NameTooShort("too short"))
+    val mapped: Either<NonEmptyList<String>, ValidName> = invalid<RegError, ValidName>(RegError.NameTooShort("too short"))
             .mapError { regError -> "mapped: ${regError.message}" }
-    }
+            .executeGraph()
     println("  mapError:        $mapped\n")
 }
 
@@ -1738,13 +1639,11 @@ suspend fun featureMapError() {
 suspend fun featureRecoverV() {
     println("=== Feature: recoverV ===\n")
 
-    val result: Either<NonEmptyList<RegError>, String> = Async {
-        Kap<Either<NonEmptyList<RegError>, String>> {
+    val result: Either<NonEmptyList<RegError>, String> = Kap<Either<NonEmptyList<RegError>, String>> {
             throw RuntimeException("network timeout")
         }.recoverV { e ->
             RegError.InvalidEmail("recovered: ${e.message}")
-        }
-    }
+        }.executeGraph()
     println("  recoverV: $result\n")
 }
 
@@ -1756,16 +1655,14 @@ suspend fun featureOrThrow() {
     println("=== Feature: orThrow ===\n")
 
     // Success — unwraps cleanly
-    val name: ValidName = Async {
-        valid<RegError, ValidName>(ValidName("Alice")).orThrow()
-    }
+    val name: ValidName = valid<RegError, ValidName>(ValidName("Alice")).orThrow()
+            .executeGraph()
     println("  orThrow success: $name")
 
     // Failure — throws ValidationException
     val caught = try {
-        Async {
-            invalid<RegError, ValidName>(RegError.NameTooShort("too short")).orThrow()
-        }
+        invalid<RegError, ValidName>(RegError.NameTooShort("too short")).orThrow()
+                .executeGraph()
     } catch (e: ValidationException) {
         "caught ValidationException: ${e.errors.size} error(s)"
     }
@@ -1781,21 +1678,17 @@ suspend fun featureTraverseV() {
 
     val names = listOf("Alice", "Bob", "X", "Y")
 
-    val result: Either<NonEmptyList<RegError>, List<ValidName>> = Async {
-        names.traverseV { name ->
+    val result: Either<NonEmptyList<RegError>, List<ValidName>> = names.traverseV { name ->
             Kap { validateName(name) }
-        }
-    }
+        }.executeGraph()
     when (result) {
         is Either.Right -> println("  traverseV all valid: ${result.value}")
         is Either.Left -> println("  traverseV errors: ${result.value.map { it.message }}")
     }
 
-    val allValid: Either<NonEmptyList<RegError>, List<ValidName>> = Async {
-        listOf("Alice", "Bob", "Charlie").traverseV { name ->
+    val allValid: Either<NonEmptyList<RegError>, List<ValidName>> = listOf("Alice", "Bob", "Charlie").traverseV { name ->
             Kap { validateName(name) }
-        }
-    }
+        }.executeGraph()
     when (allValid) {
         is Either.Right -> println("  traverseV all pass: ${allValid.value}")
         is Either.Left -> println("  traverseV errors: ${allValid.value.map { it.message }}")
@@ -1816,21 +1709,19 @@ suspend fun featureSequenceV() {
         Kap { validateName("X") },
     )
 
-    val result: Either<NonEmptyList<RegError>, List<ValidName>> = Async {
-        validations.sequenceV()
-    }
+    val result: Either<NonEmptyList<RegError>, List<ValidName>> = validations.sequenceV()
+            .executeGraph()
     when (result) {
         is Either.Right -> println("  sequenceV all valid: ${result.value}")
         is Either.Left -> println("  sequenceV errors: ${result.value.map { it.message }}")
     }
 
     // All valid
-    val allOk: Either<NonEmptyList<RegError>, List<ValidName>> = Async {
-        listOf(
+    val allOk: Either<NonEmptyList<RegError>, List<ValidName>> = listOf(
             Kap { validateName("Alice") },
             Kap { validateName("Bob") },
         ).sequenceV()
-    }
+            .executeGraph()
     when (allOk) {
         is Either.Right -> println("  sequenceV all pass: ${allOk.value}")
         is Either.Left -> println("  sequenceV errors: ${allOk.value.map { it.message }}")
@@ -1848,12 +1739,10 @@ suspend fun featureRaceEither() {
     suspend fun fetchCachedName(): String { delay(20); return "cached-Alice" }
     suspend fun fetchFreshAge(): Int { delay(100); return 30 }
 
-    val result: Either<String, Int> = Async {
-        raceEither(
+    val result: Either<String, Int> = raceEither(
             fa = Kap { fetchCachedName() },
             fb = Kap { fetchFreshAge() },
-        )
-    }
+        ).executeGraph()
     when (result) {
         is Either.Left -> println("  raceEither: Left won (fast) = ${result.value}")
         is Either.Right -> println("  raceEither: Right won (fast) = ${result.value}")

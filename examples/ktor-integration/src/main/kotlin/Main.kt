@@ -346,8 +346,7 @@ fun Routing.coreRoutes() {
     get("/dashboard/{userId}") {
         val userId = call.parameters["userId"]!!
 
-        val dashboard = Async {
-            kap(::Dashboard)
+        val dashboard = kap(::Dashboard)
                 .with(
                     Kap { Services.fetchUserProfile(userId) }
                         .named("fetchProfile")
@@ -369,7 +368,7 @@ fun Routing.coreRoutes() {
                 )
                 .with { Services.fetchRecommendations("Gold") }
                 .with { Services.countNotifications(userId) }
-        }
+                .executeGraph()
 
         call.respond(dashboard)
     }
@@ -385,20 +384,17 @@ fun Routing.coreRoutes() {
         val failures: List<String>
 
         if (call.request.queryParameters["settled"] == "true") {
-            val results = Async {
-                ids.traverseSettled { id -> Kap { Services.fetchProduct(id) } }
-            }
+            val results = ids.traverseSettled { id -> Kap { Services.fetchProduct(id) } }
+                .executeGraph()
             products = results.filter { it.isSuccess }.map { it.getOrThrow() }
             failures = results.filter { it.isFailure }.map { "${it.exceptionOrNull()?.message}" }
         } else if (concurrency != null) {
-            products = Async {
-                ids.traverse(concurrency) { id -> Kap { Services.fetchProduct(id) } }
-            }
+            products = ids.traverse(concurrency) { id -> Kap { Services.fetchProduct(id) } }
+                .executeGraph()
             failures = emptyList()
         } else {
-            products = Async {
-                ids.traverse { id -> Kap { Services.fetchProduct(id) } }
-            }
+            products = ids.traverse { id -> Kap { Services.fetchProduct(id) } }
+                .executeGraph()
             failures = emptyList()
         }
 
@@ -410,8 +406,7 @@ fun Routing.coreRoutes() {
         val query = call.request.queryParameters["q"]
         val minPrice = call.request.queryParameters["minPrice"]?.toDoubleOrNull()
 
-        val result = Async {
-            computation {
+        val result = computation {
                 val q = bind {
                     query ?: throw IllegalArgumentException("Query parameter 'q' is required")
                 }
@@ -427,8 +422,7 @@ fun Routing.coreRoutes() {
                 } else rawProducts
 
                 SearchResult(q, filtered, filtered.size)
-            }
-        }
+            }.executeGraph()
 
         call.respond(result)
     }
@@ -442,8 +436,7 @@ fun Routing.coreRoutes() {
 
         val memoizedExpensive = Kap { Services.fetchProduct("EXPENSIVE") }.memoizeOnSuccess()
 
-        val result = Async {
-            computation {
+        val result = computation {
                 val settledResults = ids.traverseSettled { id ->
                     Kap { Services.fetchProduct(id) }
                 }.bind()
@@ -465,8 +458,7 @@ fun Routing.coreRoutes() {
                 }.with(memoizedExpensive).with(memoizedExpensive).bind()
 
                 CompareResponse(products, cheapest, statusList)
-            }
-        }
+            }.executeGraph()
 
         call.respond(result)
     }
@@ -490,40 +482,34 @@ fun Routing.resilienceRoutes() {
 
         when (strategy) {
             "quorum" -> {
-                val quotes = Async {
-                    raceQuorum(
+                val quotes = raceQuorum(
                         required = 2,
                         Kap { Services.fetchPricingReplicaA(itemId) },
                         Kap { Services.fetchPricingReplicaB(itemId) },
                         Kap { Services.fetchPricingReplicaC(itemId) },
-                    )
-                }
+                    ).executeGraph()
                 pricing = quotes.first()
                 strategyUsed = "quorum-2-of-3 (sources: ${quotes.map { it.source }})"
             }
             "timeout-race" -> {
-                pricing = Async {
-                    Kap { Services.fetchPricingLive(itemId) }
+                pricing = Kap { Services.fetchPricingLive(itemId) }
                         .timeoutRace(100.milliseconds, Kap { Services.fetchPricingCache(itemId) })
-                }
+                        .executeGraph()
                 strategyUsed = "timeout-race (100ms deadline, source: ${pricing.source})"
             }
             "fallback-chain" -> {
-                pricing = Async {
-                    firstSuccessOf(
+                pricing = firstSuccessOf(
                         Kap { Services.fetchPricingPrimary(itemId) },
                         Kap { Services.fetchPricingSecondary(itemId) },
                         Kap { Services.fetchPricingFallback(itemId) },
-                    )
-                }
+                    ).executeGraph()
                 strategyUsed = "fallback-chain (source: ${pricing.source})"
             }
             "orElse" -> {
-                pricing = Async {
-                    Kap { Services.fetchPricingPrimary(itemId) }
+                pricing = Kap { Services.fetchPricingPrimary(itemId) }
                         .orElse(Kap { Services.fetchPricingSecondary(itemId) })
                         .orElse(Kap { Services.fetchPricingFallback(itemId) })
-                }
+                        .executeGraph()
                 strategyUsed = "orElse-chain (source: ${pricing.source})"
             }
             else -> throw IllegalArgumentException("Unknown strategy: $strategy")
@@ -546,11 +532,10 @@ fun Routing.resilienceRoutes() {
                 val policy = Schedule.times<Throwable>(5) and
                     Schedule.exponential<Throwable>(30.milliseconds).jittered()
 
-                val retryResult = Async {
-                    Kap { Services.fetchUserFlaky(userId) }
+                val retryResult = Kap { Services.fetchUserFlaky(userId) }
                         .withCircuitBreaker(userCircuitBreaker)
                         .retryWithResult(policy)
-                }
+                        .executeGraph()
 
                 call.respond(UserResponse(retryResult.value, retryResult.attempts, retryResult.totalDelay.toString()))
             }
@@ -558,22 +543,20 @@ fun Routing.resilienceRoutes() {
                 val policy = Schedule.times<Throwable>(1) and
                     Schedule.spaced<Throwable>(10.milliseconds)
 
-                val user = Async {
-                    Kap { Services.fetchUserFlaky(userId) }
+                val user = Kap { Services.fetchUserFlaky(userId) }
                         .withCircuitBreaker(userCircuitBreaker)
                         .retryOrElse(policy) {
                             UserProfile(userId, "Cached User", "Basic")
                         }
-                }
+                        .executeGraph()
 
                 call.respond(UserResponse(user, Services.userApiAttempts, "N/A (fallback)"))
             }
             "attempt" -> {
-                val result: Either<Throwable, UserProfile> = Async {
-                    Kap { Services.fetchUserFlaky(userId) }
+                val result: Either<Throwable, UserProfile> = Kap { Services.fetchUserFlaky(userId) }
                         .withCircuitBreaker(userCircuitBreaker)
                         .attempt()
-                }
+                        .executeGraph()
 
                 when (result) {
                     is Either.Right -> call.respond(UserResponse(result.value, Services.userApiAttempts, "0ms"))
@@ -607,8 +590,7 @@ fun Routing.resilienceRoutes() {
 
         checks.addAll(resourceChecks)
 
-        val apiCheck = Async {
-            bracket(
+        val apiCheck = bracket(
                 acquire = { println("  [Bracket] Acquiring API probe"); "api-probe" },
                 use = { _ ->
                     Kap { Services.checkExternalApi() }
@@ -621,8 +603,7 @@ fun Routing.resilienceRoutes() {
                         }
                 },
                 release = { probe -> println("  [Bracket] Released $probe") },
-            )
-        }
+            ).executeGraph()
         checks.add(apiCheck)
 
         val overallStatus = if (checks.all { it.status == "ok" }) "healthy" else "degraded"
@@ -641,8 +622,7 @@ fun Routing.arrowRoutes() {
     post("/register") {
         val req = call.receive<RegistrationRequest>()
 
-        val result = Async {
-            kapV<RegistrationError, String, String, Int, List<String>, RegistrationResult> { name, email, age, interests ->
+        val result = kapV<RegistrationError, String, String, Int, List<String>, RegistrationResult> { name, email, age, interests ->
                 RegistrationResult("USR-${System.currentTimeMillis()}", name, email, age, interests)
             }
                 .withV { Services.validateName(req.name) }
@@ -665,7 +645,7 @@ fun Routing.arrowRoutes() {
                 .mapV { it }
                 .mapError { err -> "${err::class.simpleName}: ${err.message}" }
                 .orThrow()
-        }
+                .executeGraph()
 
         call.respond(HttpStatusCode.Created, result)
     }
@@ -674,11 +654,9 @@ fun Routing.arrowRoutes() {
     post("/validate-batch") {
         val req = call.receive<BatchValidationRequest>()
 
-        val result: Either<NonEmptyList<String>, List<ValidatedEmail>> = Async {
-            req.emails.traverseV(3) { email ->
+        val result: Either<NonEmptyList<String>, List<ValidatedEmail>> = req.emails.traverseV(3) { email ->
                 Kap { Services.validateEmailFormat(email) }
-            }
-        }
+            }.executeGraph()
 
         when (result) {
             is Either.Right -> call.respond(BatchValidationResponse(result.value, null))
@@ -712,8 +690,7 @@ fun Routing.combinedRoutes() {
             resetTimeout = 5.seconds,
         )
 
-        val order = Async {
-            kapV<OrderError, ValidatedItem, ValidatedQuantity, ValidatedAddress, ValidatedOrder>(::ValidatedOrder)
+        val order = kapV<OrderError, ValidatedItem, ValidatedQuantity, ValidatedAddress, ValidatedOrder>(::ValidatedOrder)
                 .withV { Services.validateItem(req.itemId) }
                 .withV { Services.validateQuantity(req.quantity) }
                 .withV { Services.validateAddress(req.street, req.city, req.zip) }
@@ -749,7 +726,7 @@ fun Routing.combinedRoutes() {
                             ).traced("confirmation", tracer)
                         )
                 }
-        }
+                .executeGraph()
 
         call.respond(HttpStatusCode.Created, order)
     }

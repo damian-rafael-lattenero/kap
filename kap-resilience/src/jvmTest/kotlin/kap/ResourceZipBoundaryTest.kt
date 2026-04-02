@@ -76,13 +76,11 @@ class ResourceZipBoundaryTest {
             Resource({ "cache" }, { releaseOrder.add("cache") }),
         ) { db, cache -> db to cache }
 
-        val result = Async {
-            infra.useKap { (db, cache) ->
-                kap { a: String, b: String -> "$a|$b" }
-                    .with(Kap { "query:$db" })
-                    .with(Kap { "get:$cache" })
-            }
-        }
+        val result = infra.useKap { (db, cache) ->
+            kap { a: String, b: String -> "$a|$b" }
+                .with(Kap { "query:$db" })
+                .with(Kap { "get:$cache" })
+        }.executeGraph()
 
         assertEquals("query:db|get:cache", result)
         assertEquals(listOf("cache", "db"), releaseOrder)

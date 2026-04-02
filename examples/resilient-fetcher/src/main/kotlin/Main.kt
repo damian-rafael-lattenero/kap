@@ -102,14 +102,12 @@ suspend fun main() {
     // ═══════════════════════════════════════════════════════════════════
     println("=== 1. raceQuorum: 2-of-3 pricing replicas ===\n")
 
-    val pricing = Async {
-        raceQuorum(
+    val pricing = raceQuorum(
             required = 2,
             Kap { fetchPricingReplicaA() },
             Kap { fetchPricingReplicaB() },
             Kap { fetchPricingReplicaC() },
-        )
-    }
+        ).executeGraph()
 
     println("  Got ${pricing.size} pricing quotes:")
     pricing.forEach { println("    - ${it.source}: ${it.currency} ${it.price}") }
@@ -124,10 +122,9 @@ suspend fun main() {
     val retryPolicy = Schedule.times<Throwable>(5) and
         Schedule.exponential<Throwable>(50.milliseconds).jittered()
 
-    val retryResult = Async {
-        Kap { fetchUserFlaky(userAttempt++) }
+    val retryResult = Kap { fetchUserFlaky(userAttempt++) }
             .retryWithResult(retryPolicy)
-    }
+            .executeGraph()
 
     println("  Fetched: ${retryResult.value.name} (tier=${retryResult.value.tier})")
     println("  Took ${retryResult.attempts} retries, ${retryResult.totalDelay} total delay")
@@ -139,8 +136,7 @@ suspend fun main() {
     println("=== 3. bracket: config from DB with guaranteed cleanup ===\n")
 
     val dbConn = arrayOfNulls<DbConnection>(1)
-    val config = Async {
-        bracket(
+    val config = bracket(
             acquire = {
                 openDbConnection().also {
                     dbConn[0] = it
@@ -152,8 +148,7 @@ suspend fun main() {
                 conn.close()
                 println("  Released: ${conn.name} (closed=${conn.closed})")
             },
-        )
-    }
+        ).executeGraph()
 
     println("  Config: maxItems=${config.maxItems}, flags=${config.featureFlags}")
     println("  Connection cleaned up: ${dbConn[0]?.closed}")
@@ -176,11 +171,10 @@ suspend fun main() {
     val combined = Resource.zip(dbResource, cacheResource) { db, cache -> db to cache }
 
     val dualConfig = combined.use { pair ->
-        Async {
-            kap(::DualConfig)
+        kap(::DualConfig)
                 .with { pair.first.query() }
                 .with { pair.second.query() }
-        }
+                .executeGraph()
     }
     println("  DB config: ${dualConfig.primary}")
     println("  Cache config: ${dualConfig.secondary}")
@@ -191,10 +185,9 @@ suspend fun main() {
     // ═══════════════════════════════════════════════════════════════════
     println("=== 5. timeoutRace: slow source vs cache (200ms deadline) ===\n")
 
-    val audit = Async {
-        Kap { fetchAuditLogSlow() }
+    val audit = Kap { fetchAuditLogSlow() }
             .timeoutRace(200.milliseconds, Kap { fetchAuditLogCache() })
-    }
+            .executeGraph()
 
     println("  Audit log: ${audit.entries}")
     println("  (came from cache because slow source takes 500ms)")
@@ -214,13 +207,12 @@ suspend fun main() {
     var cbAttempt = 0
     repeat(5) { i ->
         val result = runCatching {
-            Async {
-                Kap {
+            Kap {
                     cbAttempt++
                     if (cbAttempt <= 4) throw RuntimeException("Service down (call $cbAttempt)")
                     "recovered!"
                 }.withCircuitBreaker(breaker)
-            }
+                .executeGraph()
         }
         println("  Call ${i + 1}: ${result.fold({ "OK: $it" }, { it.message ?: "error" })}")
     }
@@ -235,12 +227,11 @@ suspend fun main() {
     val limitedPolicy = Schedule.times<Throwable>(2) and
         Schedule.spaced<Throwable>(30.milliseconds)
 
-    val graceful = Async {
-        Kap<String> { throw RuntimeException("Always fails") }
+    val graceful = Kap<String> { throw RuntimeException("Always fails") }
             .retryOrElse(limitedPolicy) { err ->
                 "Fallback value (original error: ${err.message})"
             }
-    }
+            .executeGraph()
 
     println("  Result: $graceful")
     println("  (${elapsed()})\n")
@@ -253,8 +244,7 @@ suspend fun main() {
 
     val pipelineStart = System.currentTimeMillis()
 
-    val fullResult = Async {
-        kap(::FetcherResult)
+    val fullResult = kap(::FetcherResult)
             // Phase 1: quorum pricing (parallel 2-of-3), take first result
             .with(
                 raceQuorum(
@@ -283,7 +273,7 @@ suspend fun main() {
                 Kap { fetchAuditLogSlow() }
                     .timeoutRace(100.milliseconds, Kap { fetchAuditLogCache() })
             )
-    }
+            .executeGraph()
 
     val pipelineElapsed = System.currentTimeMillis() - pipelineStart
     println("  Pricing:  ${fullResult.pricing.source} @ ${fullResult.pricing.currency} ${fullResult.pricing.price}")

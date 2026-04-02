@@ -19,11 +19,9 @@ class StressTest {
 
     @Test
     fun `traverse 100 parallel computations completes correctly`() = runTest {
-        val results = Async {
-            (1..100).toList().traverse { i ->
+        val results = (1..100).toList().traverse { i ->
                 Kap { delay(50); "item-$i" }
-            }
-        }
+            }.executeGraph()
         assertEquals(100, results.size)
         assertEquals("item-1", results.first())
         assertEquals("item-100", results.last())
@@ -32,11 +30,9 @@ class StressTest {
 
     @Test
     fun `traverse 500 parallel computations with bounded concurrency`() = runTest {
-        val results = Async {
-            (1..500).toList().traverse(concurrency = 50) { i ->
+        val results = (1..500).toList().traverse(concurrency = 50) { i ->
                 Kap { delay(30); i }
-            }
-        }
+            }.executeGraph()
         assertEquals(500, results.size)
         assertEquals((1..500).toList(), results)
         // 500 items, concurrency=50 → 10 batches × 30ms = 300ms
@@ -54,7 +50,7 @@ class StressTest {
                 "item-$i"
             }
         }
-        assertFailsWith<IllegalStateException> { val r = Async { comp } }
+        assertFailsWith<IllegalStateException> { val r = comp.executeGraph() }
         // All 200 start (parallel), but cancellation propagates
         assertEquals(200, started.get(), "All 200 should start in parallel")
     }
@@ -66,7 +62,7 @@ class StressTest {
         val computations = (1..150).map { i ->
             Kap { delay(40); "v$i" }
         }
-        val results = Async { computations.sequence() }
+        val results = computations.sequence().executeGraph()
         assertEquals(150, results.size)
         assertEquals("v1", results.first())
         assertEquals("v150", results.last())
@@ -81,7 +77,7 @@ class StressTest {
         repeat(50) {
             computation = computation.andThen { n -> Kap.of(n + 1) }
         }
-        val result = Async { computation }
+        val result = computation.executeGraph()
         assertEquals(50, result)
     }
 
@@ -91,7 +87,7 @@ class StressTest {
             if (depth <= 0) Kap.of(current)
             else Kap.defer { chain(depth - 1, current + 1) }
 
-        val result = Async { chain(200, 0) }
+        val result = chain(200, 0).executeGraph()
         assertEquals(200, result)
     }
 
@@ -99,8 +95,7 @@ class StressTest {
 
     @Test
     fun `kap with with (15 params) runs all 15 in parallel`() = runTest {
-        val result = Async {
-            kap { a: Int, b: Int, c: Int, d: Int, e: Int,
+        val result = kap { a: Int, b: Int, c: Int, d: Int, e: Int,
                      f: Int, g: Int, h: Int, i: Int, j: Int,
                      k: Int, l: Int, m: Int, n: Int, o: Int ->
                 a + b + c + d + e + f + g + h + i + j + k + l + m + n + o
@@ -109,16 +104,14 @@ class StressTest {
                 .with { delay(30); 4 }.with { delay(30); 5 }.with { delay(30); 6 }
                 .with { delay(30); 7 }.with { delay(30); 8 }.with { delay(30); 9 }
                 .with { delay(30); 10 }.with { delay(30); 11 }.with { delay(30); 12 }
-                .with { delay(30); 13 }.with { delay(30); 14 }.with { delay(30); 15 }
-        }
+                .with { delay(30); 13 }.with { delay(30); 14 }.with { delay(30); 15 }.executeGraph()
         assertEquals(120, result)
         assertEquals(30, currentTime, "All 15 should run in parallel → 30ms")
     }
 
     @Test
     fun `kap with with (22 params) runs all 22 in parallel`() = runTest {
-        val result = Async {
-            kap { a: Int, b: Int, c: Int, d: Int, e: Int,
+        val result = kap { a: Int, b: Int, c: Int, d: Int, e: Int,
                      f: Int, g: Int, h: Int, i: Int, j: Int,
                      k: Int, l: Int, m: Int, n: Int, o: Int,
                      p: Int, q: Int, r: Int, s: Int, t: Int,
@@ -133,8 +126,7 @@ class StressTest {
                 .with { delay(30); 13 }.with { delay(30); 14 }.with { delay(30); 15 }
                 .with { delay(30); 16 }.with { delay(30); 17 }.with { delay(30); 18 }
                 .with { delay(30); 19 }.with { delay(30); 20 }.with { delay(30); 21 }
-                .with { delay(30); 22 }
-        }
+                .with { delay(30); 22 }.executeGraph()
         assertEquals((1..22).sum(), result) // 253
         assertEquals(30, currentTime, "All 22 should run in parallel → 30ms")
     }
@@ -146,7 +138,7 @@ class StressTest {
         val computations = (1..20).map { i ->
             Kap { delay(i.toLong() * 10); "winner-$i" }
         }
-        val result = Async { raceN(*computations.toTypedArray()) }
+        val result = raceN(*computations.toTypedArray()).executeGraph()
         assertEquals("winner-1", result, "Fastest (10ms) should win")
         assertEquals(10, currentTime)
     }
@@ -160,7 +152,7 @@ class StressTest {
                 "survivor"
             }
         }
-        val result = Async { raceN(*computations.toTypedArray()) }
+        val result = raceN(*computations.toTypedArray()).executeGraph()
         assertEquals("survivor", result)
     }
 
@@ -175,9 +167,7 @@ class StressTest {
             "computed"
         }.memoize()
 
-        val results = Async {
-            (1..50).toList().traverse { Kap { memoized.await() } }
-        }
+        val results = (1..50).toList().traverse { Kap { memoized.executeGraph() } }.executeGraph()
         assertEquals(50, results.size)
         assertTrue(results.all { it == "computed" })
         assertEquals(1, executions.get(), "Should execute exactly once despite 50 consumers")
@@ -192,7 +182,7 @@ class StressTest {
             chain = chain.orElse(Kap { error("fail-$i") })
         }
         chain = chain.orElse(Kap { "success-10" })
-        val result = Async { chain }
+        val result = chain.executeGraph()
         assertEquals("success-10", result)
     }
 
@@ -204,7 +194,7 @@ class StressTest {
                 "success-$i"
             }
         }
-        val result = Async { firstSuccessOf(*computations.toTypedArray()) }
+        val result = firstSuccessOf(*computations.toTypedArray()).executeGraph()
         assertEquals("success-3", result)
     }
 
@@ -212,8 +202,7 @@ class StressTest {
 
     @Test
     fun `retry + timeout + recover composition in parallel branches`() = runTest {
-        val result = Async {
-            combine(
+        val result = combine(
                 {
                     // Branch 1: flaky, succeeds on 2nd try
                     var attempts = 0
@@ -221,22 +210,21 @@ class StressTest {
                         attempts++
                         if (attempts < 2) error("flaky")
                         "stable"
-                    }.retry(3).await()
+                    }.retry(3).executeGraph()
                 },
                 {
                     // Branch 2: slow, falls back to cached
                     Kap { delay(500); "slow" }
                         .timeout(kotlin.time.Duration.parse("100ms"), default = "cached")
-                        .await()
+                        .executeGraph()
                 },
                 {
                     // Branch 3: always fails, recovered
                     Kap<String> { error("down") }
                         .recover { "fallback" }
-                        .await()
+                        .executeGraph()
                 },
-            ) { a, b, c -> "$a|$b|$c" }
-        }
+            ) { a, b, c -> "$a|$b|$c" }.executeGraph()
         assertEquals("stable|cached|fallback", result)
     }
 
