@@ -18,7 +18,6 @@
         }
       }
     </script>
-<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
 <script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async></script>
 <link href="../../styles/style.css" rel="Stylesheet">
 <link href="../../styles/main.css" rel="Stylesheet">
@@ -95,7 +94,7 @@
   <div class="cover ">
     <h1 class="cover"><span><span>context</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="context.html">context</a><span class="token operator">: </span><a href="-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.coroutines/-coroutine-context/index.html">CoroutineContext</a><span class="token operator">&gt;</span></div><p class="paragraph">A <a href="-kap/index.html">Kap</a> that captures the current <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.coroutines/-coroutine-context/index.html">kotlin.coroutines.CoroutineContext</a>.</p><p class="paragraph">Useful for propagating trace IDs, MDC, or other context elements into computation chains:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">Async {<br>    context.andThen { ctx -&gt;<br>        val traceId = ctx[TraceKey]<br>        kap(::build)<br>            .with { fetchUser(traceId) }<br>            .with { fetchCart(traceId) }<br>    }<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div></div></div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="context.html">context</a><span class="token operator">: </span><a href="-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.coroutines/-coroutine-context/index.html">CoroutineContext</a><span class="token operator">&gt;</span></div><p class="paragraph">A <a href="-kap/index.html">Kap</a> that captures the current <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.coroutines/-coroutine-context/index.html">kotlin.coroutines.CoroutineContext</a>.</p><p class="paragraph">Useful for propagating trace IDs, MDC, or other context elements into computation chains:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">context.andThen { ctx -&gt;<br>    val traceId = ctx[TraceKey]<br>    kap(::build)<br>        .with { fetchUser(traceId) }<br>        .with { fetchCart(traceId) }<br>}.executeGraph()</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div></div></div>
 </div>
     <div class="footer">
         <div class="footer--container">
