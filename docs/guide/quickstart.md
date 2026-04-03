@@ -82,7 +82,32 @@ That's it. `@KapTypeSafe` generates `.withUser {}`, `.withCart {}`, `.withPromos
 !!! note "Advanced composition"
     The core `.with {}` / `.then {}` operators are used internally by the named builders. For advanced composition, you can also use `Kap.of { }` with manual currying.
 
-## 3. Add phases
+## 3. Works on functions too
+
+`@KapTypeSafe` works on functions, not just classes. KSP generates a marker object from the function name:
+
+```kotlin
+import kap.*
+
+@KapTypeSafe
+fun createUser(name: String, email: String, age: Int): String =
+    "User($name, $email, $age)"
+
+suspend fun main() {
+    // CreateUser is a generated marker object
+    val result = kap(CreateUser)
+        .withName { "Alice" }
+        .withEmail { "alice@example.com" }
+        .withAge { 30 }
+        .executeGraph()
+    println(result)
+    // User(Alice, alice@example.com, 30)
+}
+```
+
+Classes use `kap(::ClassName)`. Functions use `kap(GeneratedObject)`.
+
+## 4. Add phases
 
 Real-world flows have dependencies. Use `.then` for barriers:
 
@@ -118,7 +143,7 @@ suspend fun main() {
 
 `.with` = parallel. `.then` = barrier. The code shape **is** the execution plan.
 
-## 4. Use value-dependent phases
+## 5. Use value-dependent phases
 
 When phase 2 needs phase 1's result, use `.andThen`:
 
@@ -153,7 +178,7 @@ suspend fun main() {
 }
 ```
 
-## 5. Run an example
+## 6. Run an example
 
 ```bash
 git clone https://github.com/damian-rafael-lattenero/kap.git
@@ -161,7 +186,7 @@ cd kap
 ./gradlew :examples:ecommerce-checkout:run
 ```
 
-## 6. The graph is data
+## 7. The graph is data
 
 Nothing runs until `.executeGraph()`. The graph is a value — you can store it, pass it, branch on it:
 

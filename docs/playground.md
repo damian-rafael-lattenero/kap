@@ -41,6 +41,36 @@ suspend fun main() {
 
 ---
 
+## Functions — `@KapTypeSafe` on `fun`
+
+`@KapTypeSafe` works on functions too. KSP generates a marker object from the function name:
+
+```kotlin
+import kap.*
+import kotlinx.coroutines.delay
+
+@KapTypeSafe
+fun createUser(name: String, email: String, age: Int): String =
+    "User($name, $email, age=$age)"
+
+suspend fun fetchName(): String { delay(30); return "Alice" }
+suspend fun fetchEmail(): String { delay(20); return "alice@example.com" }
+suspend fun fetchAge(): Int { delay(10); return 30 }
+
+suspend fun main() {
+    // CreateUser is a generated marker object — classes use ::ClassName, functions use ObjectName
+    val result = kap(CreateUser)
+        .withName { fetchName() }
+        .withEmail { fetchEmail() }
+        .withAge { fetchAge() }
+        .executeGraph()
+    println(result)
+    // User(Alice, alice@example.com, age=30)
+}
+```
+
+---
+
 ## 11-Service Checkout — 5 phases, one flat chain
 
 ```kotlin

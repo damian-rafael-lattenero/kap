@@ -116,6 +116,15 @@ val checkout: CheckoutResult = kap(::CheckoutResult)
 <summary><b>Same thing with raw coroutines (30 lines)</b></summary>
 
 ```kotlin
+data class CheckoutResult(
+    val user: String, val cart: String,
+    val promos: String, val inventory: Boolean,
+    val stock: Boolean,
+    val shipping: Double, val tax: Double, val discounts: Double,
+    val payment: String,
+    val confirmation: String, val email: String,
+)
+
 val checkout = coroutineScope {
     val dUser = async { fetchUser() }
     val dCart = async { fetchCart() }
