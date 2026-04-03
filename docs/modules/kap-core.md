@@ -74,7 +74,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         .executeGraph()
     ```
 
-`@KapTypeSafe` generates `.withUser {}`, `.withCart {}`, `.withPromos {}` from the data class properties. The generic `.with {}` API is equivalent and still valid. Both enforce argument order at compile time.
+`@KapTypeSafe` generates `.withUser {}`, `.withCart {}`, `.withPromos {}` from the data class properties. The generic `.with {}` API is equivalent but positional — named builders enforce the correct parameter at each step.
 
 ### `.then` — Phase barrier
 
@@ -755,13 +755,15 @@ data class Greeting(val name: String, val message: String)
 
 val g1 = kap(::Greeting).withName { fetchName() }.withMessage { "hello" }.executeGraph()
 
-// Lambda
+// Lambda — use Kap.of with manual currying
 val greet: (String, Int) -> String = { name, age -> "Hi $name, you're $age" }
-val g2 = kap(greet).with { fetchName() }.with { fetchAge() }.executeGraph()
+val g2 = Kap.of { name: String -> { age: Int -> greet(name, age) } }
+    .with { fetchName() }.with { fetchAge() }.executeGraph()
 
-// Function reference
+// Function — annotate with @KapTypeSafe for named builders
+@KapTypeSafe
 fun buildSummary(name: String, items: Int): String = "$name has $items items"
-val g3 = kap(::buildSummary).with { fetchName() }.with { 5 }.executeGraph()
+val g3 = kap(BuildSummary).withName { fetchName() }.withItems { 5 }.executeGraph()
 ```
 
 #### `Kap.of(value)` / `Kap.empty()` / `Kap.failed(error)` / `Kap.defer { }`
