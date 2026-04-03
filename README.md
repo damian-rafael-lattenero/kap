@@ -22,10 +22,6 @@
 
 ---
 
-<p align="center">
-  <img src=".github/demo.gif" alt="KAP IDE autocomplete demo" width="700"/>
-</p>
-
 "Fetch user and cart in parallel, then validate, then calc shipping and tax in parallel."
 
 ```kotlin
