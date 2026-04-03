@@ -173,7 +173,7 @@ jobs:
         run: ./gradlew :benchmarks:jmh
 
       - name: Store benchmark results
-        uses: benchmark-action/github-action-benchmark@v1.21.0
+        uses: benchmark-action/github-action-benchmark@v1.22.0
         with:
           name: KAP JMH Benchmarks
           tool: jmh
@@ -217,7 +217,7 @@ jobs:
         run: ./gradlew :benchmarks:jmh -Pjmh.warmup=1 -Pjmh.iterations=2 -Pjmh.fork=1
 
       - name: Compare with baseline
-        uses: benchmark-action/github-action-benchmark@v1.21.0
+        uses: benchmark-action/github-action-benchmark@v1.22.0
         with:
           name: KAP JMH Benchmarks
           tool: jmh
