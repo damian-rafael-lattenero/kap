@@ -168,6 +168,40 @@ cd kap
 ./gradlew :examples:ecommerce-checkout:run
 ```
 
+## 6. The graph is data
+
+Nothing runs until `.executeGraph()`. The graph is a value — you can store it, pass it, branch on it:
+
+```kotlin
+@KapTypeSafe
+data class Order(val user: String, val cart: String, val shipping: Double)
+
+// Start building — nothing executes yet
+val base = kap(::Order)
+    .withUser { fetchUser() }
+
+// A function completes the graph based on runtime conditions
+fun addCart(partial: OrderStep1, type: String): OrderStep2 = when (type) {
+    "premium" -> partial.withCart { fetchPremiumCart() }
+    else      -> partial.withCart { fetchStandardCart() }
+}
+
+// Another function adds shipping based on country
+fun addShipping(partial: OrderStep2, country: String): Kap<Order> = when (country) {
+    "AR" -> partial.withShipping { calcShippingAR() }
+    "US" -> partial.withShipping { calcShippingUS() }
+    else -> partial.withShipping { 0.0 }
+}
+
+// Assemble dynamically — still nothing has executed
+val graph = addShipping(addCart(base, "premium"), "AR")
+
+// NOW everything runs — parallel branches execute concurrently
+val order = graph.executeGraph()
+```
+
+This is what raw coroutines can't do: `async {}` starts immediately. In KAP, the graph is lazy — you build it, shape it, then execute it.
+
 ## What's next?
 
 - [kap-core KDocs](../modules/kap-core.md) — Full API with Raw/Arrow/KAP comparisons
