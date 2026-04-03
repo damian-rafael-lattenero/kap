@@ -5,6 +5,5 @@ module:kap-arrow
 kap
 module:kap-core
 kap
-kap.internal
 module:kap-resilience
 kap
