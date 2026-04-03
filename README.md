@@ -181,6 +181,32 @@ val checkout = coroutineScope {
 
 ---
 
+## The bug nobody catches
+
+```kotlin
+data class Checkout(val user: String, val cart: String, val promos: String)
+
+// ✅ Correct
+kap(::Checkout).with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }
+
+// ❌ Wrong — user and cart are swapped. Both are String. Compiles fine. Breaks at runtime.
+kap(::Checkout).with { fetchCart() }.with { fetchUser() }.with { fetchPromos() }
+```
+
+With `@KapTypeSafe`, this **can't happen**:
+
+```kotlin
+kap(::Checkout)
+    .withUser { fetchUser() }     // only .withUser exists here
+    .withCart { fetchCart() }      // only .withCart exists here
+    .withPromos { fetchPromos() } // only .withPromos exists here
+    .executeGraph()
+```
+
+Each step exposes **one method**. The compiler enforces the order. The IDE shows you exactly what goes next.
+
+---
+
 ## Type-safe by default
 
 Annotate your class with `@KapTypeSafe`. KSP generates named builders where each step only shows the next parameter. The compiler catches swapped arguments. The IDE guides you.
