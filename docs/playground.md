@@ -47,37 +47,25 @@ suspend fun main() {
 import kap.*
 import kotlinx.coroutines.delay
 
-data class UserProfile(val name: String, val id: Long)
-data class ShoppingCart(val items: Int, val total: Double)
-data class PromotionBundle(val code: String, val discountPct: Int)
-data class InventorySnapshot(val allInStock: Boolean)
-data class StockConfirmation(val confirmed: Boolean)
-data class ShippingQuote(val amount: Double, val method: String)
-data class TaxBreakdown(val amount: Double, val rate: Double)
-data class DiscountSummary(val amount: Double, val promoApplied: String)
-data class PaymentAuth(val cardLast4: String, val authorized: Boolean)
-data class OrderConfirmation(val orderId: String)
-data class EmailReceipt(val sentTo: String, val orderId: String)
-
 @KapTypeSafe
 data class CheckoutResult(
-    val user: UserProfile, val cart: ShoppingCart, val promos: PromotionBundle,
-    val inventory: InventorySnapshot, val stock: StockConfirmation,
-    val shipping: ShippingQuote, val tax: TaxBreakdown, val discounts: DiscountSummary,
-    val payment: PaymentAuth, val confirmation: OrderConfirmation, val email: EmailReceipt,
+    val user: String, val cart: Double, val promos: String,
+    val inventory: Boolean, val stock: Boolean,
+    val shipping: Double, val tax: Double, val discounts: Double,
+    val payment: Boolean, val confirmation: String, val email: String,
 )
 
-suspend fun fetchUser(): UserProfile { delay(50); return UserProfile("Alice", 42) }
-suspend fun fetchCart(): ShoppingCart { delay(40); return ShoppingCart(3, 147.50) }
-suspend fun fetchPromos(): PromotionBundle { delay(30); return PromotionBundle("SUMMER20", 20) }
-suspend fun fetchInventory(): InventorySnapshot { delay(50); return InventorySnapshot(true) }
-suspend fun validateStock(): StockConfirmation { delay(20); return StockConfirmation(true) }
-suspend fun calcShipping(): ShippingQuote { delay(30); return ShippingQuote(5.99, "standard") }
-suspend fun calcTax(): TaxBreakdown { delay(20); return TaxBreakdown(12.38, 0.08) }
-suspend fun calcDiscounts(): DiscountSummary { delay(15); return DiscountSummary(29.50, "SUMMER20") }
-suspend fun reservePayment(): PaymentAuth { delay(40); return PaymentAuth("4242", true) }
-suspend fun generateConfirmation(): OrderConfirmation { delay(30); return OrderConfirmation("order-#90142") }
-suspend fun sendEmail(): EmailReceipt { delay(20); return EmailReceipt("alice@example.com", "order-#90142") }
+suspend fun fetchUser(): String { delay(50); return "Alice" }
+suspend fun fetchCart(): Double { delay(40); return 147.50 }
+suspend fun fetchPromos(): String { delay(30); return "SUMMER20" }
+suspend fun fetchInventory(): Boolean { delay(50); return true }
+suspend fun validateStock(): Boolean { delay(20); return true }
+suspend fun calcShipping(): Double { delay(30); return 5.99 }
+suspend fun calcTax(): Double { delay(20); return 12.38 }
+suspend fun calcDiscounts(): Double { delay(15); return 29.50 }
+suspend fun reservePayment(): Boolean { delay(40); return true }
+suspend fun generateConfirmation(): String { delay(30); return "order-#90142" }
+suspend fun sendEmail(): String { delay(20); return "alice@example.com" }
 
 suspend fun main() {
     val checkout: CheckoutResult = kap(::CheckoutResult)
@@ -94,7 +82,7 @@ suspend fun main() {
         .withEmail { sendEmail() }              // ┘
         .executeGraph()
     println(checkout)
-    // CheckoutResult(user=UserProfile(name=Alice, id=42), cart=ShoppingCart(items=3, total=147.5), ...)
+    // CheckoutResult(user=Alice, cart=147.5, promos=SUMMER20, inventory=true, stock=true, shipping=5.99, tax=12.38, discounts=29.5, payment=true, confirmation=order-#90142, email=alice@example.com)
     // 130ms total — not 460ms sequential
 }
 ```
@@ -282,7 +270,7 @@ suspend fun openCache(): MockConnection { delay(10); return MockConnection("cach
 suspend fun openHttp(): MockConnection { delay(10); return MockConnection("http") }
 
 suspend fun main() {
-    val result = kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
+    val result = Kap.of { db: String -> { cache: String -> { api: String -> "$db|$cache|$api" } } }
         .with(bracket(
             acquire = { openDb() },
             use = { conn -> Kap { conn.query("SELECT 1") } },
@@ -391,6 +379,41 @@ suspend fun main() {
     println("a=$a, b=$b, callCount=$callCount")
     // a=expensive-result, b=expensive-result, callCount=1
     // If first call HAD failed? Not cached. Next call would retry.
+}
+```
+
+---
+
+## Graph as Data — reuse and branch
+
+```kotlin
+import kap.*
+import kotlinx.coroutines.delay
+
+@KapTypeSafe
+data class Order(val user: String, val cart: String, val total: Double)
+
+suspend fun fetchUser(): String { delay(50); return "Alice" }
+suspend fun fetchStandardCart(): String { delay(40); return "3 items" }
+suspend fun fetchPremiumCart(): String { delay(30); return "3 items + priority" }
+
+suspend fun main() {
+    // The graph is data — nothing runs until .executeGraph()
+    val base = kap(::Order).withUser { fetchUser() }
+
+    // Complete it differently based on runtime conditions
+    fun addCart(partial: OrderStep1, premium: Boolean): OrderStep2 =
+        if (premium) partial.withCart { fetchPremiumCart() }
+        else partial.withCart { fetchStandardCart() }
+
+    // Build two different graphs from the same base
+    val standard = addCart(base, premium = false).withTotal { 99.0 }.executeGraph()
+    val premium = addCart(base, premium = true).withTotal { 149.0 }.executeGraph()
+
+    println("Standard: $standard")
+    println("Premium: $premium")
+    // Standard: Order(user=Alice, cart=3 items, total=99.0)
+    // Premium: Order(user=Alice, cart=3 items + priority, total=149.0)
 }
 ```
 
