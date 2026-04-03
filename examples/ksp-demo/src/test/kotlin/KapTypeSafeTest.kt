@@ -426,6 +426,221 @@ class KapTypeSafeTest {
 
         assertEquals(AllSameType("one", "two", "three"), result)
     }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  kapTyped() entry point tests
+    // ══════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `kapTyped returns curried Kap with opaque types`() = runTest {
+        val result = kapTyped(::SimpleTwo)
+            .with { SimpleTwoName("Alice") }
+            .with { SimpleTwoAge(30) }
+            .executeGraph()
+
+        assertEquals(SimpleTwo("Alice", 30), result)
+    }
+
+    @Test
+    fun `kapTyped with 5 params`() = runTest {
+        val result = kapTyped(::FiveParams)
+            .with { FiveParamsP1("str") }
+            .with { FiveParamsP2(42) }
+            .with { FiveParamsP3(true) }
+            .with { FiveParamsP4(3.14) }
+            .with { FiveParamsP5(999L) }
+            .executeGraph()
+
+        assertEquals(FiveParams("str", 42, true, 3.14, 999L), result)
+    }
+
+    @Test
+    fun `kapTyped runs in parallel`() = runTest {
+        val result = kapTyped(::SimpleThree)
+            .with { delay(50); SimpleThreeA("a") }
+            .with { delay(50); SimpleThreeB(1) }
+            .with { delay(50); SimpleThreeC(true) }
+            .executeGraph()
+
+        assertEquals(SimpleThree("a", 1, true), result)
+    }
+
+    @Test
+    fun `kapTyped with phase barriers via then`() = runTest {
+        val result = kapTyped(::PhaseDemo)
+            .with { PhaseDemoUser("Alice") }
+            .with { PhaseDemoCart("items") }
+            .then { PhaseDemoValidated(true) }
+            .with { PhaseDemoShipping(9.99) }
+            .with { PhaseDemoTax(1.50) }
+            .executeGraph()
+
+        assertEquals(PhaseDemo("Alice", "items", true, 9.99, 1.50), result)
+    }
+
+    @Test
+    fun `kapTyped composes with andThen`() = runTest {
+        val result = kapTyped(::SimpleTwo)
+            .with { SimpleTwoName("Alice") }
+            .with { SimpleTwoAge(30) }
+            .andThen { user ->
+                Kap.of("${user.name} is ${user.age}")
+            }
+            .executeGraph()
+
+        assertEquals("Alice is 30", result)
+    }
+
+    @Test
+    fun `kapTyped composes with map`() = runTest {
+        val result = kapTyped(::SimpleTwo)
+            .with { SimpleTwoName("Alice") }
+            .with { SimpleTwoAge(30) }
+            .map { "${it.name}(${it.age})" }
+            .executeGraph()
+
+        assertEquals("Alice(30)", result)
+    }
+
+    @Test
+    fun `kapTyped error propagation cancels siblings`() = runTest {
+        val result = runCatching {
+            kapTyped(::SimpleTwo)
+                .with { delay(100); SimpleTwoName("should be cancelled") }
+                .with { throw IllegalStateException("boom") }
+                .executeGraph()
+        }
+
+        assertTrue(result.isFailure)
+        assertIs<IllegalStateException>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `kapTyped composes with recover`() = runTest {
+        val result = kapTyped(::SimpleTwo)
+            .with { SimpleTwoName("Alice") }
+            .with { SimpleTwoAge(30) }
+            .recover { SimpleTwo("fallback", 0) }
+            .executeGraph()
+
+        assertEquals(SimpleTwo("Alice", 30), result)
+    }
+
+    @Test
+    fun `kapTyped composes with settled`() = runTest {
+        val result = kapTyped(::SimpleTwo)
+            .with { SimpleTwoName("Alice") }
+            .with { SimpleTwoAge(30) }
+            .settled()
+            .executeGraph()
+
+        assertTrue(result.isSuccess)
+        assertEquals(SimpleTwo("Alice", 30), result.getOrNull())
+    }
+
+    @Test
+    fun `kapTyped composes with memoize`() = runTest {
+        var callCount = 0
+        val memoized = kapTyped(::SimpleTwo)
+            .with { callCount++; SimpleTwoName("Alice") }
+            .with { SimpleTwoAge(30) }
+            .memoize()
+
+        val r1 = memoized.executeGraph()
+        val r2 = memoized.executeGraph()
+
+        assertEquals(r1, r2)
+        assertEquals(1, callCount)
+    }
+
+    @Test
+    fun `kapTyped for functions uses kapTypedFunctionName`() = runTest {
+        val result = kapTypedBuildGreeting(::buildGreeting)
+            .with { BuildGreetingName("Bob") }
+            .with { BuildGreetingAge(25) }
+            .executeGraph()
+
+        assertEquals("Hello Bob, you are 25", result)
+    }
+
+    @Test
+    fun `kapTyped for prefixed functions`() = runTest {
+        val a = kapTypedBuildA(::buildA)
+            .with { BuildAX("hello") }
+            .with { BuildAY(1) }
+            .executeGraph()
+
+        assertEquals("hello-1", a)
+    }
+
+    @Test
+    fun `kapTyped with nullable opaque type`() = runTest {
+        val result = kapTyped(::WithNullable)
+            .with { WithNullableRequired("hello") }
+            .with { WithNullableOptional(null) }
+            .executeGraph()
+
+        assertEquals(WithNullable("hello", null), result)
+    }
+
+    @Test
+    fun `kapTyped with generic opaque type`() = runTest {
+        val result = kapTyped(::WithGeneric)
+            .with { WithGenericItems(listOf("a", "b", "c")) }
+            .with { WithGenericCount(3) }
+            .executeGraph()
+
+        assertEquals(WithGeneric(listOf("a", "b", "c"), 3), result)
+    }
+
+    @Test
+    fun `kapTyped for KapBridge third-party class`() = runTest {
+        val result = kapTyped(::ThirdPartyDto)
+            .with { ThirdPartyDtoId(42) }
+            .with { ThirdPartyDtoName("bridged") }
+            .with { ThirdPartyDtoActive(true) }
+            .executeGraph()
+
+        assertEquals(ThirdPartyDto(42, "bridged", true), result)
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  Mixed usage: named builders + opaque types on same class
+    // ══════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `named builders and kapTyped produce identical results`() = runTest {
+        val named = kap(::SimpleThree)
+            .withA { "hello" }
+            .withB { 42 }
+            .withC { true }
+            .executeGraph()
+
+        val typed = kapTyped(::SimpleThree)
+            .with { SimpleThreeA("hello") }
+            .with { SimpleThreeB(42) }
+            .with { SimpleThreeC(true) }
+            .executeGraph()
+
+        assertEquals(named, typed)
+    }
+
+    @Test
+    fun `named builders and opaque types compose in chain`() = runTest {
+        // Named builder for first phase, opaque kapTyped for second via andThen
+        val result = kap(::SimpleTwo)
+            .withName { "Alice" }
+            .withAge { 30 }
+            .andThen { user ->
+                kapTyped(::SimpleThree)
+                    .with { SimpleThreeA(user.name) }
+                    .with { SimpleThreeB(user.age) }
+                    .with { SimpleThreeC(true) }
+            }
+            .executeGraph()
+
+        assertEquals(SimpleThree("Alice", 30, true), result)
+    }
 }
 
 // ── Helpers used by @KapBridge test ─────────────────────────────────
