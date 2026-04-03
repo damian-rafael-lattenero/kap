@@ -16,20 +16,7 @@ import kotlin.time.Duration.Companion.seconds
 // No wrapper types needed — @KapTypeSafe named builders make
 // even all-String / all-Boolean parameters type-safe by position.
 
-@KapTypeSafe
-data class CheckoutResult(
-    val user: String,
-    val cart: String,
-    val promos: String,
-    val inventory: Boolean,
-    val stock: Boolean,
-    val shipping: Double,
-    val tax: Double,
-    val discounts: Double,
-    val payment: String,
-    val confirmation: String,
-    val email: String,
-)
+
 
 suspend fun fetchUser(): String { delay(50); return "Alice (id=42)" }
 suspend fun fetchCart(): String { delay(40); return "3 items, $147.50" }
@@ -57,22 +44,25 @@ suspend fun fetchDashPromos(): String { delay(10); return "SAVE20" }
 //  Section: Hero — KAP Checkout (11 services, 5 phases)
 // ═══════════════════════════════════════════════════════════════════════
 
+@KapTypeSafe
+data class CheckoutResult(
+    val user: String,
+    val cart: String,
+    val promos: String,
+    val inventory: Boolean,
+    val stock: Boolean
+)
+
 suspend fun heroCheckout() {
     println("=== Hero: KAP Checkout (11 services, 5 phases) ===\n")
 
     val checkout: CheckoutResult = kap(::CheckoutResult)
-            .withUser { fetchUser() }              // ┐
-            .withCart { fetchCart() }               // ├─ phase 1: parallel
-            .withPromos { fetchPromos() }           // │
-            .withInventory { fetchInventory() }    // ┘
-            .thenStock { validateStock() }         // ── phase 2: barrier
-            .withShipping { calcShipping() }       // ┐
-            .withTax { calcTax() }                 // ├─ phase 3: parallel
-            .withDiscounts { calcDiscounts() }     // ┘
-            .thenPayment { reservePayment() }      // ── phase 4: barrier
-            .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
-            .withEmail { sendEmail() }                    // ┘
-            .executeGraph()
+        .withUser { fetchUser() }
+        .withCart { fetchCart() }
+        .withPromos { fetchPromos() }
+        .thenInventory { fetchInventory() }
+        .withStock { validateStock() }
+        .executeGraph()
 
     println("  Result: $checkout\n")
 }
