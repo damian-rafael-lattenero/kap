@@ -641,6 +641,117 @@ class KapTypeSafeTest {
 
         assertEquals(SimpleThree("Alice", 30, true), result)
     }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  Graph as data: lazy, passable, dynamically completable
+    // ══════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `partial graph can be stored in a val and completed later`() = runTest {
+        // The graph is just data — nothing runs until .executeGraph()
+        val partial = kap(::SimpleThree)
+            .withA { "hello" }
+
+        // Later, somewhere else, complete it:
+        val result = partial
+            .withB { 42 }
+            .withC { true }
+            .executeGraph()
+
+        assertEquals(SimpleThree("hello", 42, true), result)
+    }
+
+    @Test
+    fun `partial graph can be passed to a function that completes it`() = runTest {
+        // Start building the graph
+        val partial: SimpleTwoStep1 = kap(::SimpleTwo)
+            .withName { "Alice" }
+
+        // A function receives the partial graph and completes it based on logic
+        fun completeBasedOnRole(graph: SimpleTwoStep1, isAdmin: Boolean): Kap<SimpleTwo> =
+            if (isAdmin) graph.withAge { 99 }
+            else graph.withAge { 25 }
+
+        val admin = completeBasedOnRole(partial, isAdmin = true).executeGraph()
+        val regular = completeBasedOnRole(partial, isAdmin = false).executeGraph()
+
+        assertEquals(SimpleTwo("Alice", 99), admin)
+        assertEquals(SimpleTwo("Alice", 25), regular)
+    }
+
+    enum class CartType { STANDARD, PREMIUM, GUEST }
+
+    @Test
+    fun `graph branches dynamically based on runtime conditions`() = runTest {
+        fun buildCheckout(type: CartType): Kap<SimpleThree> {
+            val base = kap(::SimpleThree)
+                .withA { "user-data" }
+
+            return when (type) {
+                CartType.STANDARD -> base
+                    .withB { 100 }
+                    .withC { false }
+                CartType.PREMIUM -> base
+                    .withB { 500 }
+                    .withC { true }   // premium flag
+                CartType.GUEST -> base
+                    .withB { 0 }
+                    .withC { false }
+            }
+        }
+
+        // Nothing has executed yet — just built 3 different graphs
+        val standard = buildCheckout(CartType.STANDARD).executeGraph()
+        val premium = buildCheckout(CartType.PREMIUM).executeGraph()
+        val guest = buildCheckout(CartType.GUEST).executeGraph()
+
+        assertEquals(SimpleThree("user-data", 100, false), standard)
+        assertEquals(SimpleThree("user-data", 500, true), premium)
+        assertEquals(SimpleThree("user-data", 0, false), guest)
+    }
+
+    @Test
+    fun `same partial graph reused with different completions`() = runTest {
+        // A shared base that fetches the expensive common data once
+        val base = kap(::SimpleThree)
+            .withA { delay(50); "expensive-shared-data" }
+
+        // Two different completions — the base is reused, not re-executed per se
+        // (each .executeGraph() runs from scratch, but the STRUCTURE is shared)
+        val resultA = base.withB { 1 }.withC { true }.executeGraph()
+        val resultB = base.withB { 2 }.withC { false }.executeGraph()
+
+        assertEquals("expensive-shared-data", resultA.a)
+        assertEquals("expensive-shared-data", resultB.a)
+        assertEquals(1, resultA.b)
+        assertEquals(2, resultB.b)
+    }
+
+    @Test
+    fun `graph built across multiple functions composes cleanly`() = runTest {
+        // Function 1: starts the graph
+        fun createBase(): FiveParamsStep0 = kap(::FiveParams)
+
+        // Function 2: fills in the user context
+        fun addUserContext(graph: FiveParamsStep0): FiveParamsStep2 =
+            graph.withP1 { "user-alice" }.withP2 { 42 }
+
+        // Function 3: fills in the config based on environment
+        fun addConfig(graph: FiveParamsStep2, isProd: Boolean): Kap<FiveParams> =
+            if (isProd)
+                graph.withP3 { true }.withP4 { 99.9 }.withP5 { 1000L }
+            else
+                graph.withP3 { false }.withP4 { 0.0 }.withP5 { 0L }
+
+        // Assemble and execute
+        val base = createBase()
+        val withUser = addUserContext(base)
+        val prod = addConfig(withUser, isProd = true).executeGraph()
+        val dev = addConfig(withUser, isProd = false).executeGraph()
+
+        assertEquals(FiveParams("user-alice", 42, true, 99.9, 1000L), prod)
+        assertEquals(FiveParams("user-alice", 42, false, 0.0, 0L), dev)
+    }
 }
 
 // ── Helpers used by @KapBridge test ─────────────────────────────────
