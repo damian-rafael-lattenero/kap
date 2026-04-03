@@ -43,6 +43,31 @@ public final class DeveloperProfile {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class DeveloperProfileKapBuilderKt {
+	public static final fun kap (Lkotlin/jvm/functions/Function3;)LDeveloperProfileStep0;
+}
+
+public final class DeveloperProfileStep0 {
+	public final fun thenUser (Lkap/Kap;)LDeveloperProfileStep1;
+	public final fun thenUser (Lkotlin/jvm/functions/Function1;)LDeveloperProfileStep1;
+	public final fun withUser (Lkap/Kap;)LDeveloperProfileStep1;
+	public final fun withUser (Lkotlin/jvm/functions/Function1;)LDeveloperProfileStep1;
+}
+
+public final class DeveloperProfileStep1 {
+	public final fun thenTopRepos (Lkap/Kap;)LDeveloperProfileStep2;
+	public final fun thenTopRepos (Lkotlin/jvm/functions/Function1;)LDeveloperProfileStep2;
+	public final fun withTopRepos (Lkap/Kap;)LDeveloperProfileStep2;
+	public final fun withTopRepos (Lkotlin/jvm/functions/Function1;)LDeveloperProfileStep2;
+}
+
+public final class DeveloperProfileStep2 {
+	public final fun thenFunFact (Lkap/Kap;)Lkap/Kap;
+	public final fun thenFunFact (Lkotlin/jvm/functions/Function1;)Lkap/Kap;
+	public final fun withFunFact (Lkap/Kap;)Lkap/Kap;
+	public final fun withFunFact (Lkotlin/jvm/functions/Function1;)Lkap/Kap;
+}
+
 public final class GithubRepo {
 	public static final field Companion LGithubRepo$Companion;
 	public fun <init> (Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;)V

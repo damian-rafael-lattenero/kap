@@ -1,22 +1,31 @@
 package kap
 
 /**
- * Annotate a data class or function to generate type-safe wrappers for each parameter.
+ * Generate type-safe named builders for this class or function.
  *
- * For each parameter, KSP generates:
- * - A `@JvmInline value class` wrapper
- * - A `kapSafe()` function that requires those wrapper types
- * - A `.toParamName()` extension function for fluent wrapping
+ * KSP reads the parameter names and generates step-builder classes where
+ * each step exposes only `.withParamName {}` and `.thenParamName {}`.
+ * The IDE autocomplete guides the user through the correct parameter order.
  *
  * ```kotlin
  * @KapTypeSafe
  * data class User(val firstName: String, val lastName: String, val age: Int)
  *
  * // Usage:
- * kapSafe(::User)
- *     .with { fetchFirstName().toFirstName() }
- *     .with { fetchLastName().toLastName() }   // swap? COMPILE ERROR
- *     .with { fetchAge().toAge() }
+ * kap(::User)
+ *     .withFirstName { fetchFirstName() }
+ *     .withLastName { fetchLastName() }   // swap? COMPILE ERROR
+ *     .withAge { fetchAge() }
+ *     .executeGraph()
+ * ```
+ *
+ * For **third-party classes** you can't annotate, use [KapBridge] instead.
+ *
+ * For **third-party functions**, create a one-line wrapper:
+ * ```kotlin
+ * @KapTypeSafe
+ * fun buildDashboard(userName: String, cartSummary: String) =
+ *     com.thirdparty.buildDashboard(userName, cartSummary)
  * ```
  *
  * Use [prefix] to avoid name collisions when multiple classes share parameter names:
@@ -25,10 +34,10 @@ package kap
  * @KapTypeSafe(prefix = "Dashboard")
  * fun buildDashboard(userName: String, cartSummary: String): Dashboard
  *
- * // Generates: .toDashboardUserName(), .toDashboardCartSummary()
+ * // Generates: .withDashboardUserName(), .thenDashboardCartSummary()
  * ```
  *
- * @param prefix Optional prefix for generated wrapper names and extension functions.
+ * @param prefix Optional prefix for generated method names and step class names.
  *               Default is empty (no prefix). Use when parameter names collide across types.
  */
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)

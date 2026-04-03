@@ -201,7 +201,7 @@ class ApplicativeLawsTest {
         val f: (Int, String) -> String = { n, s -> "$s=$n" }
 
         checkAll(Arb.int(), Arb.string()) { n, s ->
-            val viaLift = kap(f).with(Kap.of(n)).with(Kap.of(s)).executeGraph()
+            val viaLift = Kap.of { a: Int -> { b: String -> f(a, b) } }.with(Kap.of(n)).with(Kap.of(s)).executeGraph()
             val viaZip = Kap.of(n).zip(Kap.of(s)) { a, b -> f(a, b) }.executeGraph()
             assertEquals(viaLift, viaZip)
         }
@@ -212,7 +212,7 @@ class ApplicativeLawsTest {
         val f: (Int, Int, Int) -> Int = { a, b, c -> a + b + c }
 
         checkAll(Arb.int(), Arb.int(), Arb.int()) { a, b, c ->
-            val viaLift = (kap(f) with Kap.of(a) with Kap.of(b) with Kap.of(c)).executeGraph()
+            val viaLift = (Kap.of { x: Int -> { y: Int -> { z: Int -> f(x, y, z) } } } with Kap.of(a) with Kap.of(b) with Kap.of(c)).executeGraph()
             val viaZip = Kap.of(a).zip(Kap.of(b)) { x, y -> x to y }.zip(Kap.of(c)) { (x, y), z -> f(x, y, z) }.executeGraph()
             assertEquals(viaLift, viaZip)
         }

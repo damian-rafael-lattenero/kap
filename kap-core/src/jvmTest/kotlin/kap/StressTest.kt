@@ -95,11 +95,11 @@ class StressTest {
 
     @Test
     fun `kap with with (15 params) runs all 15 in parallel`() = runTest {
-        val result = kap { a: Int, b: Int, c: Int, d: Int, e: Int,
-                     f: Int, g: Int, h: Int, i: Int, j: Int,
-                     k: Int, l: Int, m: Int, n: Int, o: Int ->
+        val result = Kap.of { a: Int -> { b: Int -> { c: Int -> { d: Int -> { e: Int ->
+                     { f: Int -> { g: Int -> { h: Int -> { i: Int -> { j: Int ->
+                     { k: Int -> { l: Int -> { m: Int -> { n: Int -> { o: Int ->
                 a + b + c + d + e + f + g + h + i + j + k + l + m + n + o
-            }
+            } } } } } } } } } } } } } } }
                 .with { delay(30); 1 }.with { delay(30); 2 }.with { delay(30); 3 }
                 .with { delay(30); 4 }.with { delay(30); 5 }.with { delay(30); 6 }
                 .with { delay(30); 7 }.with { delay(30); 8 }.with { delay(30); 9 }
@@ -111,14 +111,14 @@ class StressTest {
 
     @Test
     fun `kap with with (22 params) runs all 22 in parallel`() = runTest {
-        val result = kap { a: Int, b: Int, c: Int, d: Int, e: Int,
-                     f: Int, g: Int, h: Int, i: Int, j: Int,
-                     k: Int, l: Int, m: Int, n: Int, o: Int,
-                     p: Int, q: Int, r: Int, s: Int, t: Int,
-                     u: Int, v: Int ->
+        val result = Kap.of { a: Int -> { b: Int -> { c: Int -> { d: Int -> { e: Int ->
+                     { f: Int -> { g: Int -> { h: Int -> { i: Int -> { j: Int ->
+                     { k: Int -> { l: Int -> { m: Int -> { n: Int -> { o: Int ->
+                     { p: Int -> { q: Int -> { r: Int -> { s: Int -> { t: Int ->
+                     { u: Int -> { v: Int ->
                 a + b + c + d + e + f + g + h + i + j +
                 k + l + m + n + o + p + q + r + s + t + u + v
-            }
+            } } } } } } } } } } } } } } } } } } } } } }
                 .with { delay(30); 1 }.with { delay(30); 2 }.with { delay(30); 3 }
                 .with { delay(30); 4 }.with { delay(30); 5 }.with { delay(30); 6 }
                 .with { delay(30); 7 }.with { delay(30); 8 }.with { delay(30); 9 }

@@ -40,7 +40,7 @@ class TimingMatchersTest {
 
     @Test
     fun `shouldProveParallel passes for parallel execution`() = runTest {
-        kap { a: Unit, b: Unit, c: Unit -> Triple(a, b, c) }
+        Kap.of { a: Unit -> { b: Unit -> { c: Unit -> Triple(a, b, c) } } }
             .with(Kap { delay(50) })
             .with(Kap { delay(50) })
             .with(Kap { delay(50) })

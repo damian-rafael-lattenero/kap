@@ -178,7 +178,7 @@ class RaceFixTest {
 
     @Test
     fun `race inside parallel with branches - each branch races independently`() = runTest {
-        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with {
                     with(race(
                         Kap { delay(100); "primary-A" },

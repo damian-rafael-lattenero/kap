@@ -130,7 +130,7 @@ open class ResilienceBenchmark {
                 bracket(
             acquire = { "conn" },
             use = { conn ->
-                kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                     .with { networkCall("$conn-q1", 50) }
                     .with { networkCall("$conn-q2", 50) }
                     .with { networkCall("$conn-q3", 50) }
@@ -173,7 +173,7 @@ open class ResilienceBenchmark {
                 bracketCase(
             acquire = { networkCall("conn", 10) },
             use = { conn ->
-                kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                     .with { networkCall("$conn-q1", 50) }
                     .with { networkCall("$conn-q2", 50) }
                     .with { networkCall("$conn-q3", 50) }

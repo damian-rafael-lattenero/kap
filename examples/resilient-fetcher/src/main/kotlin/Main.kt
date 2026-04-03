@@ -25,8 +25,10 @@ data class PricingData(val price: Double, val currency: String, val source: Stri
 data class UserProfile(val id: Long, val name: String, val tier: String)
 data class AppConfig(val maxItems: Int, val featureFlags: Map<String, Boolean>)
 data class AuditLog(val entries: List<String>)
+@KapTypeSafe
 data class DualConfig(val primary: AppConfig, val secondary: AppConfig)
 
+@KapTypeSafe
 data class FetcherResult(
     val pricing: PricingData,
     val user: UserProfile,
@@ -172,8 +174,8 @@ suspend fun main() {
 
     val dualConfig = combined.use { pair ->
         kap(::DualConfig)
-                .with { pair.first.query() }
-                .with { pair.second.query() }
+                .withPrimary { pair.first.query() }
+                .withSecondary { pair.second.query() }
                 .executeGraph()
     }
     println("  DB config: ${dualConfig.primary}")
@@ -246,7 +248,7 @@ suspend fun main() {
 
     val fullResult = kap(::FetcherResult)
             // Phase 1: quorum pricing (parallel 2-of-3), take first result
-            .with(
+            .withPricing(
                 raceQuorum(
                     required = 2,
                     Kap { fetchPricingReplicaA() },
@@ -255,13 +257,13 @@ suspend fun main() {
                 ).map { it.first() }
             )
             // Phase 2: resilient user fetch (retry with backoff)
-            .with(run {
+            .withUser(run {
                 var att = 0
                 Kap { fetchUserFlaky(att++) }
                     .retry(Schedule.times<Throwable>(3) and Schedule.exponential(20.milliseconds))
             })
             // Phase 3: bracketed config (sequential — needs user for auth)
-            .then(
+            .thenConfig(
                 bracket(
                     acquire = { openDbConnection() },
                     use = { conn -> Kap { conn.query() } },
@@ -269,7 +271,7 @@ suspend fun main() {
                 )
             )
             // Phase 4: audit with timeout fallback
-            .with(
+            .withAudit(
                 Kap { fetchAuditLogSlow() }
                     .timeoutRace(100.milliseconds, Kap { fetchAuditLogCache() })
             )

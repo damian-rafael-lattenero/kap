@@ -75,7 +75,12 @@ $params,
             val typeParams = (1..n).joinToString(", ") { "P$it" }
             val paramType = (1..n).joinToString(", ") { "P$it" }
             val curriedType = (1..n).joinToString(" -> ") { "(P$it)" } + " -> R"
-            return "fun <E, $typeParams, R> kapV(f: ($paramType) -> R): Kap<Either<NonEmptyList<E>, $curriedType>> =\n    Kap.of(Either.Right(f.curried()))"
+            val params = (1..n).map { "p$it" to "P$it" }
+            val callArgs = params.joinToString(", ") { it.first }
+            // Build: { p1: P1 -> { p2: P2 -> f(p1, p2) } }
+            val opens = params.joinToString("") { (name, type) -> "{ $name: $type -> " }
+            val closes = " }".repeat(n)
+            return "fun <E, $typeParams, R> kapV(f: ($paramType) -> R): Kap<Either<NonEmptyList<E>, $curriedType>> =\n    Kap.of(Either.Right(${opens}f($callArgs)$closes))"
         }
 
         val header = buildString {
@@ -88,7 +93,7 @@ $params,
             appendLine("import arrow.core.Either")
             appendLine("import arrow.core.NonEmptyList")
             appendLine("import kotlinx.coroutines.async")
-            appendLine("import kap.internal.curried")
+            // curried() no longer needed — kapV inlines currying directly
         }
 
         val maxZipVArity = minOf(maxArity, letters.size)

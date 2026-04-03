@@ -108,7 +108,7 @@ class CoreComparisonTest {
     @Test fun `andThen - kap - value-dependent then fan-out`() = runTest {
         data class Result(val user: UserProfile, val friends: FriendList, val prefs: Preferences)
         val result = Kap { fetchUser() }.andThen { user ->
-            kap(::Result)
+            Kap.of { u: UserProfile -> { f: FriendList -> { p: Preferences -> Result(u, f, p) } } }
                 .with(Kap.of(user))
                 .with { fetchFriends(user.id) }
                 .with { fetchPrefs() }
@@ -166,7 +166,7 @@ class CoreComparisonTest {
     }
 
     @Test fun `fan-out 5 - kap`() = runTest {
-        val result = kap(::SimpleFanout)
+        val result = Kap.of { user: UserProfile -> { cart: ShoppingCart -> { promos: PromotionBundle -> { shipping: ShippingQuote -> { tax: TaxBreakdown -> SimpleFanout(user, cart, promos, shipping, tax) } } } } }
             .with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }
             .with { calcShipping() }.with { calcTax() }.executeGraph()
         assertEquals(expectedFanout, result)
@@ -206,7 +206,7 @@ class CoreComparisonTest {
     }
 
     @Test fun `multi-phase - kap`() = runTest {
-        val result = kap(::CheckoutPhased)
+        val result = Kap.of { user: UserProfile -> { cart: ShoppingCart -> { promos: PromotionBundle -> { inventory: InventorySnapshot -> { stock: StockConfirmation -> { shipping: ShippingQuote -> { tax: TaxBreakdown -> CheckoutPhased(user, cart, promos, inventory, stock, shipping, tax) } } } } } } }
             .with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }.with { fetchInventory() }
             .then { validateStock() }
             .with { calcShipping() }.with { calcTax() }.executeGraph()
@@ -242,7 +242,7 @@ class CoreComparisonTest {
     }
 
     @Test fun `multi-phase 4-phases - kap`() = runTest {
-        val result = kap(::FullCheckout)
+        val result = Kap.of { user: UserProfile -> { cart: ShoppingCart -> { promos: PromotionBundle -> { stock: StockConfirmation -> { shipping: ShippingQuote -> { tax: TaxBreakdown -> { payment: PaymentAuth -> FullCheckout(user, cart, promos, stock, shipping, tax, payment) } } } } } } }
             .with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }
             .then { validateStock() }
             .with { calcShipping() }.with { calcTax() }
@@ -416,7 +416,7 @@ class CoreComparisonTest {
     // ═══════════════════════════════════════════════════════════════════════
 
     @Test fun `on - kap - switch dispatcher`() = runTest {
-        val result = kap { a: UserProfile, b: ShoppingCart -> a.name to b.items }
+        val result = Kap.of { a: UserProfile -> { b: ShoppingCart -> a.name to b.items } }
             .with(Kap { fetchUser() }.on(kotlinx.coroutines.Dispatchers.Default))
             .with(Kap { fetchCart() }.on(kotlinx.coroutines.Dispatchers.Default)).executeGraph()
         assertEquals("Alice" to 3, result)
@@ -440,7 +440,7 @@ class CoreComparisonTest {
 
     @Test fun `traced - kap - composable`() = runTest {
         val events = mutableListOf<String>()
-        val result = kap { a: UserProfile, b: ShoppingCart -> a.name to b.items }
+        val result = Kap.of { a: UserProfile -> { b: ShoppingCart -> a.name to b.items } }
             .with(Kap { fetchUser() }.traced("user",
                 onStart = { events += "start:$it" }, onSuccess = { n, _ -> events += "done:$n" }))
             .with(Kap { fetchCart() }.traced("cart",
@@ -452,7 +452,7 @@ class CoreComparisonTest {
     @Test fun `traced - kap - KapTracer`() = runTest {
         val events = mutableListOf<TraceEvent>()
         val tracer = KapTracer { events += it }
-                kap { a: UserProfile, b: ShoppingCart -> a.name to b.items }
+                Kap.of { a: UserProfile -> { b: ShoppingCart -> a.name to b.items } }
             .with(Kap { fetchUser() }.traced("user", tracer))
             .with(Kap { fetchCart() }.traced("cart", tracer)).executeGraph()
         assertEquals(4, events.size)
@@ -472,7 +472,7 @@ class CoreComparisonTest {
 
     @Test fun `withOrNull - kap`() = runTest {
         val insurance: Kap<InsurancePlan>? = null
-        val result = kap { u: UserProfile, i: InsurancePlan? -> u.name to i?.provider }
+        val result = Kap.of { u: UserProfile -> { i: InsurancePlan? -> u.name to i?.provider } }
             .with { fetchUser() }.withOrNull(insurance).executeGraph()
         assertEquals("Alice" to null, result)
     }

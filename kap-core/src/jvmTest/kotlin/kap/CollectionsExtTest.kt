@@ -244,9 +244,9 @@ class CollectionsExtTest {
                 .andThen { (user, cart, prefs) ->
                     // Use the zip3 result to drive the next computation
                     val summary = "$user+$cart+$prefs"
-                    kap { enriched: String, shipping: String, tax: String ->
+                    Kap.of { enriched: String -> { shipping: String -> { tax: String ->
                         "$enriched|$shipping|$tax"
-                    }
+                    } } }
                         .with(Kap { delay(20); "enriched($summary)" })
                         .then(Kap { delay(10); "shipping" })
                         .with(Kap { delay(20); "tax" })

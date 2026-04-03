@@ -49,6 +49,7 @@ import kotlin.time.Duration.Companion.seconds
 @Serializable data class Cart(val items: Int, val total: Double)
 @Serializable data class RecentOrder(val orderId: String, val amount: Double)
 @Serializable data class Recommendation(val productId: String, val reason: String)
+@KapTypeSafe
 @Serializable data class Dashboard(
     val user: UserProfile,
     val cart: Cart,
@@ -94,6 +95,7 @@ sealed class RegistrationError(val message: String) {
 @Serializable data class PricingInfo(val unitPrice: Double, val discount: Double)
 @Serializable data class PaymentReceipt(val txId: String, val amount: Double)
 @Serializable data class OrderConfirmation(val orderId: String, val estimatedDelivery: String)
+@KapTypeSafe
 @Serializable data class PlacedOrder(
     val itemId: String, val quantity: Int,
     val inventory: InventoryCheck, val pricing: PricingInfo,
@@ -347,27 +349,27 @@ fun Routing.coreRoutes() {
         val userId = call.parameters["userId"]!!
 
         val dashboard = kap(::Dashboard)
-                .with(
+                .withUser(
                     Kap { Services.fetchUserProfile(userId) }
                         .named("fetchProfile")
                         .traced("profile", tracer)
                 )
-                .with(
+                .withCart(
                     Kap { Services.fetchCart(userId) }
                         .named("fetchCart")
                         .traced("cart", tracer)
                 )
-                .with(
+                .withRecentOrders(
                     Kap { Services.fetchRecentOrders(userId) }
                         .on(Dispatchers.IO)
                         .traced("recentOrders", tracer)
                 )
-                .then(
+                .thenAuthToken(
                     Kap { Services.authorize(userId) }
                         .traced("authorize", tracer)
                 )
-                .with { Services.fetchRecommendations("Gold") }
-                .with { Services.countNotifications(userId) }
+                .withRecommendations { Services.fetchRecommendations("Gold") }
+                .withNotificationCount { Services.countNotifications(userId) }
                 .executeGraph()
 
         call.respond(dashboard)
@@ -453,9 +455,9 @@ fun Routing.coreRoutes() {
                     ).bind()
                 } else null
 
-                kap { a: Product, b: Product ->
+                Kap.of { a: Product -> { b: Product ->
                     if (a.price < b.price) a else b
-                }.with(memoizedExpensive).with(memoizedExpensive).bind()
+                } }.with(memoizedExpensive).with(memoizedExpensive).bind()
 
                 CompareResponse(products, cheapest, statusList)
             }.executeGraph()
@@ -698,27 +700,27 @@ fun Routing.combinedRoutes() {
                 .orThrow()
                 .andThen { validated ->
                     kap(::PlacedOrder)
-                        .with { validated.item.value }
-                        .with { validated.qty.value }
-                        .with(
+                        .withItemId { validated.item.value }
+                        .withQuantity { validated.qty.value }
+                        .withInventory(
                             Kap { Services.checkInventory(validated.item.value) }
                                 .retry(retryPolicy) { attempt, err, nextDelay ->
                                     println("  Inventory retry #$attempt: ${err.message} (waiting $nextDelay)")
                                 }
                                 .traced("inventory", tracer)
                         )
-                        .with(
+                        .withPricing(
                             Kap { Services.fetchLivePricing(validated.item.value) }
                                 .timeoutRace(100.milliseconds, Kap { Services.fetchCachedPricing(validated.item.value) })
                                 .traced("pricing", tracer)
                         )
-                        .then(
+                        .thenPayment(
                             Kap { Services.processPayment(validated.qty.value * 49.99 * 0.95) }
                                 .withCircuitBreaker(paymentBreaker)
                                 .retry(Schedule.times<Throwable>(2) and Schedule.spaced(30.milliseconds))
                                 .traced("payment", tracer)
                         )
-                        .then(
+                        .thenConfirmation(
                             bracket(
                                 acquire = { Services.openOrderDb() },
                                 use = { db -> Kap { db.insert("ORD-${System.currentTimeMillis()}") } },

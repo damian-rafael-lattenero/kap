@@ -60,7 +60,7 @@ class EnsureTest {
             latch2.complete(Unit); latch1.await(); 20
         }.ensure({ error("bad") }) { it > 0 }
 
-        val graph = kap { a: Int, b: Int -> a + b }.with(compA).with(compB)
+        val graph = Kap.of { a: Int -> { b: Int -> a + b } }.with(compA).with(compB)
         assertEquals(30, graph.executeGraph())
     }
 
@@ -103,7 +103,7 @@ class EnsureTest {
             latch2.complete(Unit); latch1.await(); Config("https://cdn.example.com")
         }.ensureNotNull({ error("no url") }) { it.url }
 
-        val graph = kap { a: String, b: String -> "$a|$b" }.with(compA).with(compB)
+        val graph = Kap.of { a: String -> { b: String -> "$a|$b" } }.with(compA).with(compB)
         assertEquals("https://api.example.com|https://cdn.example.com", graph.executeGraph())
     }
 

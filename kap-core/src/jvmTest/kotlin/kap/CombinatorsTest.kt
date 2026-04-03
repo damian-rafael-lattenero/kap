@@ -162,7 +162,7 @@ class CombinatorsTest {
             "retried"
         }.retry(3)
 
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with { with(retryable) { execute() } }
                 .with { "ok" }.executeGraph()
         assertEquals("retried|ok", result)
@@ -249,7 +249,7 @@ class CombinatorsTest {
             "data"
         }.memoize()
 
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with(expensive)
                 .with(expensive).executeGraph()
 

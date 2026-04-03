@@ -55,7 +55,7 @@ open class CoreBenchmark {
     }
 
     @Benchmark fun kap_overhead_arity3(): String = runBlocking {
-                kap { a: String, b: String, c: String -> "$a|$b|$c" }
+                Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
             .with { compute(1) }.with { compute(2) }.with { compute(3) }.executeGraph()
     }
 
@@ -70,10 +70,9 @@ open class CoreBenchmark {
     }
 
     @Benchmark fun kap_overhead_arity9(): String = runBlocking {
-                kap { a: String, b: String, c: String, d: String, e: String,
-                f: String, g: String, h: String, i: String ->
+                Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String -> { f: String -> { g: String -> { h: String -> { i: String ->
             listOf(a, b, c, d, e, f, g, h, i).joinToString("|")
-        }.with { compute(1) }.with { compute(2) }.with { compute(3) }
+        } } } } } } } } }.with { compute(1) }.with { compute(2) }.with { compute(3) }
          .with { compute(4) }.with { compute(5) }.with { compute(6) }
          .with { compute(7) }.with { compute(8) }.with { compute(9) }.executeGraph()
     }
@@ -104,7 +103,7 @@ open class CoreBenchmark {
     }
 
     @Benchmark fun kap_latency_arity5(): String = runBlocking {
-                kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
+                Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String -> "$a|$b|$c|$d|$e" } } } } }
             .with { networkCall("user", 50) }
             .with { networkCall("cart", 50) }
             .with { networkCall("prefs", 50) }
@@ -150,11 +149,9 @@ open class CoreBenchmark {
     }
 
     @Benchmark fun kap_latency_multiPhase(): String = runBlocking {
-                kap { user: String, cart: String, inv: String, addr: String,
-                validated: String, ship: String, tax: String, disc: String,
-                payment: String ->
+                Kap.of { user: String -> { cart: String -> { inv: String -> { addr: String -> { validated: String -> { ship: String -> { tax: String -> { disc: String -> { payment: String ->
             "$user|$cart|$inv|$addr|$validated|$ship|$tax|$disc|$payment"
-        }
+        } } } } } } } } }
             .with { networkCall("user", 50) }
             .with { networkCall("cart", 50) }
             .with { networkCall("inventory", 50) }
@@ -232,11 +229,9 @@ open class CoreBenchmark {
     }
 
     @Benchmark fun kap_overhead_arity15(): String = runBlocking {
-                kap { a: String, b: String, c: String, d: String, e: String,
-                 f: String, g: String, h: String, i: String, j: String,
-                 k: String, l: String, m: String, n: String, o: String ->
+                Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String -> { f: String -> { g: String -> { h: String -> { i: String -> { j: String -> { k: String -> { l: String -> { m: String -> { n: String -> { o: String ->
             listOf(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o).joinToString("|")
-        }
+        } } } } } } } } } } } } } } }
             .with { compute(1) }.with { compute(2) }.with { compute(3) }
             .with { compute(4) }.with { compute(5) }.with { compute(6) }
             .with { compute(7) }.with { compute(8) }.with { compute(9) }
@@ -531,7 +526,7 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_settled_failure_no_cancel(): String = runBlocking {
         data class R(val a: Result<String>, val b: String, val c: String)
-        val result = kap(::R)
+        val result = Kap.of { a: Result<String> -> { b: String -> { c: String -> R(a, b, c) } } }
             .with(Kap<String> { throw RuntimeException("down") }.settled())
             .with { networkCall("b", 50) }
             .with { networkCall("c", 50) }.executeGraph()

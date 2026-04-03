@@ -267,12 +267,13 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
     @KapTypeSafe
     data class Booking(val guestName: String, val hotelName: String, val nights: Int, val guests: Int)
 
-    // KSP generates distinct types: BookingGuestName, BookingHotelName, BookingNights, BookingGuests
-    kapSafe(::Booking)
-        .with { fetchGuest().toGuestName() }     // BookingGuestName
-        .with { fetchHotel().toHotelName() }     // BookingHotelName — swap? COMPILE ERROR
-        .with { fetchNights().toNights() }       // BookingNights
-        .with { fetchGuests().toGuests() }       // BookingGuests — swap with nights? COMPILE ERROR
+    // KSP generates named step builders — each step only shows the next parameter
+    kap(::Booking)
+        .withGuestName { fetchGuest() }     // only .withGuestName available here
+        .withHotelName { fetchHotel() }     // only .withHotelName — swap? COMPILE ERROR
+        .withNights { fetchNights() }       // only .withNights available here
+        .withGuests { fetchGuests() }       // only .withGuests — swap with nights? COMPILE ERROR
+        .executeGraph()
     ```
 
 ---

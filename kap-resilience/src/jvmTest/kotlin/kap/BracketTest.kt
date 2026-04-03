@@ -134,7 +134,7 @@ class BracketTest {
         )
 
         val result = runCatching {
-            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+            Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with(branchA)
                 .with(branchB)
                 .with(branchC)
@@ -269,7 +269,7 @@ class BracketTest {
 
         val result = runCatching {
                         // Phase 1: acquire 3 connections in parallel via bracket+ap
-            kap { a: String, b: String, c: String -> Triple(a, b, c) }
+            Kap.of { a: String -> { b: String -> { c: String -> Triple(a, b, c) } } }
                 .with(dbBracket)
                 .with(cacheBracket)
                 .with(apiBracket)

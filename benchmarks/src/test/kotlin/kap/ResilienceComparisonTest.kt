@@ -103,7 +103,7 @@ class ResilienceComparisonTest {
         val result = bracket(
             acquire = { "db-conn".also { log += "acquired:$it" } },
             use = { conn ->
-                kap { a: String, b: String -> "$a|$b" }
+                Kap.of { a: String -> { b: String -> "$a|$b" } }
                     .with { networkCall("q1", 50) }
                     .with { networkCall("q2", 50) }
             },

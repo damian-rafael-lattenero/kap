@@ -210,7 +210,7 @@ class Phase6Test {
             null
         }.memoize()
 
-        val result = kap { a: String?, b: String? -> "${a}|${b}" }
+        val result = Kap.of { a: String? -> { b: String? -> "${a}|${b}" } }
                 .with { nullComp.executeGraph() }
                 .with { nullComp.executeGraph() }.executeGraph()
         assertEquals("null|null", result)

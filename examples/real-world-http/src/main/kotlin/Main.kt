@@ -34,6 +34,7 @@ data class GithubRepo(
 @Serializable
 data class CatFact(val fact: String, val length: Int = 0)
 
+@KapTypeSafe
 data class DeveloperProfile(
     val user: GithubUser,
     val topRepos: List<GithubRepo>,
@@ -74,9 +75,9 @@ suspend fun main() {
 
     val (profile, duration) = measureTimedValue {
         kap(::DeveloperProfile)
-                .with { fetchGithubUser(username) }     // ┐
-                .with { fetchGithubRepos(username) }     // ├─ all three in parallel
-                .with { fetchCatFact().fact }             // ┘
+                .withUser { fetchGithubUser(username) }       // ┐
+                .withTopRepos { fetchGithubRepos(username) }   // ├─ all three in parallel
+                .withFunFact { fetchCatFact().fact }           // ┘
                 .executeGraph()
     }
 
@@ -157,11 +158,11 @@ suspend fun main() {
     data class MultiResult(val real: Result<GithubUser>, val fake: Result<GithubUser>, val fact: String)
 
     val (settled, settledDuration) = measureTimedValue {
-        kap(::MultiResult)
-                .with(Kap { fetchGithubUser("torvalds") }.settled())
-                .with(Kap { fetchGithubUser("this-user-definitely-does-not-exist-xyz") }.settled())
-                .with { fetchCatFact().fact }
-                .executeGraph()
+        Kap.of { real: Result<GithubUser> -> { fake: Result<GithubUser> -> { fact: String -> MultiResult(real, fake, fact) } } }
+            .with(Kap { fetchGithubUser("torvalds") }.settled())
+            .with(Kap { fetchGithubUser("this-user-definitely-does-not-exist-xyz") }.settled())
+            .with { fetchCatFact().fact }
+            .executeGraph()
     }
 
     println("   Real user: ${settled.real.getOrNull()?.login ?: "failed"}")

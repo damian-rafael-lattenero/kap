@@ -210,7 +210,7 @@ class LiftATest {
     @Test
     fun `combine (2) agrees with kap+with`() = runTest {
         val viaLiftA = combine({ delay(10); "A" }, { delay(10); "B" }) { a, b -> "$a|$b" }.executeGraph()
-        val viaLiftAp = kap { a: String, b: String -> "$a|$b" }
+        val viaLiftAp = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with { delay(10); "A" }
                 .with { delay(10); "B" }.executeGraph()
         assertEquals(viaLiftA, viaLiftAp)
@@ -219,7 +219,7 @@ class LiftATest {
     @Test
     fun `combine (3) agrees with kap+with`() = runTest {
         val viaLiftA = combine({ 1 }, { 2 }, { 3 }) { a, b, c -> a + b + c }.executeGraph()
-        val viaLiftAp = kap { a: Int, b: Int, c: Int -> a + b + c }
+        val viaLiftAp = Kap.of { a: Int -> { b: Int -> { c: Int -> a + b + c } } }
                 .with { 1 }.with { 2 }.with { 3 }.executeGraph()
         assertEquals(viaLiftA, viaLiftAp)
     }
@@ -227,7 +227,7 @@ class LiftATest {
     @Test
     fun `combine (5) agrees with kap+with`() = runTest {
         val viaLiftA = combine({ 1 }, { 2 }, { 3 }, { 4 }, { 5 }) { a, b, c, d, e -> a + b + c + d + e }.executeGraph()
-        val viaLiftAp = kap { a: Int, b: Int, c: Int, d: Int, e: Int -> a + b + c + d + e }
+        val viaLiftAp = Kap.of { a: Int -> { b: Int -> { c: Int -> { d: Int -> { e: Int -> a + b + c + d + e } } } } }
                 .with { 1 }.with { 2 }.with { 3 }.with { 4 }.with { 5 }.executeGraph()
         assertEquals(viaLiftA, viaLiftAp)
     }

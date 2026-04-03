@@ -77,7 +77,7 @@ class ResourceZipBoundaryTest {
         ) { db, cache -> db to cache }
 
         val result = infra.useKap { (db, cache) ->
-            kap { a: String, b: String -> "$a|$b" }
+            Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with(Kap { "query:$db" })
                 .with(Kap { "get:$cache" })
         }.executeGraph()

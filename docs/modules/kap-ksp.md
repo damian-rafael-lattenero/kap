@@ -34,36 +34,33 @@ kap(::User)
 // Compiles. Wrong data. Production bug.
 ```
 
-This is the same problem raw coroutines and Arrow have. No type system can catch it — unless you give each parameter a distinct type.
+This is the same problem raw coroutines and Arrow have. No type system can catch it — unless you give each parameter a distinct step.
 
 ## The Solution
 
-`@KapTypeSafe` generates distinct wrapper types automatically:
+`@KapTypeSafe` generates a step builder where each parameter gets its own named method. The IDE only shows the next parameter's method in autocomplete — you literally cannot wire them in the wrong order:
 
 ```kotlin
 @KapTypeSafe
 data class User(val firstName: String, val lastName: String, val age: Int)
 
-// KSP generates:
-// data class UserFirstName(val value: String)
-// data class UserLastName(val value: String)
-// data class UserAge(val value: Int)
-// fun kapSafe(f: (String, String, Int) -> User): Kap<(UserFirstName) -> (UserLastName) -> (UserAge) -> User>
-// fun String.toFirstName(): UserFirstName
-// fun String.toLastName(): UserLastName
-// fun Int.toAge(): UserAge
+// KSP generates a step builder with named methods:
+// kap(::User).withFirstName { }.withLastName { }.withAge { }.executeGraph()
+// Each step only exposes the next method — no way to swap.
+// No wrapper types. No companion object needed.
 ```
 
 Usage — clean, fluent, compile-time safe:
 
 ```kotlin
-kapSafe(::User)
-    .with { fetchFirstName().toFirstName() }   // UserFirstName
-    .with { fetchLastName().toLastName() }     // UserLastName — swap? COMPILE ERROR
-    .with { fetchAge().toAge() }               // UserAge
+kap(::User)
+    .withFirstName { fetchFirstName() }   // Only withFirstName is available here
+    .withLastName { fetchLastName() }     // Only withLastName is available here — swap? COMPILE ERROR
+    .withAge { fetchAge() }               // Only withAge is available here
+    .executeGraph()
 ```
 
-**Multiplatform compatible** — uses `data class` wrappers that compile on every Kotlin target (JVM, JS, WASM, Native, iOS, macOS). Minimal overhead — one small object per wrapper, negligible compared to the network calls being wrapped.
+**Multiplatform compatible** — generates plain Kotlin code that compiles on every Kotlin target (JVM, JS, WASM, Native, iOS, macOS). Zero overhead — no wrapper types, no extra allocations.
 
 ---
 
@@ -78,15 +75,19 @@ data class Dashboard(val userName: String, val cartSummary: String, val promoCod
 fun buildDashboard(userName: String, cartSummary: String, promoCode: String): Dashboard =
     Dashboard(userName, cartSummary, promoCode)
 
-// Generated: kapSafeBuildDashboard(), .toUserName(), .toCartSummary(), .toPromoCode()
-
-kapSafeBuildDashboard(::buildDashboard)
-    .with { fetchUserName().toUserName() }
-    .with { fetchCartSummary().toCartSummary() }
-    .with { fetchPromoCode().toPromoCode() }
+// KSP generates a marker object: BuildDashboard
+// Usage: kap(BuildDashboard).withUserName { }.withCartSummary { }.withPromoCode { }.executeGraph()
 ```
 
-Generated function name: `kapSafe` for classes, `kapSafe{FunctionName}` for functions.
+```kotlin
+kap(BuildDashboard)
+    .withUserName { fetchUserName() }
+    .withCartSummary { fetchCartSummary() }
+    .withPromoCode { fetchPromoCode() }
+    .executeGraph()
+```
+
+Generated entry point: `kap(::ClassName)` for classes, `kap(MarkerObject)` for functions (KSP generates the marker object from the function name in PascalCase).
 
 ---
 
@@ -106,19 +107,41 @@ Both have `userName: String`, but no collision:
 
 ```kotlin
 // Dashboard
-kapSafeBuildDashboard(::buildDashboard)
-    .with { fetchUserName().toDashboardUserName() }      // no collision
-    .with { fetchCartSummary().toDashboardCartSummary() }
-    .with { fetchPromoCode().toDashboardPromoCode() }
+kap(BuildDashboard)
+    .withDashboardUserName { fetchUserName() }      // no collision
+    .withDashboardCartSummary { fetchCartSummary() }
+    .withDashboardPromoCode { fetchPromoCode() }
+    .executeGraph()
 
 // Report
-kapSafeBuildReport(::buildReport)
-    .with { fetchUserName().toReportUserName() }          // no collision
-    .with { fetchDateRange().toReportDateRange() }
-    .with { fetchFormat().toReportFormat() }
+kap(BuildReport)
+    .withReportUserName { fetchUserName() }          // no collision
+    .withReportDateRange { fetchDateRange() }
+    .withReportFormat { fetchFormat() }
+    .executeGraph()
 ```
 
 **Default is no prefix** — clean and short. Add prefix only when you need it.
+
+---
+
+## @KapBridge — Third-Party Classes
+
+Can't annotate a class you don't own? Use `@KapBridge` to generate a step builder for any third-party class:
+
+```kotlin
+@KapBridge(ThirdPartyUser::class)
+class ThirdPartyUserBridge
+
+// Now you can use the same step-builder pattern:
+kap(::ThirdPartyUser)
+    .withFirstName { fetchFirstName() }
+    .withLastName { fetchLastName() }
+    .withAge { fetchAge() }
+    .executeGraph()
+```
+
+KSP reads the constructor parameters from the bridged class and generates the same named step methods as if the class had `@KapTypeSafe` directly.
 
 ---
 
@@ -128,9 +151,11 @@ For each `@KapTypeSafe` annotated class or function:
 
 | Generated | Example |
 |---|---|
-| Data class per param | `data class UserFirstName(val value: String)` |
-| `kapSafe` function | `fun kapSafe(f: (String, String, Int) -> User): Kap<(UserFirstName) -> ...>` |
-| Extension per param | `fun String.toFirstName(): UserFirstName` |
+| Step builder chain | `kap(::User).withFirstName { }.withLastName { }.withAge { }.executeGraph()` |
+| Named method per param | `.withFirstName { }`, `.withLastName { }`, `.withAge { }` |
+| Marker object (functions only) | `object BuildDashboard` |
+
+Each step interface exposes only the next parameter's method — IDE autocomplete enforces the correct order.
 
 ---
 
@@ -161,11 +186,12 @@ For each `@KapTypeSafe` annotated class or function:
 === "KAP + @KapTypeSafe"
 
     ```kotlin
-    // Every parameter has a unique type. Swap anything? COMPILE ERROR.
-    kapSafe(::User)
-        .with { fetchFirstName().toFirstName() }   // UserFirstName
-        .with { fetchLastName().toLastName() }     // UserLastName
-        .with { fetchAge().toAge() }               // UserAge
+    // Every parameter gets a named step. Swap anything? COMPILE ERROR.
+    kap(::User)
+        .withFirstName { fetchFirstName() }   // Only withFirstName available
+        .withLastName { fetchLastName() }     // Only withLastName available
+        .withAge { fetchAge() }               // Only withAge available
+        .executeGraph()
     ```
 
 ---

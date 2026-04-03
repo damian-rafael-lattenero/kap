@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm")
+    id("com.google.devtools.ksp")
     application
     alias(libs.plugins.kotlin.serialization)
 }
@@ -8,6 +9,8 @@ dependencies {
     implementation(project(":kap-core"))
     implementation(project(":kap-resilience"))
     implementation(project(":kap-arrow"))
+    implementation(project(":kap-ksp-annotations"))
+    ksp(project(":kap-ksp"))
     implementation(libs.coroutines.core)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)

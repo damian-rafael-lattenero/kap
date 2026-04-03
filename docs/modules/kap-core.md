@@ -16,6 +16,8 @@ implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
 
 You have multiple async calls. Some parallel, some sequential. kap-core gives you `.with` for independent tasks, `.then` for barriers, and `.andThen` for dependent phases. The code shape becomes the execution plan.
 
+With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named builder methods** generated from your data class properties — `.withUser {}`, `.thenStock {}`, etc. — making chains self-documenting while retaining full compile-time type safety. The generic `.with {}` / `.then {}` API shown throughout this page is the underlying core API; named builders are the recommended user-facing pattern built on top of it.
+
 ---
 
 ## Level 1 — Learn First
@@ -49,7 +51,20 @@ You have multiple async calls. Some parallel, some sequential. kap-core gives yo
     }
     ```
 
-=== "KAP"
+=== "KAP (named builders)"
+
+    ```kotlin
+    @KapTypeSafe
+    data class Dashboard(val user: String, val cart: String, val promos: String)
+
+    val dashboard: Dashboard = kap(::Dashboard)
+        .withUser { fetchUser() }     // ┐ all three start at t=0
+        .withCart { fetchCart() }      // │ total time = max(individual)
+        .withPromos { fetchPromos() }  // ┘ swap any two? COMPILE ERROR
+        .executeGraph()
+    ```
+
+=== "KAP (generic API)"
 
     ```kotlin
     val dashboard: Dashboard = kap(::Dashboard)
@@ -59,7 +74,7 @@ You have multiple async calls. Some parallel, some sequential. kap-core gives yo
         .executeGraph()
     ```
 
-KAP's typed function chain enforces argument order. Each `.with` must provide the next expected type.
+`@KapTypeSafe` generates `.withUser {}`, `.withCart {}`, `.withPromos {}` from the data class properties. The generic `.with {}` API is equivalent and still valid. Both enforce argument order at compile time.
 
 ### `.then` — Phase barrier
 
@@ -117,7 +132,30 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
     }
     ```
 
-=== "KAP"
+=== "KAP (named builders)"
+
+    ```kotlin
+    // With @KapTypeSafe on UserContext, EnrichedContent, and FinalDashboard
+    val dashboard: FinalDashboard = kap(::UserContext)
+        .withProfile { fetchProfile(userId) }       // ┐
+        .withPreferences { fetchPreferences(userId) }   // ├─ phase 1
+        .withLoyaltyTier { fetchLoyaltyTier(userId) }   // ┘
+        .andThen { ctx ->                    // ── barrier: ctx available
+            kap(::EnrichedContent)
+                .withRecommendations { fetchRecommendations(ctx.profile) }  // ┐
+                .withPromotions { fetchPromotions(ctx.tier) }               // ├─ phase 2
+                .withTrending { fetchTrending(ctx.prefs) }                  // │
+                .withHistory { fetchHistory(ctx.profile) }                  // ┘
+                .andThen { enriched ->                         // ── barrier
+                    kap(::FinalDashboard)
+                        .withLayout { renderLayout(ctx, enriched) }     // ┐ phase 3
+                        .withAnalytics { trackAnalytics(ctx, enriched) }   // ┘
+                }
+        }
+        .executeGraph()
+    ```
+
+=== "KAP (generic API)"
 
     ```kotlin
     val dashboard: FinalDashboard = kap(::UserContext)
@@ -147,7 +185,20 @@ KAP's typed function chain enforces argument order. Each `.with` must provide th
 
 ### Composition styles
 
-=== "kap + with (type-safe order)"
+=== "kap + @KapTypeSafe (recommended)"
+
+    ```kotlin
+    @KapTypeSafe
+    data class Dashboard(val user: String, val cart: String, val promos: String)
+
+    val result = kap(::Dashboard)
+        .withUser { fetchUser() }
+        .withCart { fetchCart() }
+        .withPromos { fetchPromos() }
+        .executeGraph()
+    ```
+
+=== "kap + with (generic API)"
 
     ```kotlin
     val result = kap(::Dashboard)
@@ -1016,8 +1067,9 @@ val result: Dashboard = plan.executeGraph()  // NOW it runs
 
 | I want to... | Use this |
 |---|---|
-| Run tasks in parallel | `.with { }` |
-| Wait for all before continuing | `.then { }` |
+| Run tasks in parallel (named) | `.withParamName { }` via `@KapTypeSafe` |
+| Run tasks in parallel (generic) | `.with { }` |
+| Wait for all before continuing | `.then { }` / `.thenParamName { }` |
 | Use previous result in next phase | `.andThen { ctx -> }` |
 | Handle one failure without cancelling rest | `settled { }` |
 | Process a list with bounded concurrency | `traverse(concurrency) { }` |

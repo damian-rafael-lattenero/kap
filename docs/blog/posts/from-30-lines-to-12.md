@@ -168,20 +168,21 @@ The `timeoutRace` number is real: instead of waiting for the timeout before star
 
 There's one thing the typed chain doesn't catch: two parameters with the same type. `firstName: String` and `lastName: String` can be swapped silently. Every framework has this problem — Haskell, Arrow, everyone recommends "use newtypes" and leaves it to the developer.
 
-We went further. KAP ships a KSP processor that generates the newtypes for you:
+We went further. KAP ships a KSP processor that generates step builders for you:
 
 ```kotlin
 @KapTypeSafe
 data class User(val firstName: String, val lastName: String, val age: Int)
 
-// KSP generates value classes + extension functions automatically:
-kapSafe(::User)
-    .with { fetchFirstName().toFirstName() }   // UserFirstName — distinct type
-    .with { fetchLastName().toLastName() }     // UserLastName — swap? COMPILE ERROR
-    .with { fetchAge().toAge() }               // UserAge
+// KSP generates named step builders — no wrapper types needed:
+kap(::User)
+    .withFirstName { fetchFirstName() }   // step only accepts .withFirstName
+    .withLastName { fetchLastName() }     // swap? COMPILE ERROR — .withFirstName not available here
+    .withAge { fetchAge() }               // each step shows only the next parameter
+    .executeGraph()
 ```
 
-One annotation. Zero runtime overhead (value classes are inlined). Every same-type swap becomes a compile error. Works on functions too, with optional prefix for collision avoidance. As far as we know, no other framework in the Kotlin ecosystem does this.
+One annotation. Zero runtime overhead (no wrapper types, no companion objects). Every same-type swap becomes a compile error — each step in the chain only exposes the method for the next parameter. Works on functions too, with optional prefix for collision avoidance. As far as we know, no other framework in the Kotlin ecosystem does this.
 
 ## Beyond orchestration
 

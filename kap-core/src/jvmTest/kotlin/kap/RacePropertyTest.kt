@@ -164,7 +164,7 @@ class RacePropertyTest {
     fun `race composed with with — parallel branches with racing`() = runTest {
         data class Result(val a: String, val b: String)
 
-        val result = kap(::Result)
+        val result = Kap.of { a: String -> { b: String -> Result(a, b) } }
                 .with {
                     race(
                         Kap { delay(100.milliseconds); "slow-a" },

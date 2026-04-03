@@ -26,7 +26,7 @@ class PhaseBarrierEdgeCaseTest {
     @Test
     fun `then signal fires on success - gated with branches start`() = runTest {
         val gatedStarted = AtomicBoolean(false)
-        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { delay(50); "A" }
                 .then { delay(30); "B" }
                 .with {
@@ -43,7 +43,7 @@ class PhaseBarrierEdgeCaseTest {
     @Test
     fun `then signal fires on failure - prevents deadlock in gated branches`() = runTest {
         val result = runCatching {
-            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+            Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                     .with { delay(50); "A" }
                     .then { delay(30); throw IllegalStateException("barrier failed") }
                     .with { delay(20); "C" }  // should not hang
@@ -56,7 +56,7 @@ class PhaseBarrierEdgeCaseTest {
     @Test
     fun `multiple sequential barriers each gate their subsequent phase`() = runTest {
         val phaseOrder = mutableListOf<String>()
-        val result = kap { a: Int, b: Int, c: Int, d: Int, e: Int -> a + b + c + d + e }
+        val result = Kap.of { a: Int -> { b: Int -> { c: Int -> { d: Int -> { e: Int -> a + b + c + d + e } } } } }
                 .with { delay(50); phaseOrder.add("P1-A"); 1 }
                 .with { delay(30); phaseOrder.add("P1-B"); 2 }
                 .then { delay(20); phaseOrder.add("barrier1"); 3 }
@@ -71,7 +71,7 @@ class PhaseBarrierEdgeCaseTest {
 
     @Test
     fun `then with recover allows chain to continue after barrier failure`() = runTest {
-        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { "A" }
                 .then {
                     Kap<String> { throw IllegalStateException("recoverable") }
@@ -85,7 +85,7 @@ class PhaseBarrierEdgeCaseTest {
     @Test
     fun `thenValue does NOT gate subsequent with branches`() = runTest {
         val apStartTime = AtomicInteger(-1)
-        val result = kap { a: Int, b: Int, c: Int -> a + b + c }
+        val result = Kap.of { a: Int -> { b: Int -> { c: Int -> a + b + c } } }
                 .with { delay(50); 1 }
                 .thenValue { delay(100); 2 }
                 .with {
@@ -102,9 +102,9 @@ class PhaseBarrierEdgeCaseTest {
     fun `deeply nested barriers maintain correct execution order`() = runTest {
         val executionLog = mutableListOf<String>()
 
-        val result = kap { a: Int, b: Int, c: Int, d: Int, e: Int, f: Int, g: Int ->
+        val result = Kap.of { a: Int -> { b: Int -> { c: Int -> { d: Int -> { e: Int -> { f: Int -> { g: Int ->
                 a + b + c + d + e + f + g
-            }
+            } } } } } } }
                 .with { delay(50); executionLog.add("P1-1"); 1 }
                 .with { delay(40); executionLog.add("P1-2"); 2 }
                 .then { delay(20); executionLog.add("B1"); 3 }
@@ -128,7 +128,7 @@ class PhaseBarrierEdgeCaseTest {
     @Test
     fun `then signal fires on failure - gated with does not hang`() = runTest {
         val result = runCatching {
-            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+            Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                     .with { delay(10); "A" }
                     .then { throw RuntimeException("barrier-fail") }
                     .with { delay(10); "C" }  // must not hang
@@ -142,7 +142,7 @@ class PhaseBarrierEdgeCaseTest {
 
     @Test
     fun `then failure with recover allows continuation`() = runTest {
-        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { delay(10); "A" }
                 .then { delay(10); "B" }
                 .with { delay(10); "C" }.executeGraph()
@@ -154,9 +154,9 @@ class PhaseBarrierEdgeCaseTest {
 
     @Test
     fun `three consecutive barriers gate correctly with virtual time`() = runTest {
-        val result = kap { a: String, b: String, c: String, d: String, e: String, f: String ->
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String -> { f: String ->
                 "$a|$b|$c|$d|$e|$f"
-            }
+            } } } } } }
                 .with { delay(20); "A" }           // t=0..20
                 .then { delay(10); "B" }   // t=20..30 (barrier 1)
                 .with { delay(20); "C" }           // t=30..50

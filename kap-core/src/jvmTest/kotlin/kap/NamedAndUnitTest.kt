@@ -28,7 +28,7 @@ class NamedAndUnitTest {
     @Test
     fun `Kap empty works as then barrier value`() = runTest {
         // Kap.empty is just Kap.of(Unit), usable as a barrier value in phase chains
-        val result = kap { a: String, _: Unit, b: Int -> "$a=$b" }
+        val result = Kap.of { a: String -> { _: Unit -> { b: Int -> "$a=$b" } } }
                 .with { delay(30); "hello" }
                 .then(Kap.empty)
                 .with { delay(30); 42 }.executeGraph()
@@ -51,7 +51,7 @@ class NamedAndUnitTest {
 
     @Test
     fun `named composes with with - each branch has its own name`() = runTest {
-        val result = kap { a: String, b: String, c: String -> listOf(a, b, c) }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> listOf(a, b, c) } } }
                 .with(Kap<String> {
                     coroutineContext[CoroutineName]?.name ?: "missing"
                 }.named("branch-a"))
@@ -116,7 +116,7 @@ class NamedAndUnitTest {
 
     @Test
     fun `catching composes with with branches in parallel`() = runTest {
-        val result = kap { a: Result<Int>, b: Result<String> -> a to b }
+        val result = Kap.of { a: Result<Int> -> { b: Result<String> -> a to b } }
                 .with(catching<Int> { delay(30); 42 })
                 .with(catching<String> { delay(30); "hello" }).executeGraph()
         assertTrue(result.first.isSuccess)

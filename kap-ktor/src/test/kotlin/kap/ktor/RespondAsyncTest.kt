@@ -35,7 +35,7 @@ class RespondAsyncTest {
         routing {
             get("/dashboard") {
                 call.respondKap {
-                    kap(::TestDashboard)
+                    kap.Kap.of { user: String -> { cart: String -> TestDashboard(user, cart) } }
                         .with { "Alice" }
                         .with { "3 items" }.executeGraph()
                 }
@@ -58,7 +58,7 @@ class RespondAsyncTest {
         routing {
             post("/users") {
                 call.respondKap(HttpStatusCode.Created) {
-                    kap(::TestUser)
+                    kap.Kap.of { name: String -> { age: Int -> TestUser(name, age) } }
                         .with { "Bob" }
                         .with { 30 }.executeGraph()
                 }
@@ -98,7 +98,7 @@ class RespondAsyncTest {
 
         routing {
             get("/user") {
-                call.respond(kap(::TestUser)
+                call.respond(kap.Kap.of { name: String -> { age: Int -> TestUser(name, age) } }
                     .with { "Charlie" }
                     .with { 25 }.executeGraph())
             }

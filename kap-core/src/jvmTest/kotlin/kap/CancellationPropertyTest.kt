@@ -96,7 +96,7 @@ class CancellationPropertyTest {
     fun `ap cancels sibling branches when one fails`() = runTest {
         val siblingCancelled = AtomicBoolean(false)
         val result = runCatching {
-            kap { a: String, b: String -> "$a$b" }
+            Kap.of { a: String -> { b: String -> "$a$b" } }
                     .with {
                         delay(10)
                         throw IllegalStateException("fail fast")

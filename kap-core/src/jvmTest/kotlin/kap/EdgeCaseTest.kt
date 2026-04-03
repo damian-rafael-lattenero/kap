@@ -33,7 +33,7 @@ class EdgeCaseTest {
     @Test
     fun `then failure propagates the barrier exception`() = runTest {
         val result = runCatching {
-            kap<String, String, String, String> { a, b, c -> "$a|$b|$c" }
+            Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                     .with { delay(10); "A" }
                     .then(Kap<String> { throw RuntimeException("barrier failed") })
                     .with { delay(10); "C" }.executeGraph()
@@ -47,7 +47,7 @@ class EdgeCaseTest {
         // Proves that when a barrier fails, the whole computation fails
         // even if there are concurrent with branches running.
         val result = runCatching {
-            kap<String, String, String, String> { a, b, c -> "$a|$b|$c" }
+            Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                     .with { delay(200); "A" }
                     .then(Kap<String> { delay(10); throw RuntimeException("boom") })
                     .with { delay(100); "C" }.executeGraph()
@@ -129,7 +129,7 @@ class EdgeCaseTest {
             "shared-$callCount"
         }.memoize()
 
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with(shared)
                 .with(shared).executeGraph()
         assertEquals("shared-1|shared-1", result)
@@ -182,9 +182,9 @@ class EdgeCaseTest {
 
     @Test
     fun `multiple then barriers chain correctly`() = runTest {
-        val result = kap { a: String, b: String, c: String, d: String, e: String ->
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String ->
                 "$a|$b|$c|$d|$e"
-            }
+            } } } } }
                 .with { delay(20); "A" }
                 .then { delay(10); "B" }
                 .then { delay(10); "C" }
@@ -196,7 +196,7 @@ class EdgeCaseTest {
 
     @Test
     fun `ap after multiple barriers launches only after last barrier`() = runTest {
-        val result = kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> "$a|$b|$c|$d" } } } }
                 .with { delay(20); "A" }
                 .then { delay(20); "B" }
                 .then { delay(20); "C" }

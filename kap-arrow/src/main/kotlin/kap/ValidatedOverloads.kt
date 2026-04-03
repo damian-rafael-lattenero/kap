@@ -7,7 +7,6 @@ package kap
 import arrow.core.Either
 import arrow.core.NonEmptyList
 import kotlinx.coroutines.async
-import kap.internal.curried
 
 fun <E, A, B, R> zipV(
     fa: suspend () -> Either<NonEmptyList<E>, A>,
@@ -1270,64 +1269,64 @@ fun <E, A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, X, R> zip
 }
 
 fun <E, P1, P2, R> kapV(f: (P1, P2) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> f(p1, p2) } }))
 
 fun <E, P1, P2, P3, R> kapV(f: (P1, P2, P3) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> f(p1, p2, p3) } } }))
 
 fun <E, P1, P2, P3, P4, R> kapV(f: (P1, P2, P3, P4) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> f(p1, p2, p3, p4) } } } }))
 
 fun <E, P1, P2, P3, P4, P5, R> kapV(f: (P1, P2, P3, P4, P5) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> f(p1, p2, p3, p4, p5) } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, R> kapV(f: (P1, P2, P3, P4, P5, P6) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> f(p1, p2, p3, p4, p5, p6) } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> f(p1, p2, p3, p4, p5, p6, p7) } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> f(p1, p2, p3, p4, p5, p6, p7, p8) } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9) } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10) } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11) } } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> { p12: P12 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12) } } } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> { p12: P12 -> { p13: P13 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13) } } } } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> { p12: P12 -> { p13: P13 -> { p14: P14 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14) } } } } } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> { p12: P12 -> { p13: P13 -> { p14: P14 -> { p15: P15 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15) } } } } } } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> { p12: P12 -> { p13: P13 -> { p14: P14 -> { p15: P15 -> { p16: P16 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16) } } } } } } } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> { p12: P12 -> { p13: P13 -> { p14: P14 -> { p15: P15 -> { p16: P16 -> { p17: P17 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17) } } } } } } } } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> { p12: P12 -> { p13: P13 -> { p14: P14 -> { p15: P15 -> { p16: P16 -> { p17: P17 -> { p18: P18 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18) } } } } } } } } } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> { p12: P12 -> { p13: P13 -> { p14: P14 -> { p15: P15 -> { p16: P16 -> { p17: P17 -> { p18: P18 -> { p19: P19 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19) } } } } } } } } } } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> { p12: P12 -> { p13: P13 -> { p14: P14 -> { p15: P15 -> { p16: P16 -> { p17: P17 -> { p18: P18 -> { p19: P19 -> { p20: P20 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20) } } } } } } } } } } } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> (P21) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> { p12: P12 -> { p13: P13 -> { p14: P14 -> { p15: P15 -> { p16: P16 -> { p17: P17 -> { p18: P18 -> { p19: P19 -> { p20: P20 -> { p21: P21 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21) } } } } } } } } } } } } } } } } } } } } }))
 
 fun <E, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22, R> kapV(f: (P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22) -> R): Kap<Either<NonEmptyList<E>, (P1) -> (P2) -> (P3) -> (P4) -> (P5) -> (P6) -> (P7) -> (P8) -> (P9) -> (P10) -> (P11) -> (P12) -> (P13) -> (P14) -> (P15) -> (P16) -> (P17) -> (P18) -> (P19) -> (P20) -> (P21) -> (P22) -> R>> =
-    Kap.of(Either.Right(f.curried()))
+    Kap.of(Either.Right({ p1: P1 -> { p2: P2 -> { p3: P3 -> { p4: P4 -> { p5: P5 -> { p6: P6 -> { p7: P7 -> { p8: P8 -> { p9: P9 -> { p10: P10 -> { p11: P11 -> { p12: P12 -> { p13: P13 -> { p14: P14 -> { p15: P15 -> { p16: P16 -> { p17: P17 -> { p18: P18 -> { p19: P19 -> { p20: P20 -> { p21: P21 -> { p22: P22 -> f(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22) } } } } } } } } } } } } } } } } } } } } } }))

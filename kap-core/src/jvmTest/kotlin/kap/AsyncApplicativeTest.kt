@@ -25,7 +25,7 @@ class AsyncApplicativeTest {
         val latchA = CompletableDeferred<Unit>()
         val latchB = CompletableDeferred<Unit>()
 
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with {
                     latchA.complete(Unit)   // signal: A started
                     latchB.await()          // wait for B to start
@@ -46,7 +46,7 @@ class AsyncApplicativeTest {
     fun `kap+with with three computations all run concurrently - barrier proof`() = runTest {
         val latches = (0 until 3).map { CompletableDeferred<Unit>() }
 
-        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { latches[0].complete(Unit); latches.awaitOthers(0); "A" }
                 .with { latches[1].complete(Unit); latches.awaitOthers(1); "B" }
                 .with { latches[2].complete(Unit); latches.awaitOthers(2); "C" }.executeGraph()
@@ -58,7 +58,7 @@ class AsyncApplicativeTest {
     fun `then enforces sequential execution order`() = runTest {
         val order = mutableListOf<String>()
 
-        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { order.add("first"); "A" }
                 .then { order.add("second"); "B" }
                 .then { order.add("third"); "C" }.executeGraph()
@@ -71,7 +71,7 @@ class AsyncApplicativeTest {
     fun `then then with fires concurrently - barrier proof`() = runTest {
         val apStarted = CompletableDeferred<Unit>()
 
-        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .then { "A" }
                 .with {
                     // B cannot complete until C has started
@@ -91,7 +91,7 @@ class AsyncApplicativeTest {
     fun `seven parallel kap+with calls all run concurrently - barrier proof`() = runTest {
         val latches = (0 until 7).map { CompletableDeferred<Unit>() }
 
-        val result = kap { a: String, b: String, c: String, d: String, e: String, f: String, g: String -> "$a|$b|$c|$d|$e|$f|$g" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String -> { f: String -> { g: String -> "$a|$b|$c|$d|$e|$f|$g" } } } } } } }
                 .with { latches[0].complete(Unit); latches.awaitOthers(0); "A" }
                 .with { latches[1].complete(Unit); latches.awaitOthers(1); "B" }
                 .with { latches[2].complete(Unit); latches.awaitOthers(2); "C" }
@@ -108,9 +108,9 @@ class AsyncApplicativeTest {
     fun `thirteen parallel kap+with calls - barrier proof`() = runTest {
         val latches = (0 until 13).map { CompletableDeferred<Unit>() }
 
-        val result = kap { s1: String, s2: String, s3: String, s4: String, s5: String, s6: String, s7: String, s8: String, s9: String, s10: String, s11: String, s12: String, s13: String ->
+        val result = Kap.of { s1: String -> { s2: String -> { s3: String -> { s4: String -> { s5: String -> { s6: String -> { s7: String -> { s8: String -> { s9: String -> { s10: String -> { s11: String -> { s12: String -> { s13: String ->
                 listOf(s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13).joinToString(";")
-            }
+            } } } } } } } } } } } } }
                 .with { latches[0].complete(Unit);  latches.awaitOthers(0);  "v1" }
                 .with { latches[1].complete(Unit);  latches.awaitOthers(1);  "v2" }
                 .with { latches[2].complete(Unit);  latches.awaitOthers(2);  "v3" }
@@ -139,7 +139,7 @@ class AsyncApplicativeTest {
     fun `kap+with+then - ordering is correct`() = runTest {
         val order = mutableListOf<String>()
 
-        val result = kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String -> "$a|$b|$c|$d|$e" } } } } }
                 .with { order.add("a"); "A" }
                 .with { order.add("b"); "B" }
                 .then { order.add("c"); "C" }
@@ -181,10 +181,10 @@ class AsyncApplicativeTest {
         fun calcTax() = TaxBreakdown(amount = 2.50, rate = 0.08)
         fun reservePayment() = PaymentAuth(cardLast4 = "4242", authorized = true)
 
-        val result = kap { user: UserProfile, cart: ShoppingCart, promos: PromotionBundle, inventory: InventorySnapshot,
-                    stock: StockConfirmation, shipping: ShippingQuote, tax: TaxBreakdown, payment: PaymentAuth ->
+        val result = Kap.of { user: UserProfile -> { cart: ShoppingCart -> { promos: PromotionBundle -> { inventory: InventorySnapshot ->
+                    { stock: StockConfirmation -> { shipping: ShippingQuote -> { tax: TaxBreakdown -> { payment: PaymentAuth ->
                 CheckoutSummary(user, cart, promos, inventory, stock, shipping, tax, payment)
-            }
+            } } } } } } } }
                 .with { fetchUser() }
                 .with { fetchCart() }
                 .with { fetchPromotions() }
@@ -218,9 +218,9 @@ class AsyncApplicativeTest {
         val absent: (suspend () -> String)? = null
         val present: (suspend () -> String)? = { "present" }
 
-        val result = kap { a: String, b: String?, c: String, d: String? ->
+        val result = Kap.of { a: String -> { b: String? -> { c: String -> { d: String? ->
                 "$a|${b ?: "nil"}|$c|${d ?: "nil"}"
-            }
+            } } } }
                 .with { "A" }
                 .with { absent?.invoke() }
                 .with { "C" }
@@ -233,7 +233,7 @@ class AsyncApplicativeTest {
     fun `then with null computation`() = runTest {
         val absent: (suspend () -> String)? = null
 
-        val result = kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
+        val result = Kap.of { a: String -> { b: String? -> "$a|${b ?: "nil"}" } }
                 .then { "A" }
                 .then { absent?.invoke() }.executeGraph()
 
@@ -247,7 +247,7 @@ class AsyncApplicativeTest {
     @Test
     fun `exception in kap+with propagates through structured concurrency`() = runTest {
         val result = runCatching {
-            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+            Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                     .with { "ok" }
                     .with { throw RuntimeException("boom") }
                     .with { "ok" }.executeGraph()
@@ -264,7 +264,7 @@ class AsyncApplicativeTest {
         val siblingCancelled = CompletableDeferred<Boolean>()
 
         runCatching {
-            kap { a: String, b: String -> "$a|$b" }
+            Kap.of { a: String -> { b: String -> "$a|$b" } }
                     .with {
                         try {
                             siblingStarted.complete(Unit)
@@ -286,7 +286,7 @@ class AsyncApplicativeTest {
     @Test
     fun `exception in then propagates correctly`() = runTest {
         val result = runCatching {
-            kap { a: String, b: String -> "$a|$b" }
+            Kap.of { a: String -> { b: String -> "$a|$b" } }
                     .then { "ok" }
                     .then { throw RuntimeException("then failed") }.executeGraph()
         }
@@ -308,7 +308,7 @@ class AsyncApplicativeTest {
     @Test
     fun `andThen allows value-dependent continuation`() = runTest {
         val result = Kap.of(42).andThen { n ->
-                kap { doubled: Int, label: String -> "$label=$doubled" }
+                Kap.of { doubled: Int -> { label: String -> "$label=$doubled" } }
                     .with { n * 2 }
                     .with { "result" }
             }.executeGraph()
@@ -338,7 +338,7 @@ class AsyncApplicativeTest {
 
         val result = Kap.of(10).andThen { base ->
                 // After getting the base value, fan out in parallel
-                kap { b: Int, c: Int -> base + b + c }
+                Kap.of { b: Int -> { c: Int -> base + b + c } }
                     .with { latchB.complete(Unit); latchC.await(); base * 2 }
                     .with { latchC.complete(Unit); latchB.await(); base * 3 }
             }.executeGraph()
@@ -496,11 +496,11 @@ class AsyncApplicativeTest {
         }
 
         // -- DSL: declarative, zero boilerplate --
-        val dsl = kap { user: UserProfile, notifications: NotificationList, prefs: Preferences,
-                    feed: FeedContent, suggestions: PeopleSuggestions,
-                    recommendations: Recommendations, badges: FeatureFlags ->
+        val dsl = Kap.of { user: UserProfile -> { notifications: NotificationList -> { prefs: Preferences ->
+                    { feed: FeedContent -> { suggestions: PeopleSuggestions ->
+                    { recommendations: Recommendations -> { badges: FeatureFlags ->
                 DashboardSummary(user, notifications, prefs, feed, suggestions, recommendations, badges)
-            }
+            } } } } } } }
                 .with { fetchUser() }
                 .with { fetchNotifications() }
                 .with { fetchPrefs() }
@@ -551,10 +551,10 @@ class AsyncApplicativeTest {
         }
 
         // -- DSL: the code IS the execution plan --
-        val dsl = kap { user: UserProfile, cart: ShoppingCart, promos: PromotionBundle, stock: StockConfirmation,
-                    shipping: ShippingQuote, tax: TaxBreakdown, payment: PaymentAuth ->
+        val dsl = Kap.of { user: UserProfile -> { cart: ShoppingCart -> { promos: PromotionBundle -> { stock: StockConfirmation ->
+                    { shipping: ShippingQuote -> { tax: TaxBreakdown -> { payment: PaymentAuth ->
                 CheckoutPhased(user, cart, promos, stock, shipping, tax, payment)
-            }
+            } } } } } } }
                 .with { fetchUser() }
                 .with { fetchCart() }
                 .with { fetchPromos() }
@@ -573,9 +573,9 @@ class AsyncApplicativeTest {
         fun queryFromRoom(): Int = 42
         fun callKtorClient(): List<String> = listOf("a", "b", "c")
 
-        val result = kap { user: String, count: Int, items: List<String> ->
+        val result = Kap.of { user: String -> { count: Int -> { items: List<String> ->
                 "$user|$count|${items.joinToString(",")}"
-            }
+            } } }
                 .with { fetchFromRetrofit() }
                 .with { queryFromRoom() }
                 .with { callKtorClient() }.executeGraph()
@@ -619,12 +619,12 @@ class AsyncApplicativeTest {
         }
 
         // -- DSL: the structure IS the execution plan --
-        val dsl = kap { user: UserProfile, prefs: Preferences, flags: FeatureFlags,
-                    auth: AuthToken, feed: FeedContent,
-                    notifications: NotificationList, messages: MessageSummary,
-                    recommendations: Recommendations, trending: TrendingTopics ->
+        val dsl = Kap.of { user: UserProfile -> { prefs: Preferences -> { flags: FeatureFlags ->
+                    { auth: AuthToken -> { feed: FeedContent ->
+                    { notifications: NotificationList -> { messages: MessageSummary ->
+                    { recommendations: Recommendations -> { trending: TrendingTopics ->
                 FullPageLoad(user, prefs, flags, auth, feed, notifications, messages, recommendations, trending)
-            }
+            } } } } } } } } }
                 .with { fetchUser() }
                 .with { fetchPrefs() }
                 .with { fetchFlags() }

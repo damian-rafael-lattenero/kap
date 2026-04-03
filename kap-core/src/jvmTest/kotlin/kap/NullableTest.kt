@@ -13,7 +13,7 @@ class NullableTest {
 
     @Test
     fun `withOrNull with null literal passes null to function`() = runTest {
-        val result = kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
+        val result = Kap.of { a: String -> { b: String? -> "$a|${b ?: "nil"}" } }
                 .with { "fixed" }
                 .withOrNull(null).executeGraph()
         assertEquals("fixed|nil", result)
@@ -27,7 +27,7 @@ class NullableTest {
     fun `withOrNull with nullable Kap - non-null executes`() = runTest {
         val comp: Kap<String>? = Kap.of("yes")
 
-        val result = kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
+        val result = Kap.of { a: String -> { b: String? -> "$a|${b ?: "nil"}" } }
                 .with { "fixed" }
                 .withOrNull(comp).executeGraph()
         assertEquals("fixed|yes", result)
@@ -37,7 +37,7 @@ class NullableTest {
     fun `withOrNull with nullable Kap - null passes null`() = runTest {
         val comp: Kap<String>? = null
 
-        val result = kap { a: String, b: String? -> "$a|${b ?: "nil"}" }
+        val result = Kap.of { a: String -> { b: String? -> "$a|${b ?: "nil"}" } }
                 .with { "fixed" }
                 .withOrNull(comp).executeGraph()
         assertEquals("fixed|nil", result)
@@ -52,7 +52,7 @@ class NullableTest {
         val present: Kap<String>? = Kap.of("yes")
         val absent: Kap<String>? = null
 
-        val result = kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
+        val result = Kap.of { a: String -> { b: String? -> { c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" } } }
                 .with { "fixed" }
                 .withOrNull(present)
                 .withOrNull(absent).executeGraph()
@@ -64,7 +64,7 @@ class NullableTest {
     fun `chain with literal null and nullable variable`() = runTest {
         val present: Kap<String>? = Kap.of("yes")
 
-        val result = kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
+        val result = Kap.of { a: String -> { b: String? -> { c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" } } }
                 .with { "fixed" }
                 .withOrNull(present)
                 .withOrNull(null).executeGraph()
@@ -74,7 +74,7 @@ class NullableTest {
 
     @Test
     fun `all null parameters`() = runTest {
-        val result = kap { a: String, b: String?, c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" }
+        val result = Kap.of { a: String -> { b: String? -> { c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" } } }
                 .with { "fixed" }
                 .withOrNull(null)
                 .withOrNull(null).executeGraph()
@@ -103,7 +103,7 @@ class NullableTest {
         }
 
         // Would deadlock if withOrNull ran sequentially
-        val result = kap { a: String?, b: String?, c: String -> "${a ?: "nil"}|${b ?: "nil"}|$c" }
+        val result = Kap.of { a: String? -> { b: String? -> { c: String -> "${a ?: "nil"}|${b ?: "nil"}|$c" } } }
                 .withOrNull(compA)
                 .withOrNull(compB)
                 .with { "C" }.executeGraph()
@@ -124,7 +124,7 @@ class NullableTest {
             val total: OrderTotal,
         )
 
-        val result = kap(::BookingDetails)
+        val result = Kap.of { user: UserProfile -> { cart: CartSummary -> { discount: Discount? -> { insurance: InsurancePlan? -> { total: OrderTotal -> BookingDetails(user, cart, discount, insurance, total) } } } } }
                 .with { UserProfile("Alice", 42) }
                 .with { CartSummary(3) }
                 .withOrNull(optionalDiscount)

@@ -52,7 +52,7 @@ class OverloadsAndEdgeCasesTest {
     fun `ap with Kap overload works the same as suspend lambda`() = runTest {
         val comp = Kap { "from-computation" }
 
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with(comp)
                 .with(Kap { "also-computation" }).executeGraph()
 
@@ -63,7 +63,7 @@ class OverloadsAndEdgeCasesTest {
     fun `then with Kap overload`() = runTest {
         val comp = Kap { "barrier" }
 
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .then(comp)
                 .with { "after" }.executeGraph()
 
@@ -167,7 +167,7 @@ class OverloadsAndEdgeCasesTest {
 
     @Test
     fun `on switches dispatcher for a specific computation`() = runTest {
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with(Kap { "io-task" }.on(Dispatchers.IO))
                 .with { "default-task" }.executeGraph()
         assertEquals("io-task|default-task", result)

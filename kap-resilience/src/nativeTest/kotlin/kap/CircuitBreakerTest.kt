@@ -126,7 +126,7 @@ class CircuitBreakerTest {
             latch2.complete(Unit); latch1.await(); "B"
         }.withCircuitBreaker(breaker)
 
-        val graph = kap { a: String, b: String -> "$a|$b" }.with(compA).with(compB)
+        val graph = Kap.of { a: String -> { b: String -> "$a|$b" } }.with(compA).with(compB)
         assertEquals("A|B", graph.executeGraph())
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
@@ -154,7 +154,7 @@ class CircuitBreakerTest {
 
         val compA = Kap<String> { error("nope") }.withCircuitBreaker(breaker).recover { "fast-a" }
         val compB = Kap<String> { error("nope") }.withCircuitBreaker(breaker).recover { "fast-b" }
-        val graph = kap { a: String, b: String -> "$a|$b" }.with(compA).with(compB)
+        val graph = Kap.of { a: String -> { b: String -> "$a|$b" } }.with(compA).with(compB)
         assertEquals("fast-a|fast-b", graph.executeGraph())
     }
 

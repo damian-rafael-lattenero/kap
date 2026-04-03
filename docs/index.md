@@ -65,25 +65,36 @@ val checkout = coroutineScope {
 }
 ```
 
-**With KAP:**
+**With KAP + `@KapTypeSafe`:**
 
 ```kotlin
+@KapTypeSafe
+data class CheckoutResult(
+    val user: User, val cart: Cart, val promos: Promos, val inventory: Inventory,
+    val stock: StockCheck, val shipping: Shipping, val tax: Tax, val discounts: Discounts,
+    val payment: Payment, val confirmation: Confirmation, val email: Email,
+)
+
+// @KapTypeSafe generates named builders: .withUser {}, .withCart {}, .thenStock {}, etc.
 val checkout: CheckoutResult = kap(::CheckoutResult)
-    .with { fetchUser() }              // ┐
-    .with { fetchCart() }               // ├─ phase 1: parallel
-    .with { fetchPromos() }             // │
-    .with { fetchInventory() }          // ┘
-    .then { validateStock() }           // ── phase 2: barrier
-    .with { calcShipping() }            // ┐
-    .with { calcTax() }                 // ├─ phase 3: parallel
-    .with { calcDiscounts() }           // ┘
-    .then { reservePayment() }          // ── phase 4: barrier
-    .with { generateConfirmation() }    // ┐ phase 5: parallel
-    .with { sendEmail() }              // ┘
+    .withUser { fetchUser() }              // ┐
+    .withCart { fetchCart() }               // ├─ phase 1: parallel
+    .withPromos { fetchPromos() }           // │
+    .withInventory { fetchInventory() }     // ┘
+    .thenStock { validateStock() }          // ── phase 2: barrier
+    .withShipping { calcShipping() }        // ┐
+    .withTax { calcTax() }                  // ├─ phase 3: parallel
+    .withDiscounts { calcDiscounts() }      // ┘
+    .thenPayment { reservePayment() }       // ── phase 4: barrier
+    .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
+    .withEmail { sendEmail() }             // ┘
     .executeGraph()
 ```
 
-**30 lines vs 12.** Invisible phases vs explicit phases. Silent bugs vs compile-time safety. **Swap any two `.with` lines and the compiler rejects it** — each service returns a distinct type, and the typed function chain locks parameter order.
+**30 lines vs 14.** Invisible phases vs explicit phases. Silent bugs vs compile-time safety. **Named builders make each step self-documenting** — and the typed function chain still locks parameter order at compile time.
+
+!!! tip "`@KapTypeSafe` named builders"
+    The `@KapTypeSafe` annotation (via KSP) generates `.withParamName {}` and `.thenParamName {}` extension methods from your data class properties. This is the **recommended user-facing pattern**. The generic `.with {}` / `.then {}` API still works and is used internally, but named builders make your orchestration chains more readable and harder to misuse.
 
 ```
 t=0ms   ─── fetchUser ────────┐
@@ -305,8 +316,16 @@ Scales to **22 validators** (Arrow's `zipOrAccumulate` maxes at 9).
 [API Reference (Dokka)](api/index.html){ .md-button }
 
 ```kotlin
+plugins {
+    id("com.google.devtools.ksp")  // Required for @KapTypeSafe
+}
+
 dependencies {
     implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
+
+    // KSP — named builder generation (@KapTypeSafe)
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.5.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.5.0")
 
     // Optional
     implementation("io.github.damian-rafael-lattenero:kap-resilience:2.5.0")

@@ -43,7 +43,7 @@ class NewFeaturesTest {
             value * 10
         }.memoize()
 
-        val result = kap { a: Int, b: Int -> a + b }
+        val result = Kap.of { a: Int -> { b: Int -> a + b } }
                 .with(memoized)
                 .with(memoized).executeGraph()
 

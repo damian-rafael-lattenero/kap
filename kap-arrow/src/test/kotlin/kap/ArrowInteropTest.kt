@@ -155,7 +155,7 @@ class ArrowInteropTest {
 
     @Test
     fun `fromArrow composes with ap`() = runTest {
-        val result = kap { a: Int, b: String -> "$b=$a" }
+        val result = Kap.of { a: Int -> { b: String -> "$b=$a" } }
             .with(fromArrow { 42 })
             .with(fromArrow { "answer" }).executeGraph()
         assertEquals("answer=42", result)

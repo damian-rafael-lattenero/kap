@@ -25,6 +25,7 @@ data class PaymentAuth(val cardLast4: String, val authorized: Boolean)
 data class OrderConfirmation(val orderId: String)
 data class EmailReceipt(val sentTo: String, val orderId: String)
 
+@KapTypeSafe
 data class CheckoutResult(
     val user: UserProfile,
     val cart: ShoppingCart,
@@ -54,6 +55,7 @@ suspend fun sendEmail(): EmailReceipt { delay(20); return EmailReceipt("alice@ex
 suspend fun fetchName(): String { delay(30); return "Alice" }
 suspend fun fetchAge(): Int { delay(20); return 30 }
 
+@KapTypeSafe
 data class Dashboard(val user: String, val cart: String, val promos: String)
 
 suspend fun fetchDashUser(): String { delay(30); return "Alice" }
@@ -68,17 +70,17 @@ suspend fun heroCheckout() {
     println("=== Hero: KAP Checkout (11 services, 5 phases) ===\n")
 
     val checkout: CheckoutResult = kap(::CheckoutResult)
-            .with { fetchUser() }              // ┐
-            .with { fetchCart() }               // ├─ phase 1: parallel
-            .with { fetchPromos() }             // │
-            .with { fetchInventory() }          // ┘
-            .then { validateStock() }     // ── phase 2: barrier
-            .with { calcShipping() }            // ┐
-            .with { calcTax() }                 // ├─ phase 3: parallel
-            .with { calcDiscounts() }           // ┘
-            .then { reservePayment() }    // ── phase 4: barrier
-            .with { generateConfirmation() }    // ┐ phase 5: parallel
-            .with { sendEmail() }               // ┘
+            .withUser { fetchUser() }              // ┐
+            .withCart { fetchCart() }               // ├─ phase 1: parallel
+            .withPromos { fetchPromos() }           // │
+            .withInventory { fetchInventory() }    // ┘
+            .thenStock { validateStock() }         // ── phase 2: barrier
+            .withShipping { calcShipping() }       // ┐
+            .withTax { calcTax() }                 // ├─ phase 3: parallel
+            .withDiscounts { calcDiscounts() }     // ┘
+            .thenPayment { reservePayment() }      // ── phase 4: barrier
+            .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
+            .withEmail { sendEmail() }                    // ┘
             .executeGraph()
 
     println("  Result: $checkout\n")
@@ -162,6 +164,7 @@ suspend fun arrowCheckout() {
 //  Section: Constructor is a Function
 // ═══════════════════════════════════════════════════════════════════════
 
+@KapTypeSafe
 data class Greeting(val text: String, val target: String)
 
 suspend fun constructorIsAFunction() {
@@ -169,23 +172,23 @@ suspend fun constructorIsAFunction() {
 
     // ::Greeting has type (String, String) -> Greeting
     val g1: Greeting = kap(::Greeting)
-            .with { fetchName() }
-            .with { "hello" }
+            .withText { fetchName() }
+            .withTarget { "hello" }
             .executeGraph()
     println("  Constructor ref: $g1")
 
-    // Any (A, B) -> R function works:
+    // Manual currying for lambda variables:
     val greet: (String, Int) -> String = { name, age -> "Hi $name, you're $age" }
-    val g2: String = kap(greet)
+    val g2: String = Kap.of { name: String -> { age: Int -> greet(name, age) } }
             .with { fetchName() }
             .with { fetchAge() }
             .executeGraph()
     println("  Lambda function: $g2")
 
-    // A regular function reference:
+    // Manual currying for local function references:
     fun buildSummary(name: String, items: Int): String = "$name has $items items"
 
-    val g3: String = kap(::buildSummary)
+    val g3: String = Kap.of { name: String -> { items: Int -> buildSummary(name, items) } }
             .with { fetchName() }
             .with { 5 }
             .executeGraph()
@@ -200,9 +203,9 @@ suspend fun nothingRunsUntilAsync() {
     println("=== Nothing runs until executeGraph() ===\n")
 
     val plan: Kap<Dashboard> = kap(::Dashboard)
-        .with { fetchDashUser() }
-        .with { fetchDashCart() }
-        .with { fetchDashPromos() }
+        .withUser { fetchDashUser() }
+        .withCart { fetchDashCart() }
+        .withPromos { fetchDashPromos() }
 
     println("  Plan built. Nothing has executed yet.")
     println("  plan is: ${plan::class.simpleName}")
@@ -215,6 +218,7 @@ suspend fun nothingRunsUntilAsync() {
 //  Section: All val, no null
 // ═══════════════════════════════════════════════════════════════════════
 
+@KapTypeSafe
 data class DashboardView(val user: String, val cart: String)
 
 suspend fun allValsNoNulls() {
@@ -232,8 +236,8 @@ suspend fun allValsNoNulls() {
 
     // KAP: all val, no nulls
     val kapResult: DashboardView = kap(::DashboardView)
-            .with { fetchDashUser() }
-            .with { fetchDashCart() }
+            .withUser { fetchDashUser() }
+            .withCart { fetchDashCart() }
             .executeGraph()
     println("  KAP (val, safe):  $kapResult\n")
 }
@@ -246,15 +250,17 @@ suspend fun fetchA(): String { delay(30); return "A" }
 suspend fun fetchB(): String { delay(20); return "B" }
 suspend fun validate(): String { delay(10); return "valid" }
 
+@KapTypeSafe
 data class AB(val a: String, val b: String)
+@KapTypeSafe
 data class R3(val a: String, val b: String, val c: String)
 
 suspend fun threePrimitiveWith() {
     println("=== Primitive: .with (parallel) ===\n")
 
     val result = kap(::AB)
-            .with { fetchA() }   // ┐ parallel
-            .with { fetchB() }   // ┘
+            .withA { fetchA() }   // ┐ parallel
+            .withB { fetchB() }   // ┘
             .executeGraph()
     println("  .with result: $result\n")
 }
@@ -263,14 +269,16 @@ suspend fun threePrimitiveFollowedBy() {
     println("=== Primitive: .then (barrier) ===\n")
 
     val result = kap(::R3)
-            .with { fetchA() }             // ┐ parallel
-            .with { fetchB() }             // ┘
-            .then { validate() }     // waits for A and B
+            .withA { fetchA() }             // ┐ parallel
+            .withB { fetchB() }             // ┘
+            .thenC { validate() }           // waits for A and B
             .executeGraph()
     println("  .then result: $result\n")
 }
 
+@KapTypeSafe
 data class UserContext(val profile: String, val prefs: String, val tier: String)
+@KapTypeSafe
 data class PersonalizedDashboard(val recs: String, val promos: String, val trending: String)
 
 suspend fun fetchProfile(id: String): String { delay(50); return "profile-$id" }
@@ -285,14 +293,14 @@ suspend fun threePrimitiveFlatMap() {
 
     val userId = "user-1"
     val dashboard = kap(::UserContext)
-            .with { fetchProfile(userId) }       // ┐ phase 1: parallel
-            .with { fetchPreferences(userId) }   // │
-            .with { fetchLoyaltyTier(userId) }   // ┘
-            .andThen { ctx ->                     // ── barrier: phase 2 NEEDS ctx
+            .withProfile { fetchProfile(userId) }       // ┐ phase 1: parallel
+            .withPrefs { fetchPreferences(userId) }     // │
+            .withTier { fetchLoyaltyTier(userId) }      // ┘
+            .andThen { ctx ->                            // ── barrier: phase 2 NEEDS ctx
                 kap(::PersonalizedDashboard)
-                    .with { fetchRecommendations(ctx.profile) }   // ┐ phase 2: parallel
-                    .with { fetchPromotions(ctx.tier) }           // │
-                    .with { fetchTrending(ctx.prefs) }            // ┘
+                    .withRecs { fetchRecommendations(ctx.profile) }   // ┐ phase 2: parallel
+                    .withPromos { fetchPromotions(ctx.tier) }         // │
+                    .withTrending { fetchTrending(ctx.prefs) }        // ┘
             }
             .executeGraph()
     println("  .andThen result: $dashboard\n")
@@ -302,7 +310,9 @@ suspend fun threePrimitiveFlatMap() {
 //  Section: Value-Dependent Phases (raw vs KAP)
 // ═══════════════════════════════════════════════════════════════════════
 
+@KapTypeSafe
 data class EnrichedContent(val recs: String, val promos: String, val trending: String, val history: String)
+@KapTypeSafe
 data class FinalDashboard(val layout: String, val analytics: String)
 
 suspend fun fetchHistory(profile: String): String { delay(35); return "history-$profile" }
@@ -346,19 +356,19 @@ suspend fun phasedFlatMapKap() {
     val userId = "user-42"
 
     val dashboard: FinalDashboard = kap(::UserContext)
-            .with { fetchProfile(userId) }
-            .with { fetchPreferences(userId) }
-            .with { fetchLoyaltyTier(userId) }
+            .withProfile { fetchProfile(userId) }
+            .withPrefs { fetchPreferences(userId) }
+            .withTier { fetchLoyaltyTier(userId) }
             .andThen { ctx ->
                 kap(::EnrichedContent)
-                    .with { fetchRecommendations(ctx.profile) }
-                    .with { fetchPromotions(ctx.tier) }
-                    .with { fetchTrending(ctx.prefs) }
-                    .with { fetchHistory(ctx.profile) }
+                    .withRecs { fetchRecommendations(ctx.profile) }
+                    .withPromos { fetchPromotions(ctx.tier) }
+                    .withTrending { fetchTrending(ctx.prefs) }
+                    .withHistory { fetchHistory(ctx.profile) }
                     .andThen { enriched ->
                         kap(::FinalDashboard)
-                            .with { renderLayout(ctx, enriched) }
-                            .with { trackAnalytics(ctx, enriched) }
+                            .withLayout { renderLayout(ctx, enriched) }
+                            .withAnalytics { trackAnalytics(ctx, enriched) }
                     }
             }
             .executeGraph()
@@ -374,9 +384,9 @@ suspend fun quickStartBasic() {
     println("=== Quick Start: Basic ===\n")
 
     val result = kap(::Dashboard)
-            .with { fetchDashUser() }    // ┐ all three in parallel
-            .with { fetchDashCart() }     // │ total time = max(individual)
-            .with { fetchDashPromos() }   // ┘ not sum
+            .withUser { fetchDashUser() }    // ┐ all three in parallel
+            .withCart { fetchDashCart() }     // │ total time = max(individual)
+            .withPromos { fetchDashPromos() } // ┘ not sum
             .executeGraph()
     println("  Dashboard: $result\n")
 }
@@ -395,12 +405,12 @@ suspend fun quickStartResilience() {
     val retryPolicy = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
 
     val result = kap(::Dashboard)
-            .with(Kap { fetchDashUser() }
+            .withUser(Kap { fetchDashUser() }
                 .withCircuitBreaker(breaker)
                 .retry(retryPolicy))
-            .with(Kap { fetchFromSlowApi() }
+            .withCart(Kap { fetchFromSlowApi() }
                 .timeoutRace(100.milliseconds, Kap { fetchFromCache() }))
-            .with { fetchDashPromos() }
+            .withPromos { fetchDashPromos() }
             .executeGraph()
     println("  Resilient dashboard: $result\n")
 }
@@ -482,9 +492,9 @@ suspend fun chooseYourStyle() {
 
     // Style 1: kap + with — compile-time parameter order safety
     val s1 = kap(::Dashboard)
-            .with { fetchDashUser() }
-            .with { fetchDashCart() }
-            .with { fetchDashPromos() }
+            .withUser { fetchDashUser() }
+            .withCart { fetchDashCart() }
+            .withPromos { fetchDashPromos() }
             .executeGraph()
     println("  kap+with:  $s1")
 
@@ -516,6 +526,7 @@ suspend fun chooseYourStyle() {
 // ═══════════════════════════════════════════════════════════════════════
 
 // Domain type that tolerates partial failure
+@KapTypeSafe
 data class PartialDashboard(val user: String, val cart: String, val config: String)
 
 // Services: one is unreliable, the others always succeed
@@ -524,6 +535,7 @@ suspend fun fetchCartAlways(): String { delay(20); return "cart-ok" }
 suspend fun fetchConfigAlways(): String { delay(15); return "config-ok" }
 
 // Builder function: receives Result<String> for the unreliable service, uses fallback
+@KapTypeSafe
 fun buildPartialDashboard(user: Result<String>, cart: String, config: String): PartialDashboard =
     PartialDashboard(
         user = user.getOrDefault("anonymous"),  // failed? use fallback value
@@ -535,10 +547,10 @@ suspend fun featureSettled() {
     println("=== Feature: Partial Failure with .settled() ===\n")
 
     // settled { } wraps the result in Result<T> — failure doesn't cancel siblings
-    val dashboard = kap(::buildPartialDashboard)
-            .with(settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
-            .with { fetchCartAlways() }             // normal String — failure here cancels all
-            .with { fetchConfigAlways() }            // normal String
+    val dashboard = kap(BuildPartialDashboard)
+            .withUser(settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
+            .withCart { fetchCartAlways() }              // normal String — failure here cancels all
+            .withConfig { fetchConfigAlways() }          // normal String
             .executeGraph()
     println("  settled: $dashboard")
     // PartialDashboard(user=anonymous, cart=cart-ok, config=config-ok)
@@ -600,7 +612,7 @@ suspend fun featureRetrySchedule() {
     // Inline retry with the simple core overload
     attempts = 0
     data class RetryResult(val user: String, val service: String)
-    val result2 = kap { user: String, service: String -> RetryResult(user, service) }
+    val result2 = Kap.of { user: String -> { service: String -> RetryResult(user, service) } }
             .with { fetchDashUser() }
             .with(Kap { flakyService() }
                 .retry(3, delay = 10.milliseconds))
@@ -627,7 +639,7 @@ suspend fun featureResourceSafety() {
     println("=== Feature: Resource Safety ===\n")
 
     // bracket: acquire, use in parallel, guaranteed release
-    val result = kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
+    val result = Kap.of { db: String -> { cache: String -> { api: String -> "$db|$cache|$api" } } }
             .with(bracket(
                 acquire = { openDbConnection() },
                 use = { conn -> Kap { conn.query("SELECT 1") } },
@@ -656,7 +668,7 @@ suspend fun featureResourceSafety() {
     ) { db, cache, http -> Triple(db, cache, http) }
 
     val result2 = infra.useKap { (db, cache, http) ->
-            kap(::DashboardData)
+            Kap.of { d: String -> { c: String -> { h: String -> DashboardData(d, c, h) } } }
                 .with { db.query("SELECT 1") }
                 .with { cache.get("user:prefs") }
                 .with { http.get("/recommendations") }
@@ -903,17 +915,18 @@ suspend fun featureKapBuilder() {
 //  Feature: Execution Model — then vs thenValue
 // ═══════════════════════════════════════════════════════════════════════
 
+@KapTypeSafe
 fun combineThree(a: String, b: String, c: String): String = "$a+$b+$c"
 
 suspend fun executionModel() {
     println("=== Execution Model ===\n")
 
-    val graph = kap(::combineThree)
-        .with { fetchA() }
-        .with { fetchB() }
+    val graph = kap(CombineThree)
+        .withA { fetchA() }
+        .withB { fetchB() }
 
     println("  graph built, not executed")
-    val result = graph.with { "C" }.executeGraph()
+    val result = graph.withC { "C" }.executeGraph()
     println("  executeGraph(): $result\n")
 }
 
@@ -921,6 +934,7 @@ suspend fun executionModel() {
 //  Reordered execution: execute params out of constructor order
 // ═══════════════════════════════════════════════════════════════════════
 
+@KapTypeSafe
 data class Page(val a: String, val b: String, val c: String, val d: String)
 
 suspend fun fetchParamA(): String { delay(30); return "A-val" }
@@ -956,6 +970,7 @@ suspend fun reorderedWithBarrier() {
 
 data class UserSession(val userId: String, val tier: String, val prefs: List<String>)
 data class ProductFeed(val items: List<String>, val sponsored: List<String>)
+@KapTypeSafe
 data class MobileHomePage(val session: UserSession, val feed: ProductFeed, val notifications: Int)
 
 suspend fun fetchSession(token: String): UserSession {
@@ -1001,15 +1016,16 @@ suspend fun bffMobileApp() {
 //  Feature: thenValue — fill a slot without a barrier
 // ═══════════════════════════════════════════════════════════════════════
 
+@KapTypeSafe
 data class Enriched(val a: String, val enriched: String, val c: String)
 
 suspend fun featureThenValue() {
     println("=== Feature: thenValue (no barrier) ===\n")
 
-    val result = kap(::Enriched)
-            .with { delay(30); "data-A" }        // launched at t=0
-            .thenValue { delay(50); "enriched" }  // sequential value, no barrier
-            .with { delay(20); "data-C" }         // launched at t=0 (overlaps!)
+    val result = Kap.of { a: String -> { enriched: String -> { c: String -> Enriched(a, enriched, c) } } }
+            .with { delay(30); "data-A" }              // launched at t=0
+            .thenValue { delay(50); "enriched" }       // sequential value, no barrier
+            .with { delay(20); "data-C" }              // launched at t=0 (overlaps!)
             .executeGraph()
     println("  thenValue: $result\n")
 }
@@ -1274,7 +1290,7 @@ suspend fun featureDiscardAndPeek() {
 suspend fun featureOnAndNamed() {
     println("=== Feature: on / named ===\n")
 
-    val result = kap { a: String, b: String -> "$a|$b" }
+    val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
             .with(Kap { delay(20); "io-result" }
                 .on(Dispatchers.IO)
                 .named("io-task"))
@@ -1291,7 +1307,7 @@ suspend fun featureOnAndNamed() {
 suspend fun featureAwait() {
     println("=== Feature: await ===\n")
 
-    val result = kap { a: String, b: String -> "$a|$b" }
+    val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
             .with { Kap { delay(30); "fast" }.timeout(100.milliseconds, "cached").executeGraph() }
             .with { delay(20); "normal" }
             .executeGraph()
@@ -1330,7 +1346,7 @@ suspend fun featureTraced() {
         }
     }
 
-    val result = kap { a: String, b: String -> "$a|$b" }
+    val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
             .with(Kap { delay(30); "user-data" }.traced("fetchUser", tracer))
             .with(Kap { delay(20); "cart-data" }.traced("fetchCart", tracer))
             .executeGraph()
@@ -1398,7 +1414,7 @@ suspend fun featureResourceComposable() {
     }
 
     val result = combined.useKap { (db, cache, http) ->
-            kap(::InfraResult)
+            Kap.of { dbData: String -> { cacheData: String -> { httpData: String -> InfraResult(dbData, cacheData, httpData) } } }
                 .with { db.query("SELECT * FROM users") }
                 .with { cache.get("session:abc") }
                 .with { http.get("/api/health") }

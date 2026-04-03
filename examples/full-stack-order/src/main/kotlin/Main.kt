@@ -37,10 +37,12 @@ data class ValidatedOrder(val item: ValidItemId, val qty: ValidQuantity, val add
 
 data class InventoryCheck(val available: Boolean, val warehouse: String)
 data class PricingInfo(val unitPrice: Double, val discount: Double)
+@KapTypeSafe
 data class FetchedData(val inventory: InventoryCheck, val pricing: PricingInfo)
 data class PaymentReceipt(val txId: String, val amount: Double)
 data class OrderConfirmation(val orderId: String, val estimatedDelivery: String)
 
+@KapTypeSafe
 data class PlacedOrder(
     val order: ValidatedOrder,
     val inventory: InventoryCheck,
@@ -180,14 +182,14 @@ suspend fun main() {
 
     val fetched = kap(::FetchedData)
             // Retry flaky inventory API with exponential backoff
-            .with(
+            .withInventory(
                 Kap { checkInventory(order.item.value) }
                     .retry(retryPolicy) { attempt, err, nextDelay ->
                         println("  Inventory retry #$attempt: ${err.message} (waiting $nextDelay)")
                     }
             )
             // timeoutRace: try live pricing, fall back to cache if slow
-            .with(
+            .withPricing(
                 Kap { fetchLivePricing(order.item.value) }
                     .timeoutRace(100.milliseconds, Kap { fetchCachedPricing(order.item.value) })
             )
@@ -267,24 +269,24 @@ suspend fun main() {
 
     // Step 2: orchestrate with kap+with+then (all three modules)
     val fullOrder = kap(::PlacedOrder)
-            .with { validated }
+            .withOrder { validated }
             // Phase: inventory + pricing in parallel (kap-resilience)
-            .with(
+            .withInventory(
                 Kap { checkInventory(validated.item.value) }
                     .retry(Schedule.times<Throwable>(4) and Schedule.exponential(20.milliseconds))
             )
-            .with(
+            .withPricing(
                 Kap { fetchLivePricing(validated.item.value) }
                     .timeoutRace(80.milliseconds, Kap { fetchCachedPricing(validated.item.value) })
             )
             // Phase: payment (sequential, depends on pricing)
-            .then(
+            .thenPayment(
                 Kap { processPayment(validated.qty.value * 49.99 * 0.95) }
                     .withCircuitBreaker(breaker)
                     .retry(Schedule.times<Throwable>(2) and Schedule.spaced(30.milliseconds))
             )
             // Phase: confirmation (sequential, depends on payment)
-            .then(
+            .thenConfirmation(
                 bracket(
                     acquire = { openOrderDb() },
                     use = { db -> Kap { db.insert("ORD-FULL-${System.currentTimeMillis()}") } },

@@ -114,7 +114,7 @@ class TracingTest {
         val started = mutableListOf<String>()
         val succeeded = mutableListOf<String>()
 
-        val result = kap { a: Int, b: Int -> a + b }
+        val result = Kap.of { a: Int -> { b: Int -> a + b } }
                 .with(Kap.of(10).traced("left", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
                 .with(Kap.of(20).traced("right", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n })).executeGraph()
 

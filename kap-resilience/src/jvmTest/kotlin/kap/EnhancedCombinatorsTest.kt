@@ -278,7 +278,7 @@ class EnhancedCombinatorsTest {
             "retried-ok"
         }.retry(maxAttempts = 3)
 
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
             .with(timeoutRaceBranch)
             .with(retryBranch).executeGraph()
 
@@ -316,7 +316,7 @@ class EnhancedCombinatorsTest {
             shouldRetry = { it is IllegalStateException },
         )
 
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
             .with(ioBranch)
             .with(stateBranch).executeGraph()
 

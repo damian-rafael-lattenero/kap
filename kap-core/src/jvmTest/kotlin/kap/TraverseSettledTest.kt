@@ -182,7 +182,7 @@ class TraverseSettledTest {
     fun `settled wraps failure in Result without cancelling siblings`() = runTest {
         data class Dashboard(val user: Result<String>, val cart: String, val config: String)
 
-        val result = kap(::Dashboard)
+        val result = Kap.of { user: Result<String> -> { cart: String -> { config: String -> Dashboard(user, cart, config) } } }
                 .with { Kap<String> { throw RuntimeException("user-down") }.settled().executeGraph() }
                 .with { delay(50.milliseconds); "cart-ok" }
                 .with { delay(50.milliseconds); "config-ok" }.executeGraph()
@@ -197,7 +197,7 @@ class TraverseSettledTest {
     fun `settled inside with chain — proven parallel by virtual time`() = runTest {
         data class R(val a: Result<String>, val b: String)
 
-        val result = kap(::R)
+        val result = Kap.of { a: Result<String> -> { b: String -> R(a, b) } }
                 .with {
                     delay(50.milliseconds)
                     Kap<String> { throw RuntimeException("err") }.settled().executeGraph()

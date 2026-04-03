@@ -28,7 +28,7 @@ class ImprovementPlanTest {
 
     @Test
     fun `await executes computation and returns result`() = runTest {
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with { Kap { delay(30); "fast" }.timeout(100.milliseconds, "timeout").executeGraph() }
                 .with { delay(30); "other" }.executeGraph()
 
@@ -38,7 +38,7 @@ class ImprovementPlanTest {
 
     @Test
     fun `await with timeout fallback inside with branch`() = runTest {
-        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { delay(30); "A" }
                 .with { Kap { delay(500); "slow-B" }.timeout(50.milliseconds, "timeout-B").executeGraph() }
                 .with { delay(30); "C" }.executeGraph()
@@ -50,7 +50,7 @@ class ImprovementPlanTest {
     @Test
     fun `await with retry inside with branch`() = runTest {
         var attempts = 0
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with {
                     Kap {
                         attempts++
@@ -67,7 +67,7 @@ class ImprovementPlanTest {
 
     @Test
     fun `await with recover inside with branch`() = runTest {
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with {
                     Kap<String> { throw RuntimeException("boom") }
                         .recover { "recovered" }
@@ -82,7 +82,7 @@ class ImprovementPlanTest {
     fun `await preserves structured concurrency`() = runTest {
         // If one branch fails, the other should be cancelled
         val result = runCatching {
-            kap { a: String, b: String -> "$a|$b" }
+            Kap.of { a: String -> { b: String -> "$a|$b" } }
                     .with { Kap<String> { throw RuntimeException("crash") }.executeGraph() }
                     .with { delay(1000); "never" }.executeGraph()
         }
@@ -100,7 +100,7 @@ class ImprovementPlanTest {
         // If the barrier throws, the gated with branch should see the failure
         // through structured concurrency cancellation, NOT hang forever.
         val result = runCatching {
-            kap { a: String, b: String, c: String -> "$a|$b|$c" }
+            Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                     .with { delay(30); "A" }
                     .then { throw RuntimeException("barrier-crash") }
                     .with { delay(30); "C" }  // gated — should NOT hang
@@ -115,7 +115,7 @@ class ImprovementPlanTest {
     fun `PhaseBarrier completes signal on exception with recover in chain`() = runTest {
         // More subtle: if the barrier fails but there's a recover higher up,
         // the signal must still fire so gated branches don't deadlock.
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with { delay(20); "A" }
                 .then {
                     with(Kap<String> { throw RuntimeException("barrier-fail") }
@@ -252,7 +252,7 @@ class ImprovementPlanTest {
 
     @Test
     fun `integration - await inside with with firstSuccessOf`() = runTest {
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with {
                     firstSuccessOf(
                         Kap { delay(20); throw RuntimeException("primary-down") },

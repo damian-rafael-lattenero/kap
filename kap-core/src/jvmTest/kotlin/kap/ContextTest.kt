@@ -57,7 +57,7 @@ class ContextTest {
             "B"
         }.on(Dispatchers.Default)
 
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with { with(compA) { execute() } }
                 .with { with(compB) { execute() } }.executeGraph()
 
@@ -69,7 +69,7 @@ class ContextTest {
     fun `on does not affect other computations in the chain`() = runTest {
         // One computation on Default, rest inherit parent context
         val compA = Kap { 21 }.on(Dispatchers.Default)
-        val result = kap { a: Int, b: Int -> a + b }
+        val result = Kap.of { a: Int -> { b: Int -> a + b } }
                 .with { with(compA) { execute() } }
                 .with { 21 }.executeGraph()
         assertEquals(42, result)
@@ -93,7 +93,7 @@ class ContextTest {
         val result = withContext(CoroutineName("trace-123")) {
             context.andThen { ctx ->
                 val traceName = ctx[CoroutineName]?.name ?: "unknown"
-                kap { a: String, b: String -> "$a|$b|trace=$traceName" }
+                Kap.of { a: String -> { b: String -> "$a|$b|trace=$traceName" } }
                     .with { "user" }
                     .with { "cart" }
             }.executeGraph()
@@ -113,7 +113,7 @@ class ContextTest {
 
         val result = runCatching {
             withContext(CoroutineName("test-cancel")) {
-                kap { a: String, b: String -> "$a|$b" }
+                Kap.of { a: String -> { b: String -> "$a|$b" } }
                     .with {
                         try {
                             siblingStarted.complete(Unit)

@@ -48,7 +48,7 @@ class KapBuilderTest {
         val result = computation {
                 val userId = Kap.of("user-1").bind()
                 // Now use the value in a parallel phase via bind
-                val dashboard = (kap { name: String, cart: String -> "$name|$cart" }
+                val dashboard = (Kap.of { name: String -> { cart: String -> "$name|$cart" } }
                     .with { "Name-$userId" }
                     .with { "Cart-$userId" }).bind()
                 dashboard

@@ -166,7 +166,7 @@ class ResourceTest {
         val combined = Resource.zip(dbResource, cacheResource) { db, cache -> db to cache }
 
         val result = combined.useKap { (db, cache) ->
-            kap { a: String, b: String -> "$a|$b" }
+            Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with { delay(40); "data-from-$db" }
                 .with { delay(40); "data-from-$cache" }
         }.executeGraph()
@@ -239,7 +239,7 @@ class ResourceTest {
 
         val result = runCatching {
                         resource.useKap { _ ->
-                kap { a: String, b: String -> "$a|$b" }
+                Kap.of { a: String -> { b: String -> "$a|$b" } }
                     .with { "ok" }
                     .with { throw RuntimeException("branch failed") }
             }.executeGraph()

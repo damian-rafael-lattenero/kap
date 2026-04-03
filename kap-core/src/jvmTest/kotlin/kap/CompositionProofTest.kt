@@ -40,13 +40,13 @@ class CompositionProofTest {
     fun `andThen prevents eager launch - post-andThen with waits for andThen result`() = runTest {
         // With then, the ap{D@30} would launch at t=0.
         // With andThen, the ap{D@30} cannot exist until andThen's lambda runs (t=80).
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with { delay(30); "A" }
                 .with { delay(30); "B" }
                 .andThen { ab ->
                     // This lambda runs at t=30 (after A and B complete).
                     // The next ap{C@50} launches INSIDE this lambda.
-                    kap { c: String, d: String -> "$ab|$c|$d" }
+                    Kap.of { c: String -> { d: String -> "$ab|$c|$d" } }
                         .with { delay(50); "C" }
                         .with { delay(50); "D" }
                 }.executeGraph()
@@ -61,7 +61,7 @@ class CompositionProofTest {
     @Test
     fun `then and andThen both create true phase boundaries`() = runTest {
         // then version: C waits for barrier (true phase boundary)
-        val thenResult = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val thenResult = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { delay(30); "A" }
                 .then { delay(50); "B" }  // barrier
                 .with { delay(30); "C" }  // waits for barrier, launches at t=80
@@ -70,11 +70,11 @@ class CompositionProofTest {
 
         // andThen version: same timing, but passes value
         Kap.of(Unit).andThen {
-                kap { a: String, b: String -> "$a|$b" }
+                Kap.of { a: String -> { b: String -> "$a|$b" } }
                     .with { delay(30); "A" }
                     .with { delay(30); "B" }
             }.andThen { ab ->
-                kap { c: String, d: String -> "$ab|$c|$d" }
+                Kap.of { c: String -> { d: String -> "$ab|$c|$d" } }
                     .with { delay(50); "C" }
                     .with { delay(50); "D" }
             }.executeGraph()
@@ -88,7 +88,7 @@ class CompositionProofTest {
     @Test
     fun `thenValue vs then - thenValue allows eager launch`() = runTest {
         // thenValue: C launches eagerly at t=0 (old behavior)
-        val thenValueResult = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val thenValueResult = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { delay(30); "A" }
                 .thenValue { delay(50); "B" }
                 .with { delay(30); "C" }          // launches at t=0, overlaps
@@ -103,7 +103,7 @@ class CompositionProofTest {
     fun `andThen enables value-dependent parallel fan-out with timing proof`() = runTest {
         val result = Kap { delay(20); 10 }.andThen { base ->
                 // base is available here — fan out with computed values
-                kap { a: Int, b: Int, c: Int -> a + b + c }
+                Kap.of { a: Int -> { b: Int -> { c: Int -> a + b + c } } }
                     .with { delay(30); base * 2 }  // 20
                     .with { delay(30); base * 3 }  // 30
                     .with { delay(30); base * 4 }  // 40
@@ -121,7 +121,7 @@ class CompositionProofTest {
 
     @Test
     fun `timeout inside with - slow branch gets default while others proceed`() = runTest {
-        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { delay(30); "fast-A" }
                 .with {
                     with(Kap { delay(500); "slow-B" }
@@ -137,7 +137,7 @@ class CompositionProofTest {
 
     @Test
     fun `timeout inside with - fast branch returns before timeout`() = runTest {
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with {
                     with(Kap { delay(20); "fast" }
                         .timeout(100.milliseconds, "timeout")) { execute() }
@@ -156,7 +156,7 @@ class CompositionProofTest {
     fun `retry inside with - flaky branch retries while others proceed`() = runTest {
         var attempts = 0
 
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with {
                     with(Kap {
                         attempts++
@@ -181,7 +181,7 @@ class CompositionProofTest {
 
     @Test
     fun `recover inside with - one branch fails and recovers without affecting siblings`() = runTest {
-        val result = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { delay(30); "A" }
                 .with {
                     with(Kap<String> { throw RuntimeException("boom") }
@@ -199,7 +199,7 @@ class CompositionProofTest {
         // Branch A recovers its own error. Branch B throws.
         // B's error should propagate — recover on A doesn't affect B.
         val result = runCatching {
-            kap { a: String, b: String -> "$a|$b" }
+            Kap.of { a: String -> { b: String -> "$a|$b" } }
                     .with {
                         with(Kap<String> { throw RuntimeException("A-error") }
                             .recover { "A-recovered" }) { execute() }
@@ -245,7 +245,7 @@ class CompositionProofTest {
 
     @Test
     fun `race inside with chain - use fastest data source`() = runTest {
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with {
                     with(race(
                         Kap { delay(100); "primary-A" },
@@ -268,9 +268,9 @@ class CompositionProofTest {
     fun `production pattern - timeout + retry + recover + race inside with chain`() = runTest {
         var fetchAttempts = 0
 
-        val result = kap { user: String, cart: String, promos: String, shipping: String ->
+        val result = Kap.of { user: String -> { cart: String -> { promos: String -> { shipping: String ->
                 "$user|$cart|$promos|$shipping"
-            }
+            } } } }
                 // Branch 1: normal fast call
                 .with { delay(20); "user-data" }
                 // Branch 2: flaky service with retry
@@ -311,7 +311,7 @@ class CompositionProofTest {
 
     @Test
     fun `consecutive then barriers are strictly sequential`() = runTest {
-        val result = kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> "$a|$b|$c|$d" } } } }
                 .then { delay(20); "A" }
                 .then { delay(30); "B" }
                 .then { delay(40); "C" }
@@ -346,7 +346,7 @@ class CompositionProofTest {
         var executed = false
 
         // Build a full computation graph — should NOT run anything yet
-        val graph = kap { a: String, b: String, c: String -> "$a|$b|$c" }
+        val graph = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
             .with(Kap { executed = true; "A" })
             .with(Kap { "B" })
             .with(Kap { "C" })

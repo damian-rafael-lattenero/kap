@@ -9,6 +9,10 @@ dependencies {
     implementation(project(":kap-ksp-annotations"))
     implementation(libs.coroutines.core)
     ksp(project(":kap-ksp"))
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.coroutines.test)
+    kspTest(project(":kap-ksp"))
 }
 
 application {

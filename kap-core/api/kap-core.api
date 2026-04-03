@@ -107,30 +107,6 @@ public final class kap/KapKt {
 	public static final fun withOrNull (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
 }
 
-public final class kap/KapOverloadsKt {
-	public static final fun kap (Lkotlin/jvm/functions/Function10;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function11;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function12;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function13;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function14;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function15;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function16;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function17;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function18;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function19;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function20;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function21;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function22;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function2;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function3;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function4;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function5;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function6;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function7;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function8;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function9;)Lkap/Kap;
-}
-
 public final class kap/KapScope {
 	public fun <init> (Lkotlinx/coroutines/CoroutineScope;)V
 	public final fun bind (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -251,29 +227,5 @@ public final class kap/ZipCombineOverloadsKt {
 	public static final fun zip (Lkap/Kap;Lkap/Kap;Lkap/Kap;Lkap/Kap;Lkap/Kap;Lkotlin/jvm/functions/Function5;)Lkap/Kap;
 	public static final fun zip (Lkap/Kap;Lkap/Kap;Lkap/Kap;Lkap/Kap;Lkotlin/jvm/functions/Function4;)Lkap/Kap;
 	public static final fun zip (Lkap/Kap;Lkap/Kap;Lkap/Kap;Lkotlin/jvm/functions/Function3;)Lkap/Kap;
-}
-
-public final class kap/internal/CurryKt {
-	public static final fun curried (Lkotlin/jvm/functions/Function10;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function11;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function12;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function13;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function14;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function15;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function16;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function17;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function18;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function19;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function20;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function21;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function22;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function2;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function3;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function4;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function5;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function6;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function7;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function8;)Lkotlin/jvm/functions/Function1;
-	public static final fun curried (Lkotlin/jvm/functions/Function9;)Lkotlin/jvm/functions/Function1;
 }
 

@@ -77,7 +77,7 @@ class EdgeCaseStressTest {
             42
         }.memoize()
 
-        val graph = kap { a: Int, b: Int, c: Int -> listOf(a, b, c) }
+        val graph = Kap.of { a: Int -> { b: Int -> { c: Int -> listOf(a, b, c) } } }
             .with { computation.executeGraph() }
             .with { computation.executeGraph() }
             .with { computation.executeGraph() }
@@ -238,7 +238,7 @@ class EdgeCaseStressTest {
     @Test
     fun `then — barrier signal fires even on failure`() = runTest {
         val failing: Kap<Int> = Kap { throw RuntimeException("barrier failed") }
-        val graph = kap { a: Int, b: Int, c: Int -> a + b + c }
+        val graph = Kap.of { a: Int -> { b: Int -> { c: Int -> a + b + c } } }
             .with { 1 }
             .then(failing)
             .with { 3 }
@@ -249,9 +249,9 @@ class EdgeCaseStressTest {
     @Test
     fun `then — multiple barriers in sequence`() = runTest {
         val order = mutableListOf<String>()
-        val result = kap { a: String, b: String, c: String, d: String, e: String ->
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String ->
                 "$a|$b|$c|$d|$e"
-            }
+            } } } } }
                 .with { order.add("a"); "a" }
                 .then { order.add("b"); "b" }
                 .with { order.add("c"); "c" }

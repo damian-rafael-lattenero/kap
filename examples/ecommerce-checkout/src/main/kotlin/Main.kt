@@ -24,6 +24,7 @@ data class PaymentAuth(val cardLast4: String, val authorized: Boolean)
 data class OrderConfirmation(val orderId: String)
 data class EmailReceipt(val sentTo: String, val orderId: String)
 
+@KapTypeSafe
 data class CheckoutResult(
     val user: UserProfile,
     val cart: ShoppingCart,
@@ -60,21 +61,21 @@ suspend fun main() {
     // Each slot expects a specific type — UserProfile, ShoppingCart, etc.
     val result = kap(::CheckoutResult)
             // Phase 1: Fetch everything we need (parallel)
-            .with { fetchUser() }
-            .with { fetchCart() }
-            .with { fetchPromos() }
-            .with { fetchInventory() }
+            .withUser { fetchUser() }
+            .withCart { fetchCart() }
+            .withPromos { fetchPromos() }
+            .withInventory { fetchInventory() }
             // Phase 2: Validate stock (sequential — must wait for phase 1)
-            .then { validateStock() }
+            .thenStock { validateStock() }
             // Phase 3: Calculate costs (parallel)
-            .with { calcShipping() }
-            .with { calcTax() }
-            .with { calcDiscounts() }
+            .withShipping { calcShipping() }
+            .withTax { calcTax() }
+            .withDiscounts { calcDiscounts() }
             // Phase 4: Reserve payment (sequential)
-            .then { reservePayment() }
+            .thenPayment { reservePayment() }
             // Phase 5: Confirmation + email (parallel)
-            .with { generateConfirmation() }
-            .with { sendEmail() }
+            .withConfirmation { generateConfirmation() }
+            .withEmail { sendEmail() }
             .executeGraph()
 
     val elapsed = System.currentTimeMillis() - start

@@ -33,7 +33,7 @@ class ConcurrencyProofTest {
 
     @Test
     fun `5 parallel 50ms calls complete in 50ms virtual time not 250ms`() = runTest {
-        kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
+        Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String -> "$a|$b|$c|$d|$e" } } } } }
                 .with { delay(50); "A" }
                 .with { delay(50); "B" }
                 .with { delay(50); "C" }
@@ -47,10 +47,10 @@ class ConcurrencyProofTest {
 
     @Test
     fun `10 parallel 30ms calls complete in 30ms virtual time not 300ms`() = runTest {
-        kap { a: String, b: String, c: String, d: String, e: String,
-                     f: String, g: String, h: String, i: String, j: String ->
+        Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String ->
+                     { f: String -> { g: String -> { h: String -> { i: String -> { j: String ->
                 listOf(a, b, c, d, e, f, g, h, i, j).joinToString("|")
-            }
+            } } } } } } } } } }
                 .with { delay(30); "v1" }.with { delay(30); "v2" }.with { delay(30); "v3" }
                 .with { delay(30); "v4" }.with { delay(30); "v5" }.with { delay(30); "v6" }
                 .with { delay(30); "v7" }.with { delay(30); "v8" }.with { delay(30); "v9" }
@@ -84,7 +84,7 @@ class ConcurrencyProofTest {
         //   t=30: A, B complete. then runs C
         //   t=80: C completes. Barrier signal fires. D launches.
         //   t=110: D completes.
-        val result = kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> "$a|$b|$c|$d" } } } }
                 .with { delay(30); "A" }
                 .with { delay(30); "B" }
                 .then { delay(50); "C" }
@@ -100,7 +100,7 @@ class ConcurrencyProofTest {
     fun `thenValue preserves old eager-launch semantics - no barrier`() = runTest {
         // thenValue fills a slot sequentially but does NOT gate subsequent with calls.
         // D launches at t=0 and overlaps with everything.
-        val result = kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> "$a|$b|$c|$d" } } } }
                 .with { delay(30); "A" }
                 .with { delay(30); "B" }
                 .thenValue { delay(50); "C" }
@@ -118,7 +118,7 @@ class ConcurrencyProofTest {
         // even though subsequent with computations launch eagerly.
         val order = mutableListOf<String>()
 
-        val result = kap { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> "$a|$b|$c|$d" } } } }
                 .with { order.add("A"); "A" }
                 .with { order.add("B"); "B" }
                 .then { order.add("C"); "C" }
@@ -139,9 +139,9 @@ class ConcurrencyProofTest {
         // Barrier D: starts at t=40, ends at t=70
         // Phase 2: E, F launch in parallel AFTER barrier (40ms)
         // Total: 40 + 30 + 40 = 110ms
-        val result = kap { a: String, b: String, c: String, d: String, e: String, f: String ->
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String -> { f: String ->
                 "$a|$b|$c|$d|$e|$f"
-            }
+            } } } } } }
                 .with { delay(40); "A" }            // ┐ phase 1: parallel
                 .with { delay(40); "B" }            // │
                 .with { delay(40); "C" }            // ┘
@@ -158,9 +158,9 @@ class ConcurrencyProofTest {
     @Test
     fun `multiple with calls after then all run in parallel`() = runTest {
         // Proves that post-barrier with calls launch SIMULTANEOUSLY when the barrier fires
-        val result = kap { a: String, b: String, c: String, d: String, e: String ->
+        val result = Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String ->
                 "$a|$b|$c|$d|$e"
-            }
+            } } } } }
                 .with { delay(20); "A" }
                 .then { delay(30); "B" }
                 .with { delay(40); "C" }    // ┐ all three launch when barrier fires
@@ -184,10 +184,10 @@ class ConcurrencyProofTest {
         val allStarted = (0 until 10).map { CompletableDeferred<Unit>() }
 
         runCatching {
-            kap { a: String, b: String, c: String, d: String, e: String,
-                         f: String, g: String, h: String, i: String, j: String ->
+            Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String ->
+                         { f: String -> { g: String -> { h: String -> { i: String -> { j: String ->
                     "$a|$b|$c|$d|$e|$f|$g|$h|$i|$j"
-                }
+                } } } } } } } } } }
                     .with { allStarted[0].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[0].complete(true); throw e } }
                     .with { allStarted[1].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[1].complete(true); throw e } }
                     .with { allStarted[2].complete(Unit); try { awaitCancellation() } catch (e: kotlinx.coroutines.CancellationException) { cancelled[2].complete(true); throw e } }
@@ -229,7 +229,7 @@ class ConcurrencyProofTest {
         val rawTime = currentTime
 
         // Library (starts from same virtual clock)
-        kap { a: String, b: String, c: String, d: String, e: String -> "$a|$b|$c|$d|$e" }
+        Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String -> "$a|$b|$c|$d|$e" } } } } }
                 .with { delay(50); "A" }
                 .with { delay(50); "B" }
                 .with { delay(50); "C" }
@@ -248,9 +248,9 @@ class ConcurrencyProofTest {
         // Barrier 1: valid (30ms) → t=70
         // Phase 2: shipping, tax launch in parallel (40ms) → t=110
         // Barrier 2: pay (50ms) → t=160
-        kap { a: String, b: String, c: String, d: String, e: String, f: String, g: String ->
+        Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String -> { f: String -> { g: String ->
                 "$a|$b|$c|$d|$e|$f|$g"
-            }
+            } } } } } } }
                 .with { delay(40); "user" }           // ┐ phase 1
                 .with { delay(40); "cart" }           // │
                 .with { delay(40); "promos" }         // ┘
@@ -278,13 +278,13 @@ class ConcurrencyProofTest {
         // Phase 3: 3 calls @ 30ms parallel = 30ms → t=130
         // Total: 30 + 20 + 30 + 20 + 30 = 130ms
         // Sequential would be: 14*30 + 2*20 = 460ms (3.5x speedup)
-        val result = kap { v1: String, v2: String, v3: String, v4: String,
-                     v5: String,
-                     v6: String, v7: String, v8: String, v9: String, v10: String,
-                     v11: String,
-                     v12: String, v13: String, v14: String ->
+        val result = Kap.of { v1: String -> { v2: String -> { v3: String -> { v4: String ->
+                     { v5: String ->
+                     { v6: String -> { v7: String -> { v8: String -> { v9: String -> { v10: String ->
+                     { v11: String ->
+                     { v12: String -> { v13: String -> { v14: String ->
                 listOf(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14).joinToString("|")
-            }
+            } } } } } } } } } } } } } }
                 .with { delay(30); "user" }          // ┐ phase 1
                 .with { delay(30); "prefs" }         // │
                 .with { delay(30); "loyalty" }       // │

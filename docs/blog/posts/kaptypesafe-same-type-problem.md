@@ -49,39 +49,33 @@ One annotation. KSP generates everything:
 data class User(val firstName: String, val lastName: String, val age: Int)
 ```
 
-KSP generates:
+KSP generates a step builder chain where each step only exposes the method for the next parameter:
 
 ```kotlin
-// Distinct wrapper types — each String parameter gets its own type
-data class UserFirstName(val value: String)
-data class UserLastName(val value: String)
-data class UserAge(val value: Int)
-
-// Type-safe kap function
-fun kapSafe(f: (String, String, Int) -> User): Kap<(UserFirstName) -> (UserLastName) -> (UserAge) -> User>
-
-// Fluent extension functions
-fun String.toFirstName(): UserFirstName
-fun String.toLastName(): UserLastName
-fun Int.toAge(): UserAge
+// Step builder interfaces — no wrapper types needed
+// kap(::User) returns a builder that only has .withFirstName
+// .withFirstName { } returns a builder that only has .withLastName
+// .withLastName { } returns a builder that only has .withAge
+// .withAge { } returns an executable graph
 ```
 
 Usage:
 
 ```kotlin
-kapSafe(::User)
-    .with { fetchFirstName().toFirstName() }   // UserFirstName
-    .with { fetchLastName().toLastName() }     // UserLastName — swap? COMPILE ERROR
-    .with { fetchAge().toAge() }               // UserAge
+kap(::User)
+    .withFirstName { fetchFirstName() }   // only .withFirstName is available here
+    .withLastName { fetchLastName() }     // only .withLastName is available here
+    .withAge { fetchAge() }               // only .withAge is available here
+    .executeGraph()
 ```
 
-Swap `.toFirstName()` and `.toLastName()`? The compiler rejects it. `UserFirstName` is not `UserLastName`. Done.
+Try calling `.withLastName` before `.withFirstName`? The compiler rejects it — that method doesn't exist on the current step. Done.
 
 ## Multiplatform by design
 
-The generated wrappers are `data class` — they work on every Kotlin target: JVM, JS, WASM, Native, iOS, macOS. The KSP processor runs on JVM during compilation, but the code it generates compiles everywhere. No platform restrictions.
+The generated step builders are pure Kotlin interfaces — they work on every Kotlin target: JVM, JS, WASM, Native, iOS, macOS. The KSP processor runs on JVM during compilation, but the code it generates compiles everywhere. No platform restrictions.
 
-The overhead is one small object per wrapper — negligible when you're wrapping network calls that take 50ms+. The type safety is what matters, and it's enforced at compile time.
+There are no wrapper types or extra allocations — the step builders guide the developer at compile time and add zero runtime overhead. The type safety is what matters, and it's enforced at compile time.
 
 ## Works on functions too
 
@@ -92,12 +86,13 @@ Not just constructors:
 fun buildDashboard(userName: String, cartSummary: String, promoCode: String): Dashboard =
     Dashboard(userName, cartSummary, promoCode)
 
-// Generated: kapSafeBuildDashboard(), .toUserName(), .toCartSummary(), .toPromoCode()
+// KSP generates a BuildDashboard marker object and named step builders
 
-kapSafeBuildDashboard(::buildDashboard)
-    .with { fetchUserName().toUserName() }
-    .with { fetchCartSummary().toCartSummary() }
-    .with { fetchPromoCode().toPromoCode() }
+kap(BuildDashboard)
+    .withUserName { fetchUserName() }
+    .withCartSummary { fetchCartSummary() }
+    .withPromoCode { fetchPromoCode() }
+    .executeGraph()
 ```
 
 ## Handling collisions with `prefix`
@@ -112,14 +107,14 @@ fun buildDashboard(userName: String, cartSummary: String, promoCode: String): Da
 fun buildReport(userName: String, dateRange: String, format: String): Report
 ```
 
-Dashboard generates `.toDashboardUserName()`. Report generates `.toReportUserName()`. No collision. Default is no prefix — clean and short for the common case.
+Dashboard generates `.withDashboardUserName { }`. Report generates `.withReportUserName { }`. No collision. Default is no prefix — clean and short for the common case.
 
 ## Why nobody else does this
 
 The "newtype" pattern is well-known. Haskell, Rust, Scala — everyone recommends it. But nobody automates it because:
 
 1. **It requires code generation** — you can't do it with the type system alone
-2. **The generated code needs to integrate with a specific API** — it's not a general-purpose tool, it needs to know about `Kap` and `.with`
+2. **The generated code needs to integrate with a specific API** — it's not a general-purpose tool, it needs to know about `Kap` and the step builder chain
 3. **KSP2 just became stable** — the tooling wasn't ready until recently
 
 KAP is (as far as we know) the first Kotlin framework to ship this. One annotation, zero boilerplate, compile-time enforcement, full multiplatform support.
@@ -133,8 +128,8 @@ Instead of hiding it, we:
 1. Acknowledged the limitation
 2. Explored solutions (value classes, compiler plugins, KSP)
 3. Built the simplest thing that works (`@KapTypeSafe` + KSP2)
-4. Made it ergonomic (`.toFirstName()` extensions, `prefix` for collisions)
-5. Chose `data class` over `@JvmInline value class` for full multiplatform compatibility
+4. Made it ergonomic (named step builders like `.withFirstName { }`, `prefix` for collisions)
+5. Eliminated wrapper types entirely — step builders enforce order without runtime overhead
 
 Each step was driven by one question: "what would make the developer's life easier?"
 

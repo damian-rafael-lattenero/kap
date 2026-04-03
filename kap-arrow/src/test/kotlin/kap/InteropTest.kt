@@ -32,7 +32,7 @@ class InteropTest {
         val deferredA = CompletableDeferred("hello")
         val deferredB = CompletableDeferred("world")
 
-        val result = kap { a: String, b: String -> "$a $b" }
+        val result = Kap.of { a: String -> { b: String -> "$a $b" } }
             .with { with(deferredA.toKap()) { execute() } }
             .with { with(deferredB.toKap()) { execute() } }.executeGraph()
         assertEquals("hello world", result)
@@ -64,7 +64,7 @@ class InteropTest {
 
     @Test
     fun `Flow firstAsKap composes with kap+with`() = runTest {
-        val result = kap { a: String, b: Int -> "$a=$b" }
+        val result = Kap.of { a: String -> { b: Int -> "$a=$b" } }
             .with { with(flowOf("count").firstAsKap()) { execute() } }
             .with { with(flowOf(42).firstAsKap()) { execute() } }.executeGraph()
         assertEquals("count=42", result)
@@ -86,7 +86,7 @@ class InteropTest {
         val fetchUser: suspend () -> String = { "Alice" }
         val fetchAge: suspend () -> Int = { 30 }
 
-        val result = kap { name: String, age: Int -> "$name($age)" }
+        val result = Kap.of { name: String -> { age: Int -> "$name($age)" } }
             .with { with(fetchUser.toKap()) { execute() } }
             .with { with(fetchAge.toKap()) { execute() } }.executeGraph()
         assertEquals("Alice(30)", result)
@@ -202,7 +202,7 @@ class InteropTest {
         val deferred = CompletableDeferred<String>()
         val computation = deferred.toKap()
 
-        val result = kap { a: String, b: String -> "$a|$b" }
+        val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
             .with {
                 kotlinx.coroutines.delay(50)
                 deferred.complete("resolved")

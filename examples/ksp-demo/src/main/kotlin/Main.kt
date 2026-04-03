@@ -1,7 +1,9 @@
+@file:KapBridge(ThirdPartyDto::class)
+
 import kap.*
 import kotlinx.coroutines.delay
 
-// ── Class: no prefix needed (unique param names) ───────────────
+// ── Class: kap(::User) — no companion object needed ───────────
 
 @KapTypeSafe
 data class User(val firstName: String, val lastName: String, val age: Int)
@@ -14,9 +16,6 @@ suspend fun fetchAge(): Int { delay(10); return 30 }
 
 data class Dashboard(val userName: String, val cartSummary: String, val promoCode: String)
 data class Report(val userName: String, val dateRange: String, val format: String)
-
-// Without prefix these would COLLIDE: both have "userName: String"
-// → String.toUserName() would be generated twice = compile error
 
 @KapTypeSafe(prefix = "Dashboard")
 fun buildDashboard(userName: String, cartSummary: String, promoCode: String): Dashboard =
@@ -32,36 +31,70 @@ suspend fun fetchPromoCode(): String { delay(10); return "SAVE20" }
 suspend fun fetchDateRange(): String { delay(15); return "2026-01-01..2026-03-27" }
 suspend fun fetchFormat(): String { delay(5); return "PDF" }
 
+// ── Third-party class via @KapBridge ───────────────────────────
+
+data class ThirdPartyDto(val id: Int, val name: String, val active: Boolean)
+
+// ── Phase barrier demo ─────────────────────────────────────────
+
+@KapTypeSafe
+data class Checkout(
+    val user: String,
+    val cart: String,
+    val validated: Boolean,
+    val total: Double,
+)
+
+suspend fun fetchUser(): String { delay(30); return "Alice" }
+suspend fun fetchCart(): String { delay(20); return "3 items" }
+suspend fun validateOrder(): Boolean { delay(10); return true }
+suspend fun calculateTotal(): Double { delay(15); return 147.50 }
+
 // ── Main ───────────────────────────────────────────────────────
 
 suspend fun main() {
-    println("=== KSP Type-Safe Demo ===\n")
+    println("=== KSP Named Builder Demo ===\n")
 
-    // Class: no prefix, short extensions
-    val safeUser = kapSafe(::User)
-            .with { fetchFirstName().toFirstName() }
-            .with { fetchLastName().toLastName() }
-            .with { fetchAge().toAge() }
-            .executeGraph()
-    println("  User (no prefix): $safeUser")
+    // Class: kap(::User)
+    val user = kap(::User)
+        .withFirstName { fetchFirstName() }
+        .withLastName { fetchLastName() }
+        .withAge { fetchAge() }
+        .executeGraph()
+    println("  User: $user")
 
-    // Dashboard: prefix = "Dashboard" → .toDashboardUserName()
-    val safeDash = kapSafeBuildDashboard(::buildDashboard)
-            .with { fetchUserName().toDashboardUserName() }
-            .with { fetchCartSummary().toDashboardCartSummary() }
-            .with { fetchPromoCode().toDashboardPromoCode() }
-            .executeGraph()
-    println("  Dashboard:        $safeDash")
+    // Function with prefix: kap(BuildDashboard)
+    val dash = kap(BuildDashboard)
+        .withDashboardUserName { fetchUserName() }
+        .withDashboardCartSummary { fetchCartSummary() }
+        .withDashboardPromoCode { fetchPromoCode() }
+        .executeGraph()
+    println("  Dashboard: $dash")
 
-    // Report: prefix = "Report" → .toReportUserName()
-    // Same "userName" param — NO collision with Dashboard!
-    val safeReport = kapSafeBuildReport(::buildReport)
-            .with { fetchUserName().toReportUserName() }
-            .with { fetchDateRange().toReportDateRange() }
-            .with { fetchFormat().toReportFormat() }
-            .executeGraph()
-    println("  Report:           $safeReport")
+    // Function with prefix: kap(BuildReport)
+    val report = kap(BuildReport)
+        .withReportUserName { fetchUserName() }
+        .withReportDateRange { fetchDateRange() }
+        .withReportFormat { fetchFormat() }
+        .executeGraph()
+    println("  Report: $report")
 
-    println("\n  Both Dashboard and Report have 'userName: String'")
-    println("  but .toDashboardUserName() and .toReportUserName() don't collide!")
+    // Third-party class via @KapBridge: kap(::ThirdPartyDto)
+    val dto = kap(::ThirdPartyDto)
+        .withId { 42 }
+        .withName { "bridged" }
+        .withActive { true }
+        .executeGraph()
+    println("  ThirdPartyDto: $dto")
+
+    // Phase barriers
+    val checkout = kap(::Checkout)
+        .withUser { fetchUser() }
+        .withCart { fetchCart() }
+        .thenValidated { validateOrder() }
+        .withTotal { calculateTotal() }
+        .executeGraph()
+    println("  Checkout: $checkout")
+
+    println("\nAll demos passed!")
 }
