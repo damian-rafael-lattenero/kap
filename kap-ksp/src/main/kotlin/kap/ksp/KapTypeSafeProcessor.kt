@@ -255,6 +255,9 @@ class KapTypeSafeProcessor(
             writeCurriedLambda(writer, params, "f")
             writer.write(")\n")
             writer.write("    )\n")
+
+            // Entry point: kapTyped — returns Kap curried with opaque types
+            writeKapTypedEntryPoint(writer, baseName, params, returnType)
         }
     }
 
@@ -312,6 +315,10 @@ class KapTypeSafeProcessor(
 
             writer.write(")\n")
             writer.write("    )\n")
+
+            // Entry point: kapTyped{Name} — returns Kap curried with opaque types
+            // Functions use kapTyped{Name} to avoid collision (same reason as kap(MarkerObject))
+            writeKapTypedEntryPoint(writer, baseName, params, returnType, functionSuffix = baseName)
         }
     }
 
@@ -347,6 +354,33 @@ class KapTypeSafeProcessor(
             val wrapperName = "$baseName${param.name.replaceFirstChar { it.uppercase() }}"
             writer.write("data class $wrapperName(val value: ${param.typeString})\n\n")
         }
+    }
+
+    private fun writeKapTypedEntryPoint(
+        writer: OutputStreamWriter,
+        baseName: String,
+        params: List<ParamInfo>,
+        returnType: String,
+        functionSuffix: String = "",
+    ) {
+        // Build the curried type with opaque wrappers: (CheckoutUser) -> (CheckoutCart) -> ... -> Checkout
+        val opaqueNames = params.map { "$baseName${it.name.replaceFirstChar { c -> c.uppercase() }}" }
+        val curriedType = opaqueNames.joinToString(" -> ") { "($it)" } + " -> $returnType"
+        val fnName = "kapTyped$functionSuffix"
+
+        writer.write("\n/** Opaque-typed entry point — use with generic `.with` for full type-level safety. */\n")
+        writer.write("fun $fnName(f: (${params.joinToString(", ") { it.typeString }}) -> $returnType): Kap<$curriedType> =\n")
+        writer.write("    Kap.of(")
+
+        // Build nested lambda: { p0: CheckoutUser -> { p1: CheckoutCart -> ... f(p0.value, p1.value, ...) } }
+        val paramNames = params.indices.map { "p$it" }
+        paramNames.zip(opaqueNames).forEach { (name, opaque) ->
+            writer.write("{ $name: $opaque -> ")
+        }
+        val callArgs = paramNames.joinToString(", ") { "$it.value" }
+        writer.write("f($callArgs)")
+        writer.write(" }".repeat(params.size))
+        writer.write(")\n")
     }
 
     private fun writeStepClasses(
