@@ -556,6 +556,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#6-the-graph-is-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. The graph is data
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1085,6 +1096,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#6-the-graph-is-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. The graph is data
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1263,6 +1285,35 @@
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">cd</span><span class="w"> </span>kap
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>./gradlew<span class="w"> </span>:examples:ecommerce-checkout:run
 </span></code></pre></div>
+<h2 id="6-the-graph-is-data">6. The graph is data<a class="headerlink" href="#6-the-graph-is-data" title="Permanent link">&para;</a></h2>
+<p>Nothing runs until <code>.executeGraph()</code>. The graph is a value — you can store it, pass it, branch on it:</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nd">@KapTypeSafe</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">Order</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">cart</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">shipping</span><span class="p">:</span><span class="w"> </span><span class="kt">Double</span><span class="p">)</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1">// Start building — nothing executes yet</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="kd">val</span><span class="w"> </span><span class="nv">base</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kap</span><span class="p">(</span><span class="o">::</span><span class="n">Order</span><span class="p">)</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="p">.</span><span class="na">withUser</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="c1">// A function completes the graph based on runtime conditions</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="kd">fun</span><span class="w"> </span><span class="nf">addCart</span><span class="p">(</span><span class="n">partial</span><span class="p">:</span><span class="w"> </span><span class="n">OrderStep1</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">):</span><span class="w"> </span><span class="n">OrderStep2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="p">(</span><span class="n">type</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="s">&quot;premium&quot;</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">partial</span><span class="p">.</span><span class="na">withCart</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchPremiumCart</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="k">else</span><span class="w">      </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">partial</span><span class="p">.</span><span class="na">withCart</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchStandardCart</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="p">}</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="c1">// Another function adds shipping based on country</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="kd">fun</span><span class="w"> </span><span class="nf">addShipping</span><span class="p">(</span><span class="n">partial</span><span class="p">:</span><span class="w"> </span><span class="n">OrderStep2</span><span class="p">,</span><span class="w"> </span><span class="n">country</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">):</span><span class="w"> </span><span class="n">Kap</span><span class="o">&lt;</span><span class="n">Order</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="p">(</span><span class="n">country</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">    </span><span class="s">&quot;AR&quot;</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">partial</span><span class="p">.</span><span class="na">withShipping</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">calcShippingAR</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">    </span><span class="s">&quot;US&quot;</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">partial</span><span class="p">.</span><span class="na">withShipping</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">calcShippingUS</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">partial</span><span class="p">.</span><span class="na">withShipping</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="m">0.0</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="p">}</span>
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="c1">// Assemble dynamically — still nothing has executed</span>
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="kd">val</span><span class="w"> </span><span class="nv">graph</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">addShipping</span><span class="p">(</span><span class="n">addCart</span><span class="p">(</span><span class="n">base</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;premium&quot;</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;AR&quot;</span><span class="p">)</span>
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="c1">// NOW everything runs — parallel branches execute concurrently</span>
+</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a><span class="kd">val</span><span class="w"> </span><span class="nv">order</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">graph</span><span class="p">.</span><span class="na">executeGraph</span><span class="p">()</span>
+</span></code></pre></div>
+<p>This is what raw coroutines can't do: <code>async {}</code> starts immediately. In KAP, the graph is lazy — you build it, shape it, then execute it.</p>
 <h2 id="whats-next">What's next?<a class="headerlink" href="#whats-next" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../modules/kap-core/">kap-core KDocs</a> — Full API with Raw/Arrow/KAP comparisons</li>
