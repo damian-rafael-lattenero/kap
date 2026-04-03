@@ -131,7 +131,7 @@ $params,
 }
 
 tasks.register("generateAll") {
-    dependsOn("generateCurry", "generateKap", "generateZipCombine")
+    dependsOn("generateZipCombine")
     description = "Regenerates all codegen files for kap-core"
     group = "codegen"
 }
