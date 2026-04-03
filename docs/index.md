@@ -120,22 +120,29 @@ t=130ms ─── done
 Real APIs have dependencies: phase 2 needs phase 1's results. With raw coroutines, you thread values through variables manually. With KAP, the dependency graph **is** the code shape:
 
 ```kotlin
+@KapTypeSafe
+data class UserContext(val profile: Profile, val preferences: Prefs, val loyaltyTier: Tier)
+@KapTypeSafe
+data class EnrichedContent(val recommendations: Recs, val promotions: Promos, val trending: Trending, val history: History)
+@KapTypeSafe
+data class FinalDashboard(val layout: Layout, val analytics: Analytics)
+
 val userId = "user-42"
 
 val dashboard: FinalDashboard = kap(::UserContext)
-    .with { fetchProfile(userId) }       // ┐
-    .with { fetchPreferences(userId) }   // ├─ phase 1: parallel
-    .with { fetchLoyaltyTier(userId) }   // ┘
+    .withProfile { fetchProfile(userId) }       // ┐
+    .withPreferences { fetchPreferences(userId) }   // ├─ phase 1: parallel
+    .withLoyaltyTier { fetchLoyaltyTier(userId) }   // ┘
     .andThen { ctx ->                    // ── barrier: ctx available
         kap(::EnrichedContent)
-            .with { fetchRecommendations(ctx.profile) }  // ┐
-            .with { fetchPromotions(ctx.tier) }           // ├─ phase 2: parallel
-            .with { fetchTrending(ctx.prefs) }            // │
-            .with { fetchHistory(ctx.profile) }           // ┘
+            .withRecommendations { fetchRecommendations(ctx.profile) }  // ┐
+            .withPromotions { fetchPromotions(ctx.tier) }               // ├─ phase 2: parallel
+            .withTrending { fetchTrending(ctx.prefs) }                  // │
+            .withHistory { fetchHistory(ctx.profile) }                  // ┘
             .andThen { enriched ->                         // ── barrier
                 kap(::FinalDashboard)
-                    .with { renderLayout(ctx, enriched) }     // ┐ phase 3
-                    .with { trackAnalytics(ctx, enriched) }   // ┘
+                    .withLayout { renderLayout(ctx, enriched) }     // ┐ phase 3
+                    .withAnalytics { trackAnalytics(ctx, enriched) }   // ┘
             }
     }
     .executeGraph()
@@ -163,17 +170,20 @@ t=115ms ─── FinalDashboard ready
 ## Add resilience in the same chain
 
 ```kotlin
+@KapTypeSafe
+data class Dashboard(val user: String, val slowData: String, val promos: String)
+
 val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 val retryPolicy = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
 
 val result = kap(::Dashboard)
-    .with(Kap { fetchUser() }
+    .withUser(Kap { fetchUser() }
         .withCircuitBreaker(breaker)      // protect downstream
         .retry(retryPolicy))              // exponential backoff
-    .with(Kap { fetchFromSlowApi() }
+    .withSlowData(Kap { fetchFromSlowApi() }
         .timeoutRace(100.milliseconds,    // both start at t=0
             Kap { fetchFromCache() }))    // fallback already running
-    .with { fetchPromos() }
+    .withPromos { fetchPromos() }
     .executeGraph()
 ```
 

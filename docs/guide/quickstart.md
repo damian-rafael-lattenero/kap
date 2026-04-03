@@ -96,6 +96,7 @@ data class Cart(val items: Int)
 data class StockCheck(val confirmed: Boolean)
 data class ShippingQuote(val amount: Double)
 data class TaxBreakdown(val rate: Double)
+@KapTypeSafe
 data class CheckoutResult(
     val user: User, val cart: Cart, val stock: StockCheck,
     val shipping: ShippingQuote, val tax: TaxBreakdown,
@@ -132,7 +133,9 @@ When phase 2 needs phase 1's result, use `.andThen`:
 import kap.*
 import kotlinx.coroutines.delay
 
+@KapTypeSafe
 data class UserContext(val profile: String, val prefs: String)
+@KapTypeSafe
 data class EnrichedDashboard(val recs: String, val promos: String)
 
 suspend fun fetchProfile(userId: String): String { delay(50); return "profile-$userId" }
@@ -144,12 +147,12 @@ suspend fun main() {
     val userId = "user-42"
 
     val dashboard: EnrichedDashboard = kap(::UserContext)
-        .with { fetchProfile(userId) }      // ┐ phase 1: parallel
-        .with { fetchPreferences(userId) }   // ┘
-        .andThen { ctx ->                    // ── barrier: ctx available
+        .withProfile { fetchProfile(userId) }        // ┐ phase 1: parallel
+        .withPrefs { fetchPreferences(userId) }      // ┘
+        .andThen { ctx ->                            // ── barrier: ctx available
             kap(::EnrichedDashboard)
-                .with { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
-                .with { fetchPromotions(ctx.prefs) }          // ┘ uses ctx from phase 1
+                .withRecs { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
+                .withPromos { fetchPromotions(ctx.prefs) }        // ┘ uses ctx from phase 1
         }
         .executeGraph()
     println(dashboard)

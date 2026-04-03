@@ -86,18 +86,26 @@ Better — parallel within phases. But you still need intermediate data classes,
 Code that looks like the execution plan:
 
 ```kotlin
+@KapTypeSafe
+data class CheckoutResult(
+    val user: UserProfile, val cart: ShoppingCart, val promos: PromotionBundle,
+    val inventory: InventorySnapshot, val stock: StockValidation,
+    val shipping: ShippingQuote, val tax: TaxBreakdown, val discounts: DiscountSummary,
+    val payment: PaymentReservation, val confirmation: OrderConfirmation, val email: EmailReceipt,
+)
+
 val checkout: CheckoutResult = kap(::CheckoutResult)
-    .with { fetchUser() }              // ┐
-    .with { fetchCart() }               // ├─ phase 1: parallel
-    .with { fetchPromos() }             // │
-    .with { fetchInventory() }          // ┘
-    .then { validateStock() }           // ── phase 2: barrier
-    .with { calcShipping() }            // ┐
-    .with { calcTax() }                 // ├─ phase 3: parallel
-    .with { calcDiscounts() }           // ┘
-    .then { reservePayment() }          // ── phase 4: barrier
-    .with { generateConfirmation() }    // ┐ phase 5: parallel
-    .with { sendEmail() }              // ┘
+    .withUser { fetchUser() }              // ┐
+    .withCart { fetchCart() }               // ├─ phase 1: parallel
+    .withPromos { fetchPromos() }           // │
+    .withInventory { fetchInventory() }    // ┘
+    .thenStock { validateStock() }         // ── phase 2: barrier
+    .withShipping { calcShipping() }       // ┐
+    .withTax { calcTax() }                 // ├─ phase 3: parallel
+    .withDiscounts { calcDiscounts() }     // ┘
+    .thenPayment { reservePayment() }      // ── phase 4: barrier
+    .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
+    .withEmail { sendEmail() }             // ┘
     .executeGraph()
 ```
 

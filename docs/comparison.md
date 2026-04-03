@@ -120,20 +120,27 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
 === "KAP (12 lines)"
 
     ```kotlin
+    @KapTypeSafe
+    data class CheckoutResult(
+        val user: User, val cart: Cart, val promos: Promos, val inventory: Inventory,
+        val stock: StockCheck, val shipping: Shipping, val tax: Tax, val discounts: Discounts,
+        val payment: Payment, val confirmation: Confirmation, val email: Email,
+    )
+
     val checkout: CheckoutResult = kap(::CheckoutResult)
-        .with { fetchUser() }              // ┐
-        .with { fetchCart() }               // ├─ phase 1: parallel
-        .with { fetchPromos() }             // │
-        .with { fetchInventory() }          // ┘
-        .then { validateStock() }           // ── phase 2: barrier
-        .with { calcShipping() }            // ┐
-        .with { calcTax() }                 // ├─ phase 3: parallel
-        .with { calcDiscounts() }           // ┘
-        .then { reservePayment() }          // ── phase 4: barrier
-        .with { generateConfirmation() }    // ┐ phase 5: parallel
-        .with { sendEmail() }              // ┘
+        .withUser { fetchUser() }              // ┐
+        .withCart { fetchCart() }               // ├─ phase 1: parallel
+        .withPromos { fetchPromos() }           // │
+        .withInventory { fetchInventory() }     // ┘
+        .thenStock { validateStock() }          // ── phase 2: barrier
+        .withShipping { calcShipping() }        // ┐
+        .withTax { calcTax() }                  // ├─ phase 3: parallel
+        .withDiscounts { calcDiscounts() }      // ┘
+        .thenPayment { reservePayment() }       // ── phase 4: barrier
+        .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
+        .withEmail { sendEmail() }             // ┘
         .executeGraph()
-    // 12 lines. Phases explicit. Swap any .with → compile error.
+    // 12 lines. Phases explicit. Swap any .withX → compile error.
     // No shuttle variables. No intermediate data classes.
     ```
 

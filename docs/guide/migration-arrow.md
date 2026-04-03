@@ -53,10 +53,13 @@ Almost identical. KAP's `combine` is Arrow's `parZip` equivalent.
 === "KAP"
 
     ```kotlin
+    @KapTypeSafe
+    data class Page(val user: String, val cart: String)
+
     // Typed chain — swap .with lines? COMPILE ERROR.
     val result = kap(::Page)
-        .with { fetchUser() }
-        .with { fetchCart() }
+        .withUser { fetchUser() }
+        .withCart { fetchCart() }
         .executeGraph()
     ```
 
@@ -86,12 +89,15 @@ This is where KAP shines. Arrow requires separate `parZip` calls with intermedia
 === "KAP"
 
     ```kotlin
+    @KapTypeSafe
+    data class Result(val user: User, val cart: Cart, val validated: Validated, val shipping: Shipping, val tax: Tax)
+
     val result = kap(::Result)
-        .with { fetchUser() }       // ┐ phase 1
-        .with { fetchCart() }        // ┘
-        .then { validate() }         // ── phase 2: barrier
-        .with { calcShipping() }     // ┐ phase 3
-        .with { calcTax() }          // ┘
+        .withUser { fetchUser() }           // ┐ phase 1
+        .withCart { fetchCart() }            // ┘
+        .thenValidated { validate() }       // ── phase 2: barrier
+        .withShipping { calcShipping() }    // ┐ phase 3
+        .withTax { calcTax() }              // ┘
         .executeGraph()
     ```
 
@@ -113,13 +119,18 @@ This is where KAP shines. Arrow requires separate `parZip` calls with intermedia
 === "KAP"
 
     ```kotlin
+    @KapTypeSafe
+    data class UserContext(val profile: String, val prefs: String)
+    @KapTypeSafe
+    data class Enriched(val recs: String, val promos: String)
+
     val enriched = kap(::UserContext)
-        .with { fetchProfile(userId) }
-        .with { fetchPrefs(userId) }
+        .withProfile { fetchProfile(userId) }
+        .withPrefs { fetchPrefs(userId) }
         .andThen { ctx ->
             kap(::Enriched)
-                .with { fetchRecs(ctx.profile) }
-                .with { fetchPromos(ctx.prefs) }
+                .withRecs { fetchRecs(ctx.profile) }
+                .withPromos { fetchPromos(ctx.prefs) }
         }
         .executeGraph()
     ```

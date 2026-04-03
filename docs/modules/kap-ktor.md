@@ -71,12 +71,15 @@ routing {
 Execute a KAP computation and respond:
 
 ```kotlin
+@KapTypeSafe
+data class Dashboard(val user: String, val cart: String, val promos: String)
+
 get("/dashboard/{userId}") {
     call.respondAsync {
         kap(::Dashboard)
-            .with { fetchUser(userId) }
-            .with { fetchCart(userId) }
-            .with { fetchPromos(userId) }
+            .withUser { fetchUser(userId) }
+            .withCart { fetchCart(userId) }
+            .withPromos { fetchPromos(userId) }
     }
 }
 ```
@@ -86,11 +89,14 @@ get("/dashboard/{userId}") {
 Execute any suspend block and respond:
 
 ```kotlin
+@KapTypeSafe
+data class UserResponse(val profile: String, val preferences: String)
+
 get("/user/{id}") {
     call.respondKap {
         kap(::UserResponse)
-            .with { fetchProfile(id) }
-            .with { fetchPreferences(id) }
+            .withProfile { fetchProfile(id) }
+            .withPreferences { fetchPreferences(id) }
             .executeGraph()
     }
 }
@@ -137,13 +143,13 @@ fun Application.module() {
             val tracer = call.kapTracer
 
             val dashboard = kap(::Dashboard)
-                .with {
+                .withUser {
                     Kap { fetchUser(userId) }
                         .withCircuitBreaker(breaker)
                         .traced("fetch-user", tracer)
                 }
-                .with { fetchCart(userId) }
-                .with { fetchPromos(userId) }
+                .withCart { fetchCart(userId) }
+                .withPromos { fetchPromos(userId) }
                 .executeGraph()
             call.respond(dashboard)
         }

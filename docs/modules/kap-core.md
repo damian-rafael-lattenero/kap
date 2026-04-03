@@ -95,10 +95,13 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
 === "KAP"
 
     ```kotlin
+    @KapTypeSafe
+    data class Result(val a: A, val b: B, val validated: Validated)
+
     val result = kap(::Result)
-        .with { fetchA() }         // ┐ parallel
-        .with { fetchB() }         // ┘
-        .then { validate() }       // ── barrier: waits for A and B
+        .withA { fetchA() }             // ┐ parallel
+        .withB { fetchB() }             // ┘
+        .thenValidated { validate() }   // ── barrier: waits for A and B
         .executeGraph()
     ```
 
@@ -263,10 +266,13 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
     **Without `settled` — one failure cancels everything:**
 
     ```kotlin
+    @KapTypeSafe
+    data class Dashboard(val user: String, val cart: String, val config: String)
+
     val dashboard = kap(::Dashboard)
-        .with { fetchUser() }     // throws! → cart and config CANCELLED
-        .with { fetchCart() }      // never runs
-        .with { fetchConfig() }    // never runs
+        .withUser { fetchUser() }     // throws! → cart and config CANCELLED
+        .withCart { fetchCart() }      // never runs
+        .withConfig { fetchConfig() }  // never runs
         .executeGraph()
     // RuntimeException — entire dashboard lost. Cart and config were fine.
     ```
@@ -275,12 +281,13 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
 
     ```kotlin
     // The type changes: user becomes Result<String> instead of String
+    @KapTypeSafe
     data class Dashboard(val user: Result<String>, val cart: String, val config: String)
 
     val dashboard = kap(::Dashboard)
-        .with(settled { fetchUser() })   // Result<String> — won't cancel siblings
-        .with { fetchCart() }              // String — runs normally
-        .with { fetchConfig() }            // String — runs normally
+        .withUser(settled { fetchUser() })   // Result<String> — won't cancel siblings
+        .withCart { fetchCart() }              // String — runs normally
+        .withConfig { fetchConfig() }          // String — runs normally
         .executeGraph()
     // Dashboard(user=Result.failure(RuntimeException), cart=cart-ok, config=config-ok)
 
@@ -743,7 +750,10 @@ Works with constructor refs, function refs, and lambdas:
 
 ```kotlin
 // Constructor reference
-val g1 = kap(::Greeting).with { fetchName() }.with { "hello" }.executeGraph()
+@KapTypeSafe
+data class Greeting(val name: String, val message: String)
+
+val g1 = kap(::Greeting).withName { fetchName() }.withMessage { "hello" }.executeGraph()
 
 // Lambda
 val greet: (String, Int) -> String = { name, age -> "Hi $name, you're $age" }
@@ -783,9 +793,12 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
 === "KAP"
 
     ```kotlin
+    @KapTypeSafe
+    data class Page(val content: Content, val sidebar: Sidebar, val timestamp: Timestamp)
+
     val result = kap(::Page)
-        .with { fetchContent() }           // parallel
-        .with { fetchSidebar() }           // parallel
+        .withContent { fetchContent() }           // parallel
+        .withSidebar { fetchSidebar() }           // parallel
         .thenValue { computeTimestamp() }  // sequential fill, no barrier
         .executeGraph()
     ```
@@ -954,6 +967,9 @@ val kap: Kap<String> = lambda.toKap()
 ### Observability
 
 ```kotlin
+@KapTypeSafe
+data class Dashboard(val user: String, val config: String)
+
 val tracer = KapTracer { event ->
     when (event) {
         is TraceEvent.Started -> logger.info("${event.name} started")
@@ -963,8 +979,8 @@ val tracer = KapTracer { event ->
 }
 
 val result = kap(::Dashboard)
-    .with(Kap { fetchUser() }.traced("fetch-user", tracer))
-    .with(Kap { fetchConfig() }.traced("fetch-config", tracer))
+    .withUser(Kap { fetchUser() }.traced("fetch-user", tracer))
+    .withConfig(Kap { fetchConfig() }.traced("fetch-config", tracer))
     .executeGraph()
 ```
 
@@ -1042,10 +1058,13 @@ val maybeResult: String? = withOrNull { Kap { riskyOperation() } }
 `Kap<A>` is **lazy** — nothing runs until `.executeGraph()`:
 
 ```kotlin
+@KapTypeSafe
+data class Dashboard(val user: String, val cart: String, val promos: String)
+
 val plan: Kap<Dashboard> = kap(::Dashboard)
-    .with { fetchDashUser() }
-    .with { fetchDashCart() }
-    .with { fetchDashPromos() }
+    .withUser { fetchDashUser() }
+    .withCart { fetchDashCart() }
+    .withPromos { fetchDashPromos() }
 
 println("Plan built. Nothing has executed yet.")
 println("plan is: ${plan::class.simpleName}")

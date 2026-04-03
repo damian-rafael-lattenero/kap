@@ -442,17 +442,17 @@ Supports arities 2-22.
 
     ```kotlin
     val result = kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
-        .with(bracket(
+        .withDb(bracket(
             acquire = { openDbConnection() },
             use = { conn -> Kap { conn.query("SELECT 1") } },
             release = { conn -> conn.close() },
         ))
-        .with(bracket(
+        .withCache(bracket(
             acquire = { openCacheConnection() },
             use = { conn -> Kap { conn.get("key") } },
             release = { conn -> conn.close() },
         ))
-        .with(bracket(
+        .withApi(bracket(
             acquire = { openHttpClient() },
             use = { client -> Kap { client.get("/api") } },
             release = { client -> client.close() },
@@ -549,6 +549,9 @@ Supports arities 2-22.
 === "KAP"
 
     ```kotlin
+    @KapTypeSafe
+    data class DashboardData(val dbResult: String, val cacheResult: String, val httpResult: String)
+
     val db = Resource({ openDbConnection() }, { it.close() })
     val cache = Resource({ openCacheConnection() }, { it.close() })
     val http = Resource({ openHttpClient() }, { it.close() })
@@ -557,9 +560,9 @@ Supports arities 2-22.
 
     val result = infra.useKap { (db, cache, http) ->
         kap(::DashboardData)
-            .with { db.query("SELECT 1") }
-            .with { cache.get("user:prefs") }
-            .with { http.get("/recommendations") }
+            .withDbResult { db.query("SELECT 1") }
+            .withCacheResult { cache.get("user:prefs") }
+            .withHttpResult { http.get("/recommendations") }
     }.executeGraph()
     // All acquired, used in parallel, released in reverse order. Guaranteed.
     ```

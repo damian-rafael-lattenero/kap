@@ -21,6 +21,7 @@ git clone https://github.com/damian-rafael-lattenero/kap.git && cd kap
 import kap.*
 import kotlinx.coroutines.delay
 
+@KapTypeSafe
 data class Dashboard(val user: String, val cart: String, val promos: String)
 
 suspend fun fetchUser(): String { delay(30); return "Alice" }
@@ -29,9 +30,9 @@ suspend fun fetchPromos(): String { delay(10); return "SAVE20" }
 
 suspend fun main() {
     val result: Dashboard = kap(::Dashboard)
-        .with { fetchUser() }     // ┐ all three start at t=0
-        .with { fetchCart() }      // │ total time = max(30, 20, 10) = 30ms
-        .with { fetchPromos() }    // ┘ not 60ms sequential
+        .withUser { fetchUser() }     // ┐ all three start at t=0
+        .withCart { fetchCart() }      // │ total time = max(30, 20, 10) = 30ms
+        .withPromos { fetchPromos() }    // ┘ not 60ms sequential
         .executeGraph()
     println(result)
     // Dashboard(user=Alice, cart=3 items, promos=SAVE20)
@@ -58,6 +59,7 @@ data class PaymentAuth(val cardLast4: String, val authorized: Boolean)
 data class OrderConfirmation(val orderId: String)
 data class EmailReceipt(val sentTo: String, val orderId: String)
 
+@KapTypeSafe
 data class CheckoutResult(
     val user: UserProfile, val cart: ShoppingCart, val promos: PromotionBundle,
     val inventory: InventorySnapshot, val stock: StockConfirmation,
@@ -79,17 +81,17 @@ suspend fun sendEmail(): EmailReceipt { delay(20); return EmailReceipt("alice@ex
 
 suspend fun main() {
     val checkout: CheckoutResult = kap(::CheckoutResult)
-        .with { fetchUser() }              // ┐
-        .with { fetchCart() }               // ├─ phase 1: parallel
-        .with { fetchPromos() }             // │
-        .with { fetchInventory() }          // ┘
-        .then { validateStock() }           // ── phase 2: barrier
-        .with { calcShipping() }            // ┐
-        .with { calcTax() }                 // ├─ phase 3: parallel
-        .with { calcDiscounts() }           // ┘
-        .then { reservePayment() }          // ── phase 4: barrier
-        .with { generateConfirmation() }    // ┐ phase 5: parallel
-        .with { sendEmail() }              // ┘
+        .withUser { fetchUser() }              // ┐
+        .withCart { fetchCart() }               // ├─ phase 1: parallel
+        .withPromos { fetchPromos() }             // │
+        .withInventory { fetchInventory() }          // ┘
+        .thenStock { validateStock() }           // ── phase 2: barrier
+        .withShipping { calcShipping() }            // ┐
+        .withTax { calcTax() }                 // ├─ phase 3: parallel
+        .withDiscounts { calcDiscounts() }           // ┘
+        .thenPayment { reservePayment() }          // ── phase 4: barrier
+        .withConfirmation { generateConfirmation() }    // ┐ phase 5: parallel
+        .withEmail { sendEmail() }              // ┘
         .executeGraph()
     println(checkout)
     // CheckoutResult(user=UserProfile(name=Alice, id=42), cart=ShoppingCart(items=3, total=147.5), ...)
@@ -105,7 +107,9 @@ suspend fun main() {
 import kap.*
 import kotlinx.coroutines.delay
 
+@KapTypeSafe
 data class UserContext(val profile: String, val prefs: String, val tier: String)
+@KapTypeSafe
 data class PersonalizedDashboard(val recs: String, val promos: String, val trending: String)
 
 suspend fun fetchProfile(id: String): String { delay(50); return "profile-$id" }
@@ -117,14 +121,14 @@ suspend fun fetchTrending(prefs: String): String { delay(20); return "trending-$
 
 suspend fun main() {
     val dashboard = kap(::UserContext)
-        .with { fetchProfile("user-1") }       // ┐ phase 1: parallel
-        .with { fetchPreferences("user-1") }   // │
-        .with { fetchLoyaltyTier("user-1") }   // ┘
+        .withProfile { fetchProfile("user-1") }       // ┐ phase 1: parallel
+        .withPrefs { fetchPreferences("user-1") }   // │
+        .withTier { fetchLoyaltyTier("user-1") }   // ┘
         .andThen { ctx ->                       // ── barrier: ctx available
             kap(::PersonalizedDashboard)
-                .with { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
-                .with { fetchPromotions(ctx.tier) }           // │ uses ctx from phase 1
-                .with { fetchTrending(ctx.prefs) }            // ┘
+                .withRecs { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
+                .withPromos { fetchPromotions(ctx.tier) }           // │ uses ctx from phase 1
+                .withTrending { fetchTrending(ctx.prefs) }            // ┘
         }
         .executeGraph()
     println(dashboard)
@@ -141,6 +145,7 @@ import kap.*
 import kotlinx.coroutines.delay
 
 // The type changes: user is Result<String> instead of String
+@KapTypeSafe
 data class PartialDashboard(val user: Result<String>, val cart: String, val config: String)
 
 // Services: one is unreliable, the others always succeed
@@ -150,9 +155,9 @@ suspend fun fetchConfigAlways(): String { delay(15); return "config-ok" }
 
 suspend fun main() {
     val dashboard = kap(::PartialDashboard)
-        .with(settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
-        .with { fetchCartAlways() }             // String — runs normally
-        .with { fetchConfigAlways() }            // String — runs normally
+        .withUser(settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
+        .withCart { fetchCartAlways() }             // String — runs normally
+        .withConfig { fetchConfigAlways() }            // String — runs normally
         .executeGraph()
 
     println(dashboard)
@@ -425,6 +430,7 @@ data class GithubRepo(
 @Serializable
 data class CatFact(val fact: String, val length: Int = 0)
 
+@KapTypeSafe
 data class DeveloperProfile(val user: GithubUser, val topRepos: List<GithubRepo>, val funFact: String)
 
 val client = HttpClient(CIO) {
@@ -442,9 +448,9 @@ suspend fun fetchCatFact(): CatFact =
 
 suspend fun main() {
     val profile = kap(::DeveloperProfile)
-        .with { fetchGithubUser("JetBrains") }      // ┐
-        .with { fetchGithubRepos("JetBrains") }      // ├─ all three in parallel
-        .with { fetchCatFact().fact }                  // ┘
+        .withUser { fetchGithubUser("JetBrains") }      // ┐
+        .withTopRepos { fetchGithubRepos("JetBrains") }      // ├─ all three in parallel
+        .withFunFact { fetchCatFact().fact }                  // ┘
         .executeGraph()
 
     println("User: ${profile.user.login} (${profile.user.name})")
