@@ -112,17 +112,18 @@ val dashboard = coroutineScope {
 
 ## And it scales.
 
-11 microservice calls. 5 phases. Dependencies between them. One flat chain:
+11 microservice calls. 5 phases. Dependencies between them. One flat chain.
+11 parameters, 8 are String, 3 are numbers/booleans — and the compiler still catches every swap:
 
 ```kotlin
 @KapTypeSafe
 data class CheckoutResult(
-    val user: UserProfile, val cart: ShoppingCart,
-    val promos: PromotionBundle, val inventory: InventorySnapshot,
-    val stock: StockConfirmation,
-    val shipping: ShippingQuote, val tax: TaxBreakdown, val discounts: DiscountSummary,
-    val payment: PaymentAuth,
-    val confirmation: OrderConfirmation, val email: EmailReceipt,
+    val user: String, val cart: String,
+    val promos: String, val inventory: Boolean,
+    val stock: Boolean,
+    val shipping: Double, val tax: Double, val discounts: Double,
+    val payment: String,
+    val confirmation: String, val email: String,
 )
 
 val checkout: CheckoutResult = kap(::CheckoutResult)

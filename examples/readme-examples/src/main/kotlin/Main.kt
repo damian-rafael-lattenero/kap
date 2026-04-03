@@ -13,44 +13,35 @@ import kotlin.time.Duration.Companion.seconds
 //  Shared domain types & simulated services
 // ═══════════════════════════════════════════════════════════════════════
 
-data class UserProfile(val name: String, val id: Long)
-data class ShoppingCart(val items: Int, val total: Double)
-data class PromotionBundle(val code: String, val discountPct: Int)
-data class InventorySnapshot(val allInStock: Boolean)
-data class StockConfirmation(val confirmed: Boolean)
-data class ShippingQuote(val amount: Double, val method: String)
-data class TaxBreakdown(val amount: Double, val rate: Double)
-data class DiscountSummary(val amount: Double, val promoApplied: String)
-data class PaymentAuth(val cardLast4: String, val authorized: Boolean)
-data class OrderConfirmation(val orderId: String)
-data class EmailReceipt(val sentTo: String, val orderId: String)
+// No wrapper types needed — @KapTypeSafe named builders make
+// even all-String / all-Boolean parameters type-safe by position.
 
 @KapTypeSafe
 data class CheckoutResult(
-    val user: UserProfile,
-    val cart: ShoppingCart,
-    val promos: PromotionBundle,
-    val inventory: InventorySnapshot,
-    val stock: StockConfirmation,
-    val shipping: ShippingQuote,
-    val tax: TaxBreakdown,
-    val discounts: DiscountSummary,
-    val payment: PaymentAuth,
-    val confirmation: OrderConfirmation,
-    val email: EmailReceipt,
+    val user: String,
+    val cart: String,
+    val promos: String,
+    val inventory: Boolean,
+    val stock: Boolean,
+    val shipping: Double,
+    val tax: Double,
+    val discounts: Double,
+    val payment: String,
+    val confirmation: String,
+    val email: String,
 )
 
-suspend fun fetchUser(): UserProfile { delay(50); return UserProfile("Alice", 42) }
-suspend fun fetchCart(): ShoppingCart { delay(40); return ShoppingCart(3, 147.50) }
-suspend fun fetchPromos(): PromotionBundle { delay(30); return PromotionBundle("SUMMER20", 20) }
-suspend fun fetchInventory(): InventorySnapshot { delay(50); return InventorySnapshot(allInStock = true) }
-suspend fun validateStock(): StockConfirmation { delay(20); return StockConfirmation(confirmed = true) }
-suspend fun calcShipping(): ShippingQuote { delay(30); return ShippingQuote(5.99, "standard") }
-suspend fun calcTax(): TaxBreakdown { delay(20); return TaxBreakdown(12.38, 0.08) }
-suspend fun calcDiscounts(): DiscountSummary { delay(15); return DiscountSummary(29.50, "SUMMER20") }
-suspend fun reservePayment(): PaymentAuth { delay(40); return PaymentAuth("4242", authorized = true) }
-suspend fun generateConfirmation(): OrderConfirmation { delay(30); return OrderConfirmation("order-#90142") }
-suspend fun sendEmail(): EmailReceipt { delay(20); return EmailReceipt("alice@example.com", "order-#90142") }
+suspend fun fetchUser(): String { delay(50); return "Alice (id=42)" }
+suspend fun fetchCart(): String { delay(40); return "3 items, $147.50" }
+suspend fun fetchPromos(): String { delay(30); return "SUMMER20 (20% off)" }
+suspend fun fetchInventory(): Boolean { delay(50); return true }
+suspend fun validateStock(): Boolean { delay(20); return true }
+suspend fun calcShipping(): Double { delay(30); return 5.99 }
+suspend fun calcTax(): Double { delay(20); return 12.38 }
+suspend fun calcDiscounts(): Double { delay(15); return 29.50 }
+suspend fun reservePayment(): String { delay(40); return "visa-4242-authorized" }
+suspend fun generateConfirmation(): String { delay(30); return "order-#90142" }
+suspend fun sendEmail(): String { delay(20); return "sent-to-alice@example.com" }
 
 suspend fun fetchName(): String { delay(30); return "Alice" }
 suspend fun fetchAge(): Int { delay(20); return 30 }
@@ -131,8 +122,8 @@ suspend fun rawCoroutinesCheckout() {
 //  Section: Arrow Checkout (for comparison)
 // ═══════════════════════════════════════════════════════════════════════
 
-data class Phase1(val user: UserProfile, val cart: ShoppingCart, val promos: PromotionBundle, val inventory: InventorySnapshot)
-data class Phase3(val shipping: ShippingQuote, val tax: TaxBreakdown, val discounts: DiscountSummary)
+data class Phase1(val user: String, val cart: String, val promos: String, val inventory: Boolean)
+data class Phase3(val shipping: Double, val tax: Double, val discounts: Double)
 
 suspend fun arrowCheckout() {
     println("=== Arrow Checkout (for comparison) ===\n")

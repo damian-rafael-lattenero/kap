@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.seconds
 data class PricingData(val price: Double, val currency: String, val source: String)
 data class UserProfile(val id: Long, val name: String, val tier: String)
 data class AppConfig(val maxItems: Int, val featureFlags: Map<String, Boolean>)
-data class AuditLog(val entries: List<String>)
+// No AuditLog wrapper needed — List<String> works directly with named builders
 @KapTypeSafe
 data class DualConfig(val primary: AppConfig, val secondary: AppConfig)
 
@@ -33,7 +33,7 @@ data class FetcherResult(
     val pricing: PricingData,
     val user: UserProfile,
     val config: AppConfig,
-    val audit: AuditLog,
+    val audit: List<String>,
 )
 
 // ── Simulated infrastructure ────────────────────────────────────────────
@@ -85,14 +85,14 @@ suspend fun openDbConnection(): DbConnection {
     return DbConnection("config-db")
 }
 
-suspend fun fetchAuditLogSlow(): AuditLog {
+suspend fun fetchAuditLogSlow(): List<String> {
     delay(500)
-    return AuditLog(listOf("slow-source"))
+    return listOf("slow-source")
 }
 
-suspend fun fetchAuditLogCache(): AuditLog {
+suspend fun fetchAuditLogCache(): List<String> {
     delay(30)
-    return AuditLog(listOf("login", "view-pricing", "update-cart"))
+    return listOf("login", "view-pricing", "update-cart")
 }
 
 suspend fun main() {
@@ -191,7 +191,7 @@ suspend fun main() {
             .timeoutRace(200.milliseconds, Kap { fetchAuditLogCache() })
             .executeGraph()
 
-    println("  Audit log: ${audit.entries}")
+    println("  Audit log: $audit")
     println("  (came from cache because slow source takes 500ms)")
     println("  (${elapsed()})\n")
 
@@ -281,7 +281,7 @@ suspend fun main() {
     println("  Pricing:  ${fullResult.pricing.source} @ ${fullResult.pricing.currency} ${fullResult.pricing.price}")
     println("  User:     ${fullResult.user.name} (${fullResult.user.tier})")
     println("  Config:   maxItems=${fullResult.config.maxItems}")
-    println("  Audit:    ${fullResult.audit.entries}")
+    println("  Audit:    ${fullResult.audit}")
     println("  Pipeline time: ${pipelineElapsed}ms")
     println("\nTotal example time: ${elapsed()}")
 }
