@@ -43,6 +43,17 @@ public final class DeveloperProfile {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class DeveloperProfileFunFact {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)LDeveloperProfileFunFact;
+	public static synthetic fun copy$default (LDeveloperProfileFunFact;Ljava/lang/String;ILjava/lang/Object;)LDeveloperProfileFunFact;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class DeveloperProfileKapBuilderKt {
 	public static final fun kap (Lkotlin/jvm/functions/Function3;)LDeveloperProfileStep0;
 }
@@ -66,6 +77,28 @@ public final class DeveloperProfileStep2 {
 	public final fun thenFunFact (Lkotlin/jvm/functions/Function1;)Lkap/Kap;
 	public final fun withFunFact (Lkap/Kap;)Lkap/Kap;
 	public final fun withFunFact (Lkotlin/jvm/functions/Function1;)Lkap/Kap;
+}
+
+public final class DeveloperProfileTopRepos {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)LDeveloperProfileTopRepos;
+	public static synthetic fun copy$default (LDeveloperProfileTopRepos;Ljava/util/List;ILjava/lang/Object;)LDeveloperProfileTopRepos;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class DeveloperProfileUser {
+	public fun <init> (LGithubUser;)V
+	public final fun component1 ()LGithubUser;
+	public final fun copy (LGithubUser;)LDeveloperProfileUser;
+	public static synthetic fun copy$default (LDeveloperProfileUser;LGithubUser;ILjava/lang/Object;)LDeveloperProfileUser;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()LGithubUser;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class GithubRepo {

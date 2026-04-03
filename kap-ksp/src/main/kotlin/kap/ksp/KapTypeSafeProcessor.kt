@@ -242,6 +242,7 @@ class KapTypeSafeProcessor(
 
         OutputStreamWriter(file).use { writer ->
             writeHeader(writer, hasPackage, packageName, params)
+            writeOpaqueTypes(writer, baseName, params)
             writeStepClasses(writer, stepPrefix, params, returnType, prefix)
 
             // Entry point: kap(f: (...) -> ReturnType)
@@ -285,6 +286,7 @@ class KapTypeSafeProcessor(
 
         OutputStreamWriter(file).use { writer ->
             writeHeader(writer, hasPackage, packageName, params)
+            writeOpaqueTypes(writer, baseName, params)
 
             // Generate marker object
             writer.write("object $markerObjectName\n\n")
@@ -333,6 +335,18 @@ class KapTypeSafeProcessor(
             writer.write("import kap.withOrNull\n")
         }
         writer.write("\n")
+    }
+
+    private fun writeOpaqueTypes(
+        writer: OutputStreamWriter,
+        baseName: String,
+        params: List<ParamInfo>,
+    ) {
+        writer.write("// ── Opaque types — use with generic .with for full type-level safety ──\n\n")
+        for (param in params) {
+            val wrapperName = "$baseName${param.name.replaceFirstChar { it.uppercase() }}"
+            writer.write("data class $wrapperName(val value: ${param.typeString})\n\n")
+        }
     }
 
     private fun writeStepClasses(

@@ -379,6 +379,53 @@ class KapTypeSafeTest {
 
         assertEquals(FiveParams("a", 1, true, 2.0, 3L), result)
     }
+    // ── Opaque types: generic .with + type-level safety ────────────
+
+    @Test
+    fun `opaque types work with generic with operator`() = runTest {
+        val result = Kap.of { a: SimpleTwoName -> { b: SimpleTwoAge -> SimpleTwo(a.value, b.value) } }
+            .with { SimpleTwoName("Alice") }
+            .with { SimpleTwoAge(30) }
+            .executeGraph()
+
+        assertEquals(SimpleTwo("Alice", 30), result)
+    }
+
+    @Test
+    fun `opaque types prevent swapping same-typed params`() = runTest {
+        // SimpleTwo has (name: String, age: Int)
+        // Generated: SimpleTwoName(String), SimpleTwoAge(Int)
+        //
+        // If you try to swap:
+        //   .with { SimpleTwoAge(30) }    // COMPILE ERROR: expected SimpleTwoName
+        //   .with { SimpleTwoName("x") }  // COMPILE ERROR: expected SimpleTwoAge
+        //
+        // The types enforce the correct order.
+
+        val result = Kap.of { name: SimpleTwoName -> { age: SimpleTwoAge -> SimpleTwo(name.value, age.value) } }
+            .with { SimpleTwoName("Bob") }
+            .with { SimpleTwoAge(25) }
+            .executeGraph()
+
+        assertEquals(SimpleTwo("Bob", 25), result)
+    }
+
+    @Test
+    fun `opaque types for all-same-type class prevent swaps`() = runTest {
+        // AllSameType has (first: String, second: String, third: String)
+        // Generated: AllSameTypeFirst(String), AllSameTypeSecond(String), AllSameTypeThird(String)
+        // All wrap String but are distinct types — can't swap.
+
+        val result = Kap.of { a: AllSameTypeFirst -> { b: AllSameTypeSecond -> { c: AllSameTypeThird ->
+            AllSameType(a.value, b.value, c.value)
+        } } }
+            .with { AllSameTypeFirst("one") }
+            .with { AllSameTypeSecond("two") }
+            .with { AllSameTypeThird("three") }
+            .executeGraph()
+
+        assertEquals(AllSameType("one", "two", "three"), result)
+    }
 }
 
 // ── Helpers used by @KapBridge test ─────────────────────────────────
