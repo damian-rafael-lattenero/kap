@@ -45,11 +45,11 @@ CheckoutResult(user, cart, stock, dShipping.await(), dTax.await())
 ```kotlin
 // KAP — the structure IS the execution plan
 kap(::CheckoutResult)
-    .withUser { fetchUser() }          // ┐ phase 1: parallel
-    .withCart { fetchCart() }           // ┘
-    .thenStock { validateStock() }     // ── barrier
-    .withShipping { calcShipping() }   // ┐ phase 2: parallel
-    .withTax { calcTax() }             // ┘
+    .withUser { fetchUser() }        // ┐ phase 1: parallel
+    .withCart { fetchCart() }         // ┘
+    .thenStock { validateStock() }   // ── barrier
+    .withShipping { calcShipping() } // ┐ phase 2: parallel
+    .withTax { calcTax() }           // ┘
     .executeGraph()
 ```
 
@@ -103,18 +103,18 @@ data class CheckoutResult(
     val confirmation: String, val email: String,
 )
 
-val checkout: CheckoutResult = kap(::CheckoutResult)
-    .withUser { fetchUser() }               // ┐
-    .withCart { fetchCart() }                // ├─ phase 1: parallel
-    .withPromos { fetchPromos() }           // │
-    .withInventory { fetchInventory() }     // ┘
-    .thenStock { validateStock() }          // ── phase 2: barrier
-    .withShipping { calcShipping() }        // ┐
-    .withTax { calcTax() }                  // ├─ phase 3: parallel
-    .withDiscounts { calcDiscounts() }      // ┘
-    .thenPayment { reservePayment() }       // ── phase 4: barrier
-    .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
-    .withEmail { sendEmail() }                    // ┘
+val checkout = kap(::CheckoutResult)
+    .withUser { fetchUser() }                  // ┐
+    .withCart { fetchCart() }                   // ├─ phase 1: parallel
+    .withPromos { fetchPromos() }              // │
+    .withInventory { fetchInventory() }        // ┘
+    .thenStock { validateStock() }             // ── phase 2: barrier
+    .withShipping { calcShipping() }           // ┐
+    .withTax { calcTax() }                     // ├─ phase 3: parallel
+    .withDiscounts { calcDiscounts() }         // ┘
+    .thenPayment { reservePayment() }          // ── phase 4: barrier
+    .withConfirmation { generateConfirmation() }   // ┐ phase 5
+    .withEmail { sendEmail() }                     // ┘
     .executeGraph()
 ```
 
