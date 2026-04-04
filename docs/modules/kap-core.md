@@ -295,6 +295,25 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
     val userName = dashboard.user.getOrDefault("anonymous")  // "anonymous"
     ```
 
+#### `timed { }` — Measure any call without manual instrumentation
+
+The `timed { }` shorthand wraps a call so it returns `TimedResult<A>` — the value plus its wall-clock duration:
+
+```kotlin
+@KapTypeSafe
+data class Dashboard(val user: String, val latency: TimedResult<String>)
+
+val dashboard = kap(::Dashboard)
+    .withUser { fetchUser() }
+    .withLatency(timed { fetchSlowService() })   // TimedResult(value, duration)
+    .executeGraph()
+
+println(dashboard.latency.duration) // 230.ms
+println(dashboard.latency.value)    // "slow-result"
+```
+
+Like `settled { }`, `timed { }` is a top-level shorthand for `Kap { block() }.timed()`. Use it inline in `.with` calls to measure individual branches without restructuring your graph.
+
 #### `traverseSettled` — Collect ALL results, no cancellation
 
 === "Raw Coroutines"

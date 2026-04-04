@@ -253,6 +253,20 @@ fun <A> Iterable<Kap<A>>.firstSuccess(): Kap<A> =
  */
 fun <A> settled(block: suspend () -> A): Kap<Result<A>> = Kap { block() }.settled()
 
+/**
+ * Shorthand for `Kap { block() }.timed()`.
+ *
+ * Wraps a suspend call so it returns [TimedResult] — the value plus
+ * its wall-clock [Duration]:
+ *
+ * ```
+ * kap(::Dashboard)
+ *     .withLatency(timed { fetchUser() })   // TimedResult<String>
+ *     .withCart { fetchCart() }              // String
+ * ```
+ */
+fun <A> timed(block: suspend () -> A): Kap<TimedResult<A>> = Kap { block() }.timed()
+
 // ── backoff strategies ───────────────────────────────────────────────────
 
 /** Doubles the delay on each retry. */

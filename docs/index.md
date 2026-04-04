@@ -15,8 +15,8 @@ hide:
 <div class="hero">
   <img src="assets/logo.png" alt="KAP">
   <h1>KAP</h1>
-  <p><strong>Stop wiring async calls manually.</strong><br>
-  Compile-time safe coroutine orchestration with visible phases.</p>
+  <p><strong>Type-safe coroutine orchestration for Kotlin Multiplatform.</strong><br>
+  The code reads like a diagram. The compiler won't let you wire it wrong.</p>
   <p>
     <a href="guide/quickstart/" class="md-button md-button--primary">Get Started</a>
     <a href="https://github.com/damian-rafael-lattenero/kap" class="md-button">GitHub</a>
@@ -246,6 +246,7 @@ Scales to **22 validators** (Arrow's `zipOrAccumulate` maxes at 9).
 **Utilities**
 
 - [`memoize` / `memoizeOnSuccess`](modules/kap-core.md#memoization) — cache computation results thread-safely
+- [`timed { }`](modules/kap-core.md#timed--measure-any-call-without-manual-instrumentation) — measure wall-clock duration of any call
 - [`Kap.of` / `.empty` / `.failed` / `.defer`](modules/kap-core.md#kapofvalue-kapempty-kapfailederror-kapdefer) — construction helpers
 - [`Deferred.toKap()` / `.toDeferred`](modules/kap-core.md#interop) — coroutine interop
 - [`traced` / `KapTracer`](modules/kap-core.md#observability) — structured observability hooks

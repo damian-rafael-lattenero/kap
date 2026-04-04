@@ -3,6 +3,7 @@
 import kap.*
 import arrow.core.Either
 import arrow.core.NonEmptyList
+import arrow.core.getOrElse
 import arrow.core.nonEmptyListOf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -1760,6 +1761,369 @@ suspend fun featureRaceEither() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//  README v3: "The problem" — raw coroutines with retry + circuit breaker
+// ═══════════════════════════════════════════════════════════════════════
+
+@KapTypeSafe
+data class ResilientCheckout(
+    val user: String, val cart: String, val promos: String,
+    val stock: Boolean,
+    val shipping: Double, val tax: Double,
+    val payment: String,
+)
+
+suspend fun readmeRawProblem() {
+    println("=== README: Raw problem (retry + CB) ===\n")
+
+    val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+
+    val result = coroutineScope {
+        val dUser  = async { fetchUser() }
+        val dCart  = async { fetchCart() }
+        val dPromos = async {
+            withTimeout(3.seconds) { fetchPromos() }
+        }
+        val user   = dUser.await()
+        val cart    = dCart.await()
+        val promos  = dPromos.await()
+
+        var stock = false
+        var attempt = 0
+        var retryDelay = 100.milliseconds
+        while (true) {
+            try {
+                stock = validateStock()
+                break
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                if (++attempt >= 3) throw e
+                delay(retryDelay)
+                retryDelay *= 2
+            }
+        }
+
+        val dShipping = async { calcShipping() }
+        val dTax      = async { calcTax() }
+        val shipping  = dShipping.await()
+        val tax       = dTax.await()
+
+        // manual circuit breaker logic (simulated — real API is internal)
+        var cbFailures = 0
+        val cbMaxFailures = 5
+        val payment = if (cbFailures >= cbMaxFailures) {
+            throw RuntimeException("circuit breaker open")
+        } else {
+            try {
+                val p = withTimeout(5.seconds) { reservePayment() }
+                cbFailures = 0 // reset on success
+                p
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                cbFailures++
+                throw e
+            }
+        }
+
+        ResilientCheckout(user, cart, promos, stock, shipping, tax, payment)
+    }
+
+    println("  Result: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  README v3: "With KAP" — same checkout, Kap overloads, single executeGraph
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun readmeKapSolution() {
+    println("=== README: KAP solution (Kap overloads) ===\n")
+
+    val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds) and Schedule.times(3)
+    val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+
+    val result = kap(::ResilientCheckout)
+        .withUser { fetchUser() }
+        .withCart { fetchCart() }
+        .withPromos(Kap { fetchPromos() }.timeout(3.seconds))
+        .thenStock(Kap { validateStock() }.retry(retryPolicy))
+        .withShipping { calcShipping() }
+        .withTax { calcTax() }
+        .thenPayment(Kap { reservePayment() }
+            .withCircuitBreaker(breaker)
+            .timeout(5.seconds))
+        .executeGraph()
+
+    println("  Result: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  README v3: "Start simple" — Dashboard, ProfilePage, andThen
+// ═══════════════════════════════════════════════════════════════════════
+
+@KapTypeSafe
+data class SimpleDashboard(val user: String, val feed: String, val notifications: Int)
+
+suspend fun fetchFeed(): String { delay(20); return "feed-items" }
+suspend fun countUnread(): Int { delay(15); return 7 }
+
+@KapTypeSafe
+data class ProfilePage(val user: String, val avatar: String, val recommendations: String)
+
+suspend fun fetchAvatar(id: String): String { delay(20); return "avatar-$id" }
+suspend fun fetchRecs(user: String): String { delay(30); return "recs-for-$user" }
+
+@KapTypeSafe
+data class FullPage(val dashboard: SimpleDashboard, val suggestions: String)
+
+suspend fun fetchSuggestions(user: String): String { delay(25); return "suggestions-for-$user" }
+
+suspend fun readmeStartSimple() {
+    println("=== README: Start simple ===\n")
+
+    // Basic parallel
+    val dash = kap(::SimpleDashboard)
+        .withUser { fetchUser() }
+        .withFeed { fetchFeed() }
+        .withNotifications { countUnread() }
+        .executeGraph()
+    println("  Dashboard: $dash")
+
+    // With barrier
+    val profile = kap(::ProfilePage)
+        .withUser { fetchUser() }
+        .withAvatar { fetchAvatar("42") }
+        .thenRecommendations { fetchRecs(dash.user) }
+        .executeGraph()
+    println("  Profile: $profile")
+
+    // andThen
+    val full = kap(::SimpleDashboard)
+        .withUser { fetchUser() }
+        .withFeed { fetchFeed() }
+        .withNotifications { countUnread() }
+        .andThen { dashboard ->
+            kap(::FullPage)
+                .withDashboard { dashboard }
+                .withSuggestions { fetchSuggestions(dashboard.user) }
+        }
+        .executeGraph()
+    println("  Full page: $full\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  README v3: "What if one call fails?" — settled { } and timed { }
+// ═══════════════════════════════════════════════════════════════════════
+
+@KapTypeSafe
+data class HomePage(val profile: String, val feed: Result<String>, val ads: Result<String>)
+
+suspend fun fetchProfileHP(): String { delay(30); return "Alice" }
+suspend fun fetchFeedHP(): String { throw RuntimeException("feed service down") }
+suspend fun fetchAdsHP(): String { delay(40); return "banner-42" }
+
+suspend fun callService(svc: String): String {
+    delay(20)
+    if (svc == "svc-b") throw RuntimeException("$svc timed out")
+    return "ok"
+}
+
+@KapTypeSafe
+data class TimedDashboard(val user: String, val latency: TimedResult<String>)
+
+suspend fun fetchSlowService(): String { delay(230); return "slow-result" }
+
+suspend fun readmeSettledAndTimed() {
+    println("=== README: settled { } and timed { } ===\n")
+
+    // HomePage with settled — feed fails but profile and ads still complete
+    val home = kap(::HomePage)
+        .withProfile { fetchProfileHP() }
+        .withFeed(settled { fetchFeedHP() })
+        .withAds(settled { fetchAdsHP() })
+        .executeGraph()
+    println("  HomePage: profile=${home.profile}, feed=${home.feed.isFailure}, ads=${home.ads.getOrNull()}")
+
+    // traverseSettled
+    val results = listOf("svc-a", "svc-b", "svc-c").traverseSettled { svc ->
+        Kap { callService(svc) }
+    }.executeGraph()
+    println("  traverseSettled: $results")
+
+    // timed { }
+    val dashboard = kap(::TimedDashboard)
+        .withUser { fetchUser() }
+        .withLatency(timed { fetchSlowService() })
+        .executeGraph()
+    println("  timed: value=${dashboard.latency.value}, duration=${dashboard.latency.duration}\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  README v3: "Composable superpowers" — standalone features
+// ═══════════════════════════════════════════════════════════════════════
+
+suspend fun fetchProfile2(): String { delay(30); return "Alice" }
+suspend fun fetchFeed2(): String { delay(20); return "feed-ok" }
+suspend fun fetchAds(): String { delay(40); return "banner-42" }
+
+suspend fun pricingFromUS(item: String): Double { delay(100); return 9.99 }
+suspend fun pricingFromEU(item: String): Double { delay(50); return 10.49 }
+suspend fun pricingFromAsia(item: String): Double { delay(200); return 8.99 }
+
+suspend fun fetchUserById(id: Int): String { delay(30); return "user-$id" }
+
+suspend fun fetchFromApi2(): String { delay(300); return "api-result" }
+suspend fun readFromCache(): String { delay(20); return "cached-result" }
+
+suspend fun callFlakyService(): String { delay(10); return "ok" }
+suspend fun loadRemoteConfig(): String { delay(50); return "config-v42" }
+
+suspend fun readmeComposableSuperpowers() {
+    println("=== README: Composable superpowers ===\n")
+
+    // Partial failure — settled
+    val results = listOf(
+        Kap { fetchProfile2() },
+        Kap { fetchFeed2() },
+        Kap { fetchAds() },
+    ).sequenceSettled().executeGraph()
+    println("  settled: $results")
+
+    // Race — fastest wins
+    val price = raceN(
+        Kap { pricingFromUS("item") },
+        Kap { pricingFromEU("item") },
+        Kap { pricingFromAsia("item") },
+    ).executeGraph()
+    println("  race: $price")
+
+    // Bounded concurrency — traverse
+    val userIds = (1..20).toList()
+    val users = userIds.traverse(concurrency = 5) { id ->
+        Kap { fetchUserById(id) }
+    }.executeGraph()
+    println("  traverse: ${users.size} users fetched")
+
+    // Timeout with parallel fallback
+    val data = Kap { fetchFromApi2() }
+        .timeoutRace(2.seconds, fallback = Kap { readFromCache() })
+        .executeGraph()
+    println("  timeoutRace: $data")
+
+    // Composable retry
+    val policy = Schedule.exponential<Throwable>(100.milliseconds)
+        .jittered()
+        .and(Schedule.times(3))
+        .withMaxDuration(10.seconds)
+    val retried = Kap { callFlakyService() }.retry(policy).executeGraph()
+    println("  retry: $retried")
+
+    // Memoize
+    val config = Kap { loadRemoteConfig() }.memoizeOnSuccess()
+    val c1 = config.executeGraph()
+    val c2 = config.executeGraph() // cached, no second HTTP call
+    println("  memoize: $c1 == $c2 -> ${c1 == c2}\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  README v3: "The full picture" — placeOrder with everything
+// ═══════════════════════════════════════════════════════════════════════
+
+sealed class OrderError(val message: String) {
+    class InvalidAddress(msg: String) : OrderError(msg)
+    class InvalidCard(msg: String) : OrderError(msg)
+    class InvalidItems(msg: String) : OrderError(msg)
+}
+
+data class ValidAddress(val value: String)
+data class ValidCard(val value: String)
+data class ValidItems(val value: List<String>)
+data class ValidOrder(val address: ValidAddress, val card: ValidCard, val items: ValidItems)
+
+data class OrderInput(val address: String, val card: String, val items: List<String>)
+
+@KapTypeSafe
+data class OrderResult(
+    val finalPrice: Double,
+    val reservationId: String,
+    val paymentId: String,
+    val notifications: List<Result<Unit>>,
+)
+
+suspend fun validateAddress(addr: String): Either<NonEmptyList<OrderError>, ValidAddress> {
+    delay(20); return Either.Right(ValidAddress(addr))
+}
+suspend fun validatePaymentInfo(card: String): Either<NonEmptyList<OrderError>, ValidCard> {
+    delay(15); return Either.Right(ValidCard(card))
+}
+suspend fun validateItems(items: List<String>): Either<NonEmptyList<OrderError>, ValidItems> {
+    delay(25); return Either.Right(ValidItems(items))
+}
+
+suspend fun pricingServiceA(order: ValidOrder): Double { delay(100); return 49.99 }
+suspend fun pricingServiceB(order: ValidOrder): Double { delay(50); return 52.99 }
+suspend fun pricingServiceC(order: ValidOrder): Double { delay(200); return 47.99 }
+
+suspend fun reserveInventory(tx: String, order: ValidOrder): String { delay(30); return "reservation-001" }
+suspend fun chargePayment(tx: String, order: ValidOrder): String { delay(40); return "payment-xyz" }
+
+suspend fun sendEmailOrder(order: ValidOrder) { delay(20) }
+suspend fun sendPush(order: ValidOrder) { delay(15) }
+suspend fun updateAnalytics(order: ValidOrder) { delay(10) }
+
+suspend fun readmeFullPicture() {
+    println("=== README: Full picture (placeOrder) ===\n")
+
+    val input = OrderInput("123 Main St", "visa-4242", listOf("item-a", "item-b"))
+
+    val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds).jittered() and Schedule.times(3)
+    val paymentBreaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+
+    // Phase 1: validate
+    val validated = kapV<OrderError, ValidAddress, ValidCard, ValidItems, ValidOrder>(::ValidOrder)
+        .withV { validateAddress(input.address) }
+        .withV { validatePaymentInfo(input.card) }
+        .withV { validateItems(input.items) }
+        .executeGraph()
+
+    val order = validated.getOrElse {
+        println("  Validation failed: ${it.map { e -> e.message }}\n")
+        return
+    }
+
+    // Phases 2-5: process inside bracket
+    val result = bracketCase(
+        acquire = { "tx-001" }, // simulated transaction
+        use = { tx ->
+            kap(::OrderResult)
+                .withFinalPrice(raceN(
+                    Kap { pricingServiceA(order) },
+                    Kap { pricingServiceB(order) },
+                    Kap { pricingServiceC(order) },
+                ))
+                .thenReservationId(
+                    Kap { reserveInventory(tx, order) }
+                        .retry(retryPolicy)
+                )
+                .thenPaymentId(
+                    Kap { chargePayment(tx, order) }
+                        .withCircuitBreaker(paymentBreaker)
+                        .timeout(5.seconds)
+                )
+                .withNotifications(listOf(
+                    Kap { sendEmailOrder(order) },
+                    Kap { sendPush(order) },
+                    Kap { updateAnalytics(order) },
+                ).sequenceSettled())
+        },
+        release = { tx, exit -> when (exit) {
+            is ExitCase.Completed<*> -> println("  Transaction $tx committed")
+            else                     -> println("  Transaction $tx rolled back")
+        }}
+    ).executeGraph()
+
+    println("  Result: $result\n")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //  Main — runs every example
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -1860,6 +2224,14 @@ suspend fun main() {
     featureTraverseV()
     featureSequenceV()
     featureRaceEither()
+
+    // README v3 examples
+    readmeRawProblem()
+    readmeKapSolution()
+    readmeStartSimple()
+    readmeSettledAndTimed()
+    readmeComposableSuperpowers()
+    readmeFullPicture()
 
     println("All README examples passed!")
 }
