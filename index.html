@@ -1290,8 +1290,8 @@
 <div class="hero">
   <img src="assets/logo.png" alt="KAP">
   <h1>KAP</h1>
-  <p><strong>Stop wiring async calls manually.</strong><br>
-  Compile-time safe coroutine orchestration with visible phases.</p>
+  <p><strong>Type-safe coroutine orchestration for Kotlin Multiplatform.</strong><br>
+  The code reads like a diagram. The compiler won't let you wire it wrong.</p>
   <p>
     <a href="guide/quickstart/" class="md-button md-button--primary">Get Started</a>
     <a href="https://github.com/damian-rafael-lattenero/kap" class="md-button">GitHub</a>
@@ -1489,6 +1489,7 @@
 <p><strong>Utilities</strong></p>
 <ul>
 <li><a href="modules/kap-core/#memoization"><code>memoize</code> / <code>memoizeOnSuccess</code></a> — cache computation results thread-safely</li>
+<li><a href="modules/kap-core/#timed--measure-any-call-without-manual-instrumentation"><code>timed { }</code></a> — measure wall-clock duration of any call</li>
 <li><a href="modules/kap-core/#kapofvalue-kapempty-kapfailederror-kapdefer"><code>Kap.of</code> / <code>.empty</code> / <code>.failed</code> / <code>.defer</code></a> — construction helpers</li>
 <li><a href="modules/kap-core/#interop"><code>Deferred.toKap()</code> / <code>.toDeferred</code></a> — coroutine interop</li>
 <li><a href="modules/kap-core/#observability"><code>traced</code> / <code>KapTracer</code></a> — structured observability hooks</li>
