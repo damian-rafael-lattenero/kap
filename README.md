@@ -520,13 +520,13 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.6.0")
 
     // optional — add any combination
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.5.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.5.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.5.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.5.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.6.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.6.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.6.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.6.0")
 }
 ```
 

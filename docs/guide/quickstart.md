@@ -16,9 +16,9 @@ Or add the dependency manually:
     }
 
     dependencies {
-        implementation("io.github.damian-rafael-lattenero:kap-core:2.5.0")
-        implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.5.0")
-        ksp("io.github.damian-rafael-lattenero:kap-ksp:2.5.0")
+        implementation("io.github.damian-rafael-lattenero:kap-core:2.6.0")
+        implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.6.0")
+        ksp("io.github.damian-rafael-lattenero:kap-ksp:2.6.0")
     }
     ```
 
@@ -30,9 +30,9 @@ Or add the dependency manually:
     }
 
     dependencies {
-        implementation 'io.github.damian-rafael-lattenero:kap-core:2.5.0'
-        implementation 'io.github.damian-rafael-lattenero:kap-ksp-annotations:2.5.0'
-        ksp 'io.github.damian-rafael-lattenero:kap-ksp:2.5.0'
+        implementation 'io.github.damian-rafael-lattenero:kap-core:2.6.0'
+        implementation 'io.github.damian-rafael-lattenero:kap-ksp-annotations:2.6.0'
+        ksp 'io.github.damian-rafael-lattenero:kap-ksp:2.6.0'
     }
     ```
 
@@ -42,7 +42,7 @@ Or add the dependency manually:
     <dependency>
         <groupId>io.github.damian-rafael-lattenero</groupId>
         <artifactId>kap-core-jvm</artifactId>
-        <version>2.5.0</version>
+        <version>2.6.0</version>
     </dependency>
     <!-- See kap-ksp docs for Maven KSP setup -->
     ```

@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-04-04
+
+### Added
+- **`timed { }` top-level shorthand** — like `settled { }`, wraps a call to return `TimedResult<A>` with wall-clock duration
+- **Progressive disclosure README** — rewritten for open-source pitch with "The problem" → "Start simple" → "What if one call fails?" → "The full picture" narrative
+- **Full placeOrder showcase** — realistic example combining `kapV`, `raceN`, `retry`, `CircuitBreaker`, `settled`, and `bracketCase` with raw coroutines comparison
+- **"Composable superpowers" section** — standalone examples for `settled {}`, `raceN`, `traverse(concurrency)`, `timeoutRace`, `timed {}`, `memoizeOnSuccess`
+- **All README examples verified** — every code block has a compilable, runnable function in readme-examples
+
+### Changed
+- README uses `Kap { }` SAM syntax exclusively (no `.toKap()`)
+- README uses single `executeGraph()` per graph via `Kap<A>` overloads on `.withX()` / `.thenX()`
+- Updated docs/index.md tagline and API-at-a-glance to match README narrative
+- Added `timed { }` documentation to kap-core module docs
+
 ## [2.5.0] - 2026-03-29
 
 ### Added
@@ -126,7 +141,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Algebraic law verification (Functor, Applicative, Monad)
 - Code generation for arities 2-22 (curry, kap, zip, combine, zipV, kapV, Resource.zip)
 
-[Unreleased]: https://github.com/damian-rafael-lattenero/kap/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/damian-rafael-lattenero/kap/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.2.0...v2.3.0
