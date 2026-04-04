@@ -50,18 +50,30 @@ data class CheckoutResult(
     val cart: String,
     val promos: String,
     val inventory: Boolean,
-    val stock: Boolean
+    val stock: Boolean,
+    val shipping: Double,
+    val tax: Double,
+    val discounts: Double,
+    val payment: String,
+    val confirmation: String,
+    val email: String,
 )
 
 suspend fun heroCheckout() {
     println("=== Hero: KAP Checkout (11 services, 5 phases) ===\n")
 
     val checkout: CheckoutResult = kap(::CheckoutResult)
-        .withUser { fetchUser() }
-        .withCart { fetchCart() }
-        .withPromos { fetchPromos() }
-        .thenInventory { fetchInventory() }
-        .withStock { validateStock() }
+        .withUser { fetchUser() }              // ┐
+        .withCart { fetchCart() }               // ├─ phase 1: parallel
+        .withPromos { fetchPromos() }          // │
+        .withInventory { fetchInventory() }    // ┘
+        .thenStock { validateStock() }         // ── phase 2: barrier
+        .withShipping { calcShipping() }       // ┐
+        .withTax { calcTax() }                 // ├─ phase 3: parallel
+        .withDiscounts { calcDiscounts() }     // ┘
+        .thenPayment { reservePayment() }      // ── phase 4: barrier
+        .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
+        .withEmail { sendEmail() }                    // ┘
         .executeGraph()
 
     println("  Result: $checkout\n")
