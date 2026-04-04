@@ -25,171 +25,318 @@ hide:
 
 ---
 
-## 11 services. 5 phases. One flat chain.
+## You know this code
 
-You have a checkout flow: fetch user, cart, promos, inventory in parallel. Wait. Validate stock. Wait. Calculate shipping, tax, discounts in parallel. Wait. Reserve payment. Wait. Generate confirmation and send email in parallel.
-
-With raw coroutines, this is **30+ lines of shuttle variables, invisible phases, and silent bugs**:
+You've written it. Maybe last week. A backend endpoint that calls a few services, combines the results, and returns a response. It starts simple:
 
 ```kotlin
-// Raw coroutines: 30+ lines, invisible phases, silent bugs
-val checkout = coroutineScope {
+coroutineScope {
     val dUser = async { fetchUser() }
     val dCart = async { fetchCart() }
     val dPromos = async { fetchPromos() }
-    val dInventory = async { fetchInventory() }
-    val user = dUser.await()          // ← move above async? Silent serialization.
-    val cart = dCart.await()           // ← swap with promos? Same type = no compiler error.
-    val promos = dPromos.await()
-    val inventory = dInventory.await()
-
-    val stock = validateStock()       // Where does phase 1 end? You have to read every line.
-
-    val dShipping = async { calcShipping() }
-    val dTax = async { calcTax() }
-    val dDiscounts = async { calcDiscounts() }
-    val shipping = dShipping.await()
-    val tax = dTax.await()
-    val discounts = dDiscounts.await()
-
-    val payment = reservePayment()    // Another invisible barrier.
-
-    val dConfirmation = async { generateConfirmation() }
-    val dEmail = async { sendEmail() }
-
-    CheckoutResult(
-        user, cart, promos, inventory, stock,
-        shipping, tax, discounts, payment,
-        dConfirmation.await(), dEmail.await()
-    )
+    CheckoutResult(dUser.await(), dCart.await(), dPromos.await())
 }
 ```
 
-**With KAP + `@KapTypeSafe`:**
+Three calls, three awaits. Not bad. But then the requirements come in. Stock validation needs retry because the inventory service is flaky. Payment needs a circuit breaker. Promos have a timeout. And suddenly your clean coroutine code looks like this:
+
+```kotlin
+coroutineScope {
+    val dUser  = async { fetchUser() }
+    val dCart  = async { fetchCart() }
+    val dPromos = async { withTimeout(3.seconds) { fetchPromos() } }
+    val user   = dUser.await()
+    val cart    = dCart.await()
+    val promos  = dPromos.await()
+
+    // retry loop — breaks the async/await rhythm
+    var stock = false
+    var attempt = 0
+    var delay = 100.milliseconds
+    while (true) {
+        try { stock = validateStock(); break }
+        catch (e: CancellationException) { throw e }
+        catch (e: Exception) {
+            if (++attempt >= 3) throw e
+            delay(delay); delay *= 2
+        }
+    }
+
+    val dShipping = async { calcShipping() }
+    val dTax      = async { calcTax() }
+
+    // circuit breaker — interleaved with business logic
+    val payment = if (!breaker.shouldAttempt()) {
+        throw CircuitBreakerOpenException()
+    } else {
+        try {
+            val p = withTimeout(5.seconds) { reservePayment() }
+            breaker.recordSuccess(); p
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) { breaker.recordFailure(); throw e }
+    }
+
+    CheckoutResult(user, cart, promos, stock, dShipping.await(), dTax.await(), payment)
+}
+```
+
+Where are the phases? Which calls run in parallel? Where does the retry end and the business logic begin? You have to read every line to answer these questions. And this is a *simple* example — just 7 services.
+
+---
+
+## Now look at this
 
 ```kotlin
 @KapTypeSafe
 data class CheckoutResult(
-    val user: User, val cart: Cart, val promos: Promos, val inventory: Inventory,
-    val stock: StockCheck, val shipping: Shipping, val tax: Tax, val discounts: Discounts,
-    val payment: Payment, val confirmation: Confirmation, val email: Email,
+    val user: String, val cart: String, val promos: String,
+    val stock: Boolean,
+    val shipping: Double, val tax: Double,
+    val payment: String,
 )
 
-// @KapTypeSafe generates named builders: .withUser {}, .withCart {}, .thenStock {}, etc.
-val checkout: CheckoutResult = kap(::CheckoutResult)
-    .withUser { fetchUser() }              // ┐
-    .withCart { fetchCart() }               // ├─ phase 1: parallel
-    .withPromos { fetchPromos() }           // │
-    .withInventory { fetchInventory() }     // ┘
-    .thenStock { validateStock() }          // ── phase 2: barrier
-    .withShipping { calcShipping() }        // ┐
-    .withTax { calcTax() }                  // ├─ phase 3: parallel
-    .withDiscounts { calcDiscounts() }      // ┘
-    .thenPayment { reservePayment() }       // ── phase 4: barrier
-    .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
-    .withEmail { sendEmail() }             // ┘
+val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds) and Schedule.times(3)
+val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+
+kap(::CheckoutResult)
+    .withUser { fetchUser() }                                         // ┐
+    .withCart { fetchCart() }                                          // ├─ phase 1: parallel
+    .withPromos(Kap { fetchPromos() }.timeout(3.seconds))             // ┘
+    .thenStock(Kap { validateStock() }.retry(retryPolicy))            // ── phase 2: barrier + retry
+    .withShipping { calcShipping() }                                  // ┐ phase 3: parallel
+    .withTax { calcTax() }                                            // ┘
+    .thenPayment(Kap { reservePayment() }                             // ── phase 4: barrier
+        .withCircuitBreaker(breaker)                                  //    + circuit breaker
+        .timeout(5.seconds))                                          //    + timeout
     .executeGraph()
 ```
 
-**30 lines vs 14.** Invisible phases vs explicit phases. Silent bugs vs compile-time safety. **Named builders make each step self-documenting** — and the typed function chain still locks parameter order at compile time.
+Same 7 calls. Same retry, circuit breaker, timeout. But now the phases are *visible*. `.with` means parallel. `.then` means wait. The retry is on the call, not around it. The circuit breaker is on the call, not interleaved with it. You can read the execution plan top to bottom.
 
-!!! tip "`@KapTypeSafe` named builders"
-    The `@KapTypeSafe` annotation (via KSP) generates `.withParamName {}` and `.thenParamName {}` extension methods from your data class properties. This is the **recommended user-facing pattern**. The generic `.with {}` / `.then {}` API still works and is used internally, but named builders make your orchestration chains more readable and harder to misuse.
+`@KapTypeSafe` generates a step class per field — after `.withUser`, the IDE only offers `.withCart`. You can't swap, skip, or forget a field.
+
+That's KAP. Let's start from the beginning.
+
+---
+
+## Three things to learn
+
+That's it. Three.
+
+| You write | What happens | Think of it as |
+|---|---|---|
+| `.withX { }` | Runs in parallel with everything else in the same phase | *"and at the same time..."* |
+| `.thenX { }` | Waits for all above, then continues | *"once that's done..."* |
+| `.andThen { result -> }` | Waits, passes the result, builds the next graph | *"using what we got..."* |
+
+Everything else in KAP — retry, circuit breaker, racing, validation — is built *on top* of these three. Learn them once, and the rest follows.
+
+---
+
+## Your first KAP graph
+
+A dashboard that loads user, feed, and notification count in parallel:
+
+```kotlin
+@KapTypeSafe
+data class Dashboard(val user: String, val feed: String, val notifications: Int)
+
+kap(::Dashboard)
+    .withUser { fetchUser() }                // ┐
+    .withFeed { fetchFeed() }                // ├─ all three run in parallel
+    .withNotifications { countUnread() }     // ┘
+    .executeGraph()
+```
 
 ```
-t=0ms   ─── fetchUser ────────┐
-t=0ms   ─── fetchCart ────────┤
-t=0ms   ─── fetchPromos ─────├─ phase 1 (parallel)
-t=0ms   ─── fetchInventory ──┘
+t=0ms   ─── fetchUser ──────────┐
+t=0ms   ─── fetchFeed ──────────├─ parallel
+t=0ms   ─── countUnread ────────┘
+t=50ms  ─── Dashboard ready
+```
+
+Three services, one result, **50ms instead of 120ms sequential**. Your suspend functions go in, your data class comes out. No framework, no wrapper types, no runtime magic.
+
+---
+
+## Adding phases
+
+Real APIs have dependencies. You can't calculate shipping until you know the cart. You can't generate a confirmation until payment is reserved. With raw coroutines, you'd nest `coroutineScope` blocks. With KAP, you change one character — `.with` becomes `.then`:
+
+```kotlin
+kap(::CheckoutResult)
+    .withUser { fetchUser() }            // ┐ phase 1: parallel
+    .withCart { fetchCart() }             // ┘
+    .thenStock { validateStock() }       // ── phase 2: waits for phase 1
+    .withShipping { calcShipping() }     // ┐ phase 3: parallel
+    .withTax { calcTax() }              // ┘
+    .executeGraph()
+```
+
+```
+t=0ms   ─── fetchUser ──────┐
+t=0ms   ─── fetchCart ───────┘─ phase 1
 t=50ms  ─── validateStock ───── phase 2 (barrier)
-t=60ms  ─── calcShipping ────┐
-t=60ms  ─── calcTax ─────────├─ phase 3 (parallel)
-t=60ms  ─── calcDiscounts ───┘
-t=80ms  ─── reservePayment ──── phase 4 (barrier)
-t=90ms  ─── generateConfirm ─┐
-t=90ms  ─── sendEmail ───────┘─ phase 5 (parallel)
-t=130ms ─── done
+t=70ms  ─── calcShipping ───┐
+t=70ms  ─── calcTax ────────┘─ phase 3
+t=100ms ─── done
 ```
 
-**130ms total** (vs 460ms sequential). Verified in [`ConcurrencyProofTest.kt`](https://github.com/damian-rafael-lattenero/kap/blob/master/kap-core/src/jvmTest/kotlin/kap/ConcurrencyProofTest.kt).
+The phases are explicit. You see them in the code. No nesting, no shuttle variables, no mental reconstruction required.
 
 ---
 
 ## Value-dependent phases
 
-Real APIs have dependencies: phase 2 needs phase 1's results. With raw coroutines, you thread values through variables manually. With KAP, the dependency graph **is** the code shape:
+Sometimes phase 2 needs the *result* of phase 1 — not just to wait for it, but to use the data. That's `.andThen`:
 
 ```kotlin
 @KapTypeSafe
-data class UserContext(val profile: Profile, val preferences: Prefs, val loyaltyTier: Tier)
+data class UserContext(val profile: String, val prefs: String, val tier: String)
 @KapTypeSafe
-data class EnrichedContent(val recommendations: Recs, val promotions: Promos, val trending: Trending, val history: History)
-@KapTypeSafe
-data class FinalDashboard(val layout: Layout, val analytics: Analytics)
+data class PersonalizedDashboard(val recs: String, val promos: String, val trending: String)
 
-val userId = "user-42"
-
-val dashboard: FinalDashboard = kap(::UserContext)
+kap(::UserContext)
     .withProfile { fetchProfile(userId) }       // ┐
-    .withPreferences { fetchPreferences(userId) }   // ├─ phase 1: parallel
-    .withLoyaltyTier { fetchLoyaltyTier(userId) }   // ┘
-    .andThen { ctx ->                    // ── barrier: ctx available
-        kap(::EnrichedContent)
-            .withRecommendations { fetchRecommendations(ctx.profile) }  // ┐
-            .withPromotions { fetchPromotions(ctx.tier) }               // ├─ phase 2: parallel
-            .withTrending { fetchTrending(ctx.prefs) }                  // │
-            .withHistory { fetchHistory(ctx.profile) }                  // ┘
-            .andThen { enriched ->                         // ── barrier
-                kap(::FinalDashboard)
-                    .withLayout { renderLayout(ctx, enriched) }     // ┐ phase 3
-                    .withAnalytics { trackAnalytics(ctx, enriched) }   // ┘
-            }
+    .withPrefs { fetchPreferences(userId) }     // ├─ phase 1: parallel
+    .withTier { fetchLoyaltyTier(userId) }      // ┘
+    .andThen { ctx ->                           // ── barrier: ctx available
+        kap(::PersonalizedDashboard)
+            .withRecs { fetchRecommendations(ctx.profile) }    // ┐
+            .withPromos { fetchPromotions(ctx.tier) }          // ├─ phase 2: parallel
+            .withTrending { fetchTrending(ctx.prefs) }         // ┘
     }
     .executeGraph()
 ```
 
-```
-t=0ms   ─── fetchProfile ──────┐
-t=0ms   ─── fetchPreferences ──├─ phase 1 (parallel)
-t=0ms   ─── fetchLoyaltyTier ──┘
-t=50ms  ─── andThen { ctx -> }  ── barrier, ctx available
-t=50ms  ─── fetchRecommendations ──┐
-t=50ms  ─── fetchPromotions ───────├─ phase 2 (parallel)
-t=50ms  ─── fetchTrending ─────────┤
-t=50ms  ─── fetchHistory ──────────┘
-t=90ms  ─── andThen { enriched -> } ── barrier
-t=90ms  ─── renderLayout ──┐
-t=90ms  ─── trackAnalytics ┘─ phase 3 (parallel)
-t=115ms ─── FinalDashboard ready
-```
-
-14 service calls, 3 phases, **115ms vs 460ms sequential**.
+Phase 1 fetches the user context in parallel. Phase 2 uses that context to personalize — also in parallel. The dependency is explicit, type-safe, and readable.
 
 ---
 
-## Add resilience in the same chain
+## It scales
+
+Here's a real checkout: 11 services, 5 phases, 8 Strings, 2 Booleans, 3 Doubles. The compiler catches every swap:
 
 ```kotlin
 @KapTypeSafe
-data class Dashboard(val user: String, val slowData: String, val promos: String)
+data class CheckoutResult(
+    val user: String, val cart: String,
+    val promos: String, val inventory: Boolean,
+    val stock: Boolean,
+    val shipping: Double, val tax: Double, val discounts: Double,
+    val payment: String,
+    val confirmation: String, val email: String,
+)
 
+kap(::CheckoutResult)
+    .withUser { fetchUser() }                      // ┐
+    .withCart { fetchCart() }                       // ├─ phase 1: parallel
+    .withPromos { fetchPromos() }                  // │
+    .withInventory { fetchInventory() }            // ┘
+    .thenStock { validateStock() }                 // ── phase 2: barrier
+    .withShipping { calcShipping() }               // ┐
+    .withTax { calcTax() }                         // ├─ phase 3: parallel
+    .withDiscounts { calcDiscounts() }             // ┘
+    .thenPayment { reservePayment() }              // ── phase 4: barrier
+    .withConfirmation { generateConfirmation() }   // ┐ phase 5
+    .withEmail { sendEmail() }                     // ┘
+    .executeGraph()
+```
+
+```
+t=0ms   ─── fetchUser ────────┐
+t=0ms   ─── fetchCart ────────┤
+t=0ms   ─── fetchPromos ─────├─ phase 1
+t=0ms   ─── fetchInventory ──┘
+t=50ms  ─── validateStock ───── phase 2
+t=70ms  ─── calcShipping ────┐
+t=70ms  ─── calcTax ─────────├─ phase 3
+t=70ms  ─── calcDiscounts ───┘
+t=100ms ─── reservePayment ──── phase 4
+t=140ms ─── generateConfirm ─┐
+t=140ms ─── sendEmail ───────┘─ phase 5
+t=170ms ─── done
+```
+
+**170ms total** (vs 460ms sequential). Verified with [deterministic virtual-time tests](https://github.com/damian-rafael-lattenero/kap/blob/master/kap-core/src/jvmTest/kotlin/kap/ConcurrencyProofTest.kt).
+
+---
+
+## "What if one call fails?"
+
+Good question. By default, if any `.with` branch fails, the whole graph is cancelled — that's structured concurrency, and it's usually what you want. But sometimes a call is optional. The feed can fail, but you still want the profile.
+
+`settled { }` wraps the result in `Result<A>` so a failure doesn't kill the rest:
+
+```kotlin
+@KapTypeSafe
+data class HomePage(val profile: String, val feed: Result<String>, val ads: Result<String>)
+
+kap(::HomePage)
+    .withProfile { fetchProfile() }              // critical — failure cancels everything
+    .withFeed(settled { fetchFeed() })           // optional — failure returns Result.failure
+    .withAds(settled { fetchAds() })             // optional — failure returns Result.failure
+    .executeGraph()
+// Feed throws? Profile and ads still complete. You get Result.failure for feed.
+```
+
+Need ALL results even if some fail? `traverseSettled` runs every item and collects outcomes:
+
+```kotlin
+val results = listOf("svc-a", "svc-b", "svc-c").traverseSettled { svc ->
+    Kap { callService(svc) }
+}.executeGraph()
+// → [Success("ok"), Failure(TimeoutException), Success("ok")]
+```
+
+No `supervisorScope`. No `runCatching` per item. One method call.
+
+---
+
+## Adding resilience
+
+This is where it gets interesting. Every team needs retry, circuit breaker, timeout. Every team reimplements them. And they never compose well with each other.
+
+In KAP, resilience is per-call, inline, and composable:
+
+```kotlin
 val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
-val retryPolicy = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
+val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds)
+    .jittered()                          // ±50% random spread (no thundering herd)
+    .and(Schedule.times(3))              // max 3 attempts
+    .withMaxDuration(10.seconds)         // total budget
 
-val result = kap(::Dashboard)
+kap(::Dashboard)
     .withUser(Kap { fetchUser() }
-        .withCircuitBreaker(breaker)      // protect downstream
-        .retry(retryPolicy))              // exponential backoff
+        .withCircuitBreaker(breaker)
+        .retry(retryPolicy))
     .withSlowData(Kap { fetchFromSlowApi() }
-        .timeoutRace(100.milliseconds,    // both start at t=0
-            Kap { fetchFromCache() }))    // fallback already running
+        .timeoutRace(100.milliseconds, Kap { fetchFromCache() }))
     .withPromos { fetchPromos() }
     .executeGraph()
 ```
 
+`Schedule` policies are reusable objects — define once, apply anywhere. `timeoutRace` starts *both* the primary and fallback at t=0, so the fallback is already warm when the timeout fires. `bracket` guarantees cleanup even on cancellation:
+
+```kotlin
+bracket(
+    acquire = { openConnection() },
+    use = { conn ->
+        kap(::QueryResult)
+            .withData { conn.query("SELECT ...") }
+            .withMeta { conn.metadata() }
+    },
+    release = { conn -> conn.close() }  // runs in NonCancellable context
+).executeGraph()
+```
+
 ---
 
-## Collect every validation error at once
+## Collecting every error at once
+
+You know the frustration: a user submits a form, gets "invalid email", fixes it, resubmits, gets "age too young". Why not show *all* errors the first time?
+
+With `kap-arrow`, validations run **in parallel** and accumulate **every** error:
 
 ```kotlin
 val result: Either<NonEmptyList<RegError>, User> = zipV(
@@ -199,132 +346,137 @@ val result: Either<NonEmptyList<RegError>, User> = zipV(
     { checkUsername("al") },          // ← too short
 ) { name, email, age, username -> User(name, email, age, username) }
     .executeGraph()
-// result = Left(NonEmptyList(NameTooShort, InvalidEmail, AgeTooLow, UsernameTaken))
+// → Left(NonEmptyList(NameTooShort, InvalidEmail, AgeTooLow, UsernameTaken))
 // ALL 4 errors in ONE response. No round trips.
 ```
 
-Scales to **22 validators** (Arrow's `zipOrAccumulate` maxes at 9).
+Scales to **22 validators** (Arrow's `zipOrAccumulate` maxes at 9). And since they run in parallel, if each validator hits the database, all queries run concurrently.
+
+!!! tip "KAP and Arrow"
+    KAP doesn't replace Arrow — it builds on it. Arrow gives you the types (`Either`, `NonEmptyList`). KAP gives you the orchestration (parallel execution, phase barriers, resilience). Use both.
 
 ---
 
-## Full API at a glance
+## Everything together
 
-### [kap-core](modules/kap-core.md) — Foundation
+Here's a real order placement that uses everything you've seen: parallel validation with error accumulation, racing pricing providers, retry with backoff, circuit breaker on payment, partial failure on notifications, and transactional safety with guaranteed cleanup.
 
-**Orchestration**
+```kotlin
+@KapTypeSafe
+data class OrderResult(
+    val finalPrice: Double,
+    val reservationId: String,
+    val paymentId: String,
+    val notifications: List<Result<Unit>>,
+)
 
-- [`.with`](modules/kap-core.md#with-independent-tasks-in-parallel) / [`.then`](modules/kap-core.md#then-phase-barrier) / [`.andThen`](modules/kap-core.md#andthen-dependent-phase) — parallel, barrier, dependent phase
-- [`kap(f)`](modules/kap-core.md#kapf-curry-a-function-for-with-chains) — curry any function for type-safe `.with` chains
-- [`computation { }`](modules/kap-core.md#computation-imperative-builder) — imperative builder with `bind`
+val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds).jittered() and Schedule.times(3)
+val paymentBreaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
-**Error handling**
+suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> {
 
-- [`.timeout`](modules/kap-core.md#timeoutduration-default) — deadline with default value or fallback computation
-- [`.recover` / `.recoverWith`](modules/kap-core.md#recover-recoverwith) — catch and transform errors
-- [`.retry`](modules/kap-core.md#retrymaxattempts-delay-backoff) — retry with backoff strategy
-- [`.ensure` / `.ensureNotNull`](modules/kap-core.md#ensureerror-predicate-ensurenotnullerror-extract) — predicate guards
-- [`catching`](modules/kap-core.md#catching-exception-safe-result) — wrap exceptions into `Result`
+    // ── Phase 1: validate (parallel, accumulate ALL errors) ──────────
+    val validated = kapV<OrderError, ValidAddress, ValidCard, ValidItems, ValidOrder>(::ValidOrder)
+        .withV { validateAddress(input.address) }       // ┐ all three run in parallel
+        .withV { validatePaymentInfo(input.card) }      // ├─ errors accumulate
+        .withV { validateItems(input.items) }           // ┘
+        .executeGraph()
 
-**Collections**
+    val order = validated.getOrElse { return Either.Left(it) }
 
-- [`traverse`](modules/kap-core.md#traverse) / [`traverseSettled`](modules/kap-core.md#traversesettled-collect-all-results-no-cancellation) / [`traverseDiscard`](modules/kap-core.md#traversediscard-fire-and-forget) — parallel map over collections
-- [`sequence`](modules/kap-core.md#sequence-sequenceconcurrency) — execute all, with optional concurrency limit
-- [`settled`](modules/kap-core.md#partial-failure) — collect successes and failures without cancellation
+    // ── Phases 2–5: process inside DB transaction ────────────────────
+    return bracketCase(
+        acquire = { db.beginTransaction() },
+        use = { tx ->
+            kap(::OrderResult)
+                .withFinalPrice(raceN(                              // phase 2: race 3 providers
+                    Kap { pricingServiceA(order) },                 //   fastest wins
+                    Kap { pricingServiceB(order) },
+                    Kap { pricingServiceC(order) },
+                ))
+                .thenReservationId(                                 // phase 3: barrier + retry
+                    Kap { reserveInventory(tx, order) }
+                        .retry(retryPolicy)
+                )
+                .thenPaymentId(                                     // phase 4: circuit breaker
+                    Kap { chargePayment(tx, order) }
+                        .withCircuitBreaker(paymentBreaker)
+                        .timeout(5.seconds)
+                )
+                .withNotifications(listOf(                          // phase 5: partial failure OK
+                    Kap { sendEmail(order) },
+                    Kap { sendPush(order) },
+                    Kap { updateAnalytics(order) },
+                ).sequenceSettled())
+                .map { Either.Right(it) }
+        },
+        release = { tx, exit -> when (exit) {
+            is ExitCase.Completed -> tx.commit()
+            else                  -> tx.rollback()
+        }}
+    ).executeGraph()
+}
+```
 
-**Racing**
-
-- [`raceN`](modules/kap-core.md#racenc1-c2-cn-first-to-succeed-wins-rest-cancelled) — first to succeed wins, rest cancelled
-- [`race`](modules/kap-core.md#racefa-fb-two-way-race) / [`raceAll`](modules/kap-core.md#racealllist-race-a-dynamic-list) — two-way and dynamic-list races
-- [`.orElse` / `firstSuccessOf`](modules/kap-core.md#orelseother-firstsuccessof) — sequential fallback chains
-
-**Flow integration**
-
-- [`mapKap` / `mapKapOrdered`](modules/kap-core.md#flow-integration) — parallel transforms inside Flows
-- [`mapEffectOrdered`](modules/kap-core.md#flowmapeffectordered-preserve-upstream-order) — ordered async transformation preserving emission order
-- [`firstAsKap` / `collectAsKap`](modules/kap-core.md#flowfirstaskap) — bridge Flow to Kap
-
-**Utilities**
-
-- [`memoize` / `memoizeOnSuccess`](modules/kap-core.md#memoization) — cache computation results thread-safely
-- [`timed { }`](modules/kap-core.md#timed--measure-any-call-without-manual-instrumentation) — measure wall-clock duration of any call
-- [`Kap.of` / `.empty` / `.failed` / `.defer`](modules/kap-core.md#kapofvalue-kapempty-kapfailederror-kapdefer) — construction helpers
-- [`Deferred.toKap()` / `.toDeferred`](modules/kap-core.md#interop) — coroutine interop
-- [`traced` / `KapTracer`](modules/kap-core.md#observability) — structured observability hooks
-- [`combine` / `pair` / `triple` / `zip`](modules/kap-core.md#utilities) — parallel combinators
-- [`named` / `on` / `discard` / `peek`](modules/kap-core.md#oncontext-namedname) — chain modifiers
-- [`delayed` / `.executeGraph`](modules/kap-core.md#delayedduration-value-withornull) — execution control
-
----
-
-### [kap-resilience](modules/kap-resilience.md) — Fault Tolerance
-
-- [`Schedule`](modules/kap-resilience.md#schedule-composable-retry-policies) — composable retry policies (`times`, `exponential`, `fibonacci`, `linear`, `forever`)
-- [`.jittered`](modules/kap-resilience.md#jittered-prevent-thundering-herd) / [`.withMaxDuration`](modules/kap-resilience.md#withmaxdurationd-total-time-cap) — schedule modifiers
-- [`.and` / `.or` / `.fold`](modules/kap-resilience.md#composition) — schedule composition
-- [`retryOrElse`](modules/kap-resilience.md#retryorelseschedule-fallback-fallback-after-exhaustion) / [`retryWithResult`](modules/kap-resilience.md#retrywithresultschedule-returns-full-context) — retry with fallback or full context
-- [`CircuitBreaker`](modules/kap-resilience.md#circuitbreaker) — fail fast when a dependency is down
-- [`timeoutRace`](modules/kap-resilience.md#timeoutrace-parallel-fallback) — race primary against eager fallback
-- [`raceQuorum`](modules/kap-resilience.md#racequorum-n-of-m-successes) — N-of-M quorum pattern
-- [`bracket`](modules/kap-resilience.md#bracket-guaranteed-cleanup) / [`bracketCase`](modules/kap-resilience.md#bracketcase-release-depends-on-outcome) — guaranteed cleanup
-- [`Resource`](modules/kap-resilience.md#resource-composable-resource) — composable acquire / use / release
-- [`guarantee` / `guaranteeCase`](modules/kap-resilience.md#guarantee-guaranteecase) — unconditional finalizers
-
----
-
-### [kap-arrow](modules/kap-arrow.md) — Parallel Validation
-
-- [`zipV`](modules/kap-arrow.md#zipv-parallel-validation-2-22-args) — parallel validation with error accumulation (2–22 args)
-- [`kapV` + `withV`](modules/kap-arrow.md#kapv-withv-curried-builder) — curried validation builder
-- [`thenV` / `andThenV`](modules/kap-arrow.md#phased-validation-thenv-andthenv) — phased validation with short-circuit
-- [`valid` / `invalid` / `invalidAll`](modules/kap-arrow.md#entry-points) — entry points
-- [`catching(toError)`](modules/kap-arrow.md#catchingtoerror-exception-to-error-bridge) — exceptions to validation errors
-- [`ensureV` / `ensureVAll`](modules/kap-arrow.md#guards-ensurev-ensurevall) — validation guards
-- [`mapV` / `mapError` / `recoverV` / `orThrow`](modules/kap-arrow.md#transforms) — transforms
-- [`traverseV` / `sequenceV`](modules/kap-arrow.md#collection-operations) — validate collections in parallel
-- [`.attempt` / `raceEither`](modules/kap-arrow.md#arrow-interop) — Arrow Either interop
-- [`accumulate { }`](modules/kap-arrow.md#accumulate-builder) — imperative builder with error accumulation
+One function. Five phases. Validation, racing, retry, circuit breaker, partial failure, transactional safety. Each concern is one composable call. The business logic reads top to bottom.
 
 ---
 
-### [kap-ktor](modules/kap-ktor.md) — Ktor Integration
+## More tools in the box
 
-- [`install(Kap)`](modules/kap-ktor.md#plugin-installation) — one-line plugin setup
-- [`ktorTracer` / `structuredTracer`](modules/kap-ktor.md#built-in-tracers) — SLF4J and JSON logging
-- [Named circuit breakers](modules/kap-ktor.md#named-circuit-breakers) — per-dependency circuit breakers
-- [`respondAsync` / `respondKap`](modules/kap-ktor.md#response-helpers) — response helpers
-- [`kapExceptionHandlers`](modules/kap-ktor.md#statuspages-exception-handlers) — exception-to-HTTP status mapping
+Every one of these is a method call — no boilerplate, no manual state:
 
----
-
-### [kap-kotest](modules/kap-kotest.md) — Testing
-
-- [`shouldSucceed` / `shouldSucceedWith`](modules/kap-kotest.md#kap-matchers) — assert Kap success
-- [`shouldFailWith` / `shouldFailWithMessage`](modules/kap-kotest.md#kap-matchers) — assert Kap failure
-- [`shouldBeRight` / `shouldBeLeft`](modules/kap-kotest.md#arrow-matchers) — Arrow Either assertions
-- [`shouldBeClosed` / `shouldBeOpen`](modules/kap-kotest.md#resilience-matchers) — circuit breaker state assertions
-- [`shouldProveParallel` / `shouldBeMillis`](modules/kap-kotest.md#timing-matchers) — timing assertions
+| Pattern | KAP | What it does |
+|---|---|---|
+| **Race** | `raceN(a, b, c)` | Fastest wins, losers cancelled |
+| **Bounded concurrency** | `ids.traverse(concurrency = 5) { Kap { fetch(it) } }` | Process N items, max M at a time |
+| **Timeout with fallback** | `kap.timeoutRace(2.seconds, fallback)` | Both start at t=0, fastest wins |
+| **Composable retry** | `kap.retry(Schedule.exponential().jittered().and(times(3)))` | Define once, reuse everywhere |
+| **Timed** | `timed { fetchSlowService() }` | Returns `TimedResult(value, duration)` |
+| **Memoize** | `Kap { loadConfig() }.memoizeOnSuccess()` | Compute once, cache thread-safely |
+| **Quorum** | `raceQuorum(required = 2, a, b, c)` | N-of-M consensus |
+| **Resource safety** | `bracket(acquire, use, release)` | Guaranteed cleanup, even on cancellation |
 
 ---
 
-### [kap-ksp](modules/kap-ksp.md) — Code Generation
+## Zero overhead
 
-- [`@KapTypeSafe`](modules/kap-ksp.md#the-solution) — generate wrapper types to prevent same-type parameter swaps
-- [Works on functions too](modules/kap-ksp.md#works-on-functions-too) — not just data classes
-- [Prefix](modules/kap-ksp.md#prefix-avoiding-collisions) — avoid naming collisions across modules
+All claims backed by **119 JMH benchmarks** and deterministic virtual-time proofs.
+
+| Dimension | Raw Coroutines | Arrow | KAP |
+|---|---|---|---|
+| **Framework overhead** (arity 3) | <0.01ms | 0.02ms | **<0.01ms** |
+| **Framework overhead** (arity 9) | <0.01ms | 0.03ms | **<0.01ms** |
+| **Simple parallel** (5 x 50ms) | 50.27ms | 50.33ms | **50.31ms** |
+| **Multi-phase** (9 calls, 4 phases) | 180.85ms | 181.06ms | **180.98ms** |
+| **Race** (50ms vs 100ms) | 100.34ms | 50.51ms | **50.40ms** |
+| **timeoutRace** (primary wins) | 180.55ms | -- | **30.34ms** |
+| **Max validation arity** | -- | 9 | **22** |
+
+KAP adds **zero measurable overhead**. The abstraction compiles away. What you're left with is pure coroutines running in a structured scope.
+
+[Live benchmark dashboard](https://damian-rafael-lattenero.github.io/kap/benchmarks/){ .md-button }
 
 ---
 
-## Modules
+## Pick what you need
+
+KAP is modular. Start with core, add as you grow:
 
 | Module | What you get | Depends on |
 |---|---|---|
-| [`kap-core`](modules/kap-core.md) | `with`, `then`, `andThen`, `race`, `traverse`, `memoize`, `settled`, `timeout`, `recover` | `kotlinx-coroutines-core` |
+| [`kap-core`](modules/kap-core.md) | `with`, `then`, `andThen`, `race`, `traverse`, `memoize`, `settled`, `timed` | `kotlinx-coroutines-core` |
 | [`kap-resilience`](modules/kap-resilience.md) | `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `timeoutRace`, `raceQuorum` | `kap-core` |
-| [`kap-arrow`](modules/kap-arrow.md) | `zipV`, `withV`, `validated {}`, `attempt()`, `raceEither` | `kap-core` + Arrow |
+| [`kap-arrow`](modules/kap-arrow.md) | `zipV`, `withV`, `kapV`, `accumulate {}`, `attempt()`, `raceEither` | `kap-core` + Arrow |
+| [`kap-ksp`](modules/kap-ksp.md) | `@KapTypeSafe`, `@KapBridge` — compile-time named builders | KSP |
 | [`kap-ktor`](modules/kap-ktor.md) | Ktor plugin, circuit breaker registry, tracers, `respondAsync` | `kap-core` + Ktor |
 | [`kap-kotest`](modules/kap-kotest.md) | `shouldSucceedWith`, `shouldFailWith`, timing & lifecycle matchers | `kap-core` (test) |
 
-[API Reference (Dokka)](api/index.html){ .md-button }
+[API Reference (KDocs)](api/index.html){ .md-button }
+
+---
+
+## Get started
 
 ```kotlin
 plugins {
@@ -346,21 +498,9 @@ dependencies {
 }
 ```
 
----
+Or clone the [starter project](https://github.com/damian-rafael-lattenero/kap-starter) and run `./gradlew run` in 30 seconds.
 
-## Benchmarks
-
-All claims backed by **119 JMH benchmarks** and deterministic virtual-time proofs.
-
-| Dimension | Raw Coroutines | Arrow | KAP |
-|---|---|---|---|
-| **Framework overhead** (arity 3) | <0.01ms | 0.02ms | **<0.01ms** |
-| **Framework overhead** (arity 9) | <0.01ms | 0.03ms | **<0.01ms** |
-| **Simple parallel** (5 x 50ms) | 50.27ms | 50.33ms | **50.31ms** |
-| **Multi-phase** (9 calls, 4 phases) | 180.85ms | 181.06ms | **180.98ms** |
-| **Race** (50ms vs 100ms) | 100.34ms | 50.51ms | **50.40ms** |
-| **timeoutRace** (primary wins) | 180.55ms | -- | **30.34ms** |
-| **Max validation arity** | -- | 9 | **22** |
-
-[Live benchmark dashboard](https://damian-rafael-lattenero.github.io/kap/benchmarks/){ .md-button }
-
+<p style="text-align: center; margin-top: 2rem;">
+  <a href="guide/quickstart/" class="md-button md-button--primary">Quickstart Guide</a>
+  <a href="playground/" class="md-button">Cookbook (12 runnable examples)</a>
+</p>
