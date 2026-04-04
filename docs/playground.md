@@ -394,6 +394,36 @@ suspend fun main() {
 
 ---
 
+## Timed — Measure execution duration
+
+```kotlin
+import kap.*
+import kotlinx.coroutines.delay
+
+@KapTypeSafe
+data class Dashboard(val user: String, val cart: String, val promos: String)
+
+suspend fun fetchUser(): String { delay(50); return "Alice" }
+suspend fun fetchCart(): String { delay(40); return "3 items" }
+suspend fun fetchPromos(): String { delay(30); return "SAVE20" }
+
+suspend fun main() {
+    // executeGraphTimed() returns the result + how long it took
+    val (dashboard, duration) = kap(::Dashboard)
+        .withUser { fetchUser() }
+        .withCart { fetchCart() }
+        .withPromos { fetchPromos() }
+        .executeGraphTimed()
+
+    println(dashboard)
+    println("Built in ${duration.inWholeMilliseconds}ms")
+    // Dashboard(user=Alice, cart=3 items, promos=SAVE20)
+    // Built in 50ms (parallel, not 120ms sequential)
+}
+```
+
+---
+
 ## Memoization — Cache only successes
 
 ```kotlin

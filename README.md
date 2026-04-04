@@ -174,6 +174,7 @@ val checkout = coroutineScope {
 - **KSP named builders** — compiler enforces parameter order, IDE autocompletes each step
 - **Retry, circuit breaker, timeout** — composable [resilience patterns](https://damian-rafael-lattenero.github.io/kap/modules/kap-resilience/)
 - **Parallel validation** — [accumulate ALL errors](https://damian-rafael-lattenero.github.io/kap/modules/kap-arrow/), no short-circuit
+- **Built-in timing** — `.executeGraphTimed()` returns result + duration, no manual instrumentation
 - **Multiplatform** — JVM, JS, WASM, Native
 - Works on [functions](https://damian-rafael-lattenero.github.io/kap/modules/kap-ksp/), [third-party classes](https://damian-rafael-lattenero.github.io/kap/modules/kap-ksp/#kapbridge), and [Ktor](https://damian-rafael-lattenero.github.io/kap/modules/kap-ktor/)
 

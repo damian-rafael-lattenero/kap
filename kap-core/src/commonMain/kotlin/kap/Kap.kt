@@ -8,6 +8,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Duration
+import kotlin.time.measureTimedValue
 
 
 /**
@@ -568,6 +570,62 @@ private class MemoizedOnSuccess<A>(private val original: Kap<A>) : Kap<A> {
  */
 suspend fun <A> Kap<A>.executeGraph(): A =
     coroutineScope { with(this@executeGraph) { execute() } }
+
+// ── timed: measure execution duration ───────────────────────────────────
+
+/**
+ * The result of a [timed] computation: the produced value and how long it took.
+ */
+data class TimedResult<out A>(val value: A, val duration: Duration)
+
+/**
+ * Wraps this computation to measure its total execution [Duration].
+ *
+ * Returns a [Kap] that produces a [TimedResult] containing both
+ * the original value and the wall-clock time of the execution.
+ *
+ * Composable — chain it with [map], [andThen], [memoize], etc.:
+ *
+ * ```
+ * val (dashboard, duration) = kap(::Dashboard)
+ *     .withUser { fetchUser() }
+ *     .withCart { fetchCart() }
+ *     .withPromos { fetchPromos() }
+ *     .timed()
+ *     .executeGraph()
+ *
+ * println("Built in ${duration.inWholeMilliseconds}ms")
+ * ```
+ *
+ * For per-branch timing, apply [timed] to individual branches:
+ *
+ * ```
+ * kap(::Dashboard)
+ *     .withUser(Kap { fetchUser() }.timed().map { log("user: ${it.duration}"); it.value })
+ *     .withCart { fetchCart() }
+ * ```
+ */
+fun <A> Kap<A>.timed(): Kap<TimedResult<A>> = Kap {
+    val (value, duration) = measureTimedValue {
+        with(this@timed) { execute() }
+    }
+    TimedResult(value, duration)
+}
+
+/**
+ * Executes this [Kap] and returns the result with its execution [Duration].
+ *
+ * Convenience for `.timed().executeGraph()`:
+ *
+ * ```
+ * val (result, duration) = kap(::Dashboard)
+ *     .withUser { fetchUser() }
+ *     .withCart { fetchCart() }
+ *     .executeGraphTimed()
+ * ```
+ */
+suspend fun <A> Kap<A>.executeGraphTimed(): TimedResult<A> =
+    timed().executeGraph()
 
 // ── settled: capture result without cancelling siblings ──────────────────
 

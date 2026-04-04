@@ -24,3 +24,4 @@ site/
 
 # Dokka generated API docs (regenerated in CI)
 docs/api/
+java_pid50801.hprof
