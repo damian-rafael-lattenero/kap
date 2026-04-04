@@ -512,6 +512,69 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
 
 ---
 
+## KAP and Arrow
+
+KAP is **not** a replacement for Arrow. They solve different problems and work together:
+
+- **Arrow** gives you the types: `Either`, `NonEmptyList`, `Option`, functional error handling
+- **KAP** gives you the orchestration: parallel phases, resilience, structured execution graphs
+
+KAP's `kap-arrow` module builds on Arrow's `Either` and `NonEmptyList` for parallel validation with error accumulation. Use both — Arrow for your domain types, KAP for wiring them together:
+
+```kotlin
+// Arrow types + KAP orchestration
+val result: Either<Nel<OrderError>, OrderResult> =
+    kapV<OrderError, ValidEmail, ValidAge, User>(::User)
+        .withV { validateEmail(input) }    // returns Either<Nel<OrderError>, ValidEmail>
+        .withV { validateAge(input) }      // returns Either<Nel<OrderError>, ValidAge>
+        .executeGraph()
+// Both run in parallel. Both errors collected. Arrow types, KAP execution.
+```
+
+| | Arrow | KAP | Together |
+|---|---|---|---|
+| **Parallel execution** | `parZip` (max 9 args) | `.with` / `kap(::T)` (unlimited) | KAP orchestrates, Arrow types flow through |
+| **Error accumulation** | `zipOrAccumulate` | `kapV` + `.withV` (max 22 args) | KAP runs validators in parallel, Arrow collects errors |
+| **Retry / Circuit breaker** | `Schedule` (Arrow) | `Schedule` + `CircuitBreaker` (KAP) | KAP's compose inline with `.with` / `.then` chains |
+| **Phase barriers** | Manual nesting | `.then` / `.andThen` | Only KAP has first-class phases |
+
+---
+
+## Works with your stack
+
+KAP is just suspend functions in, result out. It works anywhere coroutines work:
+
+```kotlin
+// Ktor
+get("/checkout/{id}") {
+    val id = call.parameters["id"]!!
+    val result = kap(::CheckoutResult)
+        .withUser { userService.fetch(id) }
+        .withCart { cartService.fetch(id) }
+        .withPromos { promoService.fetch(id) }
+        .executeGraph()
+    call.respond(result)
+}
+
+// Android ViewModel
+class HomeViewModel : ViewModel() {
+    val state = MutableStateFlow<HomeState>(Loading)
+
+    fun load() = viewModelScope.launch {
+        val home = kap(::HomeData)
+            .withProfile { repo.fetchProfile() }
+            .withFeed(settled { repo.fetchFeed() })
+            .withNotifications { repo.countUnread() }
+            .executeGraph()
+        state.value = Ready(home)
+    }
+}
+```
+
+No framework, no runtime, no annotation processing at runtime. Your suspend functions go in, your data class comes out.
+
+---
+
 ## Install
 
 ```kotlin
