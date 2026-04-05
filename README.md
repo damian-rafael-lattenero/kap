@@ -10,6 +10,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/damian-rafael-lattenero/kap/stargazers"><img src="https://img.shields.io/github/stars/damian-rafael-lattenero/kap?style=flat&color=yellow" alt="GitHub Stars"></a>
   <a href="https://github.com/damian-rafael-lattenero/kap/actions/workflows/ci.yml"><img src="https://github.com/damian-rafael-lattenero/kap/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://central.sonatype.com/artifact/io.github.damian-rafael-lattenero/kap-core"><img src="https://img.shields.io/maven-central/v/io.github.damian-rafael-lattenero/kap-core?label=Maven%20Central&color=blue" alt="Maven Central"></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-2.3.20-7F52FF.svg?logo=kotlin&logoColor=white" alt="Kotlin"></a>
