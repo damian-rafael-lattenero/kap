@@ -575,6 +575,35 @@ No framework, no runtime, no annotation processing at runtime. Your suspend func
 
 ---
 
+## Extra type safety with `kapTyped`
+
+`kap(::User)` with `@KapTypeSafe` enforces parameter **order** — you can't call `.withAge` before `.withName`. But if two fields share the same type (`firstName: String`, `lastName: String`), nothing stops you from returning the wrong value inside the lambda.
+
+`kapTyped` solves this with **opaque wrapper types**. Each field gets a distinct type (`UserFirstName`, `UserLastName`), so the compiler rejects mismatches:
+
+```kotlin
+@KapTypeSafe
+data class User(val firstName: String, val lastName: String, val age: Int)
+
+// Named builders (kap) — enforces order, accepts raw types
+kap(::User)
+    .withFirstName { fetchFirstName() }    // String
+    .withLastName { fetchLastName() }      // String — could accidentally swap
+    .withAge { fetchAge() }
+    .executeGraph()
+
+// Opaque types (kapTyped) — enforces order AND type identity
+kapTyped(::User)
+    .with { fetchFirstName().firstNameUser }   // String → UserFirstName
+    .with { fetchLastName().lastNameUser }     // String → UserLastName
+    .with { fetchAge().ageUser }               // Int → UserAge
+    .executeGraph()
+```
+
+The IDE shows the expected opaque type in autocomplete, so you always know which field comes next. Use `kap()` for most cases, `kapTyped()` when same-typed fields need extra safety.
+
+---
+
 ## Install
 
 ```kotlin

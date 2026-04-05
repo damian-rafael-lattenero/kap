@@ -439,6 +439,35 @@ Every one of these is a method call — no boilerplate, no manual state:
 
 ---
 
+## Extra type safety with `kapTyped`
+
+`kap(::User)` with `@KapTypeSafe` enforces parameter **order** via step classes. But if `firstName` and `lastName` are both `String`, nothing stops you from returning the wrong one inside the lambda.
+
+`kapTyped` adds **opaque wrapper types** — each field gets a distinct type, so the compiler rejects mismatches:
+
+```kotlin
+@KapTypeSafe
+data class User(val firstName: String, val lastName: String, val age: Int)
+
+// Named builders — enforces order, raw types
+kap(::User)
+    .withFirstName { fetchFirstName() }     // String
+    .withLastName { fetchLastName() }       // String — could accidentally swap
+    .withAge { fetchAge() }
+    .executeGraph()
+
+// Opaque types — enforces order AND type identity
+kapTyped(::User)
+    .with { fetchFirstName().firstNameUser }   // String → UserFirstName
+    .with { fetchLastName().lastNameUser }     // String → UserLastName
+    .with { fetchAge().ageUser }               // Int → UserAge
+    .executeGraph()
+```
+
+The IDE shows the expected opaque type in autocomplete — you always know which field comes next. Use `kap()` for most cases, `kapTyped()` when same-typed fields need extra safety.
+
+---
+
 ## Zero overhead
 
 All claims backed by **119 JMH benchmarks** and deterministic virtual-time proofs.
