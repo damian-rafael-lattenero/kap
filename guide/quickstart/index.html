@@ -578,6 +578,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#8-extra-type-safety-with-kaptyped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Extra type safety with kapTyped
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1129,6 +1140,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#8-extra-type-safety-with-kaptyped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Extra type safety with kapTyped
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1349,6 +1371,26 @@
 </span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="kd">val</span><span class="w"> </span><span class="nv">order</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">graph</span><span class="p">.</span><span class="na">executeGraph</span><span class="p">()</span>
 </span></code></pre></div>
 <p>This is what raw coroutines can't do: <code>async {}</code> starts immediately. In KAP, the graph is lazy — you build it, shape it, then execute it.</p>
+<h2 id="8-extra-type-safety-with-kaptyped">8. Extra type safety with <code>kapTyped</code><a class="headerlink" href="#8-extra-type-safety-with-kaptyped" title="Permanent link">&para;</a></h2>
+<p><code>kap(::User)</code> step classes enforce parameter <strong>order</strong> — but if <code>firstName</code> and <code>lastName</code> are both <code>String</code>, you could return the wrong one inside the lambda. <code>kapTyped</code> adds opaque wrapper types so the compiler catches that too:</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@KapTypeSafe</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">User</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">firstName</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">lastName</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">age</span><span class="p">:</span><span class="w"> </span><span class="kt">Int</span><span class="p">)</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1">// Named builders — enforces order, raw types</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">kap</span><span class="p">(</span><span class="o">::</span><span class="n">User</span><span class="p">)</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span><span class="p">.</span><span class="na">withFirstName</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchFirstName</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="p">.</span><span class="na">withLastName</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchLastName</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">    </span><span class="p">.</span><span class="na">withAge</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchAge</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">    </span><span class="p">.</span><span class="na">executeGraph</span><span class="p">()</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="c1">// Opaque types — enforces order AND type identity</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="n">kapTyped</span><span class="p">(</span><span class="o">::</span><span class="n">User</span><span class="p">)</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchFirstName</span><span class="p">().</span><span class="na">firstNameUser</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// String → UserFirstName</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchLastName</span><span class="p">().</span><span class="na">lastNameUser</span><span class="w"> </span><span class="p">}</span><span class="w">     </span><span class="c1">// String → UserLastName</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchAge</span><span class="p">().</span><span class="na">ageUser</span><span class="w"> </span><span class="p">}</span><span class="w">               </span><span class="c1">// Int → UserAge</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="w">    </span><span class="p">.</span><span class="na">executeGraph</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Extension properties (<code>.firstNameUser</code>, <code>.lastNameUser</code>) are generated by KSP — the IDE autocompletes them. Use <code>kap()</code> for most cases, <code>kapTyped()</code> when same-typed fields need extra safety.</p>
 <h2 id="whats-next">What's next?<a class="headerlink" href="#whats-next" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../modules/kap-core/">kap-core KDocs</a> — Full API with Raw/Arrow/KAP comparisons</li>
