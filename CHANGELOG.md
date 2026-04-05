@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-04-04
+
+### Breaking
+- **`executeGraph()` renamed to `evalGraph()`** — shorter, clearer. Search-and-replace: `executeGraph` → `evalGraph`
+
+### Added
+- **`timed { }` top-level shorthand** — like `settled { }`, wraps a call to return `TimedResult<A>` with wall-clock duration
+- **Extension properties for opaque types** — KSP generates `val String.firstNameUser: UserFirstName` for fluent `kapTyped` usage
+- **Blog post: "I Replaced 90 Lines of Coroutine Spaghetti with 35"** — visceral storytelling for r/Kotlin
+
+### Changed
+- **Progressive disclosure README** — rewritten with "The problem" → "Start simple" → "What if one call fails?" → "The full picture" narrative
+- README uses `Kap { }` SAM syntax exclusively (no `.toKap()`)
+- Added Spring Boot example to "Works with your stack"
+- Added real HTTP example (GitHub API) to superpowers section
+- Added GitHub stars badge
+- Updated docs site landing page with storytelling narrative
+- LAWS.md: renamed `Effect` → `Kap`
+
 ## [2.6.0] - 2026-04-04
 
 ### Added
@@ -141,7 +160,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Algebraic law verification (Functor, Applicative, Monad)
 - Code generation for arities 2-22 (curry, kap, zip, combine, zipV, kapV, Resource.zip)
 
-[Unreleased]: https://github.com/damian-rafael-lattenero/kap/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/damian-rafael-lattenero/kap/compare/v2.7.0...HEAD
+[2.7.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/damian-rafael-lattenero/kap/compare/v2.3.0...v2.4.0

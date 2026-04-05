@@ -85,8 +85,8 @@ public final class kap/Kap$Companion {
 public final class kap/KapKt {
 	public static final fun andThen (Lkap/Kap;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
 	public static final fun discard (Lkap/Kap;)Lkap/Kap;
-	public static final fun executeGraph (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static final fun executeGraphTimed (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun evalGraph (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun evalGraphTimed (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static final fun getContext ()Lkap/Kap;
 	public static final fun getEmpty (Lkap/Kap$Companion;)Lkap/Kap;
 	public static final fun keepFirst (Lkap/Kap;Lkap/Kap;)Lkap/Kap;

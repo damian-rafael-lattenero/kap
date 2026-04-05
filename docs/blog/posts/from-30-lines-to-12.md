@@ -210,9 +210,9 @@ The raw coroutines version of this is [~90 lines](https://github.com/damian-rafa
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.6.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.6.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.6.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.7.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.7.0")
 }
 ```
 

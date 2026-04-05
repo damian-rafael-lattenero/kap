@@ -513,17 +513,17 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.6.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:2.7.0")
 
     // KSP — named builder generation (@KapTypeSafe)
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.6.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.6.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.7.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.7.0")
 
     // Optional
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.6.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.6.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ktor:2.6.0")
-    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:2.6.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ktor:2.7.0")
+    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:2.7.0")
 }
 ```
 

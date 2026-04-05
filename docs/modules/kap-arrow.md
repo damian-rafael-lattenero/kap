@@ -3,7 +3,7 @@
 Arrow integration for parallel validation with error accumulation.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-arrow:2.6.0")
+implementation("io.github.damian-rafael-lattenero:kap-arrow:2.7.0")
 ```
 
 **Depends on:** `kap-core` + Arrow Core.
