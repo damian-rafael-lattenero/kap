@@ -186,7 +186,7 @@ fun <A, B : Any> Kap<A>.ensureNotNull(
  * val user = Kap { fetchFromPrimary() }
  *     .orElse(Kap { fetchFromReplica() })
  *     .orElse(Kap { User.cached() })
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  */
 infix fun <A> Kap<A>.orElse(other: Kap<A>): Kap<A> = Kap {
@@ -212,7 +212,7 @@ infix fun <A> Kap<A>.orElse(other: Kap<A>): Kap<A> = Kap {
  *     Kap { fetchFromPrimary() },
  *     Kap { fetchFromSecondary() },
  *     Kap { fetchFromCache() },
- * ).executeGraph()
+ * ).evalGraph()
  * ```
  */
 fun <A> firstSuccessOf(vararg computations: Kap<A>): Kap<A> {

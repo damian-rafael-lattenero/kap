@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -24,13 +23,13 @@ class ArrowInteropTest {
 
     @Test
     fun `attempt wraps success in Right`() = runTest {
-        val result = Kap.of(42).attempt().executeGraph()
+        val result = Kap.of(42).attempt().evalGraph()
         assertEquals(Either.Right(42), result)
     }
 
     @Test
     fun `attempt wraps exception in Left`() = runTest {
-        val result = Kap<Int> { throw RuntimeException("boom") }.attempt().executeGraph()
+        val result = Kap<Int> { throw RuntimeException("boom") }.attempt().evalGraph()
         assertIs<Either.Left<Throwable>>(result)
         assertEquals("boom", result.value.message)
     }
@@ -38,7 +37,7 @@ class ArrowInteropTest {
     @Test
     fun `attempt does not catch CancellationException`() = runTest {
         val result = runCatching {
-            Kap<Int> { throw CancellationException("cancelled") }.attempt().executeGraph()
+            Kap<Int> { throw CancellationException("cancelled") }.attempt().evalGraph()
         }
         assertTrue(result.isFailure)
         assertIs<CancellationException>(result.exceptionOrNull())
@@ -48,7 +47,7 @@ class ArrowInteropTest {
     fun `attempt composes with validated operations via catching`() = runTest {
         val result = kapV<String, Int, Int, Int> { a, b -> a + b }
             .withV(Kap { 1 }.catching { it.message ?: "unknown" })
-            .withV(Kap { 2 }.catching { it.message ?: "unknown" }).executeGraph()
+            .withV(Kap { 2 }.catching { it.message ?: "unknown" }).evalGraph()
         assertEquals(Either.Right(3), result)
     }
 
@@ -61,7 +60,7 @@ class ArrowInteropTest {
         val result = raceEither(
             fa = Kap.of("fast"),
             fb = Kap { delay(10_000); 42 },
-        ).executeGraph()
+        ).evalGraph()
         assertEquals(Either.Left("fast"), result)
     }
 
@@ -70,7 +69,7 @@ class ArrowInteropTest {
         val result = raceEither(
             fa = Kap { delay(10_000); "slow" },
             fb = Kap.of(42),
-        ).executeGraph()
+        ).evalGraph()
         assertEquals(Either.Right(42), result)
     }
 
@@ -132,13 +131,13 @@ class ArrowInteropTest {
 
     @Test
     fun `Result success converts to valid computation`() = runTest {
-        val result = Result.success(42).toValidated { "error: ${it.message}" }.executeGraph()
+        val result = Result.success(42).toValidated { "error: ${it.message}" }.evalGraph()
         assertEquals(Either.Right(42), result)
     }
 
     @Test
     fun `Result failure converts to invalid computation`() = runTest {
-        val result = Result.failure<Int>(RuntimeException("boom")).toValidated { "error: ${it.message}" }.executeGraph()
+        val result = Result.failure<Int>(RuntimeException("boom")).toValidated { "error: ${it.message}" }.evalGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals("error: boom", result.value.head)
     }
@@ -149,7 +148,7 @@ class ArrowInteropTest {
 
     @Test
     fun `fromArrow wraps suspend lambda into Kap`() = runTest {
-        val result = fromArrow { 42 }.executeGraph()
+        val result = fromArrow { 42 }.evalGraph()
         assertEquals(42, result)
     }
 
@@ -157,7 +156,7 @@ class ArrowInteropTest {
     fun `fromArrow composes with ap`() = runTest {
         val result = Kap.of { a: Int -> { b: String -> "$b=$a" } }
             .with(fromArrow { 42 })
-            .with(fromArrow { "answer" }).executeGraph()
+            .with(fromArrow { "answer" }).evalGraph()
         assertEquals("answer=42", result)
     }
 
@@ -206,14 +205,14 @@ class ArrowInteropTest {
     @Test
     fun `Validated typealias works for valid computations`() = runTest {
         val v: Validated<String, Int> = valid(42)
-        val result = v.executeGraph()
+        val result = v.evalGraph()
         assertEquals(Either.Right(42), result)
     }
 
     @Test
     fun `Validated typealias works for invalid computations`() = runTest {
         val v: Validated<String, Int> = invalid("oops")
-        val result = v.executeGraph()
+        val result = v.evalGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(nonEmptyListOf("oops"), result.value)
     }

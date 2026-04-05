@@ -7,8 +7,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ContextTest {
@@ -19,14 +17,14 @@ class ContextTest {
 
     @Test
     fun `Async with context runs on specified dispatcher`() = runTest {
-        val threadName = withContext(Dispatchers.Default) { Kap { Thread.currentThread().name }.executeGraph() }
+        val threadName = withContext(Dispatchers.Default) { Kap { Thread.currentThread().name }.evalGraph() }
         // Default dispatcher uses "DefaultDispatcher-worker-N" threads
         assertTrue(threadName.contains("DefaultDispatcher"), "Expected DefaultDispatcher thread, got: $threadName")
     }
 
     @Test
     fun `Async without context still works`() = runTest {
-        val result = Kap.of(42).executeGraph()
+        val result = Kap.of(42).evalGraph()
         assertEquals(42, result)
     }
 
@@ -36,7 +34,7 @@ class ContextTest {
 
     @Test
     fun `on switches computation to specified context`() = runTest {
-        val threadName = Kap { Thread.currentThread().name }.on(Dispatchers.Default).executeGraph()
+        val threadName = Kap { Thread.currentThread().name }.on(Dispatchers.Default).evalGraph()
         assertTrue(threadName.contains("DefaultDispatcher"), "Expected DefaultDispatcher thread, got: $threadName")
     }
 
@@ -59,7 +57,7 @@ class ContextTest {
 
         val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with { with(compA) { execute() } }
-                .with { with(compB) { execute() } }.executeGraph()
+                .with { with(compB) { execute() } }.evalGraph()
 
         // Proves parallelism still works with .on()
         assertEquals("A|B", result)
@@ -71,7 +69,7 @@ class ContextTest {
         val compA = Kap { 21 }.on(Dispatchers.Default)
         val result = Kap.of { a: Int -> { b: Int -> a + b } }
                 .with { with(compA) { execute() } }
-                .with { 21 }.executeGraph()
+                .with { 21 }.evalGraph()
         assertEquals(42, result)
     }
 
@@ -82,7 +80,7 @@ class ContextTest {
     @Test
     fun `context captures the current coroutine context`() = runTest {
         val result = withContext(CoroutineName("test-context")) {
-            context.map { ctx -> ctx[CoroutineName]?.name }.executeGraph()
+            context.map { ctx -> ctx[CoroutineName]?.name }.evalGraph()
         }
 
         assertEquals("test-context", result)
@@ -96,7 +94,7 @@ class ContextTest {
                 Kap.of { a: String -> { b: String -> "$a|$b|trace=$traceName" } }
                     .with { "user" }
                     .with { "cart" }
-            }.executeGraph()
+            }.evalGraph()
         }
 
         assertEquals("user|cart|trace=trace-123", result)
@@ -126,7 +124,7 @@ class ContextTest {
                     .with {
                         siblingStarted.await()
                         throw RuntimeException("fast-fail")
-                    }.executeGraph()
+                    }.evalGraph()
             }
         }
 

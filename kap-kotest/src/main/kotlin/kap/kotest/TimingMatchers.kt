@@ -8,7 +8,7 @@ import kotlinx.coroutines.test.TestScope
  *
  * ```kotlin
  * runTest {
- *     traverse(items, concurrency = 5) { Kap { delay(50) } }.executeGraph()
+ *     traverse(items, concurrency = 5) { Kap { delay(50) } }.evalGraph()
  *     currentTime.shouldBeMillis(50, "5 items should run in 50ms, not 250ms")
  * }
  * ```
@@ -26,7 +26,7 @@ fun Long.shouldBeMillis(expected: Long, description: String? = null) {
  *
  * ```kotlin
  * runTest {
- *     kap(::Pair).with { delay(50); "a" }.with { delay(60); "b" }.executeGraph()
+ *     kap(::Pair).with { delay(50); "a" }.with { delay(60); "b" }.evalGraph()
  *     currentTime.shouldBeAtMostMillis(60, "two parallel calls should be max(50,60)=60ms")
  * }
  * ```
@@ -44,7 +44,7 @@ fun Long.shouldBeAtMostMillis(expected: Long, description: String? = null) {
  *
  * ```kotlin
  * runTest {
- *     items.traverse { Kap { delay(50); it } }.executeGraph()
+ *     items.traverse { Kap { delay(50); it } }.evalGraph()
  *     currentTime.shouldProveParallel(taskCount = 5, taskDurationMs = 50)
  * }
  * ```

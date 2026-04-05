@@ -1,6 +1,5 @@
 package kap
 
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
@@ -38,7 +37,7 @@ class NewCombinatorsTest {
                 assertIs<ExitCase.Completed<*>>(case)
                 events.add("release:$r:completed")
             },
-        ).executeGraph()
+        ).evalGraph()
 
         assertEquals("result-conn", result)
         assertEquals(listOf("acquire", "release:conn:completed"), events)
@@ -57,7 +56,7 @@ class NewCombinatorsTest {
                     assertEquals("boom", (case as ExitCase.Failed).error.message)
                     events.add("release:$r:failed")
                 },
-            ).executeGraph()
+            ).evalGraph()
         }
 
         assertEquals(listOf("acquire", "release:conn:failed"), events)
@@ -75,7 +74,7 @@ class NewCombinatorsTest {
                     assertIs<ExitCase.Cancelled>(case)
                     events.add("release:$r:cancelled")
                 },
-            ).executeGraph()
+            ).evalGraph()
         }
 
         delay(10)
@@ -99,7 +98,7 @@ class NewCombinatorsTest {
                     else -> events.add("rollback")
                 }
             },
-        ).executeGraph()
+        ).evalGraph()
 
         // Failure path → rollback
         runCatching {
@@ -112,7 +111,7 @@ class NewCombinatorsTest {
                         else -> events.add("rollback")
                     }
                 },
-            ).executeGraph()
+            ).evalGraph()
         }
 
         assertEquals(listOf("commit", "rollback"), events)
@@ -166,7 +165,7 @@ class NewCombinatorsTest {
 
         val failing: Kap<String> = Kap { attempts++; throw RuntimeException("fail") }
         assertFailsWith<RuntimeException> {
-            failing.retry(schedule).executeGraph()
+            failing.retry(schedule).evalGraph()
         }
 
         assertEquals(5, attempts) // 1 initial + 4 retries

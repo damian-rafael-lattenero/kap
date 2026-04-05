@@ -73,7 +73,7 @@ class KapTypeSafeTest {
         val result = kap(::SimpleTwo)
             .withName { "Alice" }
             .withAge { 30 }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleTwo("Alice", 30), result)
     }
@@ -86,7 +86,7 @@ class KapTypeSafeTest {
             .withA { "hello" }
             .withB { 42 }
             .withC { true }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleThree("hello", 42, true), result)
     }
@@ -97,7 +97,7 @@ class KapTypeSafeTest {
     fun `single param class works`() = runTest {
         val result = kap(::SingleParam)
             .withValue { "only-one" }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SingleParam("only-one"), result)
     }
@@ -112,7 +112,7 @@ class KapTypeSafeTest {
             .withP3 { true }
             .withP4 { 3.14 }
             .withP5 { 999L }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(FiveParams("str", 42, true, 3.14, 999L), result)
     }
@@ -125,7 +125,7 @@ class KapTypeSafeTest {
             .withA { delay(50); "a" }
             .withB { delay(50); 1 }
             .withC { delay(50); true }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleThree("a", 1, true), result)
     }
@@ -140,7 +140,7 @@ class KapTypeSafeTest {
             .thenValidated { delay(10); true }       // ── barrier
             .withShipping { delay(20); 9.99 }        // ┐ phase 2: parallel
             .withTax { delay(20); 1.50 }             // ┘
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(PhaseDemo("Alice", "3 items", true, 9.99, 1.50), result)
     }
@@ -153,7 +153,7 @@ class KapTypeSafeTest {
             .withFirst { "one" }
             .withSecond { "two" }
             .withThird { "three" }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(AllSameType("one", "two", "three"), result)
         // Can't accidentally swap because each step has a unique method name
@@ -166,7 +166,7 @@ class KapTypeSafeTest {
         val result = kap(::WithNullable)
             .withRequired { "hello" }
             .withOptional { "world" }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(WithNullable("hello", "world"), result)
     }
@@ -176,7 +176,7 @@ class KapTypeSafeTest {
         val result = kap(::WithNullable)
             .withRequired { "hello" }
             .withOptional { null }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(WithNullable("hello", null), result)
     }
@@ -188,7 +188,7 @@ class KapTypeSafeTest {
         val result = kap(::WithGeneric)
             .withItems { listOf("a", "b", "c") }
             .withCount { 3 }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(WithGeneric(listOf("a", "b", "c"), 3), result)
     }
@@ -203,7 +203,7 @@ class KapTypeSafeTest {
         val result = kap(::SimpleTwo)
             .withName(nameKap)
             .withAge(ageKap)
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleTwo("Alice", 30), result)
     }
@@ -218,7 +218,7 @@ class KapTypeSafeTest {
             .thenValidated(validatedKap)
             .withShipping { 5.0 }
             .withTax { 1.0 }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(PhaseDemo("Alice", "items", true, 5.0, 1.0), result)
     }
@@ -230,7 +230,7 @@ class KapTypeSafeTest {
         val result = kap(BuildGreeting)
             .withName { "Bob" }
             .withAge { 25 }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("Hello Bob, you are 25", result)
     }
@@ -242,12 +242,12 @@ class KapTypeSafeTest {
         val a = kap(BuildA)
             .withPrefixAX { "hello" }
             .withPrefixAY { 1 }
-            .executeGraph()
+            .evalGraph()
 
         val b = kap(BuildB)
             .withPrefixBX { "hello" }
             .withPrefixBY { 1 }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("hello-1", a)
         assertEquals("hello+1", b)
@@ -261,7 +261,7 @@ class KapTypeSafeTest {
             .withId { 42 }
             .withName { "bridged" }
             .withActive { true }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(ThirdPartyDto(42, "bridged", true), result)
     }
@@ -276,7 +276,7 @@ class KapTypeSafeTest {
             .andThen { user ->
                 Kap.of("${user.name} is ${user.age}")
             }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("Alice is 30", result)
     }
@@ -289,7 +289,7 @@ class KapTypeSafeTest {
             .withName { "Alice" }
             .withAge { 30 }
             .map { "${it.name}(${it.age})" }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("Alice(30)", result)
     }
@@ -302,7 +302,7 @@ class KapTypeSafeTest {
             kap(::SimpleTwo)
                 .withName { delay(100); "should be cancelled" }
                 .withAge { throw IllegalStateException("boom") }
-                .executeGraph()
+                .evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -317,7 +317,7 @@ class KapTypeSafeTest {
             .withName { "Alice" }
             .withAge { 30 }
             .recover { SimpleTwo("fallback", 0) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleTwo("Alice", 30), result)
     }
@@ -328,7 +328,7 @@ class KapTypeSafeTest {
             .withName { delay(10); "Alice" }
             .withAge { delay(10); 30 }
             .timeout(1000.milliseconds)
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleTwo("Alice", 30), result)
     }
@@ -343,8 +343,8 @@ class KapTypeSafeTest {
             .withAge { 30 }
             .memoize()
 
-        val r1 = memoized.executeGraph()
-        val r2 = memoized.executeGraph()
+        val r1 = memoized.evalGraph()
+        val r2 = memoized.evalGraph()
 
         assertEquals(SimpleTwo("Alice", 30), r1)
         assertEquals(r1, r2)
@@ -359,7 +359,7 @@ class KapTypeSafeTest {
             .withName { "Alice" }
             .withAge { 30 }
             .settled()
-            .executeGraph()
+            .evalGraph()
 
         assertTrue(result.isSuccess)
         assertEquals(SimpleTwo("Alice", 30), result.getOrNull())
@@ -375,7 +375,7 @@ class KapTypeSafeTest {
             .withP3 { delay(10); true }
             .thenP4 { delay(10); 2.0 }       // barrier 2
             .withP5 { delay(10); 3L }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(FiveParams("a", 1, true, 2.0, 3L), result)
     }
@@ -386,7 +386,7 @@ class KapTypeSafeTest {
         val result = Kap.of { a: SimpleTwoName -> { b: SimpleTwoAge -> SimpleTwo(a.value, b.value) } }
             .with { SimpleTwoName("Alice") }
             .with { SimpleTwoAge(30) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleTwo("Alice", 30), result)
     }
@@ -405,7 +405,7 @@ class KapTypeSafeTest {
         val result = Kap.of { name: SimpleTwoName -> { age: SimpleTwoAge -> SimpleTwo(name.value, age.value) } }
             .with { SimpleTwoName("Bob") }
             .with { SimpleTwoAge(25) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleTwo("Bob", 25), result)
     }
@@ -422,7 +422,7 @@ class KapTypeSafeTest {
             .with { AllSameTypeFirst("one") }
             .with { AllSameTypeSecond("two") }
             .with { AllSameTypeThird("three") }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(AllSameType("one", "two", "three"), result)
     }
@@ -436,7 +436,7 @@ class KapTypeSafeTest {
         val result = kapTyped(::SimpleTwo)
             .with { SimpleTwoName("Alice") }
             .with { SimpleTwoAge(30) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleTwo("Alice", 30), result)
     }
@@ -449,7 +449,7 @@ class KapTypeSafeTest {
             .with { FiveParamsP3(true) }
             .with { FiveParamsP4(3.14) }
             .with { FiveParamsP5(999L) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(FiveParams("str", 42, true, 3.14, 999L), result)
     }
@@ -460,7 +460,7 @@ class KapTypeSafeTest {
             .with { delay(50); SimpleThreeA("a") }
             .with { delay(50); SimpleThreeB(1) }
             .with { delay(50); SimpleThreeC(true) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleThree("a", 1, true), result)
     }
@@ -473,7 +473,7 @@ class KapTypeSafeTest {
             .then { PhaseDemoValidated(true) }
             .with { PhaseDemoShipping(9.99) }
             .with { PhaseDemoTax(1.50) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(PhaseDemo("Alice", "items", true, 9.99, 1.50), result)
     }
@@ -486,7 +486,7 @@ class KapTypeSafeTest {
             .andThen { user ->
                 Kap.of("${user.name} is ${user.age}")
             }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("Alice is 30", result)
     }
@@ -497,7 +497,7 @@ class KapTypeSafeTest {
             .with { SimpleTwoName("Alice") }
             .with { SimpleTwoAge(30) }
             .map { "${it.name}(${it.age})" }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("Alice(30)", result)
     }
@@ -508,7 +508,7 @@ class KapTypeSafeTest {
             kapTyped(::SimpleTwo)
                 .with { delay(100); SimpleTwoName("should be cancelled") }
                 .with { throw IllegalStateException("boom") }
-                .executeGraph()
+                .evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -521,7 +521,7 @@ class KapTypeSafeTest {
             .with { SimpleTwoName("Alice") }
             .with { SimpleTwoAge(30) }
             .recover { SimpleTwo("fallback", 0) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleTwo("Alice", 30), result)
     }
@@ -532,7 +532,7 @@ class KapTypeSafeTest {
             .with { SimpleTwoName("Alice") }
             .with { SimpleTwoAge(30) }
             .settled()
-            .executeGraph()
+            .evalGraph()
 
         assertTrue(result.isSuccess)
         assertEquals(SimpleTwo("Alice", 30), result.getOrNull())
@@ -546,8 +546,8 @@ class KapTypeSafeTest {
             .with { SimpleTwoAge(30) }
             .memoize()
 
-        val r1 = memoized.executeGraph()
-        val r2 = memoized.executeGraph()
+        val r1 = memoized.evalGraph()
+        val r2 = memoized.evalGraph()
 
         assertEquals(r1, r2)
         assertEquals(1, callCount)
@@ -558,7 +558,7 @@ class KapTypeSafeTest {
         val result = kapTypedBuildGreeting(::buildGreeting)
             .with { BuildGreetingName("Bob") }
             .with { BuildGreetingAge(25) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("Hello Bob, you are 25", result)
     }
@@ -568,7 +568,7 @@ class KapTypeSafeTest {
         val a = kapTypedBuildA(::buildA)
             .with { BuildAX("hello") }
             .with { BuildAY(1) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("hello-1", a)
     }
@@ -578,7 +578,7 @@ class KapTypeSafeTest {
         val result = kapTyped(::WithNullable)
             .with { WithNullableRequired("hello") }
             .with { WithNullableOptional(null) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(WithNullable("hello", null), result)
     }
@@ -588,7 +588,7 @@ class KapTypeSafeTest {
         val result = kapTyped(::WithGeneric)
             .with { WithGenericItems(listOf("a", "b", "c")) }
             .with { WithGenericCount(3) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(WithGeneric(listOf("a", "b", "c"), 3), result)
     }
@@ -599,7 +599,7 @@ class KapTypeSafeTest {
             .with { ThirdPartyDtoId(42) }
             .with { ThirdPartyDtoName("bridged") }
             .with { ThirdPartyDtoActive(true) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(ThirdPartyDto(42, "bridged", true), result)
     }
@@ -614,13 +614,13 @@ class KapTypeSafeTest {
             .withA { "hello" }
             .withB { 42 }
             .withC { true }
-            .executeGraph()
+            .evalGraph()
 
         val typed = kapTyped(::SimpleThree)
             .with { SimpleThreeA("hello") }
             .with { SimpleThreeB(42) }
             .with { SimpleThreeC(true) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(named, typed)
     }
@@ -637,7 +637,7 @@ class KapTypeSafeTest {
                     .with { SimpleThreeB(user.age) }
                     .with { SimpleThreeC(true) }
             }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleThree("Alice", 30, true), result)
     }
@@ -648,7 +648,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `partial graph can be stored in a val and completed later`() = runTest {
-        // The graph is just data — nothing runs until .executeGraph()
+        // The graph is just data — nothing runs until .evalGraph()
         val partial = kap(::SimpleThree)
             .withA { "hello" }
 
@@ -656,7 +656,7 @@ class KapTypeSafeTest {
         val result = partial
             .withB { 42 }
             .withC { true }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals(SimpleThree("hello", 42, true), result)
     }
@@ -672,8 +672,8 @@ class KapTypeSafeTest {
             if (isAdmin) graph.withAge { 99 }
             else graph.withAge { 25 }
 
-        val admin = completeBasedOnRole(partial, isAdmin = true).executeGraph()
-        val regular = completeBasedOnRole(partial, isAdmin = false).executeGraph()
+        val admin = completeBasedOnRole(partial, isAdmin = true).evalGraph()
+        val regular = completeBasedOnRole(partial, isAdmin = false).evalGraph()
 
         assertEquals(SimpleTwo("Alice", 99), admin)
         assertEquals(SimpleTwo("Alice", 25), regular)
@@ -701,9 +701,9 @@ class KapTypeSafeTest {
         }
 
         // Nothing has executed yet — just built 3 different graphs
-        val standard = buildCheckout(CartType.STANDARD).executeGraph()
-        val premium = buildCheckout(CartType.PREMIUM).executeGraph()
-        val guest = buildCheckout(CartType.GUEST).executeGraph()
+        val standard = buildCheckout(CartType.STANDARD).evalGraph()
+        val premium = buildCheckout(CartType.PREMIUM).evalGraph()
+        val guest = buildCheckout(CartType.GUEST).evalGraph()
 
         assertEquals(SimpleThree("user-data", 100, false), standard)
         assertEquals(SimpleThree("user-data", 500, true), premium)
@@ -717,9 +717,9 @@ class KapTypeSafeTest {
             .withA { delay(50); "expensive-shared-data" }
 
         // Two different completions — the base is reused, not re-executed per se
-        // (each .executeGraph() runs from scratch, but the STRUCTURE is shared)
-        val resultA = base.withB { 1 }.withC { true }.executeGraph()
-        val resultB = base.withB { 2 }.withC { false }.executeGraph()
+        // (each .evalGraph() runs from scratch, but the STRUCTURE is shared)
+        val resultA = base.withB { 1 }.withC { true }.evalGraph()
+        val resultB = base.withB { 2 }.withC { false }.evalGraph()
 
         assertEquals("expensive-shared-data", resultA.a)
         assertEquals("expensive-shared-data", resultB.a)
@@ -746,8 +746,8 @@ class KapTypeSafeTest {
         // Assemble and execute
         val base = createBase()
         val withUser = addUserContext(base)
-        val prod = addConfig(withUser, isProd = true).executeGraph()
-        val dev = addConfig(withUser, isProd = false).executeGraph()
+        val prod = addConfig(withUser, isProd = true).evalGraph()
+        val dev = addConfig(withUser, isProd = false).evalGraph()
 
         assertEquals(FiveParams("user-alice", 42, true, 99.9, 1000L), prod)
         assertEquals(FiveParams("user-alice", 42, false, 0.0, 0L), dev)

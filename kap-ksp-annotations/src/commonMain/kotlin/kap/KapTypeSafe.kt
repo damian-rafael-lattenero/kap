@@ -16,7 +16,7 @@ package kap
  *     .withFirstName { fetchFirstName() }
  *     .withLastName { fetchLastName() }   // swap? COMPILE ERROR
  *     .withAge { fetchAge() }
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  *
  * For **third-party classes** you can't annotate, use [KapBridge] instead.

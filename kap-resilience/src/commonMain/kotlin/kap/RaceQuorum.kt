@@ -28,7 +28,7 @@ import kotlinx.coroutines.supervisorScope
  *     Kap { fetchFromReplicaA() },
  *     Kap { fetchFromReplicaB() },
  *     Kap { fetchFromReplicaC() },
- * ).executeGraph()
+ * ).evalGraph()
  * ```
  *
  * @param required number of successes needed (must be in `1..computations.size`)

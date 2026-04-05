@@ -29,7 +29,7 @@ class ScheduleTest {
                         Kap<String> {
                 attempts++
                 throw RuntimeException("fail #$attempts")
-            }.retry(Schedule.times(3)).executeGraph()
+            }.retry(Schedule.times(3)).evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(4, attempts, "Should attempt 1 + 3 retries = 4 total")
@@ -42,7 +42,7 @@ class ScheduleTest {
             attempts++
             if (attempts < 3) throw RuntimeException("fail")
             "ok"
-        }.retry(Schedule.times(5)).executeGraph()
+        }.retry(Schedule.times(5)).evalGraph()
         assertEquals("ok", result)
         assertEquals(3, attempts)
     }
@@ -60,7 +60,7 @@ class ScheduleTest {
             }.retry(
                 Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds),
                 onRetry = { _, _, _ -> delays.add(currentTime) },
-            ).executeGraph()
+            ).evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(3, delays.size)
@@ -82,7 +82,7 @@ class ScheduleTest {
                         Kap<String> {
                 attempts++
                 throw RuntimeException("fail")
-            }.retry(Schedule.times<Throwable>(3) and Schedule.spaced(50.milliseconds)).executeGraph()
+            }.retry(Schedule.times<Throwable>(3) and Schedule.spaced(50.milliseconds)).evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(4, attempts)
@@ -101,7 +101,7 @@ class ScheduleTest {
                 attempts++
                 if (attempts <= 2) throw IOException("network")
                 throw IllegalStateException("bad state")
-            }.retry(Schedule.doWhile { it is IOException }).executeGraph()
+            }.retry(Schedule.doWhile { it is IOException }).evalGraph()
         }
         assertTrue(result.isFailure)
         assertIs<IllegalStateException>(result.exceptionOrNull())
@@ -120,7 +120,7 @@ class ScheduleTest {
                         Kap<String> {
                 attempts++
                 throw RuntimeException("fail")
-            }.retry(Schedule.times<Throwable>(2) and Schedule.doWhile { true }).executeGraph()
+            }.retry(Schedule.times<Throwable>(2) and Schedule.doWhile { true }).evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(3, attempts, "recurs(2) limits to 3 total attempts")
@@ -134,7 +134,7 @@ class ScheduleTest {
                         Kap<String> {
                 attempts++
                 throw RuntimeException("fail")
-            }.retry(Schedule.times<Throwable>(1) or Schedule.times(3)).executeGraph()
+            }.retry(Schedule.times<Throwable>(1) or Schedule.times(3)).evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(4, attempts, "or takes the more permissive schedule: 3 retries = 4 attempts")
@@ -225,7 +225,7 @@ class ScheduleTest {
                         Kap<String> {
                 attempts++
                 throw RuntimeException("fail #$attempts")
-            }.retry(policy).executeGraph()
+            }.retry(policy).evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(4, attempts, "recurs(3) limits to 4 total attempts")
@@ -275,7 +275,7 @@ class ScheduleTest {
                         Kap<String> {
                 attempts++
                 throw RuntimeException("fail")
-            }.retry(policy).executeGraph()
+            }.retry(policy).evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(5, attempts) // 1 initial + 4 retries
@@ -316,7 +316,7 @@ class ScheduleTest {
                         Kap<String> {
                 attempts++
                 throw RuntimeException("fail")
-            }.retry(policy).executeGraph()
+            }.retry(policy).evalGraph()
         }
         assertTrue(result.isFailure)
         // With 100ms spacing and 350ms max: attempts at t=0, t=100, t=200, t=300, then t=400 would exceed
@@ -333,7 +333,7 @@ class ScheduleTest {
                         Kap<String> {
                 attempts++
                 throw RuntimeException("fail")
-            }.retry(policy).executeGraph()
+            }.retry(policy).evalGraph()
         }
         assertTrue(result.isFailure)
         // Delays: 100ms (t=100), 200ms (t=300), 400ms would push to t=700 > 500 → Done
@@ -360,7 +360,7 @@ class ScheduleTest {
                     3 -> throw IllegalStateException("bad")
                     else -> "ok"
                 }
-            }.retry(policy).executeGraph()
+            }.retry(policy).evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -393,7 +393,7 @@ class ScheduleTest {
             attempts++
             if (attempts <= 3) throw RuntimeException("fail-$attempts")
             "ok"
-        }.retry(foldPolicy).executeGraph()
+        }.retry(foldPolicy).evalGraph()
 
         assertEquals("ok", result)
         assertEquals(3, errorLog.size)
@@ -413,7 +413,7 @@ class ScheduleTest {
             attempts++
             if (attempts <= 2) throw RuntimeException("fail")
             "ok"
-        }.retryWithResult(policy).executeGraph()
+        }.retryWithResult(policy).evalGraph()
 
         assertEquals("ok", retryResult.value)
         assertEquals(2, retryResult.attempts, "2 retries before success")
@@ -425,7 +425,7 @@ class ScheduleTest {
     fun `retryWithResult reports zero attempts on immediate success`() = runTest {
         val policy = Schedule.times<Throwable>(3)
 
-        val retryResult = Kap { "instant" }.retryWithResult(policy).executeGraph()
+        val retryResult = Kap { "instant" }.retryWithResult(policy).evalGraph()
 
         assertEquals("instant", retryResult.value)
         assertEquals(0, retryResult.attempts)
@@ -438,7 +438,7 @@ class ScheduleTest {
 
         val result = runCatching {
                         Kap<String> { throw RuntimeException("always fail") }
-                .retryWithResult(policy).executeGraph()
+                .retryWithResult(policy).evalGraph()
         }
 
         assertTrue(result.isFailure)

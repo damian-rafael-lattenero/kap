@@ -3,7 +3,6 @@ package kap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
@@ -21,34 +20,34 @@ class CombinatorsTest {
 
     @Test
     fun `timeout returns result when computation completes in time`() = runTest {
-        val result = Kap.of(42).timeout(1.seconds).executeGraph()
+        val result = Kap.of(42).timeout(1.seconds).evalGraph()
         assertEquals(42, result)
     }
 
     @Test
     fun `timeout throws when computation exceeds duration`() = runTest {
         val result = runCatching {
-            Kap<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds).executeGraph()
+            Kap<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds).evalGraph()
         }
         assertTrue(result.isFailure)
     }
 
     @Test
     fun `timeout with default returns default on timeout`() = runTest {
-        val result = Kap<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds, default = -1).executeGraph()
+        val result = Kap<Int> { delay(10.seconds); 42 }.timeout(100.milliseconds, default = -1).evalGraph()
         assertEquals(-1, result)
     }
 
     @Test
     fun `timeout with default returns result when fast enough`() = runTest {
-        val result = Kap.of(42).timeout(1.seconds, default = -1).executeGraph()
+        val result = Kap.of(42).timeout(1.seconds, default = -1).evalGraph()
         assertEquals(42, result)
     }
 
     @Test
     fun `timeout with fallback computation runs fallback on timeout`() = runTest {
         val result = Kap<String> { delay(10.seconds); "slow" }
-                .timeout(100.milliseconds, Kap.of("fallback")).executeGraph()
+                .timeout(100.milliseconds, Kap.of("fallback")).evalGraph()
         assertEquals("fallback", result)
     }
 
@@ -59,13 +58,13 @@ class CombinatorsTest {
     @Test
     fun `recover catches exception and maps to value`() = runTest {
         val result = Kap<String> { throw RuntimeException("boom") }
-                .recover { "recovered: ${it.message}" }.executeGraph()
+                .recover { "recovered: ${it.message}" }.evalGraph()
         assertEquals("recovered: boom", result)
     }
 
     @Test
     fun `recover passes through successful computation`() = runTest {
-        val result = Kap.of("ok").recover { "recovered" }.executeGraph()
+        val result = Kap.of("ok").recover { "recovered" }.evalGraph()
         assertEquals("ok", result)
     }
 
@@ -73,7 +72,7 @@ class CombinatorsTest {
     fun `recover does not catch CancellationException`() = runTest {
         val result = runCatching {
             Kap<String> { throw CancellationException("cancelled") }
-                    .recover { "recovered" }.executeGraph()
+                    .recover { "recovered" }.evalGraph()
         }
         assertTrue(result.isFailure)
         assertIs<CancellationException>(result.exceptionOrNull())
@@ -82,7 +81,7 @@ class CombinatorsTest {
     @Test
     fun `recoverWith switches to recovery computation`() = runTest {
         val result = Kap<String> { throw RuntimeException("boom") }
-                .recoverWith { Kap.of("recovered from: ${it.message}") }.executeGraph()
+                .recoverWith { Kap.of("recovered from: ${it.message}") }.evalGraph()
         assertEquals("recovered from: boom", result)
     }
 
@@ -92,13 +91,13 @@ class CombinatorsTest {
 
     @Test
     fun `fallback switches to alternative on failure`() = runTest {
-        val result = (Kap<String> { throw RuntimeException("boom") } fallback Kap.of("backup")).executeGraph()
+        val result = (Kap<String> { throw RuntimeException("boom") } fallback Kap.of("backup")).evalGraph()
         assertEquals("backup", result)
     }
 
     @Test
     fun `fallback returns primary on success`() = runTest {
-        val result = (Kap.of("primary") fallback Kap.of("backup")).executeGraph()
+        val result = (Kap.of("primary") fallback Kap.of("backup")).evalGraph()
         assertEquals("primary", result)
     }
 
@@ -109,7 +108,7 @@ class CombinatorsTest {
     @Test
     fun `retry succeeds on first attempt`() = runTest {
         var attempts = 0
-        val result = Kap<String> { attempts++; "ok" }.retry(3).executeGraph()
+        val result = Kap<String> { attempts++; "ok" }.retry(3).evalGraph()
         assertEquals("ok", result)
         assertEquals(1, attempts)
     }
@@ -121,7 +120,7 @@ class CombinatorsTest {
                 attempts++
                 if (attempts < 3) throw RuntimeException("fail #$attempts")
                 "ok"
-            }.retry(3).executeGraph()
+            }.retry(3).evalGraph()
         assertEquals("ok", result)
         assertEquals(3, attempts)
     }
@@ -133,7 +132,7 @@ class CombinatorsTest {
             Kap<String> {
                     attempts++
                     throw RuntimeException("fail #$attempts")
-                }.retry(3).executeGraph()
+                }.retry(3).evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(3, attempts)
@@ -147,7 +146,7 @@ class CombinatorsTest {
             Kap<String> {
                     attempts++
                     throw CancellationException("cancelled")
-                }.retry(3).executeGraph()
+                }.retry(3).evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals(1, attempts) // no retry on cancellation
@@ -164,7 +163,7 @@ class CombinatorsTest {
 
         val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with { with(retryable) { execute() } }
-                .with { "ok" }.executeGraph()
+                .with { "ok" }.evalGraph()
         assertEquals("retried|ok", result)
     }
 
@@ -175,14 +174,14 @@ class CombinatorsTest {
     @Test
     fun `timeout with default plus recover compose naturally`() = runTest {
         val result = Kap<String> { delay(10.seconds); "slow" }
-                .timeout(100.milliseconds, "timed-out").executeGraph()
+                .timeout(100.milliseconds, "timed-out").evalGraph()
         assertEquals("timed-out", result)
     }
 
     @Test
     fun `timeout exception plus fallback compose naturally`() = runTest {
         val result = Kap<String> { delay(10.seconds); "slow" }
-                .timeout(100.milliseconds, Kap.of("fallback-value")).executeGraph()
+                .timeout(100.milliseconds, Kap.of("fallback-value")).evalGraph()
         assertEquals("fallback-value", result)
     }
 
@@ -193,7 +192,7 @@ class CombinatorsTest {
                 attempts++
                 if (attempts < 3) throw RuntimeException("fail")
                 "ok"
-            }.retry(3).timeout(5.seconds).executeGraph()
+            }.retry(3).timeout(5.seconds).evalGraph()
         assertEquals("ok", result)
         assertEquals(3, attempts)
     }
@@ -204,20 +203,20 @@ class CombinatorsTest {
 
     @Test
     fun `timeout with default preserves null as a valid result`() = runTest {
-        val result = Kap<String?> { null }.timeout(1.seconds, default = "fallback").executeGraph()
+        val result = Kap<String?> { null }.timeout(1.seconds, default = "fallback").evalGraph()
         // The computation completed with null — should NOT fall through to default
         assertEquals(null, result)
     }
 
     @Test
     fun `timeout with fallback preserves null as a valid result`() = runTest {
-        val result = Kap<String?> { null }.timeout(1.seconds, Kap.of("fallback")).executeGraph()
+        val result = Kap<String?> { null }.timeout(1.seconds, Kap.of("fallback")).evalGraph()
         assertEquals(null, result)
     }
 
     @Test
     fun `timeout with default still returns default on actual timeout`() = runTest {
-        val result = Kap<String?> { delay(10.seconds); null }.timeout(100.milliseconds, default = "timed-out").executeGraph()
+        val result = Kap<String?> { delay(10.seconds); null }.timeout(100.milliseconds, default = "timed-out").evalGraph()
         assertEquals("timed-out", result)
     }
 
@@ -231,8 +230,8 @@ class CombinatorsTest {
         val counter = AtomicInteger(0)
         val expensive = Kap { counter.incrementAndGet(); "result" }.memoize()
 
-        val result1 = expensive.executeGraph()
-        val result2 = expensive.executeGraph()
+        val result1 = expensive.evalGraph()
+        val result2 = expensive.evalGraph()
 
         assertEquals("result", result1)
         assertEquals("result", result2)
@@ -251,7 +250,7 @@ class CombinatorsTest {
 
         val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with(expensive)
-                .with(expensive).executeGraph()
+                .with(expensive).evalGraph()
 
         assertEquals("data|data", result)
         assertEquals(1, counter.get(), "Memoized computation should run once even in parallel")
@@ -266,7 +265,7 @@ class CombinatorsTest {
             throw RuntimeException("boom")
         }.memoize()
 
-        val result = runCatching { failing.executeGraph() }
+        val result = runCatching { failing.evalGraph() }
         assertTrue(result.isFailure)
         assertEquals("boom", result.exceptionOrNull()?.message)
         assertEquals(1, counter.get(), "Should only execute once even on failure")

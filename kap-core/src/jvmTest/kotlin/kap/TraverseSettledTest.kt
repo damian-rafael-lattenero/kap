@@ -6,7 +6,6 @@ import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -24,7 +23,7 @@ class TraverseSettledTest {
                     if (i % 2 == 0) throw RuntimeException("fail-$i")
                     "ok-$i"
                 }
-            }.executeGraph()
+            }.evalGraph()
 
         assertEquals(5, results.size)
         assertTrue(results[0].isSuccess)
@@ -46,7 +45,7 @@ class TraverseSettledTest {
                     delay(50.milliseconds)
                     "done-$i"
                 }
-            }.executeGraph()
+            }.evalGraph()
 
         assertEquals(50L, currentTime, "5 parallel tasks @ 50ms should complete in 50ms")
         assertTrue(results.all { it.isSuccess })
@@ -63,7 +62,7 @@ class TraverseSettledTest {
                     synchronized(completed) { completed.add(i) }
                     "ok-$i"
                 }
-            }.executeGraph()
+            }.evalGraph()
 
         assertEquals(5, results.size)
         assertTrue(results[0].isFailure, "first should fail")
@@ -76,7 +75,7 @@ class TraverseSettledTest {
     fun `traverseSettled with all success returns all Right`() = runTest {
         val results = listOf("a", "b", "c").traverseSettled { s ->
                 Kap { s.uppercase() }
-            }.executeGraph()
+            }.evalGraph()
 
         assertEquals(
             listOf("A", "B", "C"),
@@ -88,7 +87,7 @@ class TraverseSettledTest {
     fun `traverseSettled with all failures returns all failures`() = runTest {
         val results = listOf(1, 2, 3).traverseSettled { i ->
                 Kap<String> { throw RuntimeException("err-$i") }
-            }.executeGraph()
+            }.evalGraph()
 
         assertTrue(results.all { it.isFailure })
         assertEquals(
@@ -108,7 +107,7 @@ class TraverseSettledTest {
                     delay(30.milliseconds)
                     "ok-$i"
                 }
-            }.executeGraph()
+            }.evalGraph()
 
         // 9 items / 3 concurrency = 3 batches × 30ms = 90ms
         assertEquals(90L, currentTime, "bounded traverseSettled should batch correctly")
@@ -123,7 +122,7 @@ class TraverseSettledTest {
                     if (i % 3 == 0) throw RuntimeException("fail-$i")
                     "ok-$i"
                 }
-            }.executeGraph()
+            }.evalGraph()
 
         assertEquals(6, results.size)
         assertEquals(4, results.count { it.isSuccess })
@@ -142,7 +141,7 @@ class TraverseSettledTest {
             Kap { "c" },
         )
 
-        val results = computations.sequenceSettled().executeGraph()
+        val results = computations.sequenceSettled().evalGraph()
 
         assertEquals(3, results.size)
         assertTrue(results[0].isSuccess)
@@ -159,7 +158,7 @@ class TraverseSettledTest {
             }
         }
 
-        val results = computations.sequenceSettled(4).executeGraph()
+        val results = computations.sequenceSettled(4).evalGraph()
 
         // 8 items / 4 concurrency = 2 batches × 25ms = 50ms
         assertEquals(50L, currentTime)
@@ -172,7 +171,7 @@ class TraverseSettledTest {
 
     @Test
     fun `settled wraps success in Result`() = runTest {
-        val result = Kap { 42 }.settled().executeGraph()
+        val result = Kap { 42 }.settled().evalGraph()
 
         assertTrue(result.isSuccess)
         assertEquals(42, result.getOrThrow())
@@ -183,9 +182,9 @@ class TraverseSettledTest {
         data class Dashboard(val user: Result<String>, val cart: String, val config: String)
 
         val result = Kap.of { user: Result<String> -> { cart: String -> { config: String -> Dashboard(user, cart, config) } } }
-                .with { Kap<String> { throw RuntimeException("user-down") }.settled().executeGraph() }
+                .with { Kap<String> { throw RuntimeException("user-down") }.settled().evalGraph() }
                 .with { delay(50.milliseconds); "cart-ok" }
-                .with { delay(50.milliseconds); "config-ok" }.executeGraph()
+                .with { delay(50.milliseconds); "config-ok" }.evalGraph()
 
         assertTrue(result.user.isFailure)
         assertEquals("user-down", result.user.exceptionOrNull()!!.message)
@@ -200,9 +199,9 @@ class TraverseSettledTest {
         val result = Kap.of { a: Result<String> -> { b: String -> R(a, b) } }
                 .with {
                     delay(50.milliseconds)
-                    Kap<String> { throw RuntimeException("err") }.settled().executeGraph()
+                    Kap<String> { throw RuntimeException("err") }.settled().evalGraph()
                 }
-                .with { delay(50.milliseconds); "ok" }.executeGraph()
+                .with { delay(50.milliseconds); "ok" }.evalGraph()
 
         assertEquals(50L, currentTime, "both branches should run in parallel")
         assertTrue(result.a.isFailure)

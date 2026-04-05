@@ -60,7 +60,7 @@ suspend fun main() {
         .withFirstName { fetchFirstName() }
         .withLastName { fetchLastName() }
         .withAge { fetchAge() }
-        .executeGraph()
+        .evalGraph()
     println("  User: $user")
 
     // Function with prefix: kap(BuildDashboard)
@@ -68,7 +68,7 @@ suspend fun main() {
         .withDashboardUserName { fetchUserName() }
         .withDashboardCartSummary { fetchCartSummary() }
         .withDashboardPromoCode { fetchPromoCode() }
-        .executeGraph()
+        .evalGraph()
     println("  Dashboard: $dash")
 
     // Function with prefix: kap(BuildReport)
@@ -76,7 +76,7 @@ suspend fun main() {
         .withReportUserName { fetchUserName() }
         .withReportDateRange { fetchDateRange() }
         .withReportFormat { fetchFormat() }
-        .executeGraph()
+        .evalGraph()
     println("  Report: $report")
 
     // Third-party class via @KapBridge: kap(::ThirdPartyDto)
@@ -84,7 +84,7 @@ suspend fun main() {
         .withId { 42 }
         .withName { "bridged" }
         .withActive { true }
-        .executeGraph()
+        .evalGraph()
     println("  ThirdPartyDto: $dto")
 
     // Phase barriers
@@ -93,7 +93,7 @@ suspend fun main() {
         .withCart { fetchCart() }
         .thenValidated { validateOrder() }
         .withTotal { calculateTotal() }
-        .executeGraph()
+        .evalGraph()
     println("  Checkout: $checkout")
 
     println("\nAll demos passed!")

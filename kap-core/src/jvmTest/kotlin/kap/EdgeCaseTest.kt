@@ -1,9 +1,6 @@
 package kap
 
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
@@ -36,7 +33,7 @@ class EdgeCaseTest {
             Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                     .with { delay(10); "A" }
                     .then(Kap<String> { throw RuntimeException("barrier failed") })
-                    .with { delay(10); "C" }.executeGraph()
+                    .with { delay(10); "C" }.evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals("barrier failed", result.exceptionOrNull()!!.message)
@@ -50,7 +47,7 @@ class EdgeCaseTest {
             Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                     .with { delay(200); "A" }
                     .then(Kap<String> { delay(10); throw RuntimeException("boom") })
-                    .with { delay(100); "C" }.executeGraph()
+                    .with { delay(100); "C" }.evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -70,11 +67,11 @@ class EdgeCaseTest {
             "result-$callCount"
         }.memoize()
 
-        val first = comp.executeGraph()
+        val first = comp.evalGraph()
         assertEquals("result-1", first)
         assertEquals(1, callCount)
 
-        val second = comp.executeGraph()
+        val second = comp.evalGraph()
         assertEquals("result-1", second)
         assertEquals(1, callCount, "Should not re-execute — result is cached")
     }
@@ -89,16 +86,16 @@ class EdgeCaseTest {
         }.memoizeOnSuccess()
 
         // First call fails
-        assertFailsWith<RuntimeException> { comp.executeGraph(); Unit }
+        assertFailsWith<RuntimeException> { comp.evalGraph(); Unit }
         assertEquals(1, callCount)
 
         // Second call retries and succeeds
-        val result = comp.executeGraph()
+        val result = comp.evalGraph()
         assertEquals("success-2", result)
         assertEquals(2, callCount)
 
         // Third call returns cached success
-        val cached = comp.executeGraph()
+        val cached = comp.evalGraph()
         assertEquals("success-2", cached)
         assertEquals(2, callCount, "Should not re-execute — success is cached")
     }
@@ -111,11 +108,11 @@ class EdgeCaseTest {
             throw RuntimeException("permanent failure #$callCount")
         }.memoize()
 
-        val ex1 = assertFailsWith<RuntimeException> { comp.executeGraph() }
+        val ex1 = assertFailsWith<RuntimeException> { comp.evalGraph() }
         assertEquals("permanent failure #1", ex1.message)
         assertEquals(1, callCount)
 
-        val ex2 = assertFailsWith<RuntimeException> { comp.executeGraph() }
+        val ex2 = assertFailsWith<RuntimeException> { comp.evalGraph() }
         assertEquals("permanent failure #1", ex2.message)
         assertEquals(1, callCount, "Should not retry — failure is cached in memoize()")
     }
@@ -131,7 +128,7 @@ class EdgeCaseTest {
 
         val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with(shared)
-                .with(shared).executeGraph()
+                .with(shared).evalGraph()
         assertEquals("shared-1|shared-1", result)
         assertEquals(1, callCount, "Memoized computation should execute only once even in parallel")
     }
@@ -147,7 +144,7 @@ class EdgeCaseTest {
                     withTimeout(10) { delay(100); "slow" }
                 },
                 Kap { delay(5); "fast" },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("fast", result)
         assertEquals(5, currentTime, "Fast racer wins at 5ms")
     }
@@ -158,7 +155,7 @@ class EdgeCaseTest {
             race(
                     Kap { delay(10); throw RuntimeException("err-A") },
                     Kap { delay(20); throw RuntimeException("err-B") },
-                ).executeGraph()
+                ).evalGraph()
         }
         assertTrue(result.isFailure, "Race with all failures should fail")
         val ex = result.exceptionOrNull()!!
@@ -171,7 +168,7 @@ class EdgeCaseTest {
                 Kap { delay(10); throw RuntimeException("fail-1") },
                 Kap { delay(20); throw RuntimeException("fail-2") },
                 Kap { delay(15); "winner" },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("winner", result)
         assertEquals(15, currentTime, "Winner completes at 15ms")
     }
@@ -189,7 +186,7 @@ class EdgeCaseTest {
                 .then { delay(10); "B" }
                 .then { delay(10); "C" }
                 .then { delay(10); "D" }
-                .then { delay(10); "E" }.executeGraph()
+                .then { delay(10); "E" }.evalGraph()
         assertEquals("A|B|C|D|E", result)
         assertEquals(60, currentTime, "Sequential barriers: 20+10+10+10+10=60ms")
     }
@@ -200,7 +197,7 @@ class EdgeCaseTest {
                 .with { delay(20); "A" }
                 .then { delay(20); "B" }
                 .then { delay(20); "C" }
-                .with { delay(20); "D" }.executeGraph()
+                .with { delay(20); "D" }.evalGraph()
         assertEquals("A|B|C|D", result)
         assertEquals(80, currentTime, "D waits for both barriers: 20+20+20+20=80ms")
     }

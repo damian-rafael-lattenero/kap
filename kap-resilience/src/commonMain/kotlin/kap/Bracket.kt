@@ -22,7 +22,7 @@ import kotlinx.coroutines.withContext
  *             .with { conn.fetchCart() }
  *     },
  *     release = { conn -> conn.close() },
- * ).executeGraph()
+ * ).evalGraph()
  * ```
  *
  * @param acquire suspending function that acquires the resource.

@@ -33,7 +33,7 @@ dependencies {
         { fetchCart() },
         { fetchPromos() },
     ) { user, cart, promos -> Dashboard(user, cart, promos) }
-        .executeGraph()
+        .evalGraph()
     ```
 
 Almost identical. KAP's `combine` is Arrow's `parZip` equivalent.
@@ -60,7 +60,7 @@ Almost identical. KAP's `combine` is Arrow's `parZip` equivalent.
     val result = kap(::Page)
         .withUser { fetchUser() }
         .withCart { fetchCart() }
-        .executeGraph()
+        .evalGraph()
     ```
 
 ## Multi-phase: sequential `parZip` → flat chain
@@ -98,7 +98,7 @@ This is where KAP shines. Arrow requires separate `parZip` calls with intermedia
         .thenValidated { validate() }       // ── phase 2: barrier
         .withShipping { calcShipping() }    // ┐ phase 3
         .withTax { calcTax() }              // ┘
-        .executeGraph()
+        .evalGraph()
     ```
 
 ## Value-dependent phases: nested `parZip` → `.andThen`
@@ -132,7 +132,7 @@ This is where KAP shines. Arrow requires separate `parZip` calls with intermedia
                 .withRecs { fetchRecs(ctx.profile) }
                 .withPromos { fetchPromos(ctx.prefs) }
         }
-        .executeGraph()
+        .evalGraph()
     ```
 
 ## Validation: `zipOrAccumulate` → `zipV`
@@ -155,7 +155,7 @@ This is where KAP shines. Arrow requires separate `parZip` calls with intermedia
         { validateEmail(email) },
         { validateAge(age) },
     ) { n, e, a -> User(n, e, a) }
-        .executeGraph()
+        .evalGraph()
     // Same error accumulation, but validators run in parallel, and scales to 22
     ```
 

@@ -4,7 +4,7 @@ If you're using `coroutineScope { async { } }` for parallel execution, this guid
 
 ## KAP is built ON coroutines
 
-KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGraph()` creates a `coroutineScope`. `.with` uses `async`. All structured concurrency rules still apply:
+KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.evalGraph()` creates a `coroutineScope`. `.with` uses `async`. All structured concurrency rules still apply:
 
 - Parent cancels → all children cancel
 - One child fails → siblings cancel (unless `.settled()`)
@@ -34,7 +34,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGra
         .withUser { fetchUser() }
         .withCart { fetchCart() }
         .withPromos { fetchPromos() }
-        .executeGraph()
+        .evalGraph()
     ```
 
 6 lines → 4 lines. No shuttle variables. Swap two `.with` lines? Compile error.
@@ -69,7 +69,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGra
         .thenValidated { validate() }   // ── explicit barrier
         .withC { fetchC() }             // ┐ phase 2
         .withD { fetchD() }             // ┘
-        .executeGraph()
+        .evalGraph()
     ```
 
 ## Bounded concurrency: `Semaphore` → `traverse(concurrency)`
@@ -92,7 +92,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGra
     ```kotlin
     val results = userIds.traverse(concurrency = 10) { id ->
         Kap { fetchUser(id) }
-    }.executeGraph()
+    }.evalGraph()
     ```
 
 ## Timeout with fallback: `withTimeoutOrNull` → `.timeout`
@@ -108,7 +108,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGra
     ```kotlin
     val result = Kap { fetchSlowService() }
         .timeout(500.milliseconds) { "fallback" }
-        .executeGraph()
+        .evalGraph()
     ```
 
 ## Parallel fallback: sequential → `timeoutRace`
@@ -130,7 +130,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGra
     // Parallel: both start at t=0
     val result = Kap { fetchFromPrimary() }
         .timeoutRace(100.milliseconds, Kap { fetchFromFallback() })
-        .executeGraph()
+        .evalGraph()
     // 2.6x faster — fallback already running when primary times out
     ```
 
@@ -152,7 +152,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGra
     ```kotlin
     val result = Kap { fetchUser() }
         .recover { "anonymous" }
-        .executeGraph()
+        .evalGraph()
     // CancellationException automatically re-thrown — no manual check needed
     ```
 
@@ -181,7 +181,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGra
     ```kotlin
     val result = Kap { fetchUser() }.retry(
         Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds).jittered()
-    ).executeGraph()
+    ).evalGraph()
     ```
 
 ## Resource cleanup: `try`/`finally` → `bracket`
@@ -204,7 +204,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGra
         acquire = { openConnection() },
         use = { conn -> Kap { conn.query("SELECT 1") } },
         release = { conn -> conn.close() },  // NonCancellable — guaranteed
-    ).executeGraph()
+    ).evalGraph()
     ```
 
 ## Partial failure: `supervisorScope` → `.settled()`
@@ -231,7 +231,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGra
     val result = kap(::buildDashboard)
         .withUser(settled { fetchUserMayFail() })  // .settled() → Result<String>
         .withCart { fetchCart() }                          // normal String
-        .executeGraph()
+        .evalGraph()
     // fetchUserMayFail() fails → Result.failure → buildDashboard uses "anonymous"
     // fetchCart() is NOT cancelled
     ```
@@ -240,7 +240,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.executeGra
 
 | Raw Coroutines | KAP |
 |---|---|
-| `coroutineScope { async { } }` | `kap(::T).with { }.executeGraph()` |
+| `coroutineScope { async { } }` | `kap(::T).with { }.evalGraph()` |
 | `async { }.await()` | `.with { }` |
 | suspend call between phases | `.then { }` |
 | nested `coroutineScope` | `.andThen { ctx -> }` |

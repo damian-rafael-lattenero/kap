@@ -8,7 +8,6 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -29,8 +28,8 @@ class ImprovementPlanTest {
     @Test
     fun `await executes computation and returns result`() = runTest {
         val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
-                .with { Kap { delay(30); "fast" }.timeout(100.milliseconds, "timeout").executeGraph() }
-                .with { delay(30); "other" }.executeGraph()
+                .with { Kap { delay(30); "fast" }.timeout(100.milliseconds, "timeout").evalGraph() }
+                .with { delay(30); "other" }.evalGraph()
 
         assertEquals("fast|other", result)
         assertEquals(30, currentTime, "Max(30,30) = 30ms")
@@ -40,8 +39,8 @@ class ImprovementPlanTest {
     fun `await with timeout fallback inside with branch`() = runTest {
         val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { delay(30); "A" }
-                .with { Kap { delay(500); "slow-B" }.timeout(50.milliseconds, "timeout-B").executeGraph() }
-                .with { delay(30); "C" }.executeGraph()
+                .with { Kap { delay(500); "slow-B" }.timeout(50.milliseconds, "timeout-B").evalGraph() }
+                .with { delay(30); "C" }.evalGraph()
 
         assertEquals("A|timeout-B|C", result)
         assertEquals(50, currentTime, "Timeout at 50ms determines total")
@@ -56,9 +55,9 @@ class ImprovementPlanTest {
                         attempts++
                         if (attempts < 3) throw RuntimeException("flaky")
                         delay(20); "recovered"
-                    }.retry(3, delay = 10.milliseconds).executeGraph()
+                    }.retry(3, delay = 10.milliseconds).evalGraph()
                 }
-                .with { delay(30); "stable" }.executeGraph()
+                .with { delay(30); "stable" }.evalGraph()
 
         assertEquals("recovered|stable", result)
         assertEquals(3, attempts)
@@ -71,9 +70,9 @@ class ImprovementPlanTest {
                 .with {
                     Kap<String> { throw RuntimeException("boom") }
                         .recover { "recovered" }
-                        .executeGraph()
+                        .evalGraph()
                 }
-                .with { delay(30); "B" }.executeGraph()
+                .with { delay(30); "B" }.evalGraph()
 
         assertEquals("recovered|B", result)
     }
@@ -83,8 +82,8 @@ class ImprovementPlanTest {
         // If one branch fails, the other should be cancelled
         val result = runCatching {
             Kap.of { a: String -> { b: String -> "$a|$b" } }
-                    .with { Kap<String> { throw RuntimeException("crash") }.executeGraph() }
-                    .with { delay(1000); "never" }.executeGraph()
+                    .with { Kap<String> { throw RuntimeException("crash") }.evalGraph() }
+                    .with { delay(1000); "never" }.evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -104,7 +103,7 @@ class ImprovementPlanTest {
                     .with { delay(30); "A" }
                     .then { throw RuntimeException("barrier-crash") }
                     .with { delay(30); "C" }  // gated — should NOT hang
-                    .executeGraph()
+                    .evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -120,7 +119,7 @@ class ImprovementPlanTest {
                 .then {
                     with(Kap<String> { throw RuntimeException("barrier-fail") }
                         .recover { "recovered" }) { execute() }
-                }.executeGraph()
+                }.evalGraph()
 
         assertEquals("A|recovered", result)
     }
@@ -132,7 +131,7 @@ class ImprovementPlanTest {
     @Test
     fun `orElse returns primary on success`() = runTest {
         val result = Kap { "primary" }
-                .orElse(Kap { "fallback" }).executeGraph()
+                .orElse(Kap { "fallback" }).evalGraph()
 
         assertEquals("primary", result)
     }
@@ -140,7 +139,7 @@ class ImprovementPlanTest {
     @Test
     fun `orElse returns fallback on primary failure`() = runTest {
         val result = Kap<String> { throw RuntimeException("primary-fail") }
-                .orElse(Kap { delay(30); "fallback" }).executeGraph()
+                .orElse(Kap { delay(30); "fallback" }).evalGraph()
 
         assertEquals("fallback", result)
         assertEquals(30, currentTime, "Fallback starts only after primary fails")
@@ -150,7 +149,7 @@ class ImprovementPlanTest {
     fun `orElse chains three levels`() = runTest {
         val result = Kap<String> { throw RuntimeException("fail1") }
                 .orElse(Kap { throw RuntimeException("fail2") })
-                .orElse(Kap { "last-resort" }).executeGraph()
+                .orElse(Kap { "last-resort" }).evalGraph()
 
         assertEquals("last-resort", result)
     }
@@ -159,7 +158,7 @@ class ImprovementPlanTest {
     fun `orElse propagates CancellationException`() = runTest {
         val result = runCatching {
             Kap<String> { throw CancellationException("cancel") }
-                    .orElse(Kap { "should-not-reach" }).executeGraph()
+                    .orElse(Kap { "should-not-reach" }).evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -169,7 +168,7 @@ class ImprovementPlanTest {
     @Test
     fun `orElse is sequential not concurrent - timing proof`() = runTest {
         val result = Kap<String> { delay(20); throw RuntimeException("fail") }
-                .orElse(Kap { delay(30); "fallback" }).executeGraph()
+                .orElse(Kap { delay(30); "fallback" }).evalGraph()
 
         assertEquals("fallback", result)
         assertEquals(50, currentTime, "Sequential: 20ms (fail) + 30ms (fallback) = 50ms")
@@ -182,7 +181,7 @@ class ImprovementPlanTest {
                 Kap { throw RuntimeException("fail2") },
                 Kap { delay(30); "third" },
                 Kap { delay(30); "fourth" }, // never tried
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("third", result)
     }
@@ -194,7 +193,7 @@ class ImprovementPlanTest {
                     Kap<String> { throw RuntimeException("err1") },
                     Kap { throw RuntimeException("err2") },
                     Kap { throw RuntimeException("err3") },
-                ).executeGraph()
+                ).evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -229,7 +228,7 @@ class ImprovementPlanTest {
         val result = firstSuccessOf(
                 Kap { delay(20); throw RuntimeException("fail") },
                 Kap { delay(30); "success" },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("success", result)
         assertEquals(50, currentTime, "Sequential: 20ms (fail) + 30ms (success) = 50ms")
@@ -241,7 +240,7 @@ class ImprovementPlanTest {
             Kap<String> { throw RuntimeException("fail") },
             Kap { "success" },
         )
-        val result = computations.firstSuccess().executeGraph()
+        val result = computations.firstSuccess().evalGraph()
 
         assertEquals("success", result)
     }
@@ -257,9 +256,9 @@ class ImprovementPlanTest {
                     firstSuccessOf(
                         Kap { delay(20); throw RuntimeException("primary-down") },
                         Kap { delay(30); "replica-data" },
-                    ).executeGraph()
+                    ).evalGraph()
                 }
-                .with { delay(60); "other" }.executeGraph()
+                .with { delay(60); "other" }.evalGraph()
 
         assertEquals("replica-data|other", result)
         // firstSuccessOf: 20 + 30 = 50ms. Other: 60ms. Parallel: max(50,60) = 60ms

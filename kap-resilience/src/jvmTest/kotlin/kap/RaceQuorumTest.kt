@@ -19,7 +19,7 @@ class RaceQuorumTest {
             Kap { delay(100); "slow" },
             Kap { delay(10); "fast" },
             Kap { delay(50); "medium" },
-        ).executeGraph()
+        ).evalGraph()
 
         assertEquals(1, result.size)
         assertEquals("fast", result[0])
@@ -33,7 +33,7 @@ class RaceQuorumTest {
             Kap { delay(100); "slow" },
             Kap { delay(10); "fast" },
             Kap { delay(50); "medium" },
-        ).executeGraph()
+        ).evalGraph()
 
         assertEquals(2, result.size)
         assertTrue(result.contains("fast"))
@@ -48,7 +48,7 @@ class RaceQuorumTest {
             Kap { delay(10); "A" },
             Kap { delay(50); "B" },
             Kap { delay(30); "C" },
-        ).executeGraph()
+        ).evalGraph()
 
         assertEquals(3, result.size)
         assertTrue(result.containsAll(listOf("A", "B", "C")))
@@ -63,7 +63,7 @@ class RaceQuorumTest {
                 Kap { delay(10); "A" },
                 Kap<String> { delay(20); throw RuntimeException("fail") },
                 Kap { delay(30); "C" },
-            ).executeGraph()
+            ).evalGraph()
         }
         assertTrue(error.message == "fail")
     }
@@ -76,7 +76,7 @@ class RaceQuorumTest {
             Kap { delay(20); "B" },
             Kap { delay(30); "C" },
             Kap { delay(40); "D" },
-        ).executeGraph()
+        ).evalGraph()
 
         assertEquals(2, result.size)
         assertEquals("B", result[0])
@@ -92,7 +92,7 @@ class RaceQuorumTest {
                 Kap { delay(10); throw RuntimeException("fail-1") },
                 Kap { delay(20); throw RuntimeException("fail-2") },
                 Kap { delay(30); "C" },
-            ).executeGraph()
+            ).evalGraph()
         }
 
         // The last failure is thrown. Prior failures may be suppressed.
@@ -105,7 +105,7 @@ class RaceQuorumTest {
         val result = raceQuorum(
             required = 1,
             Kap { delay(10); "only" },
-        ).executeGraph()
+        ).evalGraph()
 
         assertEquals(listOf("only"), result)
     }
@@ -135,7 +135,7 @@ class RaceQuorumTest {
                     throw e
                 }
             },
-        ).executeGraph()
+        ).evalGraph()
 
         assertEquals(2, result.size)
         assertTrue(slowCancelled, "Slow computation should have been cancelled")
@@ -150,7 +150,7 @@ class RaceQuorumTest {
             Kap { delay(30); "C" },
         )
 
-        val result = computations.raceQuorum(2).executeGraph()
+        val result = computations.raceQuorum(2).evalGraph()
 
         assertEquals(2, result.size)
         assertEquals("A", result[0])
@@ -166,7 +166,7 @@ class RaceQuorumTest {
             Kap { delay(10); "C" },
             Kap { delay(40); "D" },
             Kap { delay(20); "E" },
-        ).executeGraph()
+        ).evalGraph()
 
         assertEquals(2, result.size)
         // Fastest two: C@10ms, E@20ms

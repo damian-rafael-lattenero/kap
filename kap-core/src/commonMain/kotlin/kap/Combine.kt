@@ -23,7 +23,7 @@ import kotlinx.coroutines.async
  *     { fetchUser(id) },
  *     { fetchCart(id) },
  * ) { user, cart -> Dashboard(user, cart) }
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  */
 fun <A, B, R> combine(
@@ -45,7 +45,7 @@ fun <A, B, R> combine(
  *     { fetchCart(id) },
  *     { fetchPromos(id) },
  * ) { user, cart, promos -> Dashboard(user, cart, promos) }
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  */
 fun <A, B, C, R> combine(
@@ -103,7 +103,7 @@ fun <A, B, C, D, E, R> combine(
  *
  * ```
  * val (user, cart) = pair({ fetchUser(id) }, { fetchCart(id) })
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  */
 fun <A, B> pair(
@@ -116,7 +116,7 @@ fun <A, B> pair(
  *
  * ```
  * val (user, cart, promos) = triple({ fetchUser(id) }, { fetchCart(id) }, { fetchPromos(id) })
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  */
 fun <A, B, C> triple(

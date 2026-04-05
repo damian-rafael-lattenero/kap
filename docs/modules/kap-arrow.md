@@ -49,7 +49,7 @@ implementation("io.github.damian-rafael-lattenero:kap-arrow:2.6.0")
         { validateAge(age) },
         { checkUsername(username) },
     ) { n, e, a, u -> User(n, e, a, u) }
-        .executeGraph()
+        .evalGraph()
     // All errors at once + all validators run in PARALLEL + scales to 22
     ```
 
@@ -129,7 +129,7 @@ suspend fun checkUsername(username: String): Either<NonEmptyList<RegError>, Vali
         { validateAge(25) },
         { checkUsername("alice") },
     ) { name, email, age, username -> User(name, email, age, username) }
-        .executeGraph()
+        .evalGraph()
     // Right(User(ValidName(Alice), ValidEmail(alice@example.com), ValidAge(25), ValidUsername(alice)))
     ```
 
@@ -171,7 +171,7 @@ suspend fun checkUsername(username: String): Either<NonEmptyList<RegError>, Vali
         { validateAge(10) },              // ← under 18
         { checkUsername("al") },          // ← too short
     ) { name, email, age, username -> User(name, email, age, username) }
-        .executeGraph()
+        .evalGraph()
     // Left(NonEmptyList(InvalidName, InvalidEmail, InvalidAge, UsernameTaken))
     // ALL 4 errors in ONE response. All ran in parallel.
     ```
@@ -218,7 +218,7 @@ Same parallel execution and error accumulation, typed chain syntax:
         .withV { validateEmail("alice@example.com") }
         .withV { validateAge(25) }
         .withV { checkUsername("alice") }
-        .executeGraph()
+        .evalGraph()
     ```
 
 === "Arrow"
@@ -260,7 +260,7 @@ Some validations depend on earlier results. Phase 1 collects all basic errors. O
             .bindV()
 
         Registration(identity, cleared)
-    }.executeGraph()
+    }.evalGraph()
     ```
 
 === "Raw Coroutines"
@@ -293,7 +293,7 @@ val multiError: Validated<RegError, ValidName> = invalidAll(
 ```kotlin
 val result = catching<RegError, String>({ e -> RegError.InvalidName(e.message ?: "unknown") }) {
     riskyOperation()
-}.executeGraph()
+}.evalGraph()
 ```
 
 ---
@@ -327,7 +327,7 @@ val result = catching<RegError, String>({ e -> RegError.InvalidName(e.message ?:
     ```kotlin
     val result = valid(ValidAge(15))
         .ensureV(RegError.InvalidAge("Must be 18+")) { it.value >= 18 }
-        .executeGraph()
+        .evalGraph()
     // Left(NonEmptyList(InvalidAge("Must be 18+")))
 
     val result2 = valid(ValidPassword("123"))
@@ -338,7 +338,7 @@ val result = catching<RegError, String>({ e -> RegError.InvalidName(e.message ?:
                 if (!password.value.any { it.isDigit() }) add(RegError.WeakPassword("No digit"))
             }.let { if (it.isEmpty()) null else nonEmptyListOf(it.first(), *it.drop(1).toTypedArray()) }
         }
-        .executeGraph()
+        .evalGraph()
     // Left(NonEmptyList(WeakPassword("Too short"), WeakPassword("No uppercase")))
     ```
 
@@ -351,7 +351,7 @@ val result = catching<RegError, String>({ e -> RegError.InvalidName(e.message ?:
 ```kotlin
 val result = valid(ValidName("alice"))
     .mapV { it.value.uppercase() }
-    .executeGraph()
+    .evalGraph()
 // Right("ALICE")
 ```
 
@@ -360,7 +360,7 @@ val result = valid(ValidName("alice"))
 ```kotlin
 val result = invalid(RegError.InvalidName("too short"))
     .mapError { ApiError(it.message) }
-    .executeGraph()
+    .evalGraph()
 ```
 
 ### `.recoverV { }` — Recover from validation errors
@@ -368,7 +368,7 @@ val result = invalid(RegError.InvalidName("too short"))
 ```kotlin
 val result = invalid(RegError.InvalidName("too short"))
     .recoverV { errors -> ValidName("default-${errors.size}-errors") }
-    .executeGraph()
+    .evalGraph()
 // Right(ValidName("default-1-errors"))
 ```
 
@@ -382,7 +382,7 @@ val user: User = zipV(
     { checkUsername("alice") },
 ) { name, email, age, username -> User(name, email, age, username) }
     .orThrow()  // Right → value, Left → throws
-    .executeGraph()
+    .evalGraph()
 ```
 
 ---
@@ -396,7 +396,7 @@ val user: User = zipV(
     ```kotlin
     val emails = listOf("alice@example.com", "bad", "bob@example.com", "also-bad")
     val result = emails.traverseV { email -> validateEmail(email) }
-        .executeGraph()
+        .evalGraph()
     // Left(NonEmptyList(InvalidEmail("bad"), InvalidEmail("also-bad")))
     // ALL invalid emails reported, not just the first
     ```
@@ -450,7 +450,7 @@ val user: User = zipV(
     val validated: List<Validated<RegError, ValidEmail>> = emails.map { email ->
         Kap { validateEmail(email) }
     }
-    val result = validated.sequenceV().executeGraph()
+    val result = validated.sequenceV().evalGraph()
     ```
 
 ---
@@ -472,11 +472,11 @@ val user: User = zipV(
 === "KAP"
 
     ```kotlin
-    val success: Either<Throwable, String> = Kap { "hello" }.attempt().executeGraph()
+    val success: Either<Throwable, String> = Kap { "hello" }.attempt().evalGraph()
     // Right("hello")
 
     val failure: Either<Throwable, String> = Kap<String> { throw RuntimeException("boom") }
-        .attempt().executeGraph()
+        .attempt().evalGraph()
     // Left(RuntimeException("boom"))
     ```
 
@@ -488,7 +488,7 @@ val user: User = zipV(
     val result: Either<String, Int> = raceEither(
         fa = Kap { delay(30); "fast-string" },
         fb = Kap { delay(100); 42 },
-    ).executeGraph()
+    ).evalGraph()
     // Left("fast-string") — String won the race
     // Loser cancelled automatically
     ```
@@ -555,7 +555,7 @@ For imperative-style validation with `.bindV()`:
             .bindV()
 
         Registration(identity, cleared)
-    }.executeGraph()
+    }.evalGraph()
     ```
 
 === "Arrow"

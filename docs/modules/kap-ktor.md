@@ -58,7 +58,7 @@ routing {
         val user = Kap { fetchUser(call.parameters["id"]!!) }
             .withCircuitBreaker(breaker)
             .retry(Schedule.times(3) and Schedule.exponential(50.milliseconds))
-            .executeGraph()
+            .evalGraph()
         call.respond(user)
     }
 }
@@ -97,7 +97,7 @@ get("/user/{id}") {
         kap(::UserResponse)
             .withProfile { fetchProfile(id) }
             .withPreferences { fetchPreferences(id) }
-            .executeGraph()
+            .evalGraph()
     }
 }
 ```
@@ -150,7 +150,7 @@ fun Application.module() {
                 }
                 .withCart { fetchCart(userId) }
                 .withPromos { fetchPromos(userId) }
-                .executeGraph()
+                .evalGraph()
             call.respond(dashboard)
         }
     }

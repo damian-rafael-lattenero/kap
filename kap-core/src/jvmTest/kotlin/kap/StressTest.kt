@@ -1,6 +1,5 @@
 package kap
 
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
@@ -21,7 +20,7 @@ class StressTest {
     fun `traverse 100 parallel computations completes correctly`() = runTest {
         val results = (1..100).toList().traverse { i ->
                 Kap { delay(50); "item-$i" }
-            }.executeGraph()
+            }.evalGraph()
         assertEquals(100, results.size)
         assertEquals("item-1", results.first())
         assertEquals("item-100", results.last())
@@ -32,7 +31,7 @@ class StressTest {
     fun `traverse 500 parallel computations with bounded concurrency`() = runTest {
         val results = (1..500).toList().traverse(concurrency = 50) { i ->
                 Kap { delay(30); i }
-            }.executeGraph()
+            }.evalGraph()
         assertEquals(500, results.size)
         assertEquals((1..500).toList(), results)
         // 500 items, concurrency=50 → 10 batches × 30ms = 300ms
@@ -50,7 +49,7 @@ class StressTest {
                 "item-$i"
             }
         }
-        assertFailsWith<IllegalStateException> { val r = comp.executeGraph() }
+        assertFailsWith<IllegalStateException> { val r = comp.evalGraph() }
         // All 200 start (parallel), but cancellation propagates
         assertEquals(200, started.get(), "All 200 should start in parallel")
     }
@@ -62,7 +61,7 @@ class StressTest {
         val computations = (1..150).map { i ->
             Kap { delay(40); "v$i" }
         }
-        val results = computations.sequence().executeGraph()
+        val results = computations.sequence().evalGraph()
         assertEquals(150, results.size)
         assertEquals("v1", results.first())
         assertEquals("v150", results.last())
@@ -77,7 +76,7 @@ class StressTest {
         repeat(50) {
             computation = computation.andThen { n -> Kap.of(n + 1) }
         }
-        val result = computation.executeGraph()
+        val result = computation.evalGraph()
         assertEquals(50, result)
     }
 
@@ -87,7 +86,7 @@ class StressTest {
             if (depth <= 0) Kap.of(current)
             else Kap.defer { chain(depth - 1, current + 1) }
 
-        val result = chain(200, 0).executeGraph()
+        val result = chain(200, 0).evalGraph()
         assertEquals(200, result)
     }
 
@@ -104,7 +103,7 @@ class StressTest {
                 .with { delay(30); 4 }.with { delay(30); 5 }.with { delay(30); 6 }
                 .with { delay(30); 7 }.with { delay(30); 8 }.with { delay(30); 9 }
                 .with { delay(30); 10 }.with { delay(30); 11 }.with { delay(30); 12 }
-                .with { delay(30); 13 }.with { delay(30); 14 }.with { delay(30); 15 }.executeGraph()
+                .with { delay(30); 13 }.with { delay(30); 14 }.with { delay(30); 15 }.evalGraph()
         assertEquals(120, result)
         assertEquals(30, currentTime, "All 15 should run in parallel → 30ms")
     }
@@ -126,7 +125,7 @@ class StressTest {
                 .with { delay(30); 13 }.with { delay(30); 14 }.with { delay(30); 15 }
                 .with { delay(30); 16 }.with { delay(30); 17 }.with { delay(30); 18 }
                 .with { delay(30); 19 }.with { delay(30); 20 }.with { delay(30); 21 }
-                .with { delay(30); 22 }.executeGraph()
+                .with { delay(30); 22 }.evalGraph()
         assertEquals((1..22).sum(), result) // 253
         assertEquals(30, currentTime, "All 22 should run in parallel → 30ms")
     }
@@ -138,7 +137,7 @@ class StressTest {
         val computations = (1..20).map { i ->
             Kap { delay(i.toLong() * 10); "winner-$i" }
         }
-        val result = raceN(*computations.toTypedArray()).executeGraph()
+        val result = raceN(*computations.toTypedArray()).evalGraph()
         assertEquals("winner-1", result, "Fastest (10ms) should win")
         assertEquals(10, currentTime)
     }
@@ -152,7 +151,7 @@ class StressTest {
                 "survivor"
             }
         }
-        val result = raceN(*computations.toTypedArray()).executeGraph()
+        val result = raceN(*computations.toTypedArray()).evalGraph()
         assertEquals("survivor", result)
     }
 
@@ -167,7 +166,7 @@ class StressTest {
             "computed"
         }.memoize()
 
-        val results = (1..50).toList().traverse { Kap { memoized.executeGraph() } }.executeGraph()
+        val results = (1..50).toList().traverse { Kap { memoized.evalGraph() } }.evalGraph()
         assertEquals(50, results.size)
         assertTrue(results.all { it == "computed" })
         assertEquals(1, executions.get(), "Should execute exactly once despite 50 consumers")
@@ -182,7 +181,7 @@ class StressTest {
             chain = chain.orElse(Kap { error("fail-$i") })
         }
         chain = chain.orElse(Kap { "success-10" })
-        val result = chain.executeGraph()
+        val result = chain.evalGraph()
         assertEquals("success-10", result)
     }
 
@@ -194,7 +193,7 @@ class StressTest {
                 "success-$i"
             }
         }
-        val result = firstSuccessOf(*computations.toTypedArray()).executeGraph()
+        val result = firstSuccessOf(*computations.toTypedArray()).evalGraph()
         assertEquals("success-3", result)
     }
 
@@ -210,21 +209,21 @@ class StressTest {
                         attempts++
                         if (attempts < 2) error("flaky")
                         "stable"
-                    }.retry(3).executeGraph()
+                    }.retry(3).evalGraph()
                 },
                 {
                     // Branch 2: slow, falls back to cached
                     Kap { delay(500); "slow" }
                         .timeout(kotlin.time.Duration.parse("100ms"), default = "cached")
-                        .executeGraph()
+                        .evalGraph()
                 },
                 {
                     // Branch 3: always fails, recovered
                     Kap<String> { error("down") }
                         .recover { "fallback" }
-                        .executeGraph()
+                        .evalGraph()
                 },
-            ) { a, b, c -> "$a|$b|$c" }.executeGraph()
+            ) { a, b, c -> "$a|$b|$c" }.evalGraph()
         assertEquals("stable|cached|fallback", result)
     }
 

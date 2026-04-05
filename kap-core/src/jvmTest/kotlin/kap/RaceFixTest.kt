@@ -7,7 +7,6 @@ import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
@@ -33,7 +32,7 @@ class RaceFixTest {
         val result = race(
                 Kap { delay(100); "slow" },
                 Kap { delay(20); "fast" },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("fast", result)
         assertEquals(20, currentTime)
@@ -44,7 +43,7 @@ class RaceFixTest {
         val result = race(
                 Kap<String> { delay(10); throw RuntimeException("first-fail") },
                 Kap { delay(50); "second-ok" },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("second-ok", result)
         assertEquals(50, currentTime)
@@ -56,7 +55,7 @@ class RaceFixTest {
             race(
                     Kap<String> { delay(10); throw RuntimeException("err-A") },
                     Kap<String> { delay(20); throw RuntimeException("err-B") },
-                ).executeGraph()
+                ).evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -81,7 +80,7 @@ class RaceFixTest {
         val result = race(
                 Kap<String> { delay(10); throw RuntimeException("fail-fast") },
                 Kap { delay(30); "success-slow" },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("success-slow", result)
         assertEquals(30, currentTime)
@@ -100,7 +99,7 @@ class RaceFixTest {
                     delay(30)
                     "concurrent-success"
                 },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("concurrent-success", result)
         assertEquals(30, currentTime, "Should wait for second racer after first fails")
@@ -117,7 +116,7 @@ class RaceFixTest {
                 Kap<String> { delay(20); throw RuntimeException("err-2") },
                 Kap { delay(30); "winner" },
                 Kap { delay(40); "slow-ok" },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("winner", result)
         assertEquals(30, currentTime)
@@ -130,7 +129,7 @@ class RaceFixTest {
                     Kap<String> { delay(10); throw RuntimeException("e1") },
                     Kap<String> { delay(20); throw RuntimeException("e2") },
                     Kap<String> { delay(30); throw RuntimeException("e3") },
-                ).executeGraph()
+                ).evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -144,7 +143,7 @@ class RaceFixTest {
                 Kap<String> { delay(10); throw RuntimeException("fast-fail") },
                 Kap<String> { delay(20); throw RuntimeException("medium-fail") },
                 Kap { delay(50); "late-success" },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("late-success", result)
         assertEquals(50, currentTime,
@@ -166,7 +165,7 @@ class RaceFixTest {
                         throw e
                     }
                 },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("winner", result)
         assertTrue(cancelled.await(), "Loser should have been cancelled")
@@ -191,7 +190,7 @@ class RaceFixTest {
                         Kap { delay(80); "cache-B" },
                     )) { execute() }
                 }
-                .with { delay(30); "direct-C" }.executeGraph()
+                .with { delay(30); "direct-C" }.evalGraph()
 
         assertEquals("cache-A|primary-B|direct-C", result)
         // max(20, 15, 30) = 30ms
@@ -207,7 +206,7 @@ class RaceFixTest {
             Kap { delay(50); "medium" },
         )
 
-        val result = computations.raceAll().executeGraph()
+        val result = computations.raceAll().evalGraph()
 
         assertEquals("fast", result)
         assertEquals(10, currentTime)

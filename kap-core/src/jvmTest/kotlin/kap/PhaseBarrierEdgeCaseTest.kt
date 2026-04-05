@@ -1,18 +1,14 @@
 package kap
 
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withTimeout
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Edge case tests for [PhaseBarrier] signal behavior.
@@ -33,7 +29,7 @@ class PhaseBarrierEdgeCaseTest {
                     gatedStarted.set(true)
                     delay(20)
                     "C"
-                }.executeGraph()
+                }.evalGraph()
         assertEquals("A|B|C", result)
         assertTrue(gatedStarted.get())
         // Phase 1: 50ms, barrier: 30ms, Phase 2: 20ms = 100ms
@@ -47,7 +43,7 @@ class PhaseBarrierEdgeCaseTest {
                     .with { delay(50); "A" }
                     .then { delay(30); throw IllegalStateException("barrier failed") }
                     .with { delay(20); "C" }  // should not hang
-                    .executeGraph()
+                    .evalGraph()
         }
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is IllegalStateException)
@@ -61,7 +57,7 @@ class PhaseBarrierEdgeCaseTest {
                 .with { delay(30); phaseOrder.add("P1-B"); 2 }
                 .then { delay(20); phaseOrder.add("barrier1"); 3 }
                 .with { delay(10); phaseOrder.add("P2-D"); 4 }
-                .then { delay(15); phaseOrder.add("barrier2"); 5 }.executeGraph()
+                .then { delay(15); phaseOrder.add("barrier2"); 5 }.evalGraph()
         assertEquals(15, result)
         // Barrier1 should complete before P2-D starts
         val barrier1Idx = phaseOrder.indexOf("barrier1")
@@ -76,9 +72,9 @@ class PhaseBarrierEdgeCaseTest {
                 .then {
                     Kap<String> { throw IllegalStateException("recoverable") }
                         .recover { "recovered" }
-                        .executeGraph()
+                        .evalGraph()
                 }
-                .with { "C" }.executeGraph()
+                .with { "C" }.evalGraph()
         assertEquals("A|recovered|C", result)
     }
 
@@ -92,7 +88,7 @@ class PhaseBarrierEdgeCaseTest {
                     apStartTime.set(currentTime.toInt())
                     delay(30)
                     3
-                }.executeGraph()
+                }.evalGraph()
         assertEquals(6, result)
         // The third .with should start at t=0 (ungated), not after thenValue completes
         assertEquals(0, apStartTime.get(), "thenValue should NOT gate subsequent with branches")
@@ -111,7 +107,7 @@ class PhaseBarrierEdgeCaseTest {
                 .with { delay(30); executionLog.add("P2-1"); 4 }
                 .with { delay(25); executionLog.add("P2-2"); 5 }
                 .then { delay(15); executionLog.add("B2"); 6 }
-                .with { delay(10); executionLog.add("P3-1"); 7 }.executeGraph()
+                .with { delay(10); executionLog.add("P3-1"); 7 }.evalGraph()
 
         assertEquals(28, result)
 
@@ -132,7 +128,7 @@ class PhaseBarrierEdgeCaseTest {
                     .with { delay(10); "A" }
                     .then { throw RuntimeException("barrier-fail") }
                     .with { delay(10); "C" }  // must not hang
-                    .executeGraph()
+                    .evalGraph()
         }
 
         assertTrue(result.isFailure, "Should propagate barrier failure")
@@ -145,7 +141,7 @@ class PhaseBarrierEdgeCaseTest {
         val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { delay(10); "A" }
                 .then { delay(10); "B" }
-                .with { delay(10); "C" }.executeGraph()
+                .with { delay(10); "C" }.evalGraph()
 
         assertEquals("A|B|C", result)
         // 10(A) + 10(B barrier) + 10(C) = 30ms
@@ -163,7 +159,7 @@ class PhaseBarrierEdgeCaseTest {
                 .then { delay(10); "D" }   // t=50..60 (barrier 2)
                 .with { delay(20); "E" }           // t=60..80
                 .then { delay(10); "F" }   // t=80..90 (barrier 3)
-                .executeGraph()
+                .evalGraph()
 
         assertEquals("A|B|C|D|E|F", result)
         // 20 + 10 + 20 + 10 + 20 + 10 = 90ms

@@ -21,7 +21,7 @@ class RaceTest {
                 Kap { delay(10_000); "slow1" },
                 Kap { "fast" },
                 Kap { delay(10_000); "slow2" },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("fast", result)
     }
 
@@ -44,7 +44,7 @@ class RaceTest {
                         cancelled2.complete(true); throw e
                     }
                 },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("winner", result)
         assertTrue(cancelled1.await())
@@ -53,14 +53,14 @@ class RaceTest {
 
     @Test
     fun `raceN with single computation returns it`() = runTest {
-        val result = raceN(Kap.of(42)).executeGraph()
+        val result = raceN(Kap.of(42)).evalGraph()
         assertEquals(42, result)
     }
 
     @Test
     fun `raceN with empty throws IllegalArgumentException`() = runTest {
         val result = runCatching {
-            raceN<Int>().executeGraph()
+            raceN<Int>().evalGraph()
         }
         assertTrue(result.isFailure)
         assertIs<IllegalArgumentException>(result.exceptionOrNull())
@@ -76,7 +76,7 @@ class RaceTest {
                 Kap { delay(10_000); "slow" },
                 Kap { "fast" },
                 Kap { delay(10_000); "slower" },
-            ).raceAll().executeGraph()
+            ).raceAll().evalGraph()
         assertEquals("fast", result)
     }
 
@@ -89,7 +89,7 @@ class RaceTest {
         val result = race(
                 Kap<String> { throw RuntimeException("boom") },
                 Kap { delay(100); "fallback" },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("fallback", result)
     }
 
@@ -98,7 +98,7 @@ class RaceTest {
         val result = race(
                 Kap { delay(100); "primary" },
                 Kap<String> { throw RuntimeException("boom") },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("primary", result)
     }
 
@@ -108,7 +108,7 @@ class RaceTest {
             race(
                     Kap<String> { throw RuntimeException("boom1") },
                     Kap<String> { throw RuntimeException("boom2") },
-                ).executeGraph()
+                ).evalGraph()
         }
         assertTrue(result.isFailure)
     }
@@ -119,7 +119,7 @@ class RaceTest {
                 Kap<String> { throw RuntimeException("fail1") },
                 Kap<String> { throw RuntimeException("fail2") },
                 Kap { delay(100); "winner" },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("winner", result)
     }
 
@@ -129,7 +129,7 @@ class RaceTest {
             raceN(
                     Kap<String> { throw RuntimeException("fail1") },
                     Kap<String> { throw RuntimeException("fail2") },
-                ).executeGraph()
+                ).evalGraph()
         }
         assertTrue(result.isFailure)
     }
@@ -144,7 +144,7 @@ class RaceTest {
         val result = race(
                 Kap { "success" },
                 Kap<String> { throw RuntimeException("concurrent-fail") },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("success", result)
     }
 
@@ -154,7 +154,7 @@ class RaceTest {
             race(
                     Kap<String> { throw RuntimeException("first") },
                     Kap<String> { delay(50); throw RuntimeException("second") },
-                ).executeGraph()
+                ).evalGraph()
         }
         assertTrue(result.isFailure)
         val ex = result.exceptionOrNull()!!
@@ -169,7 +169,7 @@ class RaceTest {
                     Kap<String> { throw RuntimeException("r1") },
                     Kap<String> { delay(50); throw RuntimeException("r2") },
                     Kap<String> { delay(100); throw RuntimeException("r3") },
-                ).executeGraph()
+                ).evalGraph()
         }
         assertTrue(result.isFailure)
         val ex = result.exceptionOrNull()!!

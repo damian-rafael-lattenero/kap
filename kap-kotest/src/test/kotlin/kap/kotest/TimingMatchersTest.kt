@@ -12,13 +12,13 @@ class TimingMatchersTest {
 
     @Test
     fun `shouldBeMillis passes on exact match`() = runTest {
-        Kap { delay(100) }.executeGraph()
+        Kap { delay(100) }.evalGraph()
         currentTime.shouldBeMillis(100)
     }
 
     @Test
     fun `shouldBeMillis fails on mismatch`() = runTest {
-        Kap { delay(100) }.executeGraph()
+        Kap { delay(100) }.evalGraph()
         assertFailsWith<AssertionError> {
             currentTime.shouldBeMillis(50)
         }
@@ -26,13 +26,13 @@ class TimingMatchersTest {
 
     @Test
     fun `shouldBeAtMostMillis passes when under`() = runTest {
-        Kap { delay(50) }.executeGraph()
+        Kap { delay(50) }.evalGraph()
         currentTime.shouldBeAtMostMillis(100)
     }
 
     @Test
     fun `shouldBeAtMostMillis fails when over`() = runTest {
-        Kap { delay(200) }.executeGraph()
+        Kap { delay(200) }.evalGraph()
         assertFailsWith<AssertionError> {
             currentTime.shouldBeAtMostMillis(100)
         }
@@ -44,13 +44,13 @@ class TimingMatchersTest {
             .with(Kap { delay(50) })
             .with(Kap { delay(50) })
             .with(Kap { delay(50) })
-            .executeGraph()
+            .evalGraph()
         currentTime.shouldProveParallel(taskCount = 3, taskDurationMs = 50)
     }
 
     @Test
     fun `shouldProveParallel fails for sequential execution`() = runTest {
-        Kap { delay(50) }.andThen { Kap { delay(50) }.andThen { Kap { delay(50) } } }.executeGraph()
+        Kap { delay(50) }.andThen { Kap { delay(50) }.andThen { Kap { delay(50) } } }.evalGraph()
         assertFailsWith<AssertionError> {
             currentTime.shouldProveParallel(taskCount = 3, taskDurationMs = 50)
         }

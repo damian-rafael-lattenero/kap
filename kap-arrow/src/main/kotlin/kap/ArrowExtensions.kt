@@ -32,7 +32,7 @@ typealias Nel<A> = NonEmptyList<A>
  *
  * ```
  * val result: Either<Throwable, User> = Kap { fetchUser() }.attempt()
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  */
 fun <A> Kap<A>.attempt(): Kap<Either<Throwable, A>> = Kap {
@@ -58,7 +58,7 @@ fun <A> Kap<A>.attempt(): Kap<Either<Throwable, A>> = Kap {
  * val result: Either<CachedData, FreshData> = raceEither(
  *     fa = Kap { fetchFromCache() },
  *     fb = Kap { fetchFromNetwork() },
- * ).executeGraph()
+ * ).evalGraph()
  * ```
  */
 @OptIn(ExperimentalCoroutinesApi::class)

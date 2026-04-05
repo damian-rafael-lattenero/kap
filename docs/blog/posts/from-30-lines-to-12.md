@@ -124,7 +124,7 @@ val checkout: CheckoutResult = kap(::CheckoutResult)
     .thenPayment { reservePayment() }      // ── phase 4: barrier
     .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
     .withEmail { sendEmail() }             // ┘
-    .executeGraph()
+    .evalGraph()
 ```
 
 12 lines. Phases are explicit. And here's the key: **swap any two `.with` lines and the compiler rejects it.** Each service returns a distinct type, and the typed function chain locks parameter order at compile time.
@@ -161,7 +161,7 @@ val dashboard: FinalDashboard = kap(::UserContext)
                     .withAnalytics { trackAnalytics(ctx, enriched) }  // ┘
             }
     }
-    .executeGraph()
+    .evalGraph()
 ```
 
 14 calls, 3 phases, 115ms vs 460ms sequential. No reflection. No runtime code generation. Pure Kotlin type system.
@@ -194,7 +194,7 @@ kap(::User)
     .withFirstName { fetchFirstName() }   // step only accepts .withFirstName
     .withLastName { fetchLastName() }     // swap? COMPILE ERROR — .withFirstName not available here
     .withAge { fetchAge() }               // each step shows only the next parameter
-    .executeGraph()
+    .evalGraph()
 ```
 
 One annotation. Zero runtime overhead (no wrapper types, no companion objects). Every same-type swap becomes a compile error — each step in the chain only exposes the method for the next parameter. Works on functions too, with optional prefix for collision avoidance. As far as we know, no other framework in the Kotlin ecosystem does this.
@@ -209,7 +209,7 @@ val result = Kap { fetchUser() }
     .withCircuitBreaker(breaker)
     .retry(Schedule.times<Throwable>(3) and Schedule.exponential(50.milliseconds))
     .recover { "cached-user" }
-    .executeGraph()
+    .evalGraph()
 ```
 
 Timeout → circuit breaker → retry with exponential backoff → fallback. One flat chain.
@@ -222,7 +222,7 @@ val result = zipV(
     { validateEmail("bad") },
     { validateAge(10) },
 ) { name, email, age -> User(name, email, age) }
-    .executeGraph()
+    .evalGraph()
 // Left(NonEmptyList(NameTooShort, InvalidEmail, AgeTooLow))
 // ALL 3 errors in one response. Scales to 22 validators (Arrow maxes at 9).
 ```

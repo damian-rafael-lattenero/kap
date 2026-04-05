@@ -36,7 +36,7 @@ class CancellationPropertyTest {
 
         assertFailsWith<CancellationException> {
             withTimeout(50.milliseconds) {
-                comp.executeGraph()
+                comp.evalGraph()
             }
         }
         assertFalse(recovered.get(), "recover should NEVER catch CancellationException")
@@ -51,7 +51,7 @@ class CancellationPropertyTest {
 
         assertFailsWith<CancellationException> {
             withTimeout(50.milliseconds) {
-                comp.executeGraph()
+                comp.evalGraph()
             }
         }
     }
@@ -67,7 +67,7 @@ class CancellationPropertyTest {
 
         assertFailsWith<CancellationException> {
             withTimeout(50.milliseconds) {
-                comp.executeGraph()
+                comp.evalGraph()
             }
         }
         assertEquals(1, attemptCount.get(), "Should not retry on CancellationException")
@@ -86,7 +86,7 @@ class CancellationPropertyTest {
 
         assertFailsWith<CancellationException> {
             withTimeout(50.milliseconds) {
-                comp.executeGraph()
+                comp.evalGraph()
             }
         }
         assertFalse(fallbackCalled.get())
@@ -109,7 +109,7 @@ class CancellationPropertyTest {
                             siblingCancelled.set(true)
                             throw e
                         }
-                    }.executeGraph()
+                    }.evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -128,12 +128,12 @@ class CancellationPropertyTest {
         // First call gets cancelled
         try {
             withTimeout(50.milliseconds) {
-                comp.executeGraph()
+                comp.evalGraph()
             }
         } catch (_: CancellationException) {}
 
         // Second call should retry (not return cached CancellationException)
-        val result = comp.executeGraph()
+        val result = comp.evalGraph()
         assertEquals("done", result)
         assertEquals(2, attemptCount.get(), "Should retry after cancellation")
     }

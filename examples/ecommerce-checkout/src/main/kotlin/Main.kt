@@ -64,7 +64,7 @@ suspend fun main() {
             // Phase 5: Confirmation + email (parallel)
             .withConfirmation { generateConfirmation() }
             .withEmail { sendEmail() }
-            .executeGraph()
+            .evalGraph()
 
     val elapsed = System.currentTimeMillis() - start
     println("Result: $result")

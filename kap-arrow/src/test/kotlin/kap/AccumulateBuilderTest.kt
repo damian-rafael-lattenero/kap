@@ -11,7 +11,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Comprehensive tests for the [accumulate]/[validated] builder,
@@ -41,7 +40,7 @@ class AccumulateBuilderTest {
                 .bindV()
 
             Registration(identity, clearance)
-        }.executeGraph()
+        }.evalGraph()
 
         assertTrue(result is Either.Right)
         val reg = (result as Either.Right).value
@@ -69,7 +68,7 @@ class AccumulateBuilderTest {
                 .bindV()
 
             Registration(identity, clearance)
-        }.executeGraph()
+        }.evalGraph()
 
         assertTrue(result is Either.Left)
         val errors = (result as Either.Left).value
@@ -96,7 +95,7 @@ class AccumulateBuilderTest {
                 .bindV()
 
             Registration(identity, clearance)
-        }.executeGraph()
+        }.evalGraph()
 
         assertTrue(result is Either.Right)
         // Phase 1: 50ms + Phase 2: 30ms = 80ms (not 50*3 + 30*2 = 210ms sequential)
@@ -116,7 +115,7 @@ class AccumulateBuilderTest {
             call { sideKapRan = true; delay(10) }
 
             name
-        }.executeGraph()
+        }.evalGraph()
 
         assertTrue(result is Either.Right)
         assertEquals("Bob", (result as Either.Right).value)
@@ -127,8 +126,8 @@ class AccumulateBuilderTest {
     fun `validated and accumulate are aliases with identical behavior`() = runTest {
         val v: Either<NonEmptyList<String>, Int> = Either.Right(42)
 
-        val result1 = accumulate<String, Int> { v.bind() }.executeGraph()
-        val result2 = validated<String, Int> { v.bind() }.executeGraph()
+        val result1 = accumulate<String, Int> { v.bind() }.evalGraph()
+        val result2 = validated<String, Int> { v.bind() }.evalGraph()
         assertEquals(result1, result2)
     }
 
@@ -148,7 +147,7 @@ class AccumulateBuilderTest {
             ) { a, b -> "$a|$b" }.bindV()
 
             "$name|$check"
-        }.executeGraph()
+        }.evalGraph()
 
         assertTrue(result is Either.Left)
         val errors = (result as Either.Left).value
@@ -177,7 +176,7 @@ class AccumulateBuilderTest {
             // Phase 3: should NOT run
             phase3Ran = true
             p1 + p2
-        }.executeGraph()
+        }.evalGraph()
 
         assertTrue(result is Either.Left)
         assertTrue(phase2Ran, "Phase 2 should run (phase 1 succeeded)")

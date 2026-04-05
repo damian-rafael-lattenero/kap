@@ -32,7 +32,7 @@ class HighContentionMemoizeTest {
 
         val results = coroutineScope {
             (1..100).map {
-                async { comp.executeGraph() }
+                async { comp.evalGraph() }
             }.awaitAll()
         }
 
@@ -51,7 +51,7 @@ class HighContentionMemoizeTest {
 
         val results = coroutineScope {
             (1..100).map {
-                async { comp.executeGraph() }
+                async { comp.evalGraph() }
             }.awaitAll()
         }
 
@@ -72,7 +72,7 @@ class HighContentionMemoizeTest {
             (1..50).map {
                 async {
                     try {
-                        comp.executeGraph()
+                        comp.evalGraph()
                         "success"
                     } catch (e: IllegalStateException) {
                         "caught: ${e.message}"
@@ -97,7 +97,7 @@ class HighContentionMemoizeTest {
 
         // First call fails
         val firstResult = try {
-            comp.executeGraph()
+            comp.evalGraph()
         } catch (e: IllegalStateException) {
             "failed"
         }
@@ -106,7 +106,7 @@ class HighContentionMemoizeTest {
         // Subsequent calls retry and succeed
         val results = coroutineScope {
             (1..50).map {
-                async { comp.executeGraph() }
+                async { comp.evalGraph() }
             }.awaitAll()
         }
 
@@ -129,7 +129,7 @@ class HighContentionMemoizeTest {
 
         val results = coroutineScope {
             (1..50).map {
-                async { comp.executeGraph() }
+                async { comp.evalGraph() }
             }.awaitAll()
         }
 
@@ -147,7 +147,7 @@ class HighContentionMemoizeTest {
         }.memoize()
 
         // First caller: cancel before the memoized computation completes
-        val job = launch { comp.executeGraph() }
+        val job = launch { comp.evalGraph() }
         delay(10) // Let it start but not finish
         job.cancel()
         delay(10) // Let cancellation propagate
@@ -156,7 +156,7 @@ class HighContentionMemoizeTest {
         assertEquals(1, executionCount.get(), "First execution started")
 
         // Second caller should be able to execute successfully
-        val result = withTimeout(5.seconds) { comp.executeGraph() }
+        val result = withTimeout(5.seconds) { comp.evalGraph() }
         assertEquals("result", result)
         assertEquals(2, executionCount.get(), "Should have re-executed after cancellation")
     }
@@ -170,12 +170,12 @@ class HighContentionMemoizeTest {
             "result"
         }.memoizeOnSuccess()
 
-        val job = launch { comp.executeGraph() }
+        val job = launch { comp.evalGraph() }
         delay(10)
         job.cancel()
         delay(10)
 
-        val result = withTimeout(5.seconds) { comp.executeGraph() }
+        val result = withTimeout(5.seconds) { comp.evalGraph() }
         assertEquals("result", result)
         assertTrue(executionCount.get() >= 2, "Should have re-executed after cancellation")
     }
@@ -189,13 +189,13 @@ class HighContentionMemoizeTest {
         }.memoize()
 
         // Populate cache
-        comp.executeGraph()
+        comp.evalGraph()
         assertEquals(1, executionCount.get())
 
         // 200 concurrent reads should all hit the fast path
         val results = coroutineScope {
             (1..200).map {
-                async { comp.executeGraph() }
+                async { comp.evalGraph() }
             }.awaitAll()
         }
 

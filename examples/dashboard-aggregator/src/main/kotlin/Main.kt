@@ -126,7 +126,7 @@ suspend fun main() {
             .withAds { fetchAds() }
             .withSocial { fetchSocialProof() }
             .withVersion { fetchAppVersion().also { println("  Phase 5 [${System.currentTimeMillis() - start}ms]: sidebar loaded") } }
-            .executeGraph()
+            .evalGraph()
 
     val elapsed = System.currentTimeMillis() - start
     println("\nDashboard assembled in ${elapsed}ms with 14 fields")

@@ -139,7 +139,7 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
         .thenPayment { reservePayment() }       // ── phase 4: barrier
         .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
         .withEmail { sendEmail() }             // ┘
-        .executeGraph()
+        .evalGraph()
     // 12 lines. Phases explicit. Swap any .withX → compile error.
     // No shuttle variables. No intermediate data classes.
     ```
@@ -198,7 +198,7 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
         .retry(Schedule.times<Throwable>(3)
             and Schedule.exponential(50.milliseconds).jittered())
         .recover { "cached-user" }
-        .executeGraph()
+        .evalGraph()
     // 8 lines. Composable. timeout → breaker → retry → fallback.
     ```
 
@@ -239,7 +239,7 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
         { validateAge(10) },
         { checkUsername("al") },
     ) { name, email, age, username -> User(name, email, age, username) }
-        .executeGraph()
+        .evalGraph()
     // 4 errors in one response. All validators ran in parallel.
     // Scales to 22 validators. Arrow maxes at 9.
     ```
@@ -280,7 +280,7 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
         .withHotelName { fetchHotel() }     // only .withHotelName — swap? COMPILE ERROR
         .withNights { fetchNights() }       // only .withNights available here
         .withGuests { fetchGuests() }       // only .withGuests — swap with nights? COMPILE ERROR
-        .executeGraph()
+        .evalGraph()
     ```
 
 ---

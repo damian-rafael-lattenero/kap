@@ -39,13 +39,13 @@ class FlowIntegrationTest {
 
     @Test
     fun `collectAsKap collects all emissions`() = runTest {
-        val result = flowOf(1, 2, 3).collectAsKap().executeGraph()
+        val result = flowOf(1, 2, 3).collectAsKap().evalGraph()
         assertEquals(listOf(1, 2, 3), result)
     }
 
     @Test
     fun `collectAsKap handles empty flow`() = runTest {
-        val result = flowOf<Int>().collectAsKap().executeGraph()
+        val result = flowOf<Int>().collectAsKap().evalGraph()
         assertEquals(emptyList(), result)
     }
 
@@ -281,7 +281,7 @@ class FlowIntegrationTest {
         val result = flowOf(1, 2, 3, 4, 5)
                 .mapKap { n -> Kap { n * 10 } }
                 .filterKap { n -> Kap { n > 20 } }
-                .collectAsKap().executeGraph()
+                .collectAsKap().evalGraph()
 
         assertEquals(listOf(30, 40, 50), result)
     }

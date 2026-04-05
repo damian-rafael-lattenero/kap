@@ -6,7 +6,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 
 class TimedTest {
 
@@ -16,15 +15,15 @@ class TimedTest {
     fun `timed returns correct value`() = runTest {
         val result = Kap { "hello" }
             .timed()
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("hello", result.value)
         assertTrue(result.duration >= Duration.ZERO)
     }
 
     @Test
-    fun `executeGraphTimed is shortcut for timed + executeGraph`() = runTest {
-        val result = Kap { 42 }.executeGraphTimed()
+    fun `evalGraphTimed is shortcut for timed + evalGraph`() = runTest {
+        val result = Kap { 42 }.evalGraphTimed()
 
         assertEquals(42, result.value)
         assertTrue(result.duration >= Duration.ZERO)
@@ -39,7 +38,7 @@ class TimedTest {
             .with { delay(50); "b" }
             .with { delay(50); "c" }
             .timed()
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("a|b|c", result.value)
     }
@@ -55,7 +54,7 @@ class TimedTest {
             .then { log.add("barrier"); delay(10); "barrier-ok" }
             .with { log.add("p2-start"); delay(20); "phase2" }
             .timed()
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("phase1|barrier-ok|phase2", result.value)
         // Barrier must happen after phase 1
@@ -70,7 +69,7 @@ class TimedTest {
         val result = Kap { "hello" }
             .timed()
             .map { "value=${it.value}" }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("value=hello", result)
     }
@@ -82,7 +81,7 @@ class TimedTest {
             .andThen { timedResult ->
                 Kap.of("got: ${timedResult.value}")
             }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("got: first", result)
     }
@@ -92,7 +91,7 @@ class TimedTest {
         val result = Kap<String> { throw RuntimeException("boom") }
             .timed()
             .recover { TimedResult("fallback", Duration.ZERO) }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("fallback", result.value)
     }
@@ -104,8 +103,8 @@ class TimedTest {
             .timed()
             .memoize()
 
-        val r1 = memoized.executeGraph()
-        val r2 = memoized.executeGraph()
+        val r1 = memoized.evalGraph()
+        val r2 = memoized.evalGraph()
 
         assertEquals("expensive", r1.value)
         assertEquals(r1, r2)
@@ -117,7 +116,7 @@ class TimedTest {
         val result = Kap<String> { throw RuntimeException("fail") }
             .timed()
             .settled()
-            .executeGraph()
+            .evalGraph()
 
         assertTrue(result.isFailure)
     }
@@ -134,7 +133,7 @@ class TimedTest {
         } }
             .with(userTimed)
             .with(cartTimed)
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("Alice|3 items", result)
     }
@@ -154,7 +153,7 @@ class TimedTest {
         } }
             .with(branchA)
             .with(branchB)
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("slow", result.first.value)
         assertEquals("fast", result.second.value)
@@ -170,7 +169,7 @@ class TimedTest {
         val result = runCatching {
             Kap<String> { throw IllegalStateException("boom") }
                 .timed()
-                .executeGraph()
+                .evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -184,7 +183,7 @@ class TimedTest {
                 .with { "ok" }
                 .with { throw RuntimeException("fail") }
                 .timed()
-                .executeGraph()
+                .evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -197,7 +196,7 @@ class TimedTest {
         val result = Kap { "inner" }
             .timed()
             .timed()
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("inner", result.value.value)
         assertTrue(result.duration >= Duration.ZERO)
@@ -208,7 +207,7 @@ class TimedTest {
 
     @Test
     fun `timed on pure value shows minimal duration`() = runTest {
-        val result = Kap.of(42).timed().executeGraph()
+        val result = Kap.of(42).timed().evalGraph()
 
         assertEquals(42, result.value)
     }
@@ -217,7 +216,7 @@ class TimedTest {
 
     @Test
     fun `TimedResult supports destructuring`() = runTest {
-        val (value, duration) = Kap { "hello" }.executeGraphTimed()
+        val (value, duration) = Kap { "hello" }.evalGraphTimed()
 
         assertEquals("hello", value)
         assertTrue(duration >= Duration.ZERO)
@@ -230,7 +229,7 @@ class TimedTest {
         val result = Kap {
             Thread.sleep(100)
             "done"
-        }.executeGraphTimed()
+        }.evalGraphTimed()
 
         assertEquals("done", result.value)
         assertTrue(result.duration.inWholeMilliseconds >= 90,
@@ -245,7 +244,7 @@ class TimedTest {
             .with { delay(80); "a" }
             .with { delay(80); "b" }
             .timed()
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("a|b", result.value)
     }

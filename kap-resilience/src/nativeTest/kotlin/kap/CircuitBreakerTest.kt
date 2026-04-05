@@ -15,7 +15,7 @@ class CircuitBreakerTest {
     fun `stays closed on success`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
         repeat(10) {
-            assertEquals("ok", Kap { "ok" }.withCircuitBreaker(breaker).executeGraph())
+            assertEquals("ok", Kap { "ok" }.withCircuitBreaker(breaker).evalGraph())
         }
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
@@ -25,11 +25,11 @@ class CircuitBreakerTest {
         val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
         val comp = Kap<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
 
-        repeat(3) { assertTrue(runCatching { comp.executeGraph() }.isFailure) }
+        repeat(3) { assertTrue(runCatching { comp.evalGraph() }.isFailure) }
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
 
         // Next call fails fast with CircuitBreakerOpenException
-        val r = runCatching { comp.executeGraph() }
+        val r = runCatching { comp.evalGraph() }
         assertTrue(r.exceptionOrNull() is CircuitBreakerOpenException)
     }
 
@@ -42,13 +42,13 @@ class CircuitBreakerTest {
             if (callCount % 3 == 0) "ok" else throw RuntimeException("fail")
         }.withCircuitBreaker(breaker)
 
-        runCatching { comp.executeGraph() } // fail
-        runCatching { comp.executeGraph() } // fail
-        assertEquals("ok", comp.executeGraph()) // success, resets
+        runCatching { comp.evalGraph() } // fail
+        runCatching { comp.evalGraph() } // fail
+        assertEquals("ok", comp.evalGraph()) // success, resets
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
 
-        runCatching { comp.executeGraph() } // fail
-        runCatching { comp.executeGraph() } // fail
+        runCatching { comp.evalGraph() } // fail
+        runCatching { comp.evalGraph() } // fail
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState) // still closed
     }
 
@@ -58,15 +58,15 @@ class CircuitBreakerTest {
         val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 500.milliseconds, timeSource = timeSource)
         val comp = Kap<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
 
-        repeat(2) { runCatching { comp.executeGraph() } }
+        repeat(2) { runCatching { comp.evalGraph() } }
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
 
         timeSource += 400.milliseconds
-        assertTrue(runCatching { comp.executeGraph() }.exceptionOrNull() is CircuitBreakerOpenException)
+        assertTrue(runCatching { comp.evalGraph() }.exceptionOrNull() is CircuitBreakerOpenException)
 
         timeSource += 200.milliseconds
         // Now allows probe (which fails → reopens)
-        val probeResult = runCatching { comp.executeGraph() }
+        val probeResult = runCatching { comp.evalGraph() }
         assertTrue(probeResult.exceptionOrNull() is RuntimeException)
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
     }
@@ -80,12 +80,12 @@ class CircuitBreakerTest {
             if (shouldFail) throw RuntimeException("fail"); "recovered"
         }.withCircuitBreaker(breaker)
 
-        repeat(2) { runCatching { comp.executeGraph() } }
+        repeat(2) { runCatching { comp.evalGraph() } }
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
 
         shouldFail = false
         timeSource += 600.milliseconds
-        assertEquals("recovered", comp.executeGraph())
+        assertEquals("recovered", comp.evalGraph())
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
 
@@ -102,12 +102,12 @@ class CircuitBreakerTest {
             if (shouldFail) throw RuntimeException("fail"); "ok"
         }.withCircuitBreaker(breaker)
 
-        repeat(2) { runCatching { comp.executeGraph() } }
+        repeat(2) { runCatching { comp.evalGraph() } }
         assertEquals(listOf(CircuitBreaker.State.Closed to CircuitBreaker.State.Open), transitions)
 
         shouldFail = false
         timeSource += 200.milliseconds
-        assertEquals("ok", comp.executeGraph())
+        assertEquals("ok", comp.evalGraph())
         assertEquals(3, transitions.size)
         assertEquals(CircuitBreaker.State.Open to CircuitBreaker.State.HalfOpen, transitions[1])
         assertEquals(CircuitBreaker.State.HalfOpen to CircuitBreaker.State.Closed, transitions[2])
@@ -127,7 +127,7 @@ class CircuitBreakerTest {
         }.withCircuitBreaker(breaker)
 
         val graph = Kap.of { a: String -> { b: String -> "$a|$b" } }.with(compA).with(compB)
-        assertEquals("A|B", graph.executeGraph())
+        assertEquals("A|B", graph.evalGraph())
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
 
@@ -140,7 +140,7 @@ class CircuitBreakerTest {
             if (callCount < 3) throw RuntimeException("transient"); "success"
         }.withCircuitBreaker(breaker).retry(3).recover { "fallback" }
 
-        assertEquals("success", graph.executeGraph())
+        assertEquals("success", graph.evalGraph())
         assertEquals(3, callCount)
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
@@ -149,20 +149,20 @@ class CircuitBreakerTest {
     fun `shared breaker fast-fails when open`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 10.seconds)
         val fail = Kap<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
-        repeat(2) { runCatching { fail.executeGraph() } }
+        repeat(2) { runCatching { fail.evalGraph() } }
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
 
         val compA = Kap<String> { error("nope") }.withCircuitBreaker(breaker).recover { "fast-a" }
         val compB = Kap<String> { error("nope") }.withCircuitBreaker(breaker).recover { "fast-b" }
         val graph = Kap.of { a: String -> { b: String -> "$a|$b" } }.with(compA).with(compB)
-        assertEquals("fast-a|fast-b", graph.executeGraph())
+        assertEquals("fast-a|fast-b", graph.evalGraph())
     }
 
     @Test
     fun `composes with timeout`() = runTest {
         val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
         val graph = Kap { "fast" }.timeout(100.milliseconds).withCircuitBreaker(breaker)
-        assertEquals("fast", graph.executeGraph())
+        assertEquals("fast", graph.evalGraph())
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
 
@@ -174,7 +174,7 @@ class CircuitBreakerTest {
             callCount++; throw RuntimeException("always fails")
         }.withCircuitBreaker(breaker).retry(Schedule.times(4))
 
-        assertTrue(runCatching { graph.executeGraph() }.isFailure)
+        assertTrue(runCatching { graph.evalGraph() }.isFailure)
         assertEquals(5, callCount)
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
     }

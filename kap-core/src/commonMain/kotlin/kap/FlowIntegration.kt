@@ -35,7 +35,7 @@ fun <A> Kap<A>.toFlow(): Flow<A> = flow {
  *
  * ```
  * val users: List<User> = usersFlow.collectAsKap()
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  */
 fun <A> Flow<A>.collectAsKap(): Kap<List<A>> = Kap {

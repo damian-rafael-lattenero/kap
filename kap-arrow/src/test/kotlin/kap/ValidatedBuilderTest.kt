@@ -18,7 +18,7 @@ class ValidatedBuilderTest {
             val a = Either.Right(1).bind()
             val b = Either.Right(2).bind()
             a + b
-        }.executeGraph()
+        }.evalGraph()
         assertEquals(Either.Right(3), result)
     }
 
@@ -29,7 +29,7 @@ class ValidatedBuilderTest {
             val a: Int = (Either.Left(nonEmptyListOf("error1")) as Either<NonEmptyList<String>, Int>).bind()
             secondCalled = true
             a + 1
-        }.executeGraph()
+        }.evalGraph()
         assertTrue(result is Either.Left)
         assertEquals(nonEmptyListOf("error1"), (result as Either.Left).value)
         assertEquals(false, secondCalled)
@@ -45,7 +45,7 @@ class ValidatedBuilderTest {
             val b: Int = (Either.Left(nonEmptyListOf("err")) as Either<NonEmptyList<String>, Int>).bind()
             calls.add("third")
             a + b
-        }.executeGraph()
+        }.evalGraph()
         assertEquals(listOf("first", "second"), calls)
         assertTrue(result is Either.Left)
     }
@@ -55,7 +55,7 @@ class ValidatedBuilderTest {
         val errors = nonEmptyListOf("err1", "err2", "err3")
         val result = validated<String, Int> {
             (Either.Left(errors) as Either<NonEmptyList<String>, Int>).bind()
-        }.executeGraph()
+        }.evalGraph()
         assertEquals(Either.Left(errors), result)
     }
 
@@ -67,11 +67,11 @@ class ValidatedBuilderTest {
                     { Either.Right("Alice") },
                     { Either.Right(30) },
                 ) { name, age -> Pair(name, age) }
-                .executeGraph().bind()
+                .evalGraph().bind()
             // Phase 2: sequential check using phase 1 result
             val greeting: String = Either.Right("Hello, ${pair.first}!").bind()
             greeting
-        }.executeGraph()
+        }.evalGraph()
         assertEquals(Either.Right("Hello, Alice!"), result)
     }
 
@@ -82,9 +82,9 @@ class ValidatedBuilderTest {
                     { Either.Left(nonEmptyListOf("bad name")) },
                     { Either.Left(nonEmptyListOf("bad age")) },
                 ) { name, age -> Pair(name, age) }
-                .executeGraph().bind()
+                .evalGraph().bind()
             "Hello, ${pair.first}"
-        }.executeGraph()
+        }.evalGraph()
         assertTrue(result is Either.Left)
         val errors = (result as Either.Left).value
         assertEquals(2, errors.size)
@@ -98,7 +98,7 @@ class ValidatedBuilderTest {
         }
         val job = launch {
             @Suppress("UNUSED_VARIABLE")
-            val ignored = comp.executeGraph()
+            val ignored = comp.evalGraph()
         }
         job.cancel()
         job.join()

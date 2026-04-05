@@ -11,7 +11,6 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.withContext
 
 class OverloadsAndEdgeCasesTest {
 
@@ -34,7 +33,7 @@ class OverloadsAndEdgeCasesTest {
             }
         }
 
-        val result = computations.sequence(3).executeGraph()
+        val result = computations.sequence(3).evalGraph()
 
         assertEquals((0 until 8).map { "v$it" }, result)
         assertTrue(maxConcurrent <= 3, "Max concurrent was $maxConcurrent, expected <= 3")
@@ -43,7 +42,7 @@ class OverloadsAndEdgeCasesTest {
     @Test
     fun `Async with context overload runs on specified context`() = runTest {
         val result = withContext(CoroutineName("test-ctx")) {
-            context.map { it[CoroutineName]?.name ?: "unknown" }.executeGraph()
+            context.map { it[CoroutineName]?.name ?: "unknown" }.evalGraph()
         }
         assertEquals("test-ctx", result)
     }
@@ -54,7 +53,7 @@ class OverloadsAndEdgeCasesTest {
 
         val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with(comp)
-                .with(Kap { "also-computation" }).executeGraph()
+                .with(Kap { "also-computation" }).evalGraph()
 
         assertEquals("from-computation|also-computation", result)
     }
@@ -65,7 +64,7 @@ class OverloadsAndEdgeCasesTest {
 
         val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .then(comp)
-                .with { "after" }.executeGraph()
+                .with { "after" }.evalGraph()
 
         assertEquals("barrier|after", result)
     }
@@ -79,7 +78,7 @@ class OverloadsAndEdgeCasesTest {
         val fallback = Kap { "fallback-value" }
 
         val result = Kap<String> { delay(10.seconds); "too-slow" }
-                .timeout(50.milliseconds, fallback).executeGraph()
+                .timeout(50.milliseconds, fallback).evalGraph()
 
         assertEquals("fallback-value", result)
     }
@@ -88,7 +87,7 @@ class OverloadsAndEdgeCasesTest {
     fun `timeout with fallback Kap returns original on success`() = runTest {
         val fallback = Kap { "fallback-value" }
 
-        val result = Kap.of("fast").timeout(1.seconds, fallback).executeGraph()
+        val result = Kap.of("fast").timeout(1.seconds, fallback).evalGraph()
 
         assertEquals("fast", result)
     }
@@ -96,14 +95,14 @@ class OverloadsAndEdgeCasesTest {
     @Test
     fun `recoverWith switches to recovery computation`() = runTest {
         val result = Kap<String> { throw RuntimeException("boom") }
-                .recoverWith { e -> Kap.of("recovered: ${e.message}") }.executeGraph()
+                .recoverWith { e -> Kap.of("recovered: ${e.message}") }.evalGraph()
 
         assertEquals("recovered: boom", result)
     }
 
     @Test
     fun `recoverWith passes through on success`() = runTest {
-        val result = Kap.of("ok").recoverWith { Kap.of("should-not-reach") }.executeGraph()
+        val result = Kap.of("ok").recoverWith { Kap.of("should-not-reach") }.evalGraph()
 
         assertEquals("ok", result)
     }
@@ -132,7 +131,7 @@ class OverloadsAndEdgeCasesTest {
                 attempts++
                 if (attempts < 3) throw RuntimeException("fail #$attempts")
                 "success on attempt $attempts"
-            }.retry(maxAttempts = 5, delay = 10.milliseconds, backoff = exponential).executeGraph()
+            }.retry(maxAttempts = 5, delay = 10.milliseconds, backoff = exponential).evalGraph()
 
         assertEquals("success on attempt 3", result)
         assertEquals(3, attempts)
@@ -147,7 +146,7 @@ class OverloadsAndEdgeCasesTest {
         val result = race(
                 Kap { "fast-winner" },
                 Kap<String> { delay(100); throw RuntimeException("loser-error") },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("fast-winner", result)
     }
 
@@ -157,7 +156,7 @@ class OverloadsAndEdgeCasesTest {
                 Kap { "winner" },
                 Kap<String> { delay(100); throw RuntimeException("boom") },
                 Kap<String> { delay(100); throw RuntimeException("boom2") },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("winner", result)
     }
 
@@ -169,7 +168,7 @@ class OverloadsAndEdgeCasesTest {
     fun `on switches dispatcher for a specific computation`() = runTest {
         val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with(Kap { "io-task" }.on(Dispatchers.IO))
-                .with { "default-task" }.executeGraph()
+                .with { "default-task" }.evalGraph()
         assertEquals("io-task|default-task", result)
     }
 }

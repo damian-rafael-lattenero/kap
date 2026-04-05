@@ -127,7 +127,7 @@ class CircuitBreakerOpenException(
  *     .with { fetchUser().withCircuitBreaker(breaker) }
  *     .with { fetchConfig() }
  *     .with { fetchCart() }
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  */
 fun <A> Kap<A>.withCircuitBreaker(breaker: CircuitBreaker): Kap<A> {

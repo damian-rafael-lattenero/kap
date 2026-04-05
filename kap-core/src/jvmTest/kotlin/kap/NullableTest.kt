@@ -15,7 +15,7 @@ class NullableTest {
     fun `withOrNull with null literal passes null to function`() = runTest {
         val result = Kap.of { a: String -> { b: String? -> "$a|${b ?: "nil"}" } }
                 .with { "fixed" }
-                .withOrNull(null).executeGraph()
+                .withOrNull(null).evalGraph()
         assertEquals("fixed|nil", result)
     }
 
@@ -29,7 +29,7 @@ class NullableTest {
 
         val result = Kap.of { a: String -> { b: String? -> "$a|${b ?: "nil"}" } }
                 .with { "fixed" }
-                .withOrNull(comp).executeGraph()
+                .withOrNull(comp).evalGraph()
         assertEquals("fixed|yes", result)
     }
 
@@ -39,7 +39,7 @@ class NullableTest {
 
         val result = Kap.of { a: String -> { b: String? -> "$a|${b ?: "nil"}" } }
                 .with { "fixed" }
-                .withOrNull(comp).executeGraph()
+                .withOrNull(comp).evalGraph()
         assertEquals("fixed|nil", result)
     }
 
@@ -55,7 +55,7 @@ class NullableTest {
         val result = Kap.of { a: String -> { b: String? -> { c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" } } }
                 .with { "fixed" }
                 .withOrNull(present)
-                .withOrNull(absent).executeGraph()
+                .withOrNull(absent).evalGraph()
 
         assertEquals("fixed|yes|nil", result)
     }
@@ -67,7 +67,7 @@ class NullableTest {
         val result = Kap.of { a: String -> { b: String? -> { c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" } } }
                 .with { "fixed" }
                 .withOrNull(present)
-                .withOrNull(null).executeGraph()
+                .withOrNull(null).evalGraph()
 
         assertEquals("fixed|yes|nil", result)
     }
@@ -77,7 +77,7 @@ class NullableTest {
         val result = Kap.of { a: String -> { b: String? -> { c: String? -> "$a|${b ?: "nil"}|${c ?: "nil"}" } } }
                 .with { "fixed" }
                 .withOrNull(null)
-                .withOrNull(null).executeGraph()
+                .withOrNull(null).evalGraph()
 
         assertEquals("fixed|nil|nil", result)
     }
@@ -106,7 +106,7 @@ class NullableTest {
         val result = Kap.of { a: String? -> { b: String? -> { c: String -> "${a ?: "nil"}|${b ?: "nil"}|$c" } } }
                 .withOrNull(compA)
                 .withOrNull(compB)
-                .with { "C" }.executeGraph()
+                .with { "C" }.evalGraph()
 
         assertEquals("A|B|C", result)
     }
@@ -129,7 +129,7 @@ class NullableTest {
                 .with { CartSummary(3) }
                 .withOrNull(optionalDiscount)
                 .withOrNull(noInsurance)
-                .then { OrderTotal(42.0) }.executeGraph()
+                .then { OrderTotal(42.0) }.evalGraph()
 
         assertEquals(BookingDetails(
             user = UserProfile("Alice", 42),

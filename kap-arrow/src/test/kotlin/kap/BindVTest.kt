@@ -10,18 +10,17 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 /**
  * Tests for [ValidatedScope.bindV] — the shorthand that executes a validated
  * [Kap] and unwraps the result inside [validated] blocks, eliminating
- * the need for nested executeGraph calls.
+ * the need for nested evalGraph calls.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class BindVTest {
 
     @Test
-    fun `bindV unwraps Right from zipV without nested executeGraph`() = runTest {
+    fun `bindV unwraps Right from zipV without nested evalGraph`() = runTest {
         val result = validated<String, String> {
             val pair = zipV<String, String, Int, Pair<String, Int>>(
                 { Either.Right("Alice") },
@@ -30,7 +29,7 @@ class BindVTest {
                 .bindV()
 
             "Hello, ${pair.first} (${pair.second})"
-        }.executeGraph()
+        }.evalGraph()
         assertEquals(Either.Right("Hello, Alice (30)"), result)
     }
 
@@ -46,7 +45,7 @@ class BindVTest {
 
             secondPhaseExecuted = true
             "Hello, ${pair.first}"
-        }.executeGraph()
+        }.evalGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("bad name", "bad age"), result.value.toList())
         assertEquals(false, secondPhaseExecuted, "Second phase should not execute after bindV short-circuit")
@@ -70,7 +69,7 @@ class BindVTest {
                 .bindV()
 
             "Registered: ${identity.first}, cleared=${clearance.first}"
-        }.executeGraph()
+        }.evalGraph()
         assertEquals(Either.Right("Registered: Alice, cleared=true"), result)
         // Phase 1: 30ms parallel. Phase 2: 30ms parallel. Total: 60ms.
         assertEquals(60, currentTime, "Two parallel phases should take 60ms total")
@@ -96,7 +95,7 @@ class BindVTest {
                 .bindV()
 
             "result: $identity, $cleared"
-        }.executeGraph()
+        }.evalGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("name too short"), result.value.toList())
         assertEquals(false, phase2Executed, "Phase 2 should not execute when phase 1 fails")
@@ -107,7 +106,7 @@ class BindVTest {
         val result = validated<String, Int> {
             val x = valid<String, Int>(42).bindV()
             x * 2
-        }.executeGraph()
+        }.evalGraph()
         assertEquals(Either.Right(84), result)
     }
 
@@ -116,7 +115,7 @@ class BindVTest {
         val result = validated<String, Int> {
             val x = invalid<String, Int>("oops").bindV()
             x * 2
-        }.executeGraph()
+        }.evalGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("oops"), result.value.toList())
     }
@@ -133,7 +132,7 @@ class BindVTest {
                 .bindV()
 
             "unreachable"
-        }.executeGraph()
+        }.evalGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(3, result.value.size)
         assertEquals(listOf("err1", "err2", "err3"), result.value.toList())
@@ -149,7 +148,7 @@ class BindVTest {
             val age = Either.Right(nonEmptyListOf(30)).bind()
 
             "$name is ${age.head}"
-        }.executeGraph()
+        }.evalGraph()
         assertEquals(Either.Right("Alice is 30"), result)
     }
 }

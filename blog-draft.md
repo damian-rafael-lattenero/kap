@@ -106,7 +106,7 @@ val checkout: CheckoutResult = kap(::CheckoutResult)
     .thenPayment { reservePayment() }      // ── phase 4: barrier
     .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
     .withEmail { sendEmail() }             // ┘
-    .executeGraph()
+    .evalGraph()
 ```
 
 12 lines. Phases are explicit. And here's the key: **swap any two `.with` lines and the compiler rejects it.** Each service returns a distinct type, and the typed function chain locks parameter order at compile time.
@@ -144,7 +144,7 @@ val result = Kap { fetchUser() }
     .withCircuitBreaker(breaker)
     .retry(Schedule.times<Throwable>(3) and Schedule.exponential(50.milliseconds))
     .recover { "cached-user" }
-    .executeGraph()
+    .evalGraph()
 ```
 
 Timeout → circuit breaker → retry with exponential backoff → fallback. One flat chain.
@@ -157,7 +157,7 @@ val result = zipV(
     { validateEmail("bad") },
     { validateAge(10) },
 ) { name, email, age -> User(name, email, age) }
-    .executeGraph()
+    .evalGraph()
 // Left(NonEmptyList(NameTooShort, InvalidEmail, AgeTooLow))
 // ALL 3 errors in one response. Scales to 22 validators.
 ```

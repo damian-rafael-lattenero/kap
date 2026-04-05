@@ -21,7 +21,7 @@ class LiftATest {
         val result = combine(
                 { delay(50); "A" },
                 { delay(50); "B" },
-            ) { a, b -> "$a|$b" }.executeGraph()
+            ) { a, b -> "$a|$b" }.evalGraph()
         assertEquals("A|B", result)
         assertEquals(50, currentTime, "Both should run in parallel → 50ms, not 100ms")
     }
@@ -31,7 +31,7 @@ class LiftATest {
         val result = combine(
                 { delay(10); 42 },
                 { delay(10); "hello" },
-            ) { n, s -> "$s-$n" }.executeGraph()
+            ) { n, s -> "$s-$n" }.evalGraph()
         assertEquals("hello-42", result)
     }
 
@@ -41,7 +41,7 @@ class LiftATest {
             { error("boom") },
             { delay(100); "B" },
         ) { a: String, b: String -> "$a|$b" }
-        assertFailsWith<IllegalStateException> { val r = comp.executeGraph() }
+        assertFailsWith<IllegalStateException> { val r = comp.evalGraph() }
     }
 
     // ── combine (3) ─────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ class LiftATest {
                 { delay(50); "user" },
                 { delay(50); "cart" },
                 { delay(50); "promos" },
-            ) { u, c, p -> "$u|$c|$p" }.executeGraph()
+            ) { u, c, p -> "$u|$c|$p" }.evalGraph()
         assertEquals("user|cart|promos", result)
         assertEquals(50, currentTime, "All 3 should run in parallel → 50ms, not 150ms")
     }
@@ -65,7 +65,7 @@ class LiftATest {
                 { delay(10); "Alice" },
                 { delay(10); "3 items" },
                 { delay(10); "SAVE20" },
-            ) { u, c, p -> Dashboard(u, c, p) }.executeGraph()
+            ) { u, c, p -> Dashboard(u, c, p) }.evalGraph()
         assertEquals("Alice", result.user)
         assertEquals("3 items", result.cart)
         assertEquals("SAVE20", result.promos)
@@ -80,7 +80,7 @@ class LiftATest {
                 { delay(50); "B" },
                 { delay(50); "C" },
                 { delay(50); "D" },
-            ) { a, b, c, d -> "$a|$b|$c|$d" }.executeGraph()
+            ) { a, b, c, d -> "$a|$b|$c|$d" }.evalGraph()
         assertEquals("A|B|C|D", result)
         assertEquals(50, currentTime, "All 4 should run in parallel → 50ms, not 200ms")
     }
@@ -94,7 +94,7 @@ class LiftATest {
             { started.add("C"); delay(200); "C" },
             { started.add("D"); delay(200); "D" },
         ) { a: String, b: String, c: String, d: String -> "$a|$b|$c|$d" }
-        assertFailsWith<IllegalStateException> { val r = comp.executeGraph() }
+        assertFailsWith<IllegalStateException> { val r = comp.evalGraph() }
         // All should have started (parallel), but the scope cancels siblings on error
         assertEquals(4, started.size, "All 4 should start in parallel")
     }
@@ -109,7 +109,7 @@ class LiftATest {
                 { delay(50); "C" },
                 { delay(50); "D" },
                 { delay(50); "E" },
-            ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.executeGraph()
+            ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.evalGraph()
         assertEquals("A|B|C|D|E", result)
         assertEquals(50, currentTime, "All 5 should run in parallel → 50ms, not 250ms")
     }
@@ -122,7 +122,7 @@ class LiftATest {
                 { delay(10); true },
                 { delay(10); listOf("a", "b") },
                 { delay(10); 3.14 },
-            ) { s, n, b, l, d -> "$s|$n|$b|${l.size}|$d" }.executeGraph()
+            ) { s, n, b, l, d -> "$s|$n|$b|${l.size}|$d" }.evalGraph()
         assertEquals("user|42|true|2|3.14", result)
     }
 
@@ -133,7 +133,7 @@ class LiftATest {
         val (a, b) = pair(
                 { delay(50); "user" },
                 { delay(50); 42 },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("user", a)
         assertEquals(42, b)
         assertEquals(50, currentTime)
@@ -145,7 +145,7 @@ class LiftATest {
                 { delay(50); "user" },
                 { delay(50); 42 },
                 { delay(50); true },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("user", a)
         assertEquals(42, b)
         assertEquals(true, c)
@@ -166,7 +166,7 @@ class LiftATest {
                     { delay(50); "recs for $user" },
                     { delay(50); "promos for $tier" },
                 ) { recs, promos -> "$user|$prefs|$tier|$recs|$promos" }
-            }.executeGraph()
+            }.evalGraph()
         assertEquals("user|prefs|tier|recs for user|promos for tier", result)
         assertEquals(100, currentTime, "Phase 1 (50ms) + Phase 2 (50ms) = 100ms")
     }
@@ -182,9 +182,9 @@ class LiftATest {
                         attempts++
                         if (attempts < 3) error("flaky")
                         "recovered"
-                    }.retry(3).executeGraph()
+                    }.retry(3).evalGraph()
                 },
-            ) { a, b -> "$a|$b" }.executeGraph()
+            ) { a, b -> "$a|$b" }.evalGraph()
         assertEquals("stable|recovered", result)
     }
 
@@ -194,7 +194,7 @@ class LiftATest {
                 { delay(10); "fast" },
                 { delay(10); "also fast" },
             ) { a, b -> "$a|$b" }
-            .timeout(kotlin.time.Duration.parse("1s")).executeGraph()
+            .timeout(kotlin.time.Duration.parse("1s")).evalGraph()
         assertEquals("fast|also fast", result)
     }
 
@@ -202,33 +202,33 @@ class LiftATest {
 
     @Test
     fun `combine (2) identity - combine id fa fb == pair fa fb`() = runTest {
-        val a = combine({ 1 }, { 2 }) { x, y -> Pair(x, y) }.executeGraph()
-        val b = pair({ 1 }, { 2 }).executeGraph()
+        val a = combine({ 1 }, { 2 }) { x, y -> Pair(x, y) }.evalGraph()
+        val b = pair({ 1 }, { 2 }).evalGraph()
         assertEquals(a, b)
     }
 
     @Test
     fun `combine (2) agrees with kap+with`() = runTest {
-        val viaLiftA = combine({ delay(10); "A" }, { delay(10); "B" }) { a, b -> "$a|$b" }.executeGraph()
+        val viaLiftA = combine({ delay(10); "A" }, { delay(10); "B" }) { a, b -> "$a|$b" }.evalGraph()
         val viaLiftAp = Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with { delay(10); "A" }
-                .with { delay(10); "B" }.executeGraph()
+                .with { delay(10); "B" }.evalGraph()
         assertEquals(viaLiftA, viaLiftAp)
     }
 
     @Test
     fun `combine (3) agrees with kap+with`() = runTest {
-        val viaLiftA = combine({ 1 }, { 2 }, { 3 }) { a, b, c -> a + b + c }.executeGraph()
+        val viaLiftA = combine({ 1 }, { 2 }, { 3 }) { a, b, c -> a + b + c }.evalGraph()
         val viaLiftAp = Kap.of { a: Int -> { b: Int -> { c: Int -> a + b + c } } }
-                .with { 1 }.with { 2 }.with { 3 }.executeGraph()
+                .with { 1 }.with { 2 }.with { 3 }.evalGraph()
         assertEquals(viaLiftA, viaLiftAp)
     }
 
     @Test
     fun `combine (5) agrees with kap+with`() = runTest {
-        val viaLiftA = combine({ 1 }, { 2 }, { 3 }, { 4 }, { 5 }) { a, b, c, d, e -> a + b + c + d + e }.executeGraph()
+        val viaLiftA = combine({ 1 }, { 2 }, { 3 }, { 4 }, { 5 }) { a, b, c, d, e -> a + b + c + d + e }.evalGraph()
         val viaLiftAp = Kap.of { a: Int -> { b: Int -> { c: Int -> { d: Int -> { e: Int -> a + b + c + d + e } } } } }
-                .with { 1 }.with { 2 }.with { 3 }.with { 4 }.with { 5 }.executeGraph()
+                .with { 1 }.with { 2 }.with { 3 }.with { 4 }.with { 5 }.evalGraph()
         assertEquals(viaLiftA, viaLiftAp)
     }
 
@@ -243,7 +243,7 @@ class LiftATest {
             ) { a, b, c -> a + b + c }
             .andThen { sum ->
                 Kap.of(sum * 10)
-            }.executeGraph()
+            }.evalGraph()
         assertEquals(60, result)
     }
 }

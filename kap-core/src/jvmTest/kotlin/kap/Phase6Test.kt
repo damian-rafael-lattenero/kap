@@ -32,7 +32,7 @@ class Phase6Test {
                 { delay(50.milliseconds); 4 },
                 { delay(50.milliseconds); 5 },
                 { delay(50.milliseconds); 6 },
-            ) { a, b, c, d, e, f -> a + b + c + d + e + f }.executeGraph()
+            ) { a, b, c, d, e, f -> a + b + c + d + e + f }.evalGraph()
         assertEquals(21, result)
         assertEquals(50, currentTime)
     }
@@ -47,7 +47,7 @@ class Phase6Test {
                 { delay(50.milliseconds); 5 },
                 { delay(50.milliseconds); 6 },
                 { delay(50.milliseconds); 7 },
-            ) { a, b, c, d, e, f, g -> a + b + c + d + e + f + g }.executeGraph()
+            ) { a, b, c, d, e, f, g -> a + b + c + d + e + f + g }.evalGraph()
         assertEquals(28, result)
         assertEquals(50, currentTime)
     }
@@ -63,7 +63,7 @@ class Phase6Test {
                 { delay(50.milliseconds); 6 },
                 { delay(50.milliseconds); 7 },
                 { delay(50.milliseconds); 8 },
-            ) { a, b, c, d, e, f, g, h -> a + b + c + d + e + f + g + h }.executeGraph()
+            ) { a, b, c, d, e, f, g, h -> a + b + c + d + e + f + g + h }.evalGraph()
         assertEquals(36, result)
         assertEquals(50, currentTime)
     }
@@ -80,7 +80,7 @@ class Phase6Test {
                 { delay(50.milliseconds); 7 },
                 { delay(50.milliseconds); 8 },
                 { delay(50.milliseconds); 9 },
-            ) { a, b, c, d, e, f, g, h, i -> a + b + c + d + e + f + g + h + i }.executeGraph()
+            ) { a, b, c, d, e, f, g, h, i -> a + b + c + d + e + f + g + h + i }.evalGraph()
         assertEquals(45, result)
         assertEquals(50, currentTime)
     }
@@ -100,7 +100,7 @@ class Phase6Test {
                     { 9 },
                 ) { a: Int, b: Int, c: Int, d: Int, e: Int, f: Int, g: Int, h: Int, i: Int ->
                     a + b + c + d + e + f + g + h + i
-                }.executeGraph()
+                }.evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals("boom", result.exceptionOrNull()?.message)
@@ -118,7 +118,7 @@ class Phase6Test {
                     delay(50.milliseconds)
                     synchronized(log) { log.add(i) }
                 }
-            }.executeGraph()
+            }.evalGraph()
         assertEquals(50, currentTime)
         assertEquals(5, log.size)
         assertEquals(setOf(1, 2, 3, 4, 5), log.toSet())
@@ -132,7 +132,7 @@ class Phase6Test {
                     delay(50.milliseconds)
                     synchronized(log) { log.add(i) }
                 }
-            }.executeGraph()
+            }.evalGraph()
         // 6 items, concurrency 3 → 2 batches × 50ms = 100ms
         assertTrue(currentTime >= 100)
         assertEquals(6, log.size)
@@ -146,7 +146,7 @@ class Phase6Test {
             Kap { delay(50.milliseconds); synchronized(log) { log.add("b") }; Unit },
             Kap { delay(50.milliseconds); synchronized(log) { log.add("c") }; Unit },
         )
-        computations.sequenceDiscard().executeGraph()
+        computations.sequenceDiscard().evalGraph()
         assertEquals(50, currentTime)
         assertEquals(3, log.size)
     }
@@ -157,7 +157,7 @@ class Phase6Test {
         val computations: List<Kap<Unit>> = (1..4).map { i ->
             Kap { delay(50.milliseconds); synchronized(log) { log.add("$i") }; Unit }
         }
-        computations.sequenceDiscard(2).executeGraph()
+        computations.sequenceDiscard(2).evalGraph()
         // 4 items, concurrency 2 → 2 batches × 50ms = 100ms
         assertTrue(currentTime >= 100)
         assertEquals(4, log.size)
@@ -175,9 +175,9 @@ class Phase6Test {
             null  // null is the actual result
         }.memoize()
 
-        val first = comp.executeGraph()
-        val second = comp.executeGraph()
-        val third = comp.executeGraph()
+        val first = comp.evalGraph()
+        val second = comp.evalGraph()
+        val third = comp.evalGraph()
 
         assertEquals(null, first)
         assertEquals(null, second)
@@ -193,8 +193,8 @@ class Phase6Test {
             null
         }.memoizeOnSuccess()
 
-        val first = comp.executeGraph()
-        val second = comp.executeGraph()
+        val first = comp.evalGraph()
+        val second = comp.evalGraph()
 
         assertEquals(null, first)
         assertEquals(null, second)
@@ -211,8 +211,8 @@ class Phase6Test {
         }.memoize()
 
         val result = Kap.of { a: String? -> { b: String? -> "${a}|${b}" } }
-                .with { nullComp.executeGraph() }
-                .with { nullComp.executeGraph() }.executeGraph()
+                .with { nullComp.evalGraph() }
+                .with { nullComp.evalGraph() }.evalGraph()
         assertEquals("null|null", result)
         assertEquals(1, callCount)
         assertEquals(50, currentTime) // parallel

@@ -83,7 +83,7 @@ suspend fun main() {
             .withV { validateEmail("alice@example.com") }
             .withV { validateAge(28) }
             .withV { checkUsernameAvailable("alice_new") }
-            .executeGraph()
+            .evalGraph()
 
     when (result1) {
         is Either.Right -> println("  Success: ${result1.value}")
@@ -98,7 +98,7 @@ suspend fun main() {
             .withV { validateEmail("not-an-email") } // no @
             .withV { validateAge(5) }               // too young
             .withV { checkUsernameAvailable("admin") } // taken
-            .executeGraph()
+            .evalGraph()
 
     when (result2) {
         is Either.Right -> println("  Success: ${result2.value}")
@@ -120,7 +120,7 @@ suspend fun main() {
                     User(name, email, age, username)
                 }
             }
-            .executeGraph()
+            .evalGraph()
 
     when (result3) {
         is Either.Right -> println("  Success: ${result3.value}")
@@ -139,7 +139,7 @@ suspend fun main() {
             .withV { validateName("Charlie") }
             .withV { validateEmail("charlie@test.com") }
             .withV { validatePassword("abc") }  // too short, no digit, no uppercase
-            .executeGraph()
+            .evalGraph()
 
     when (result4) {
         is Either.Right -> println("  Success: ${result4.value}")

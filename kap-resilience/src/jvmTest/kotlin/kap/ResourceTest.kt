@@ -10,7 +10,6 @@ import kotlinx.coroutines.test.runTest
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -170,7 +169,7 @@ class ResourceTest {
             Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with { delay(40); "data-from-$db" }
                 .with { delay(40); "data-from-$cache" }
-        }.executeGraph()
+        }.evalGraph()
 
         assertEquals("data-from-db-conn|data-from-cache-conn", result)
         assertEquals(40, currentTime, "ap branches should run in parallel")
@@ -243,7 +242,7 @@ class ResourceTest {
                 Kap.of { a: String -> { b: String -> "$a|$b" } }
                     .with { "ok" }
                     .with { throw RuntimeException("branch failed") }
-            }.executeGraph()
+            }.evalGraph()
         }
 
         assertTrue(result.isFailure)

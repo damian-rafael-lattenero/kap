@@ -61,7 +61,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         .withUser { fetchUser() }     // ┐ all three start at t=0
         .withCart { fetchCart() }      // │ total time = max(individual)
         .withPromos { fetchPromos() }  // ┘ swap any two? COMPILE ERROR
-        .executeGraph()
+        .evalGraph()
     ```
 
 === "KAP (generic API)"
@@ -71,7 +71,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         .with { fetchUser() }     // ┐ all three start at t=0
         .with { fetchCart() }      // │ total time = max(individual)
         .with { fetchPromos() }    // ┘ swap any two? COMPILE ERROR
-        .executeGraph()
+        .evalGraph()
     ```
 
 `@KapTypeSafe` generates `.withUser {}`, `.withCart {}`, `.withPromos {}` from the data class properties. The generic `.with {}` API is equivalent but positional — named builders enforce the correct parameter at each step.
@@ -102,7 +102,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         .withA { fetchA() }             // ┐ parallel
         .withB { fetchB() }             // ┘
         .thenValidated { validate() }   // ── barrier: waits for A and B
-        .executeGraph()
+        .evalGraph()
     ```
 
 `.then` creates an explicit synchronization point. Everything above must complete before anything below starts.
@@ -155,7 +155,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
                         .withAnalytics { trackAnalytics(ctx, enriched) }   // ┘
                 }
         }
-        .executeGraph()
+        .evalGraph()
     ```
 
 === "KAP (generic API)"
@@ -177,7 +177,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
                         .with { trackAnalytics(ctx, enriched) }   // ┘
                 }
         }
-        .executeGraph()
+        .evalGraph()
     ```
 
 24 lines of nested `coroutineScope`/`async`/`await` vs 14 lines of flat chain. The dependency graph **is** the code shape.
@@ -198,7 +198,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         .withUser { fetchUser() }
         .withCart { fetchCart() }
         .withPromos { fetchPromos() }
-        .executeGraph()
+        .evalGraph()
     ```
 
 === "kap + with (generic API)"
@@ -208,7 +208,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         .with { fetchUser() }
         .with { fetchCart() }
         .with { fetchPromos() }
-        .executeGraph()
+        .evalGraph()
     ```
 
 === "combine (suspend lambdas)"
@@ -219,7 +219,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         { fetchCart() },
         { fetchPromos() },
     ) { user, cart, promos -> Dashboard(user, cart, promos) }
-        .executeGraph()
+        .evalGraph()
     ```
 
 === "zip (pre-built Kaps)"
@@ -230,14 +230,14 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         Kap { fetchCart() },
         Kap { fetchPromos() },
     ) { user, cart, promos -> Dashboard(user, cart, promos) }
-        .executeGraph()
+        .evalGraph()
     ```
 
 === "pair / triple"
 
     ```kotlin
-    val (user, cart) = pair({ fetchUser() }, { fetchCart() }).executeGraph()
-    val (a, b, c) = triple({ fetchA() }, { fetchB() }, { fetchC() }).executeGraph()
+    val (user, cart) = pair({ fetchUser() }, { fetchCart() }).evalGraph()
+    val (a, b, c) = triple({ fetchA() }, { fetchB() }, { fetchC() }).evalGraph()
     ```
 
 `zip` and `combine` support arities 2-22.
@@ -273,7 +273,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         .withUser { fetchUser() }     // throws! → cart and config CANCELLED
         .withCart { fetchCart() }      // never runs
         .withConfig { fetchConfig() }  // never runs
-        .executeGraph()
+        .evalGraph()
     // RuntimeException — entire dashboard lost. Cart and config were fine.
     ```
 
@@ -288,7 +288,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         .withUser(settled { fetchUser() })   // Result<String> — won't cancel siblings
         .withCart { fetchCart() }              // String — runs normally
         .withConfig { fetchConfig() }          // String — runs normally
-        .executeGraph()
+        .evalGraph()
     // Dashboard(user=Result.failure(RuntimeException), cart=cart-ok, config=config-ok)
 
     // Use the result with a fallback:
@@ -306,7 +306,7 @@ data class Dashboard(val user: String, val latency: TimedResult<String>)
 val dashboard = kap(::Dashboard)
     .withUser { fetchUser() }
     .withLatency(timed { fetchSlowService() })   // TimedResult(value, duration)
-    .executeGraph()
+    .evalGraph()
 
 println(dashboard.latency.duration) // 230.ms
 println(dashboard.latency.value)    // "slow-result"
@@ -339,7 +339,7 @@ Like `settled { }`, `timed { }` is a top-level shorthand for `Kap { block() }.ti
             if (id % 2 == 0) throw RuntimeException("fail-$id")
             "user-$id"
         }
-    }.executeGraph()
+    }.evalGraph()
     // successes=[user-1, user-3, user-5], failures=[fail-2, fail-4]
     ```
 
@@ -378,7 +378,7 @@ Like `settled { }`, `timed { }` is a top-level shorthand for `Kap { block() }.ti
     ```kotlin
     val results = userIds.traverse(concurrency = 10) { id ->
         Kap { fetchUser(id) }
-    }.executeGraph()
+    }.evalGraph()
     ```
 
 #### `traverseDiscard` — Fire-and-forget
@@ -411,7 +411,7 @@ Like `settled { }`, `timed { }` is a top-level shorthand for `Kap { block() }.ti
     ```kotlin
     userIds.traverseDiscard(concurrency = 5) { id ->
         Kap { notifyUser(id) }
-    }.executeGraph()
+    }.evalGraph()
     ```
 
 #### `sequence` / `sequence(concurrency)`
@@ -441,7 +441,7 @@ Like `settled { }`, `timed { }` is a top-level shorthand for `Kap { block() }.ti
 
     ```kotlin
     val kaps: List<Kap<String>> = userIds.map { id -> Kap { fetchUser(id) } }
-    val results: List<String> = kaps.sequence(concurrency = 10).executeGraph()
+    val results: List<String> = kaps.sequence(concurrency = 10).evalGraph()
     ```
 
 ### Error handling
@@ -468,7 +468,7 @@ Like `settled { }`, `timed { }` is a top-level shorthand for `Kap { block() }.ti
     ```kotlin
     val result = Kap { fetchSlowService() }
         .timeout(500.milliseconds) { "fallback-value" }
-        .executeGraph()
+        .evalGraph()
     ```
 
 #### `.recover { }` / `.recoverWith { }`
@@ -495,7 +495,7 @@ Like `settled { }`, `timed { }` is a top-level shorthand for `Kap { block() }.ti
     ```kotlin
     val result = Kap<String> { throw RuntimeException("fail") }
         .recover { "recovered" }
-        .executeGraph()
+        .evalGraph()
     ```
 
 #### `.retry(maxAttempts, delay, backoff)`
@@ -533,7 +533,7 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
     ```kotlin
     val result = Kap { flakyService() }
         .retry(3, delay = 10.milliseconds)
-        .executeGraph()
+        .evalGraph()
     ```
 
 #### `.ensure(error) { predicate }` / `.ensureNotNull(error) { extract }`
@@ -570,11 +570,11 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
     ```kotlin
     val result = Kap { fetchAge() }
         .ensure(IllegalArgumentException("Must be 18+")) { it >= 18 }
-        .executeGraph()
+        .evalGraph()
 
     val result2 = Kap { fetchUserOrNull() }
         .ensureNotNull(NoSuchElementException("User not found")) { it }
-        .executeGraph()
+        .evalGraph()
     ```
 
 #### `catching { }` — Exception-safe Result
@@ -626,12 +626,12 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
         Kap { source1() },  // fails
         Kap { source2() },  // fails
         Kap { source3() },  // wins
-    ).executeGraph()
+    ).evalGraph()
 
     // Or: chained fallback
     val result2 = Kap<String> { throw RuntimeException("fail") }
         .orElse(Kap { "fallback-ok" })
-        .executeGraph()
+        .evalGraph()
     ```
 
 ### Racing
@@ -671,7 +671,7 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
         Kap { fetchFromRegionUS() },   // 100ms
         Kap { fetchFromRegionEU() },   // 30ms
         Kap { fetchFromRegionAP() },   // 60ms
-    ).executeGraph()
+    ).evalGraph()
     // Returns EU at 30ms. US and AP cancelled automatically.
     ```
 
@@ -705,7 +705,7 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
     val winner = race(
         Kap { delay(100); "slow" },
         Kap { delay(30); "fast" },
-    ).executeGraph()
+    ).evalGraph()
     // "fast" at 30ms, loser cancelled automatically
     ```
 
@@ -746,7 +746,7 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
 
     ```kotlin
     val replicas = regions.map { region -> Kap { fetchFrom(region) } }
-    val fastest = raceAll(replicas).executeGraph()
+    val fastest = raceAll(replicas).evalGraph()
     // Losers cancelled automatically
     ```
 
@@ -760,7 +760,7 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
 
 ```kotlin
 val effect: Kap<String> = Kap { fetchUser() }  // nothing runs yet
-val result: String = effect.executeGraph()       // NOW it runs
+val result: String = effect.evalGraph()       // NOW it runs
 ```
 
 #### `kap(f)` — Curry a function for `.with` chains
@@ -772,17 +772,17 @@ Works with constructor refs, function refs, and lambdas:
 @KapTypeSafe
 data class Greeting(val name: String, val message: String)
 
-val g1 = kap(::Greeting).withName { fetchName() }.withMessage { "hello" }.executeGraph()
+val g1 = kap(::Greeting).withName { fetchName() }.withMessage { "hello" }.evalGraph()
 
 // Lambda — use Kap.of with manual currying
 val greet: (String, Int) -> String = { name, age -> "Hi $name, you're $age" }
 val g2 = Kap.of { name: String -> { age: Int -> greet(name, age) } }
-    .with { fetchName() }.with { fetchAge() }.executeGraph()
+    .with { fetchName() }.with { fetchAge() }.evalGraph()
 
 // Function — annotate with @KapTypeSafe for named builders
 @KapTypeSafe
 fun buildSummary(name: String, items: Int): String = "$name has $items items"
-val g3 = kap(BuildSummary).withName { fetchName() }.withItems { 5 }.executeGraph()
+val g3 = kap(BuildSummary).withName { fetchName() }.withItems { 5 }.evalGraph()
 ```
 
 #### `Kap.of(value)` / `Kap.empty()` / `Kap.failed(error)` / `Kap.defer { }`
@@ -821,7 +821,7 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
         .withContent { fetchContent() }           // parallel
         .withSidebar { fetchSidebar() }           // parallel
         .thenValue { computeTimestamp() }  // sequential fill, no barrier
-        .executeGraph()
+        .evalGraph()
     ```
 
 ### Flow integration
@@ -889,7 +889,7 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
 
     ```kotlin
     val first: Kap<String> = userIdFlow.firstAsKap()
-    val result = first.executeGraph()
+    val result = first.evalGraph()
     // Composable — can .map, .recover, .timeout, combine with other Kaps
     ```
 
@@ -918,8 +918,8 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
 
     ```kotlin
     val fetchOnce = Kap { expensiveCall() }.memoize()
-    val a = fetchOnce.executeGraph() // runs the actual call
-    val b = fetchOnce.executeGraph() // cached, instant
+    val a = fetchOnce.evalGraph() // runs the actual call
+    val b = fetchOnce.evalGraph() // cached, instant
     ```
 
 === "KAP — `.memoizeOnSuccess()`"
@@ -928,8 +928,8 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
     var callCount = 0
     val fetchOnce = Kap { callCount++; "expensive-result" }.memoizeOnSuccess()
 
-    val a = fetchOnce.executeGraph()  // runs, callCount=1
-    val b = fetchOnce.executeGraph()  // cached, callCount still 1
+    val a = fetchOnce.evalGraph()  // runs, callCount=1
+    val b = fetchOnce.evalGraph()  // cached, callCount still 1
     // If first call FAILS? Not cached. Next call retries.
     ```
 
@@ -942,7 +942,7 @@ Bridge between existing coroutine code and KAP. Useful when you have a `Deferred
 ```kotlin
 val deferred: Deferred<String> = scope.async { fetchUser() }
 val kap: Kap<String> = deferred.toKap()
-val result = kap.executeGraph()
+val result = kap.evalGraph()
 ```
 
 #### `(suspend () -> A).toKap()`
@@ -982,7 +982,7 @@ val kap: Kap<String> = lambda.toKap()
         val user = Kap { fetchDashUser() }.bind()
         val cart = Kap { fetchDashCart() }.bind()
         "$user has $cart"
-    }.executeGraph()
+    }.evalGraph()
     ```
 
 ### Observability
@@ -1002,7 +1002,7 @@ val tracer = KapTracer { event ->
 val result = kap(::Dashboard)
     .withUser(Kap { fetchUser() }.traced("fetch-user", tracer))
     .withConfig(Kap { fetchConfig() }.traced("fetch-config", tracer))
-    .executeGraph()
+    .evalGraph()
 ```
 
 ### Utilities
@@ -1036,17 +1036,17 @@ Run both in parallel, keep only one result:
     ```kotlin
     val user = Kap { fetchUser() }
         .keepFirst(Kap { logAccess() })  // both run, only user returned
-        .executeGraph()
+        .evalGraph()
     ```
 
 #### `.discard()` / `.peek { }`
 
 ```kotlin
-val unit = Kap { fetchUser() }.discard().executeGraph()  // runs but returns Unit
+val unit = Kap { fetchUser() }.discard().evalGraph()  // runs but returns Unit
 
 val user = Kap { fetchUser() }
     .peek { println("Fetched: $it") }  // side-effect, returns original value
-    .executeGraph()
+    .evalGraph()
 ```
 
 #### `.on(context)` / `.named(name)`
@@ -1055,28 +1055,28 @@ val user = Kap { fetchUser() }
 val result = Kap { readFile() }
     .on(Dispatchers.IO)          // switch dispatcher
     .named("file-read")          // coroutine name for debugging
-    .executeGraph()
+    .evalGraph()
 ```
 
-#### `.executeGraph()` — Execute from any suspend context
+#### `.evalGraph()` — Execute from any suspend context
 
 ```kotlin
 suspend fun myFunction(): String {
-    return Kap { fetchUser() }.executeGraph()
+    return Kap { fetchUser() }.evalGraph()
 }
 ```
 
 #### `delayed(duration, value)` / `withOrNull`
 
 ```kotlin
-val result = delayed(100.milliseconds, "delayed-value").executeGraph()
+val result = delayed(100.milliseconds, "delayed-value").evalGraph()
 
 val maybeResult: String? = withOrNull { Kap { riskyOperation() } }
 ```
 
 ### Execution model
 
-`Kap<A>` is **lazy** — nothing runs until `.executeGraph()`:
+`Kap<A>` is **lazy** — nothing runs until `.evalGraph()`:
 
 ```kotlin
 @KapTypeSafe
@@ -1090,14 +1090,14 @@ val plan: Kap<Dashboard> = kap(::Dashboard)
 println("Plan built. Nothing has executed yet.")
 println("plan is: ${plan::class.simpleName}")
 
-val result: Dashboard = plan.executeGraph()  // NOW it runs
+val result: Dashboard = plan.evalGraph()  // NOW it runs
 ```
 
 **Key guarantees:**
 
 - **Structured concurrency**: All parallel branches run inside `coroutineScope`. One fails → siblings cancel.
 - **Cancellation safety**: `CancellationException` is never caught. All combinators re-throw it.
-- **Context propagation**: `.executeGraph(MDCContext())` propagates context to all branches.
+- **Context propagation**: `.evalGraph(MDCContext())` propagates context to all branches.
 - **No reflection**: All type safety is compile-time. Zero runtime overhead.
 - **Algebraic laws**: Functor, Applicative, Monad — property-tested via Kotest. See [LAWS.md](https://github.com/damian-rafael-lattenero/kap/blob/master/LAWS.md).
 

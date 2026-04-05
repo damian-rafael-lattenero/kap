@@ -1,14 +1,12 @@
 package kap
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NewFeaturesTest {
@@ -25,9 +23,9 @@ class NewFeaturesTest {
             "expensive"
         }.memoize()
 
-        val r1 = memoized.executeGraph()
-        val r2 = memoized.executeGraph()
-        val r3 = memoized.executeGraph()
+        val r1 = memoized.evalGraph()
+        val r2 = memoized.evalGraph()
+        val r3 = memoized.evalGraph()
 
         assertEquals("expensive", r1)
         assertEquals("expensive", r2)
@@ -45,7 +43,7 @@ class NewFeaturesTest {
 
         val result = Kap.of { a: Int -> { b: Int -> a + b } }
                 .with(memoized)
-                .with(memoized).executeGraph()
+                .with(memoized).evalGraph()
 
         assertEquals(20, result, "Both branches should get cached value 10")
         assertEquals(1, counter.get(), "Kap should execute exactly once even in parallel ap")
@@ -58,7 +56,7 @@ class NewFeaturesTest {
     @Test
     fun `failed throws the given exception when executed`() = runTest {
         val result = runCatching {
-            Kap.failed(IllegalStateException("boom")).executeGraph()
+            Kap.failed(IllegalStateException("boom")).evalGraph()
         }
         assertTrue(result.isFailure)
         assertIs<IllegalStateException>(result.exceptionOrNull())
@@ -68,14 +66,14 @@ class NewFeaturesTest {
     @Test
     fun `failed works with recover`() = runTest {
         val result = Kap.failed(RuntimeException("oops"))
-                .recover { "recovered: ${it.message}" }.executeGraph()
+                .recover { "recovered: ${it.message}" }.evalGraph()
         assertEquals("recovered: oops", result)
     }
 
     @Test
     fun `failed works with recoverWith`() = runTest {
         val result = Kap.failed(RuntimeException("oops"))
-                .recoverWith { Kap.of("recovered via: ${it.message}") }.executeGraph()
+                .recoverWith { Kap.of("recovered via: ${it.message}") }.evalGraph()
         assertEquals("recovered via: oops", result)
     }
 
@@ -94,7 +92,7 @@ class NewFeaturesTest {
 
         assertEquals(0, constructed.get(), "Block should not be called until execution")
 
-        val result = deferred.executeGraph()
+        val result = deferred.evalGraph()
 
         assertEquals("lazy", result)
         assertEquals(1, constructed.get(), "Block should be called exactly once on execution")
@@ -113,12 +111,12 @@ class NewFeaturesTest {
         assertEquals(0, callLog.get(), "defer block must not run eagerly")
 
         // First execution
-        val r1 = deferred.executeGraph()
+        val r1 = deferred.evalGraph()
         assertEquals(1, r1)
         assertEquals(1, callLog.get())
 
         // Second execution — defer re-evaluates the block each time
-        val r2 = deferred.executeGraph()
+        val r2 = deferred.evalGraph()
         assertEquals(2, r2)
         assertEquals(2, callLog.get(), "defer should re-evaluate on each execution")
     }

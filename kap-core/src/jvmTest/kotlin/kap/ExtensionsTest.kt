@@ -21,14 +21,14 @@ class ExtensionsTest {
 
     @Test
     fun `void discards result and returns Unit`() = runTest {
-        val result = Kap { 42 }.discard().executeGraph()
+        val result = Kap { 42 }.discard().evalGraph()
         assertEquals(Unit, result)
     }
 
     @Test
     fun `void propagates failure`() = runTest {
         val result = runCatching {
-            Kap<Int> { throw RuntimeException("boom") }.discard().executeGraph()
+            Kap<Int> { throw RuntimeException("boom") }.discard().evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals("boom", result.exceptionOrNull()?.message)
@@ -40,14 +40,14 @@ class ExtensionsTest {
 
     @Test
     fun `settled wraps success in Result success`() = runTest {
-        val result = Kap { 42 }.settled().executeGraph()
+        val result = Kap { 42 }.settled().evalGraph()
         assertTrue(result.isSuccess)
         assertEquals(42, result.getOrNull())
     }
 
     @Test
     fun `settled wraps failure in Result failure`() = runTest {
-        val result = Kap<Int> { throw IllegalStateException("bad") }.settled().executeGraph()
+        val result = Kap<Int> { throw IllegalStateException("bad") }.settled().evalGraph()
         assertTrue(result.isFailure)
         assertEquals("bad", result.exceptionOrNull()?.message)
     }
@@ -59,7 +59,7 @@ class ExtensionsTest {
             started.complete(Unit)
             awaitCancellation()
         }.settled()
-        val job = launch { comp.executeGraph() }
+        val job = launch { comp.evalGraph() }
         started.await()
         job.cancel()
         job.join()
@@ -74,7 +74,7 @@ class ExtensionsTest {
     fun `tap executes side-effect and returns original value`() = runTest {
         val sideKaps = mutableListOf<String>()
         val result = Kap { "hello" }
-                .peek { sideKaps.add("saw: $it") }.executeGraph()
+                .peek { sideKaps.add("saw: $it") }.evalGraph()
         assertEquals("hello", result)
         assertEquals(listOf("saw: hello"), sideKaps)
     }
@@ -83,7 +83,7 @@ class ExtensionsTest {
     fun `tap failure in side-effect propagates`() = runTest {
         val result = runCatching {
             Kap { "hello" }
-                    .peek { throw RuntimeException("side-effect failed") }.executeGraph()
+                    .peek { throw RuntimeException("side-effect failed") }.evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals("side-effect failed", result.exceptionOrNull()?.message)
@@ -96,7 +96,7 @@ class ExtensionsTest {
     @Test
     fun `zipLeft runs both in parallel and returns left result`() = runTest {
         val result = Kap { delay(50); "left" }
-                .keepFirst(Kap { delay(50); "right" }).executeGraph()
+                .keepFirst(Kap { delay(50); "right" }).evalGraph()
         assertEquals("left", result)
         assertEquals(50, currentTime, "Both should run in parallel (50ms, not 100ms)")
     }
@@ -104,7 +104,7 @@ class ExtensionsTest {
     @Test
     fun `zipRight runs both in parallel and returns right result`() = runTest {
         val result = Kap { delay(50); "left" }
-                .keepSecond(Kap { delay(50); "right" }).executeGraph()
+                .keepSecond(Kap { delay(50); "right" }).evalGraph()
         assertEquals("right", result)
         assertEquals(50, currentTime, "Both should run in parallel (50ms, not 100ms)")
     }
@@ -113,7 +113,7 @@ class ExtensionsTest {
     fun `zipLeft propagates failure from right side`() = runTest {
         val result = runCatching {
             Kap { delay(100); "left" }
-                    .keepFirst(Kap<String> { throw RuntimeException("right failed") }).executeGraph()
+                    .keepFirst(Kap<String> { throw RuntimeException("right failed") }).evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals("right failed", result.exceptionOrNull()?.message)
@@ -123,7 +123,7 @@ class ExtensionsTest {
     fun `zipRight propagates failure from left side`() = runTest {
         val result = runCatching {
             Kap<String> { throw RuntimeException("left failed") }
-                    .keepSecond(Kap { delay(100); "right" }).executeGraph()
+                    .keepSecond(Kap { delay(100); "right" }).evalGraph()
         }
         assertTrue(result.isFailure)
         assertEquals("left failed", result.exceptionOrNull()?.message)
@@ -137,7 +137,7 @@ class ExtensionsTest {
                     .keepFirst(Kap {
                         try { awaitCancellation() }
                         catch (e: CancellationException) { cancelled.complete(true); throw e }
-                    }).executeGraph()
+                    }).evalGraph()
         }
         assertTrue(result.isFailure)
         assertTrue(cancelled.await(), "Right side should be cancelled when left fails")

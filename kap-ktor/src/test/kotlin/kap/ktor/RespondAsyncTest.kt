@@ -2,7 +2,6 @@ package kap.ktor
 
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -37,7 +36,7 @@ class RespondAsyncTest {
                 call.respondKap {
                     kap.Kap.of { user: String -> { cart: String -> TestDashboard(user, cart) } }
                         .with { "Alice" }
-                        .with { "3 items" }.executeGraph()
+                        .with { "3 items" }.evalGraph()
                 }
             }
         }
@@ -60,7 +59,7 @@ class RespondAsyncTest {
                 call.respondKap(HttpStatusCode.Created) {
                     kap.Kap.of { name: String -> { age: Int -> TestUser(name, age) } }
                         .with { "Bob" }
-                        .with { 30 }.executeGraph()
+                        .with { 30 }.evalGraph()
                 }
             }
         }
@@ -82,7 +81,7 @@ class RespondAsyncTest {
         routing {
             get("/fail") {
                 call.respondKap<String> {
-                    Kap<String> { throw IllegalArgumentException("bad param") }.executeGraph()
+                    Kap<String> { throw IllegalArgumentException("bad param") }.evalGraph()
                 }
             }
         }
@@ -100,7 +99,7 @@ class RespondAsyncTest {
             get("/user") {
                 call.respond(kap.Kap.of { name: String -> { age: Int -> TestUser(name, age) } }
                     .with { "Charlie" }
-                    .with { 25 }.executeGraph())
+                    .with { 25 }.evalGraph())
             }
         }
 

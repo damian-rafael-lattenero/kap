@@ -24,7 +24,7 @@ class RacePropertyTest {
         val result = race(
                 Kap { delay(50.milliseconds); "slow" },
                 Kap { delay(10.milliseconds); "fast" },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("fast", result)
     }
 
@@ -33,7 +33,7 @@ class RacePropertyTest {
         val result = race(
                 Kap { delay(10.milliseconds); "fast success" },
                 Kap { delay(50.milliseconds); throw RuntimeException("slow fail") },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("fast success", result)
     }
 
@@ -48,7 +48,7 @@ class RacePropertyTest {
                     delay(50.milliseconds)
                     "slow success"
                 },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("slow success", result)
     }
 
@@ -58,7 +58,7 @@ class RacePropertyTest {
             Kap { delay(10.milliseconds); throw RuntimeException("first") },
             Kap { delay(50.milliseconds); throw IllegalStateException("second") },
         )
-        val ex = assertFailsWith<RuntimeException> { val r = graph.executeGraph() }
+        val ex = assertFailsWith<RuntimeException> { val r = graph.evalGraph() }
         assertEquals("first", ex.message)
     }
 
@@ -72,7 +72,7 @@ class RacePropertyTest {
                 Kap { delay(30.milliseconds); "winner" },
                 Kap<String> { delay(40.milliseconds); throw RuntimeException("d") },
                 Kap<String> { delay(50.milliseconds); throw RuntimeException("e") },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("winner", result)
     }
 
@@ -84,7 +84,7 @@ class RacePropertyTest {
                 Kap { delay(10.milliseconds); "survivor" },
                 Kap { delay(20.milliseconds); "slow" },
                 Kap { delay(30.milliseconds); "slower" },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("survivor", result)
     }
 
@@ -96,7 +96,7 @@ class RacePropertyTest {
             Kap { delay(30.milliseconds); throw UnsupportedOperationException("e3") },
             Kap { delay(40.milliseconds); throw ArithmeticException("e4") },
         )
-        val ex = assertFailsWith<RuntimeException> { val r = graph.executeGraph() }
+        val ex = assertFailsWith<RuntimeException> { val r = graph.evalGraph() }
         assertEquals("e1", ex.message)
     }
 
@@ -106,7 +106,7 @@ class RacePropertyTest {
                 Kap { "first" },
                 Kap { delay(50.milliseconds); "second" },
                 Kap { delay(100.milliseconds); "third" },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("first", result)
     }
 
@@ -116,7 +116,7 @@ class RacePropertyTest {
                 Kap<String> { delay(10.milliseconds); throw RuntimeException("a") },
                 Kap<String> { delay(20.milliseconds); throw RuntimeException("b") },
                 Kap { delay(30.milliseconds); "last one standing" },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("last one standing", result)
     }
 
@@ -127,7 +127,7 @@ class RacePropertyTest {
         race(
                 Kap { delay(100.milliseconds); "slow" },
                 Kap { delay(20.milliseconds); "fast" },
-            ).executeGraph()
+            ).evalGraph()
         assertTrue(currentTime <= 30, "Should complete in ~20ms, got ${currentTime}ms")
     }
 
@@ -138,7 +138,7 @@ class RacePropertyTest {
                 Kap { delay(150.milliseconds); "slow" },
                 Kap { delay(10.milliseconds); "fast" },
                 Kap { delay(300.milliseconds); "very-very-slow" },
-            ).executeGraph()
+            ).evalGraph()
         assertTrue(currentTime <= 20, "Should complete in ~10ms, got ${currentTime}ms")
     }
 
@@ -153,7 +153,7 @@ class RacePropertyTest {
                     delay(50.milliseconds)
                     "slow winner"
                 },
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("slow winner", result)
         assertTrue(currentTime in 40..60, "Should wait for slow success: ${currentTime}ms")
     }
@@ -169,14 +169,14 @@ class RacePropertyTest {
                     race(
                         Kap { delay(100.milliseconds); "slow-a" },
                         Kap { delay(10.milliseconds); "fast-a" },
-                    ).executeGraph()
+                    ).evalGraph()
                 }
                 .with {
                     race(
                         Kap { delay(10.milliseconds); "fast-b" },
                         Kap { delay(100.milliseconds); "slow-b" },
-                    ).executeGraph()
-                }.executeGraph()
+                    ).evalGraph()
+                }.evalGraph()
         assertEquals(Result("fast-a", "fast-b"), result)
         assertTrue(currentTime <= 20, "Both races should resolve in ~10ms: ${currentTime}ms")
     }
@@ -190,13 +190,13 @@ class RacePropertyTest {
             Kap { delay(10.milliseconds); "fast" },
             Kap { delay(100.milliseconds); "very slow" },
         )
-        val result = computations.raceAll().executeGraph()
+        val result = computations.raceAll().evalGraph()
         assertEquals("fast", result)
     }
 
     @Test
     fun `raceAll — single element list`() = runTest {
-        val result = listOf(Kap { "only" }).raceAll().executeGraph()
+        val result = listOf(Kap { "only" }).raceAll().evalGraph()
         assertEquals("only", result)
     }
 }

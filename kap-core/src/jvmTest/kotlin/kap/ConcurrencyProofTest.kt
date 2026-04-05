@@ -38,7 +38,7 @@ class ConcurrencyProofTest {
                 .with { delay(50); "B" }
                 .with { delay(50); "C" }
                 .with { delay(50); "D" }
-                .with { delay(50); "E" }.executeGraph()
+                .with { delay(50); "E" }.evalGraph()
 
         // If sequential: 250ms. If parallel: 50ms.
         assertEquals(50, currentTime,
@@ -54,7 +54,7 @@ class ConcurrencyProofTest {
                 .with { delay(30); "v1" }.with { delay(30); "v2" }.with { delay(30); "v3" }
                 .with { delay(30); "v4" }.with { delay(30); "v5" }.with { delay(30); "v6" }
                 .with { delay(30); "v7" }.with { delay(30); "v8" }.with { delay(30); "v9" }
-                .with { delay(30); "v10" }.executeGraph()
+                .with { delay(30); "v10" }.evalGraph()
 
         assertEquals(30, currentTime,
             "Expected 30ms virtual time (parallel). Got ${currentTime}ms (sequential would be 300ms)")
@@ -64,7 +64,7 @@ class ConcurrencyProofTest {
     fun `traverse with concurrency 3 over 9 items takes 3x longer than unbounded`() = runTest {
         (1..9).toList().traverse(3) { i ->
                 Kap { delay(30); "v$i" }
-            }.executeGraph()
+            }.evalGraph()
         // Bounded (3 at a time, 9 items, 30ms each): 3 batches × 30ms = 90ms
         assertEquals(90, currentTime,
             "Bounded traverse should take 90ms (3 batches of 3 at 30ms each). Got ${currentTime}ms")
@@ -88,7 +88,7 @@ class ConcurrencyProofTest {
                 .with { delay(30); "A" }
                 .with { delay(30); "B" }
                 .then { delay(50); "C" }
-                .with { delay(30); "D" }.executeGraph()
+                .with { delay(30); "D" }.evalGraph()
 
         assertEquals("A|B|C|D", result)
         // Phase 1: max(30,30) = 30. Barrier: 50. Phase 2: 30. Total: 110ms
@@ -104,7 +104,7 @@ class ConcurrencyProofTest {
                 .with { delay(30); "A" }
                 .with { delay(30); "B" }
                 .thenValue { delay(50); "C" }
-                .with { delay(30); "D" }.executeGraph()
+                .with { delay(30); "D" }.evalGraph()
 
         assertEquals("A|B|C|D", result)
         // D launches eagerly at t=0. Total: max(30,30) + 50 = 80ms (D overlaps)
@@ -122,7 +122,7 @@ class ConcurrencyProofTest {
                 .with { order.add("A"); "A" }
                 .with { order.add("B"); "B" }
                 .then { order.add("C"); "C" }
-                .then { order.add("D"); "D" }.executeGraph()
+                .then { order.add("D"); "D" }.evalGraph()
 
         assertEquals("A|B|C|D", result)
         // C must come after both A and B (barrier semantics)
@@ -148,7 +148,7 @@ class ConcurrencyProofTest {
                 .then { delay(30); "D" }    // ── barrier
                 .with { delay(40); "E" }            // ┐ phase 2: parallel (after barrier)
                 .with { delay(40); "F" }            // ┘
-                .executeGraph()
+                .evalGraph()
 
         assertEquals("A|B|C|D|E|F", result)
         assertEquals(110, currentTime,
@@ -166,7 +166,7 @@ class ConcurrencyProofTest {
                 .with { delay(40); "C" }    // ┐ all three launch when barrier fires
                 .with { delay(40); "D" }    // │ at t=50, and complete at t=90
                 .with { delay(40); "E" }    // ┘
-                .executeGraph()
+                .evalGraph()
 
         assertEquals("A|B|C|D|E", result)
         // 20(A) + 30(B barrier) + 40(C,D,E parallel) = 90ms
@@ -202,7 +202,7 @@ class ConcurrencyProofTest {
                         allStarted[9].complete(Unit)
                         allStarted.forEach { it.await() }
                         throw RuntimeException("crash")
-                    }.executeGraph()
+                    }.evalGraph()
         }
 
         // ALL 9 siblings must have been cancelled
@@ -234,7 +234,7 @@ class ConcurrencyProofTest {
                 .with { delay(50); "B" }
                 .with { delay(50); "C" }
                 .with { delay(50); "D" }
-                .with { delay(50); "E" }.executeGraph()
+                .with { delay(50); "E" }.evalGraph()
         val libTime = currentTime - rawTime
 
         // Both should be exactly 50ms in virtual time
@@ -258,7 +258,7 @@ class ConcurrencyProofTest {
                 .with { delay(40); "shipping" }       // ┐ phase 2 (after barrier 1)
                 .with { delay(40); "tax" }            // ┘
                 .then { delay(50); "pay" }    // ── barrier 2
-                .executeGraph()
+                .evalGraph()
 
         // 40(phase1) + 30(barrier1) + 40(phase2) + 50(barrier2) = 160ms
         assertEquals(160, currentTime,
@@ -299,7 +299,7 @@ class ConcurrencyProofTest {
                 .with { delay(30); "notifs" }        // ┐ phase 3
                 .with { delay(30); "cart" }          // │
                 .with { delay(30); "wishlist" }      // ┘
-                .executeGraph()
+                .evalGraph()
 
         assertEquals(14, result.split("|").size)
         assertEquals(130, currentTime,

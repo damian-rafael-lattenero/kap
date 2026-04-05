@@ -80,7 +80,7 @@ class ResourceZipBoundaryTest {
             Kap.of { a: String -> { b: String -> "$a|$b" } }
                 .with(Kap { "query:$db" })
                 .with(Kap { "get:$cache" })
-        }.executeGraph()
+        }.evalGraph()
 
         assertEquals("query:db|get:cache", result)
         assertEquals(listOf("cache", "db"), releaseOrder)

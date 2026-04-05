@@ -3,7 +3,6 @@ package kap
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 
 class KapBuilderTest {
 
@@ -13,7 +12,7 @@ class KapBuilderTest {
                 val a = Kap.of(1).bind()
                 val b = Kap.of(2).bind()
                 a + b
-            }.executeGraph()
+            }.evalGraph()
         assertEquals(3, result)
     }
 
@@ -24,7 +23,7 @@ class KapBuilderTest {
                 val y = Kap.of(x * 2).bind()  // depends on x
                 val z = Kap.of(y + 5).bind()  // depends on y
                 z
-            }.executeGraph()
+            }.evalGraph()
         assertEquals(25, result)
     }
 
@@ -35,7 +34,7 @@ class KapBuilderTest {
                     val a = Kap.of(1).bind()
                     val b = Kap<Int> { throw IllegalStateException("boom") }.bind()
                     a + b
-                }.executeGraph()
+                }.evalGraph()
             null
         } catch (e: IllegalStateException) {
             e
@@ -52,7 +51,7 @@ class KapBuilderTest {
                     .with { "Name-$userId" }
                     .with { "Cart-$userId" }).bind()
                 dashboard
-            }.executeGraph()
+            }.evalGraph()
         assertEquals("Name-user-1|Cart-user-1", result)
     }
 
@@ -63,13 +62,13 @@ class KapBuilderTest {
                     val y = Kap.of(x * 3).bind()
                     y + 1
                 }
-            }.executeGraph()
+            }.evalGraph()
         assertEquals(16, result)
     }
 
     @Test
     fun `empty computation returns value directly`() = runTest {
-        val result = computation { 42 }.executeGraph()
+        val result = computation { 42 }.evalGraph()
         assertEquals(42, result)
     }
 
@@ -80,7 +79,7 @@ class KapBuilderTest {
                 val y = bind { x * 2 }  // depends on x
                 val z = bind { y + 5 }  // depends on y
                 z
-            }.executeGraph()
+            }.evalGraph()
         assertEquals(25, result)
     }
 
@@ -90,7 +89,7 @@ class KapBuilderTest {
                 val user = bind { "Alice" }
                 val greeting = bind { "Hello, $user!" }  // depends on user
                 greeting
-            }.executeGraph()
+            }.evalGraph()
         assertEquals("Hello, Alice!", result)
     }
 }

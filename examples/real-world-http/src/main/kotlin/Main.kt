@@ -10,7 +10,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTimedValue
 
 // ── Domain types ───────────────────────────────────────────────
@@ -78,7 +77,7 @@ suspend fun main() {
                 .withUser { fetchGithubUser(username) }       // ┐
                 .withTopRepos { fetchGithubRepos(username) }   // ├─ all three in parallel
                 .withFunFact { fetchCatFact().fact }           // ┘
-                .executeGraph()
+                .evalGraph()
     }
 
     println("   User: ${profile.user.login} (${profile.user.name})")
@@ -100,7 +99,7 @@ suspend fun main() {
                     Kap { fetchGithubRepos(user.login) }
                         .map { repos -> PhasedResult(user, repos) }
                 }
-                .executeGraph()
+                .evalGraph()
     }
 
     println("   Phase 2 done: top repo is ${phased.repos.firstOrNull()?.name}")
@@ -117,7 +116,7 @@ suspend fun main() {
         Kap { fetchCatFact() }
                 .retry(retryPolicy)
                 .map { it.fact }
-                .executeGraph()
+                .evalGraph()
     }
 
     println("   Fact: $retryResult")
@@ -131,7 +130,7 @@ suspend fun main() {
         race(
                 Kap { fetchCatFact().fact },
                 Kap { delay(50); "Cats sleep 70% of their lives (cached fallback)" },
-            ).executeGraph()
+            ).evalGraph()
     }
 
     println("   Winner: $raceResult")
@@ -145,7 +144,7 @@ suspend fun main() {
     val (profiles, traverseDuration) = measureTimedValue {
         users.traverse(concurrency = 3) { user ->
                 Kap { fetchGithubUser(user) }
-            }.executeGraph()
+            }.evalGraph()
     }
 
     profiles.forEach { println("   ${it.login}: ${it.publicRepos} repos, ${it.followers} followers") }
@@ -162,7 +161,7 @@ suspend fun main() {
             .with(Kap { fetchGithubUser("torvalds") }.settled())
             .with(Kap { fetchGithubUser("this-user-definitely-does-not-exist-xyz") }.settled())
             .with { fetchCatFact().fact }
-            .executeGraph()
+            .evalGraph()
     }
 
     println("   Real user: ${settled.real.getOrNull()?.login ?: "failed"}")

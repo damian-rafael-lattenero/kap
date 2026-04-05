@@ -35,7 +35,7 @@ class AsyncApplicativeTest {
                     latchB.complete(Unit)   // signal: B started
                     latchA.await()          // wait for A to start
                     "B"
-                }.executeGraph()
+                }.evalGraph()
 
         // If with were sequential, this would deadlock.
         // Completion proves true parallelism.
@@ -49,7 +49,7 @@ class AsyncApplicativeTest {
         val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { latches[0].complete(Unit); latches.awaitOthers(0); "A" }
                 .with { latches[1].complete(Unit); latches.awaitOthers(1); "B" }
-                .with { latches[2].complete(Unit); latches.awaitOthers(2); "C" }.executeGraph()
+                .with { latches[2].complete(Unit); latches.awaitOthers(2); "C" }.evalGraph()
 
         assertEquals("A|B|C", result)
     }
@@ -61,7 +61,7 @@ class AsyncApplicativeTest {
         val result = Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                 .with { order.add("first"); "A" }
                 .then { order.add("second"); "B" }
-                .then { order.add("third"); "C" }.executeGraph()
+                .then { order.add("third"); "C" }.evalGraph()
 
         assertEquals("A|B|C", result)
         assertEquals(listOf("first", "second", "third"), order)
@@ -82,7 +82,7 @@ class AsyncApplicativeTest {
                     // C signals it started — proving it runs alongside B
                     apStarted.complete(Unit)
                     "C"
-                }.executeGraph()
+                }.evalGraph()
 
         assertEquals("A|B|C", result)
     }
@@ -98,7 +98,7 @@ class AsyncApplicativeTest {
                 .with { latches[3].complete(Unit); latches.awaitOthers(3); "D" }
                 .with { latches[4].complete(Unit); latches.awaitOthers(4); "E" }
                 .with { latches[5].complete(Unit); latches.awaitOthers(5); "F" }
-                .with { latches[6].complete(Unit); latches.awaitOthers(6); "G" }.executeGraph()
+                .with { latches[6].complete(Unit); latches.awaitOthers(6); "G" }.evalGraph()
 
         // All seven must be running simultaneously or this deadlocks.
         assertEquals("A|B|C|D|E|F|G", result)
@@ -123,7 +123,7 @@ class AsyncApplicativeTest {
                 .with { latches[9].complete(Unit);  latches.awaitOthers(9);  "v10" }
                 .with { latches[10].complete(Unit); latches.awaitOthers(10); "v11" }
                 .with { latches[11].complete(Unit); latches.awaitOthers(11); "v12" }
-                .with { latches[12].complete(Unit); latches.awaitOthers(12); "v13" }.executeGraph()
+                .with { latches[12].complete(Unit); latches.awaitOthers(12); "v13" }.evalGraph()
 
         assertEquals((1..13).joinToString(";") { "v$it" }, result)
     }
@@ -144,7 +144,7 @@ class AsyncApplicativeTest {
                 .with { order.add("b"); "B" }
                 .then { order.add("c"); "C" }
                 .then { order.add("d"); "D" }
-                .then { order.add("e"); "E" }.executeGraph()
+                .then { order.add("e"); "E" }.evalGraph()
 
         assertEquals("A|B|C|D|E", result)
 
@@ -192,7 +192,7 @@ class AsyncApplicativeTest {
                 .then { validateStock() }
                 .with { calcShipping() }
                 .with { calcTax() }
-                .then { reservePayment() }.executeGraph()
+                .then { reservePayment() }.evalGraph()
 
         assertEquals(
             CheckoutSummary(
@@ -224,7 +224,7 @@ class AsyncApplicativeTest {
                 .with { "A" }
                 .with { absent?.invoke() }
                 .with { "C" }
-                .with { present?.invoke() }.executeGraph()
+                .with { present?.invoke() }.evalGraph()
 
         assertEquals("A|nil|C|present", result)
     }
@@ -235,7 +235,7 @@ class AsyncApplicativeTest {
 
         val result = Kap.of { a: String -> { b: String? -> "$a|${b ?: "nil"}" } }
                 .then { "A" }
-                .then { absent?.invoke() }.executeGraph()
+                .then { absent?.invoke() }.evalGraph()
 
         assertEquals("A|nil", result)
     }
@@ -250,7 +250,7 @@ class AsyncApplicativeTest {
             Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
                     .with { "ok" }
                     .with { throw RuntimeException("boom") }
-                    .with { "ok" }.executeGraph()
+                    .with { "ok" }.evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -277,7 +277,7 @@ class AsyncApplicativeTest {
                     .with {
                         siblingStarted.await() // ensure sibling is running
                         throw RuntimeException("fast-fail")
-                    }.executeGraph()
+                    }.evalGraph()
         }
 
         assertTrue(siblingCancelled.await(), "Sibling should have been cancelled")
@@ -288,7 +288,7 @@ class AsyncApplicativeTest {
         val result = runCatching {
             Kap.of { a: String -> { b: String -> "$a|$b" } }
                     .then { "ok" }
-                    .then { throw RuntimeException("then failed") }.executeGraph()
+                    .then { throw RuntimeException("then failed") }.evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -301,7 +301,7 @@ class AsyncApplicativeTest {
 
     @Test
     fun `map transforms computation result`() = runTest {
-        val result = Kap.of(42).map { it * 2 }.map { "result=$it" }.executeGraph()
+        val result = Kap.of(42).map { it * 2 }.map { "result=$it" }.evalGraph()
         assertEquals("result=84", result)
     }
 
@@ -311,7 +311,7 @@ class AsyncApplicativeTest {
                 Kap.of { doubled: Int -> { label: String -> "$label=$doubled" } }
                     .with { n * 2 }
                     .with { "result" }
-            }.executeGraph()
+            }.evalGraph()
         assertEquals("result=84", result)
     }
 
@@ -325,7 +325,7 @@ class AsyncApplicativeTest {
             }.andThen { msg ->
                 order.add("step2: $msg")
                 Kap.of(msg.uppercase())
-            }.executeGraph()
+            }.evalGraph()
 
         assertEquals("HELLO WORLD", result)
         assertEquals(listOf("step1: hello", "step2: hello world"), order)
@@ -341,7 +341,7 @@ class AsyncApplicativeTest {
                 Kap.of { b: Int -> { c: Int -> base + b + c } }
                     .with { latchB.complete(Unit); latchC.await(); base * 2 }
                     .with { latchC.complete(Unit); latchB.await(); base * 3 }
-            }.executeGraph()
+            }.evalGraph()
 
         // base=10, b=20 (parallel), c=30 (parallel) -> 10+20+30 = 60
         assertEquals(60, result)
@@ -353,7 +353,7 @@ class AsyncApplicativeTest {
         val latchB = CompletableDeferred<Unit>()
 
         val result = Kap { latchA.complete(Unit); latchB.await(); "A" }
-                .zip(Kap { latchB.complete(Unit); latchA.await(); "B" }).executeGraph()
+                .zip(Kap { latchB.complete(Unit); latchA.await(); "B" }).evalGraph()
 
         // Deadlock if sequential -> proves parallelism
         assertEquals("A" to "B", result)
@@ -365,7 +365,7 @@ class AsyncApplicativeTest {
         val latchB = CompletableDeferred<Unit>()
 
         val result = Kap<Int> { latchA.complete(Unit); latchB.await(); 21 }
-                .zip(Kap { latchB.complete(Unit); latchA.await(); 21 }) { a, b -> a + b }.executeGraph()
+                .zip(Kap { latchB.complete(Unit); latchA.await(); 21 }) { a, b -> a + b }.evalGraph()
 
         assertEquals(42, result)
     }
@@ -380,7 +380,7 @@ class AsyncApplicativeTest {
                     latches.awaitOthers(i)
                     "v$i"
                 }
-            }.executeGraph()
+            }.evalGraph()
 
         // All 5 must run concurrently or deadlock
         assertEquals(listOf("v0", "v1", "v2", "v3", "v4"), result)
@@ -394,7 +394,7 @@ class AsyncApplicativeTest {
                 Kap<String> { latches[0].complete(Unit); latches.awaitOthers(0); "A" },
                 Kap { latches[1].complete(Unit); latches.awaitOthers(1); "B" },
                 Kap { latches[2].complete(Unit); latches.awaitOthers(2); "C" },
-            ).sequence().executeGraph()
+            ).sequence().evalGraph()
 
         assertEquals(listOf("A", "B", "C"), result)
     }
@@ -412,7 +412,7 @@ class AsyncApplicativeTest {
                     concurrent--
                     "v$i"
                 }
-            }.executeGraph()
+            }.evalGraph()
 
         assertEquals((0 until 10).map { "v$it" }, result)
         assertTrue(maxConcurrent <= 3, "Max concurrent was $maxConcurrent, expected <= 3")
@@ -420,7 +420,7 @@ class AsyncApplicativeTest {
 
     @Test
     fun `traverse on empty list returns empty list`() = runTest {
-        val result = emptyList<Int>().traverse { Kap.of(it) }.executeGraph()
+        val result = emptyList<Int>().traverse { Kap.of(it) }.evalGraph()
         assertEquals(emptyList(), result)
     }
 
@@ -429,7 +429,7 @@ class AsyncApplicativeTest {
         val result = race(
                 fa = Kap { delay(10_000); "slow" },
                 fb = Kap { "fast" }
-            ).executeGraph()
+            ).evalGraph()
         assertEquals("fast", result)
     }
 
@@ -447,7 +447,7 @@ class AsyncApplicativeTest {
                     }
                 },
                 fb = Kap { "winner" }
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("winner", result)
         assertTrue(loserCancelled.await(), "Loser should have been cancelled")
@@ -507,7 +507,7 @@ class AsyncApplicativeTest {
                 .with { fetchFeed() }
                 .with { fetchSuggestions() }
                 .with { fetchRecommendations() }
-                .with { fetchBadges() }.executeGraph()
+                .with { fetchBadges() }.evalGraph()
 
         assertEquals(traditional, dsl)
     }
@@ -561,7 +561,7 @@ class AsyncApplicativeTest {
                 .then { validateStock() }
                 .with { calcShipping() }
                 .with { calcTax() }
-                .then { reservePayment() }.executeGraph()
+                .then { reservePayment() }.evalGraph()
 
         assertEquals(traditional, dsl)
     }
@@ -578,7 +578,7 @@ class AsyncApplicativeTest {
             } } }
                 .with { fetchFromRetrofit() }
                 .with { queryFromRoom() }
-                .with { callKtorClient() }.executeGraph()
+                .with { callKtorClient() }.evalGraph()
 
         assertEquals("user-data|42|a,b,c", result)
     }
@@ -633,7 +633,7 @@ class AsyncApplicativeTest {
                 .with { loadNotifications() }
                 .with { loadMessages() }
                 .with { loadRecommendations() }
-                .then { loadTrending() }.executeGraph()
+                .then { loadTrending() }.evalGraph()
 
         assertEquals(traditional, dsl)
     }

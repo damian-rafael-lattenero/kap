@@ -5,7 +5,6 @@ import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
 import arrow.core.raise.either
 import arrow.core.raise.zipOrAccumulate
-import arrow.fx.coroutines.parZip
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.supervisorScope
@@ -103,7 +102,7 @@ class ArrowComparisonTest {
     @Test fun `error accumulation 3 - kap - zipV`() = runTest {
         val result = zipV(
             { valName("A") }, { valEmail("bad") }, { valAge(5) },
-        ) { n, e, a -> Reg3(n, e, a) }.executeGraph()
+        ) { n, e, a -> Reg3(n, e, a) }.evalGraph()
         val left = assertIs<Either.Left<NonEmptyList<FErr>>>(result)
         assertEquals(3, left.value.size)
         assertIs<FErr.Name>(left.value[0])
@@ -128,7 +127,7 @@ class ArrowComparisonTest {
     @Test fun `error accumulation 4 - kap - zipV scales to 22`() = runTest {
         val result = zipV(
             { valName("A") }, { valEmail("bad") }, { valAge(5) }, { valPhone("123") },
-        ) { n, e, a, p -> Reg4(n, e, a, p) }.executeGraph()
+        ) { n, e, a, p -> Reg4(n, e, a, p) }.evalGraph()
         assertEquals(4, assertIs<Either.Left<NonEmptyList<FErr>>>(result).value.size)
     }
 
@@ -153,7 +152,7 @@ class ArrowComparisonTest {
         val kap = kapV<FErr, VName, VEmail, VAge, Reg3>(::Reg3)
             .withV { valName("Alice") }
             .withV { valEmail("alice@example.com") }
-            .withV { valAge(30) }.executeGraph()
+            .withV { valAge(30) }.evalGraph()
         assertEquals(expected, raw)
         assertEquals(Either.Right(expected), arrow)
         assertEquals(Either.Right(expected), kap)
@@ -193,7 +192,7 @@ class ArrowComparisonTest {
         ) { n, e -> n to e }
         .andThenV { (name, email) ->
             Kap { valAge(25) }.mapV { age -> Reg3(name, email, age) }
-        }.executeGraph()
+        }.evalGraph()
         val left = assertIs<Either.Left<NonEmptyList<FErr>>>(result)
         assertEquals(2, left.value.size)
     }
@@ -215,7 +214,7 @@ class ArrowComparisonTest {
     }
 
     @Test fun `catching - kap`() = runTest {
-        val result = Kap<String> { riskyCall() }.catching { "caught: ${it.message}" }.executeGraph()
+        val result = Kap<String> { riskyCall() }.catching { "caught: ${it.message}" }.evalGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals("caught: bad input", result.value[0])
     }
@@ -239,10 +238,10 @@ class ArrowComparisonTest {
     }
 
     @Test fun `attempt - kap`() = runTest {
-        val success = Kap { "success" }.attempt().executeGraph()
+        val success = Kap { "success" }.attempt().evalGraph()
         assertIs<Either.Right<String>>(success)
 
-        val failure = Kap<String> { error("boom") }.attempt().executeGraph()
+        val failure = Kap<String> { error("boom") }.attempt().evalGraph()
         assertIs<Either.Left<Throwable>>(failure)
         assertEquals("boom", failure.value.message)
     }
@@ -252,8 +251,8 @@ class ArrowComparisonTest {
     // ═══════════════════════════════════════════════════════════════════════
 
     @Test fun `validate - kap`() = runTest {
-        val tooShort = Kap.of("A").validate { s -> if (s.length < 2) "too short" else null }.executeGraph()
-        val ok = Kap.of("Alice").validate { s -> if (s.length < 2) "too short" else null }.executeGraph()
+        val tooShort = Kap.of("A").validate { s -> if (s.length < 2) "too short" else null }.evalGraph()
+        val ok = Kap.of("Alice").validate { s -> if (s.length < 2) "too short" else null }.evalGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(tooShort)
         assertIs<Either.Right<String>>(ok)
     }
@@ -272,7 +271,7 @@ class ArrowComparisonTest {
     }
 
     @Test fun `traverseV - kap - parallel with accumulation`() = runTest {
-        val result = listOf("Alice", "A", "ok-name", "B").traverseV { Kap { valName(it) } }.executeGraph()
+        val result = listOf("Alice", "A", "ok-name", "B").traverseV { Kap { valName(it) } }.evalGraph()
         assertIs<Either.Left<NonEmptyList<FErr>>>(result)
         assertEquals(2, result.value.size)
     }
@@ -286,7 +285,7 @@ class ArrowComparisonTest {
             Kap { valName("Alice") },
             Kap { valEmail("bad") },
             Kap { valName("B") },
-        ).sequenceV().executeGraph()
+        ).sequenceV().evalGraph()
         assertIs<Either.Left<NonEmptyList<FErr>>>(result)
         assertEquals(2, result.value.size)
     }
@@ -296,13 +295,13 @@ class ArrowComparisonTest {
     // ═══════════════════════════════════════════════════════════════════════
 
     @Test fun `ensureV - kap - pass`() = runTest {
-        val result = Kap { 25 }.ensureV({ "too young" }) { it >= 18 }.executeGraph()
+        val result = Kap { 25 }.ensureV({ "too young" }) { it >= 18 }.evalGraph()
         assertIs<Either.Right<Int>>(result)
         assertEquals(25, result.value)
     }
 
     @Test fun `ensureV - kap - fail`() = runTest {
-        val result = Kap { 15 }.ensureV({ "too young" }) { it >= 18 }.executeGraph()
+        val result = Kap { 15 }.ensureV({ "too young" }) { it >= 18 }.evalGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
     }
 
@@ -311,11 +310,11 @@ class ArrowComparisonTest {
     // ═══════════════════════════════════════════════════════════════════════
 
     @Test fun `orThrow - kap - Right returns value`() = runTest {
-        assertEquals(42, valid<String, Int>(42).orThrow().executeGraph())
+        assertEquals(42, valid<String, Int>(42).orThrow().evalGraph())
     }
 
     @Test fun `orThrow - kap - Left throws`() = runTest {
-        val error = runCatching { invalid<String, Int>("bad").orThrow().executeGraph() }
+        val error = runCatching { invalid<String, Int>("bad").orThrow().evalGraph() }
         assertTrue(error.isFailure)
         assertIs<ValidationException>(error.exceptionOrNull())
     }
@@ -325,7 +324,7 @@ class ArrowComparisonTest {
     // ═══════════════════════════════════════════════════════════════════════
 
     @Test fun `mapError - kap`() = runTest {
-        val result = invalid<String, Int>("name error").mapError { "wrapped: $it" }.executeGraph()
+        val result = invalid<String, Int>("name error").mapError { "wrapped: $it" }.evalGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals("wrapped: name error", result.value[0])
     }
@@ -356,7 +355,7 @@ class ArrowComparisonTest {
         val result = raceEither(
             Kap { networkCall("cache", 30) },
             Kap { networkCall("network", 100) },
-        ).executeGraph()
+        ).evalGraph()
         assertIs<Either.Left<String>>(result)
         assertEquals("cache", result.value)
     }
@@ -382,7 +381,7 @@ class ArrowComparisonTest {
             val email = Kap<Either<NonEmptyList<FErr>, VEmail>> { valEmail("alice@example.com") }.bindV()
             val age = Kap<Either<NonEmptyList<FErr>, VAge>> { valAge(30) }.bindV()
             Reg3(name, email, age)
-        }.executeGraph()
+        }.evalGraph()
         assertIs<Either.Right<Reg3>>(result)
         assertEquals(Reg3(VName("Alice"), VEmail("alice@example.com"), VAge(30)), result.value)
     }
@@ -409,7 +408,7 @@ class ArrowComparisonTest {
         ) { n, e -> n to e }
         .andThenV { (name, email) ->
             Kap { valAge(30) }.mapV { age -> Reg3(name, email, age) }
-        }.executeGraph()
+        }.evalGraph()
         assertIs<Either.Right<Reg3>>(result)
         assertEquals(Reg3(VName("Alice"), VEmail("alice@example.com"), VAge(30)), result.value)
     }

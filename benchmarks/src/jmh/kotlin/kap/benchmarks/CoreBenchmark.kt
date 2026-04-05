@@ -56,7 +56,7 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_overhead_arity3(): String = runBlocking {
                 Kap.of { a: String -> { b: String -> { c: String -> "$a|$b|$c" } } }
-            .with { compute(1) }.with { compute(2) }.with { compute(3) }.executeGraph()
+            .with { compute(1) }.with { compute(2) }.with { compute(3) }.evalGraph()
     }
 
     @Benchmark fun arrow_overhead_arity3(): String = runBlocking {
@@ -74,7 +74,7 @@ open class CoreBenchmark {
             listOf(a, b, c, d, e, f, g, h, i).joinToString("|")
         } } } } } } } } }.with { compute(1) }.with { compute(2) }.with { compute(3) }
          .with { compute(4) }.with { compute(5) }.with { compute(6) }
-         .with { compute(7) }.with { compute(8) }.with { compute(9) }.executeGraph()
+         .with { compute(7) }.with { compute(8) }.with { compute(9) }.evalGraph()
     }
 
     @Benchmark fun arrow_overhead_arity9(): String = runBlocking {
@@ -108,7 +108,7 @@ open class CoreBenchmark {
             .with { networkCall("cart", 50) }
             .with { networkCall("prefs", 50) }
             .with { networkCall("recs", 50) }
-            .with { networkCall("promos", 50) }.executeGraph()
+            .with { networkCall("promos", 50) }.evalGraph()
     }
 
     @Benchmark fun arrow_latency_arity5(): String = runBlocking {
@@ -160,7 +160,7 @@ open class CoreBenchmark {
             .with { networkCall("shipping", 40) }
             .with { networkCall("tax", 40) }
             .with { networkCall("discount", 40) }
-            .then { networkCall("payment", 60) }.executeGraph()
+            .then { networkCall("payment", 60) }.evalGraph()
     }
 
     @Benchmark fun arrow_latency_multiPhase(): String = runBlocking {
@@ -197,7 +197,7 @@ open class CoreBenchmark {
     }
 
     @Benchmark fun kap_combine3_overhead(): String = runBlocking {
-        combine({ compute(1) }, { compute(2) }, { compute(3) }) { a, b, c -> "$a|$b|$c" }.executeGraph()
+        combine({ compute(1) }, { compute(2) }, { compute(3) }) { a, b, c -> "$a|$b|$c" }.evalGraph()
     }
 
     @Benchmark fun arrow_combine3_overhead(): String = runBlocking {
@@ -207,7 +207,7 @@ open class CoreBenchmark {
     @Benchmark fun kap_combine5_overhead(): String = runBlocking {
                 combine(
             { compute(1) }, { compute(2) }, { compute(3) }, { compute(4) }, { compute(5) },
-        ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.executeGraph()
+        ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.evalGraph()
     }
 
     @Benchmark fun kap_combine5_latency(): String = runBlocking {
@@ -215,7 +215,7 @@ open class CoreBenchmark {
             { networkCall("user", 50) }, { networkCall("cart", 50) },
             { networkCall("prefs", 50) }, { networkCall("recs", 50) },
             { networkCall("promos", 50) },
-        ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.executeGraph()
+        ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -236,7 +236,7 @@ open class CoreBenchmark {
             .with { compute(4) }.with { compute(5) }.with { compute(6) }
             .with { compute(7) }.with { compute(8) }.with { compute(9) }
             .with { compute(10) }.with { compute(11) }.with { compute(12) }
-            .with { compute(13) }.with { compute(14) }.with { compute(15) }.executeGraph()
+            .with { compute(13) }.with { compute(14) }.with { compute(15) }.evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -253,7 +253,7 @@ open class CoreBenchmark {
     @Benchmark fun kap_traverse_unbounded_20(): String = runBlocking {
                 (1..20).toList().traverse { i ->
             Kap { networkCall("item-$i", 30) }
-        }.map { it.joinToString("|") }.executeGraph()
+        }.map { it.joinToString("|") }.evalGraph()
     }
 
     @Benchmark fun raw_traverse_bounded_20_c5(): String = runBlocking {
@@ -268,7 +268,7 @@ open class CoreBenchmark {
     @Benchmark fun kap_traverse_bounded_20_c5(): String = runBlocking {
                 (1..20).toList().traverse(concurrency = 5) { i ->
             Kap { networkCall("item-$i", 30) }
-        }.map { it.joinToString("|") }.executeGraph()
+        }.map { it.joinToString("|") }.evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -288,7 +288,7 @@ open class CoreBenchmark {
                 race(
             Kap { networkCall("primary", 100) },
             Kap { networkCall("replica", 50) },
-        ).executeGraph()
+        ).evalGraph()
     }
 
     @Benchmark fun arrow_race_two(): String = runBlocking {
@@ -308,7 +308,7 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_timeout_with_default(): String = runBlocking {
                 Kap { networkCall("slow", 200) }
-            .timeout(kotlin.time.Duration.parse("100ms"), default = "cached").executeGraph()
+            .timeout(kotlin.time.Duration.parse("100ms"), default = "cached").evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -329,16 +329,16 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_memoize_cold(): String = runBlocking {
         val m = Kap { compute(1) }.memoize()
-        m.executeGraph()
+        m.evalGraph()
     }
 
     @Benchmark fun kap_memoize_warm(): String = runBlocking {
-        warmMemoized.executeGraph()
+        warmMemoized.evalGraph()
     }
 
     private val warmMemoized: Kap<String> = run {
         val m = Kap { compute(1) }.memoize()
-        runBlocking { m.executeGraph() }
+        runBlocking { m.evalGraph() }
         m
     }
 
@@ -348,16 +348,16 @@ open class CoreBenchmark {
 
     @Benchmark fun kap_memoizeOnSuccess_cold(): String = runBlocking {
         val m = Kap { compute(1) }.memoizeOnSuccess()
-        m.executeGraph()
+        m.evalGraph()
     }
 
     @Benchmark fun kap_memoizeOnSuccess_warm(): String = runBlocking {
-        warmMemoizedOnSuccess.executeGraph()
+        warmMemoizedOnSuccess.evalGraph()
     }
 
     private val warmMemoizedOnSuccess: Kap<String> = run {
         val m = Kap { compute(1) }.memoizeOnSuccess()
-        runBlocking { m.executeGraph() }
+        runBlocking { m.evalGraph() }
         m
     }
 
@@ -368,8 +368,8 @@ open class CoreBenchmark {
             if (calls == 1) error("transient")
             compute(1)
         }.memoizeOnSuccess()
-        runCatching { m.executeGraph() }
-        m.executeGraph()
+        runCatching { m.evalGraph() }
+        m.evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -387,7 +387,7 @@ open class CoreBenchmark {
             val b = bind { compute(2) }
             val c = bind { compute(3) }
             "$a|$b|$c"
-        }.executeGraph()
+        }.evalGraph()
     }
 
     @Benchmark fun kap_computation_latency(): String = runBlocking {
@@ -396,7 +396,7 @@ open class CoreBenchmark {
             val b = bind { networkCall("cart-${a.length}", 50) }
             val c = bind { networkCall("recs-${b.length}", 50) }
             "$a|$b|$c"
-        }.executeGraph()
+        }.evalGraph()
     }
 
     @Benchmark fun raw_sequential_latency_3(): String = runBlocking {
@@ -415,7 +415,7 @@ open class CoreBenchmark {
             Kap.of(compute(2)).andThen { b ->
                 Kap.of(compute(3)).map { c -> "$a|$b|$c" }
             }
-        }.executeGraph()
+        }.evalGraph()
     }
 
     @Benchmark fun kap_andThen_chain_latency(): String = runBlocking {
@@ -423,7 +423,7 @@ open class CoreBenchmark {
             Kap { networkCall("b-${a.length}", 50) }.andThen { b ->
                 Kap { networkCall("c-${b.length}", 50) }.map { c -> "$a|$b|$c" }
             }
-        }.executeGraph()
+        }.evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -440,13 +440,13 @@ open class CoreBenchmark {
     @Benchmark fun kap_orElse_chain_overhead(): String = runBlocking {
                 Kap<String> { error("fail-1") }
             .orElse(Kap { error("fail-2") })
-            .orElse(Kap { compute(3) }).executeGraph()
+            .orElse(Kap { compute(3) }).evalGraph()
     }
 
     @Benchmark fun kap_orElse_chain_latency(): String = runBlocking {
                 Kap<String> { delay(10); error("fail-1") }
             .orElse(Kap { delay(10); error("fail-2") })
-            .orElse(Kap { networkCall("ok", 10) }).executeGraph()
+            .orElse(Kap { networkCall("ok", 10) }).evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -470,7 +470,7 @@ open class CoreBenchmark {
                 firstSuccessOf(
             Kap { error("fail-1") }, Kap { error("fail-2") },
             Kap { compute(3) }, Kap { compute(4) }, Kap { compute(5) },
-        ).executeGraph()
+        ).evalGraph()
     }
 
     @Benchmark fun kap_firstSuccessOf_latency(): String = runBlocking {
@@ -480,7 +480,7 @@ open class CoreBenchmark {
             Kap { networkCall("ok", 10) },
             Kap { networkCall("unused", 10) },
             Kap { networkCall("unused", 10) },
-        ).executeGraph()
+        ).evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -497,7 +497,7 @@ open class CoreBenchmark {
     @Benchmark fun kap_traverseSettled_10_pass(): List<Result<String>> = runBlocking {
                 (1..10).toList().traverseSettled { i ->
             Kap { networkCall("item-$i", 30) }
-        }.executeGraph()
+        }.evalGraph()
     }
 
     @Benchmark fun kap_traverseSettled_10_half_fail(): List<Result<String>> = runBlocking {
@@ -507,13 +507,13 @@ open class CoreBenchmark {
                 if (i % 2 == 0) throw RuntimeException("fail-$i")
                 "ok-$i"
             }
-        }.executeGraph()
+        }.evalGraph()
     }
 
     @Benchmark fun kap_traverseSettled_bounded_20_c5(): List<Result<String>> = runBlocking {
                 (1..20).toList().traverseSettled(5) { i ->
             Kap { networkCall("item-$i", 30) }
-        }.executeGraph()
+        }.evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -521,7 +521,7 @@ open class CoreBenchmark {
     // ════════════════════════════════════════════════════════════════════════
 
     @Benchmark fun kap_settled_success(bh: Blackhole) = runBlocking {
-        bh.consume(Kap { compute(1) }.settled().executeGraph())
+        bh.consume(Kap { compute(1) }.settled().evalGraph())
     }
 
     @Benchmark fun kap_settled_failure_no_cancel(): String = runBlocking {
@@ -529,7 +529,7 @@ open class CoreBenchmark {
         val result = Kap.of { a: Result<String> -> { b: String -> { c: String -> R(a, b, c) } } }
             .with(Kap<String> { throw RuntimeException("down") }.settled())
             .with { networkCall("b", 50) }
-            .with { networkCall("c", 50) }.executeGraph()
+            .with { networkCall("c", 50) }.evalGraph()
         "${result.a.isFailure}|${result.b}|${result.c}"
     }
 

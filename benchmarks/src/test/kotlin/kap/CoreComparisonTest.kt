@@ -1,7 +1,5 @@
 package kap
 
-import arrow.core.Either
-import arrow.core.NonEmptyList
 import arrow.fx.coroutines.parZip
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -87,7 +85,7 @@ class CoreComparisonTest {
     }
 
     @Test fun `map - kap`() = runTest {
-        val result = Kap { fetchUser() }.map { it.copy(name = it.name.uppercase()) }.executeGraph()
+        val result = Kap { fetchUser() }.map { it.copy(name = it.name.uppercase()) }.evalGraph()
         assertEquals("ALICE", result.name)
     }
 
@@ -112,7 +110,7 @@ class CoreComparisonTest {
                 .with(Kap.of(user))
                 .with { fetchFriends(user.id) }
                 .with { fetchPrefs() }
-        }.executeGraph()
+        }.evalGraph()
         assertEquals("Alice", result.user.name)
         assertEquals(listOf("Bob", "Charlie"), result.friends.friends)
     }
@@ -135,7 +133,7 @@ class CoreComparisonTest {
     }
 
     @Test fun `zip - kap`() = runTest {
-        val result = Kap { fetchUser() }.zip(Kap { fetchCart() }).executeGraph()
+        val result = Kap { fetchUser() }.zip(Kap { fetchCart() }).evalGraph()
         assertEquals("Alice", result.first.name)
     }
 
@@ -168,7 +166,7 @@ class CoreComparisonTest {
     @Test fun `fan-out 5 - kap`() = runTest {
         val result = Kap.of { user: UserProfile -> { cart: ShoppingCart -> { promos: PromotionBundle -> { shipping: ShippingQuote -> { tax: TaxBreakdown -> SimpleFanout(user, cart, promos, shipping, tax) } } } } }
             .with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }
-            .with { calcShipping() }.with { calcTax() }.executeGraph()
+            .with { calcShipping() }.with { calcTax() }.evalGraph()
         assertEquals(expectedFanout, result)
     }
 
@@ -209,7 +207,7 @@ class CoreComparisonTest {
         val result = Kap.of { user: UserProfile -> { cart: ShoppingCart -> { promos: PromotionBundle -> { inventory: InventorySnapshot -> { stock: StockConfirmation -> { shipping: ShippingQuote -> { tax: TaxBreakdown -> CheckoutPhased(user, cart, promos, inventory, stock, shipping, tax) } } } } } } }
             .with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }.with { fetchInventory() }
             .then { validateStock() }
-            .with { calcShipping() }.with { calcTax() }.executeGraph()
+            .with { calcShipping() }.with { calcTax() }.evalGraph()
         assertEquals(expectedPhased, result)
     }
 
@@ -246,7 +244,7 @@ class CoreComparisonTest {
             .with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }
             .then { validateStock() }
             .with { calcShipping() }.with { calcTax() }
-            .then { reservePayment() }.executeGraph()
+            .then { reservePayment() }.evalGraph()
         assertEquals(expectedCheckout, result)
     }
 
@@ -261,12 +259,12 @@ class CoreComparisonTest {
     }
 
     @Test fun `traverse - kap`() = runTest {
-        val results = listOf(1L, 2L, 3L).traverse { Kap { fetchById(it) } }.executeGraph()
+        val results = listOf(1L, 2L, 3L).traverse { Kap { fetchById(it) } }.evalGraph()
         assertEquals(3, results.size)
     }
 
     @Test fun `traverse bounded - kap`() = runTest {
-        val results = (1L..20L).toList().traverse(concurrency = 5) { Kap { fetchById(it) } }.executeGraph()
+        val results = (1L..20L).toList().traverse(concurrency = 5) { Kap { fetchById(it) } }.evalGraph()
         assertEquals(20, results.size)
     }
 
@@ -285,7 +283,7 @@ class CoreComparisonTest {
     @Test fun `sequence - kap`() = runTest {
         val results = listOf(
             Kap { fetchUser() }, Kap.of(UserProfile("Bob", 2)), Kap.of(UserProfile("Charlie", 3)),
-        ).sequence().executeGraph()
+        ).sequence().evalGraph()
         assertEquals(3, results.size)
     }
 
@@ -310,7 +308,7 @@ class CoreComparisonTest {
     }
 
     @Test fun `race - kap`() = runTest {
-        val result = race(Kap { fetchFromPrimary() }, Kap { fetchFromFallback() }).executeGraph()
+        val result = race(Kap { fetchFromPrimary() }, Kap { fetchFromFallback() }).evalGraph()
         assertEquals("fallback", result)
     }
 
@@ -319,7 +317,7 @@ class CoreComparisonTest {
             Kap { delay(300.milliseconds); "slow" },
             Kap { delay(50.milliseconds); "fast" },
             Kap { delay(200.milliseconds); "medium" },
-        ).executeGraph()
+        ).evalGraph()
         assertEquals("fast", result)
     }
 
@@ -332,13 +330,13 @@ class CoreComparisonTest {
     }
 
     @Test fun `timeout - kap - with default`() = runTest {
-        val result = Kap { fetchUserSlow() }.timeout(100.milliseconds, UserProfile("Default", 0)).executeGraph()
+        val result = Kap { fetchUserSlow() }.timeout(100.milliseconds, UserProfile("Default", 0)).evalGraph()
         assertEquals("Default", result.name)
     }
 
     @Test fun `timeout - kap - with fallback computation`() = runTest {
         val result = Kap { fetchUserSlow() }
-            .timeout(100.milliseconds, Kap { UserProfile("FromCache", 0) }).executeGraph()
+            .timeout(100.milliseconds, Kap { UserProfile("FromCache", 0) }).evalGraph()
         assertEquals("FromCache", result.name)
     }
 
@@ -353,19 +351,19 @@ class CoreComparisonTest {
 
     @Test fun `recover - kap`() = runTest {
         val result = Kap<UserProfile> { fetchUserFailing() }
-            .recover { UserProfile("Recovered: ${it.message}", 0) }.executeGraph()
+            .recover { UserProfile("Recovered: ${it.message}", 0) }.evalGraph()
         assertEquals("Recovered: network error", result.name)
     }
 
     @Test fun `recoverWith - kap`() = runTest {
         val result = Kap<UserProfile> { fetchUserFailing() }
-            .recoverWith { Kap { UserProfile("FromFallbackService", 0) } }.executeGraph()
+            .recoverWith { Kap { UserProfile("FromFallbackService", 0) } }.evalGraph()
         assertEquals("FromFallbackService", result.name)
     }
 
     @Test fun `fallback - kap`() = runTest {
         val result = Kap<UserProfile> { fetchUserFailing() }
-            .fallback(Kap.of(UserProfile("Default", 0))).executeGraph()
+            .fallback(Kap.of(UserProfile("Default", 0))).evalGraph()
         assertEquals("Default", result.name)
     }
 
@@ -385,7 +383,7 @@ class CoreComparisonTest {
     @Test fun `retry - kap`() = runTest {
         attemptCount = 0
         val result = Kap { fetchUserFlaky() }
-            .retry(maxAttempts = 3, delay = 10.milliseconds, backoff = exponential).executeGraph()
+            .retry(maxAttempts = 3, delay = 10.milliseconds, backoff = exponential).evalGraph()
         assertEquals("Recovered", result.name)
     }
 
@@ -396,19 +394,19 @@ class CoreComparisonTest {
     @Test fun `interop - Deferred toKap`() = runTest {
         val result = coroutineScope {
             val d = async { fetchUser() }
-            d.toKap().executeGraph()
+            d.toKap().evalGraph()
         }
         assertEquals("Alice", result.name)
     }
 
     @Test fun `interop - Flow firstAsKap`() = runTest {
         val f = flow { emit(UserProfile("FromFlow", 1)); emit(UserProfile("Second", 2)) }
-        assertEquals("FromFlow", f.firstAsKap().executeGraph().name)
+        assertEquals("FromFlow", f.firstAsKap().evalGraph().name)
     }
 
     @Test fun `interop - suspend toKap`() = runTest {
         val fn: suspend () -> UserProfile = { fetchUser() }
-        assertEquals("Alice", fn.toKap().executeGraph().name)
+        assertEquals("Alice", fn.toKap().evalGraph().name)
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -418,7 +416,7 @@ class CoreComparisonTest {
     @Test fun `on - kap - switch dispatcher`() = runTest {
         val result = Kap.of { a: UserProfile -> { b: ShoppingCart -> a.name to b.items } }
             .with(Kap { fetchUser() }.on(kotlinx.coroutines.Dispatchers.Default))
-            .with(Kap { fetchCart() }.on(kotlinx.coroutines.Dispatchers.Default)).executeGraph()
+            .with(Kap { fetchCart() }.on(kotlinx.coroutines.Dispatchers.Default)).evalGraph()
         assertEquals("Alice" to 3, result)
     }
 
@@ -444,7 +442,7 @@ class CoreComparisonTest {
             .with(Kap { fetchUser() }.traced("user",
                 onStart = { events += "start:$it" }, onSuccess = { n, _ -> events += "done:$n" }))
             .with(Kap { fetchCart() }.traced("cart",
-                onStart = { events += "start:$it" }, onSuccess = { n, _ -> events += "done:$n" })).executeGraph()
+                onStart = { events += "start:$it" }, onSuccess = { n, _ -> events += "done:$n" })).evalGraph()
         assertEquals("Alice" to 3, result)
         assertTrue("start:user" in events && "done:user" in events)
     }
@@ -454,7 +452,7 @@ class CoreComparisonTest {
         val tracer = KapTracer { events += it }
                 Kap.of { a: UserProfile -> { b: ShoppingCart -> a.name to b.items } }
             .with(Kap { fetchUser() }.traced("user", tracer))
-            .with(Kap { fetchCart() }.traced("cart", tracer)).executeGraph()
+            .with(Kap { fetchCart() }.traced("cart", tracer)).evalGraph()
         assertEquals(4, events.size)
     }
 
@@ -473,7 +471,7 @@ class CoreComparisonTest {
     @Test fun `withOrNull - kap`() = runTest {
         val insurance: Kap<InsurancePlan>? = null
         val result = Kap.of { u: UserProfile -> { i: InsurancePlan? -> u.name to i?.provider } }
-            .with { fetchUser() }.withOrNull(insurance).executeGraph()
+            .with { fetchUser() }.withOrNull(insurance).evalGraph()
         assertEquals("Alice" to null, result)
     }
 
@@ -507,7 +505,7 @@ class CoreComparisonTest {
             .timeout(200.milliseconds)
             .retry(maxAttempts = 3, delay = 10.milliseconds, backoff = exponential)
             .recover { UserProfile("Cache: ${it.message}", 0) }
-            .traced("fetchUser", onStart = { events += "start" }, onSuccess = { _, _ -> events += "success" }).executeGraph()
+            .traced("fetchUser", onStart = { events += "start" }, onSuccess = { _, _ -> events += "success" }).evalGraph()
         assertNotNull(result)
         assertTrue("start" in events)
     }

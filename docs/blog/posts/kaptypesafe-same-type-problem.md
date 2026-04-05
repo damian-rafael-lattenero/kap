@@ -66,7 +66,7 @@ kap(::User)
     .withFirstName { fetchFirstName() }   // only .withFirstName is available here
     .withLastName { fetchLastName() }     // only .withLastName is available here
     .withAge { fetchAge() }               // only .withAge is available here
-    .executeGraph()
+    .evalGraph()
 ```
 
 Try calling `.withLastName` before `.withFirstName`? The compiler rejects it — that method doesn't exist on the current step. Done.
@@ -92,7 +92,7 @@ kap(BuildDashboard)
     .withUserName { fetchUserName() }
     .withCartSummary { fetchCartSummary() }
     .withPromoCode { fetchPromoCode() }
-    .executeGraph()
+    .evalGraph()
 ```
 
 ## Handling collisions with `prefix`

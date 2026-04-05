@@ -25,7 +25,7 @@ class RecoverVTest {
     fun `recoverV converts exception to validation error`() = runTest {
         val result = Kap<Either<NonEmptyList<String>, Int>> {
             throw RuntimeException("boom")
-        }.recoverV { e -> "caught: ${e.message}" }.executeGraph()
+        }.recoverV { e -> "caught: ${e.message}" }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(1, result.value.size)
@@ -40,7 +40,7 @@ class RecoverVTest {
     fun `recoverV preserves success`() = runTest {
         val result = Kap<Either<NonEmptyList<String>, Int>> {
             Either.Right(42)
-        }.recoverV { e -> "should not happen: ${e.message}" }.executeGraph()
+        }.recoverV { e -> "should not happen: ${e.message}" }.evalGraph()
 
         assertEquals(Either.Right(42), result)
     }
@@ -54,7 +54,7 @@ class RecoverVTest {
         val result = runCatching {
                         Kap<Either<NonEmptyList<String>, Int>> {
                 throw CancellationException("cancelled")
-            }.recoverV { "should not catch" }.executeGraph()
+            }.recoverV { "should not catch" }.evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -92,7 +92,7 @@ class RecoverVTest {
         val result = kapV<String, String, String, String, String> { a, b, c -> "$a|$b|$c" }
             .withV(branchA)
             .withV(branchB)
-            .withV(branchC).executeGraph()
+            .withV(branchC).evalGraph()
 
         // All 3 branches ran concurrently (barrier proof — would deadlock otherwise)
         // All 3 errors accumulated instead of B's exception cancelling A and C
@@ -126,7 +126,7 @@ class RecoverVTest {
         val result = kapV<String, String, String, String, String> { a, b, c -> "$a|$b|$c" }
             .withV(branchA)
             .withV(branchB)
-            .withV(branchC).executeGraph()
+            .withV(branchC).evalGraph()
 
         // All 3 run in parallel at 50ms each. If B's exception cancelled siblings,
         // we'd only see 1 error (or a crash). With recoverV, all 3 complete at 50ms.
@@ -164,7 +164,7 @@ class RecoverVTest {
         val result = kapV<String, String, String, String, String> { a, b, c -> "$a|$b|$c" }
             .withV(branchA)
             .withV(branchB)
-            .withV(branchC).executeGraph()
+            .withV(branchC).evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(3, result.value.size)
@@ -196,7 +196,7 @@ class RecoverVTest {
                 cause = e.message ?: "unknown",
                 type = e::class.simpleName ?: "Unknown"
             )
-        }.executeGraph()
+        }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<DomainError>>>(result)
         assertEquals(1, result.value.size)
@@ -220,7 +220,7 @@ class RecoverVTest {
                 Kap<Either<NonEmptyList<String>, String>> {
                     throw RuntimeException("phase 2 failed for n=$n")
                 }.recoverV { e -> "phase2-error: ${e.message}" }
-            }.executeGraph()
+            }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(1, result.value.size)

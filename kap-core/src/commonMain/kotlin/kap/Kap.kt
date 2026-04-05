@@ -15,9 +15,9 @@ import kotlin.time.measureTimedValue
 /**
  * A lazy computation that produces [A] when executed inside a [CoroutineScope].
  *
- * Kaps are descriptions — they don't run until [executeGraph] executes them.
+ * Kaps are descriptions — they don't run until [evalGraph] executes them.
  * They can be composed outside the DSL using [map], [with], [then], [andThen], [zip],
- * and other top-level combinators, then executed via `.executeGraph()`.
+ * and other top-level combinators, then executed via `.evalGraph()`.
  *
  * ## Design note: `suspend fun CoroutineScope.execute()`
  *
@@ -30,7 +30,7 @@ import kotlin.time.measureTimedValue
  * - **suspend** — branches call `await()`, `withContext()`, `withTimeout()`, etc.
  *
  * This is safe because **users never call [execute] directly** — they compose
- * via [with], [then], [andThen], and execute via [executeGraph].
+ * via [with], [then], [andThen], and execute via [evalGraph].
  * The dual contract is an internal implementation detail, not a public API concern.
  *
  * This mirrors `kotlinx.coroutines.async {}` and `launch {}`, whose blocks are
@@ -336,7 +336,7 @@ fun <A> Kap<A>.on(context: CoroutineContext): Kap<A> = Kap {
  *     kap(::build)
  *         .with { fetchUser(traceId) }
  *         .with { fetchCart(traceId) }
- * }.executeGraph()
+ * }.evalGraph()
  * ```
  */
 val context: Kap<CoroutineContext> = Kap { coroutineContext }
@@ -443,7 +443,7 @@ fun <A, B> Kap<A>.keepSecond(other: Kap<B>): Kap<B> = Kap {
  * kap(::combine)
  *     .with { expensive }   // executes the original
  *     .with { expensive }   // reuses cached result
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  */
 fun <A> Kap<A>.memoize(): Kap<A> =
@@ -511,7 +511,7 @@ private class Memoized<A>(private val original: Kap<A>) : Kap<A> {
  * kap(::combine)
  *     .with { config }   // first call fetches
  *     .with { config }   // reuses cached result (or retries if first failed)
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  */
 fun <A> Kap<A>.memoizeOnSuccess(): Kap<A> =
@@ -539,7 +539,7 @@ private class MemoizedOnSuccess<A>(private val original: Kap<A>) : Kap<A> {
     }
 }
 
-// ── executeGraph: execute a Kap computation graph ────────────────
+// ── evalGraph: execute a Kap computation graph ────────────────
 
 /**
  * Executes this [Kap] computation graph from any suspend context,
@@ -556,7 +556,7 @@ private class MemoizedOnSuccess<A>(private val original: Kap<A>) : Kap<A> {
  *         .with { fetchCart() }
  *         .then { validate() }
  *         .with { calcShipping() }
- *         .executeGraph()
+ *         .evalGraph()
  * ```
  *
  * Also useful inside `.with` lambdas for composing sub-graphs with
@@ -564,12 +564,12 @@ private class MemoizedOnSuccess<A>(private val original: Kap<A>) : Kap<A> {
  *
  * ```
  * kap(::Dashboard)
- *     .with { Kap { fetchUser() }.timeout(200.milliseconds, User.cached()).executeGraph() }
+ *     .with { Kap { fetchUser() }.timeout(200.milliseconds, User.cached()).evalGraph() }
  *     .with { fetchCart() }
  * ```
  */
-suspend fun <A> Kap<A>.executeGraph(): A =
-    coroutineScope { with(this@executeGraph) { execute() } }
+suspend fun <A> Kap<A>.evalGraph(): A =
+    coroutineScope { with(this@evalGraph) { execute() } }
 
 // ── timed: measure execution duration ───────────────────────────────────
 
@@ -592,7 +592,7 @@ data class TimedResult<out A>(val value: A, val duration: Duration)
  *     .withCart { fetchCart() }
  *     .withPromos { fetchPromos() }
  *     .timed()
- *     .executeGraph()
+ *     .evalGraph()
  *
  * println("Built in ${duration.inWholeMilliseconds}ms")
  * ```
@@ -615,17 +615,17 @@ fun <A> Kap<A>.timed(): Kap<TimedResult<A>> = Kap {
 /**
  * Executes this [Kap] and returns the result with its execution [Duration].
  *
- * Convenience for `.timed().executeGraph()`:
+ * Convenience for `.timed().evalGraph()`:
  *
  * ```
  * val (result, duration) = kap(::Dashboard)
  *     .withUser { fetchUser() }
  *     .withCart { fetchCart() }
- *     .executeGraphTimed()
+ *     .evalGraphTimed()
  * ```
  */
-suspend fun <A> Kap<A>.executeGraphTimed(): TimedResult<A> =
-    timed().executeGraph()
+suspend fun <A> Kap<A>.evalGraphTimed(): TimedResult<A> =
+    timed().evalGraph()
 
 // ── settled: capture result without cancelling siblings ──────────────────
 

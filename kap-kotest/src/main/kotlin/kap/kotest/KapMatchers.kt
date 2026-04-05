@@ -1,14 +1,12 @@
 package kap.kotest
 
 import kap.*
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runTest
 
 /**
  * Assert that a Kap computation succeeds with the expected value.
  */
 suspend inline fun <reified A> Kap<A>.shouldSucceedWith(expected: A) {
-    val result = runCatching { this@shouldSucceedWith.executeGraph() }
+    val result = runCatching { this@shouldSucceedWith.evalGraph() }
     assert(result.isSuccess) {
         "Expected success with $expected but got failure: ${result.exceptionOrNull()}"
     }
@@ -21,7 +19,7 @@ suspend inline fun <reified A> Kap<A>.shouldSucceedWith(expected: A) {
  * Assert that a Kap computation succeeds and return the value for further assertions.
  */
 suspend inline fun <reified A> Kap<A>.shouldSucceed(): A {
-    val result = runCatching { this@shouldSucceed.executeGraph() }
+    val result = runCatching { this@shouldSucceed.evalGraph() }
     assert(result.isSuccess) {
         "Expected success but got failure: ${result.exceptionOrNull()}"
     }
@@ -32,7 +30,7 @@ suspend inline fun <reified A> Kap<A>.shouldSucceed(): A {
  * Assert that a Kap computation fails with a specific exception type.
  */
 suspend inline fun <reified E : Throwable> Kap<*>.shouldFailWith(): E {
-    val result = runCatching { this@shouldFailWith.executeGraph() }
+    val result = runCatching { this@shouldFailWith.evalGraph() }
     assert(result.isFailure) {
         "Expected failure with ${E::class.simpleName} but got success: ${result.getOrNull()}"
     }
@@ -47,7 +45,7 @@ suspend inline fun <reified E : Throwable> Kap<*>.shouldFailWith(): E {
  * Assert that a Kap computation fails with a message matching the given string.
  */
 suspend fun Kap<*>.shouldFailWithMessage(expected: String) {
-    val result = runCatching { this@shouldFailWithMessage.executeGraph() }
+    val result = runCatching { this@shouldFailWithMessage.evalGraph() }
     assert(result.isFailure) {
         "Expected failure with message '$expected' but got success: ${result.getOrNull()}"
     }

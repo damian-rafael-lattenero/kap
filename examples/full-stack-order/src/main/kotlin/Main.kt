@@ -148,7 +148,7 @@ suspend fun main() {
             .withV { validateItem("ITEM-12345") }
             .withV { validateQuantity(3) }
             .withV { validateAddress("123 Main St", "Springfield", "62701") }
-            .executeGraph()
+            .evalGraph()
 
     when (validResult) {
         is Either.Right -> println("    OK: ${validResult.value}")
@@ -161,7 +161,7 @@ suspend fun main() {
             .withV { validateItem("bad") }
             .withV { validateQuantity(0) }
             .withV { validateAddress("", "", "abc") }
-            .executeGraph()
+            .evalGraph()
 
     when (invalidResult) {
         is Either.Right -> println("    OK: ${invalidResult.value}")
@@ -193,7 +193,7 @@ suspend fun main() {
                 Kap { fetchLivePricing(order.item.value) }
                     .timeoutRace(100.milliseconds, Kap { fetchCachedPricing(order.item.value) })
             )
-            .executeGraph()
+            .evalGraph()
 
     println("  Inventory: ${fetched.inventory.warehouse} (available=${fetched.inventory.available})")
     println("  Pricing: $${fetched.pricing.unitPrice} (discount=${(fetched.pricing.discount * 100).toInt()}%)")
@@ -213,7 +213,7 @@ suspend fun main() {
     val payment = Kap { processPayment(totalAmount) }
             .withCircuitBreaker(breaker)
             .retry(Schedule.times<Throwable>(2) and Schedule.spaced(50.milliseconds))
-            .executeGraph()
+            .evalGraph()
 
     println("  Payment: txId=${payment.txId}, amount=$${String.format("%.2f", payment.amount)}")
     println("  (${elapsed()})\n")
@@ -232,7 +232,7 @@ suspend fun main() {
                 db.close()
                 println("  Released DB: ${db.name} (closed=${db.closed})")
             },
-        ).executeGraph()
+        ).evalGraph()
 
     println("  Confirmation: ${confirmation.orderId}")
     println("  Delivery: ${confirmation.estimatedDelivery}")
@@ -242,13 +242,13 @@ suspend fun main() {
     println("=== Phase 5: attempt() and raceEither from kap-arrow ===\n")
 
     val attemptResult: Either<Throwable, String> = Kap { "Order ${confirmation.orderId} processed successfully" }.attempt()
-            .executeGraph()
+            .evalGraph()
     println("  attempt() result: $attemptResult")
 
     val raceResult: Either<String, Int> = raceEither(
             fa = Kap { delay(50); "fast-notification-sent" },
             fb = Kap { delay(200); 42 },
-        ).executeGraph()
+        ).evalGraph()
     println("  raceEither winner: $raceResult")
     println("  (${elapsed()})\n")
 
@@ -265,7 +265,7 @@ suspend fun main() {
             .withV { validateQuantity(2) }
             .withV { validateAddress("456 Oak Ave", "Shelbyville", "62702") }
             .orThrow()
-            .executeGraph()
+            .evalGraph()
 
     // Step 2: orchestrate with kap+with+then (all three modules)
     val fullOrder = kap(::PlacedOrder)
@@ -293,7 +293,7 @@ suspend fun main() {
                     release = { db -> db.close() },
                 )
             )
-            .executeGraph()
+            .evalGraph()
 
     val pipeElapsed = System.currentTimeMillis() - pipeStart
     println("  Order:        ${fullOrder.order}")

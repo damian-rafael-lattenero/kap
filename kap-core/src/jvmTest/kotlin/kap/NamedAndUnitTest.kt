@@ -6,7 +6,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
-import kotlin.coroutines.coroutineContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -21,7 +20,7 @@ class NamedAndUnitTest {
 
     @Test
     fun `Kap empty returns Unit`() = runTest {
-        val result = Kap.empty.executeGraph()
+        val result = Kap.empty.evalGraph()
         assertEquals(Unit, result)
     }
 
@@ -31,7 +30,7 @@ class NamedAndUnitTest {
         val result = Kap.of { a: String -> { _: Unit -> { b: Int -> "$a=$b" } } }
                 .with { delay(30); "hello" }
                 .then(Kap.empty)
-                .with { delay(30); 42 }.executeGraph()
+                .with { delay(30); 42 }.evalGraph()
         assertEquals("hello=42", result)
         // phase 1: 30ms, barrier: 0ms (Kap.empty is instant), phase 2: 30ms
         assertEquals(60, currentTime)
@@ -45,7 +44,7 @@ class NamedAndUnitTest {
     fun `named sets CoroutineName in coroutineContext`() = runTest {
         val result = Kap {
                 coroutineContext[CoroutineName]?.name ?: "missing"
-            }.named("my-computation").executeGraph()
+            }.named("my-computation").evalGraph()
         assertEquals("my-computation", result)
     }
 
@@ -60,13 +59,13 @@ class NamedAndUnitTest {
                 }.named("branch-b"))
                 .with(Kap<String> {
                     coroutineContext[CoroutineName]?.name ?: "missing"
-                }.named("branch-c")).executeGraph()
+                }.named("branch-c")).evalGraph()
         assertEquals(listOf("branch-a", "branch-b", "branch-c"), result)
     }
 
     @Test
     fun `named does not affect computation result`() = runTest {
-        val result = Kap { delay(30); 42 }.named("answer").executeGraph()
+        val result = Kap { delay(30); 42 }.named("answer").evalGraph()
         assertEquals(42, result)
         assertEquals(30, currentTime)
     }
@@ -76,7 +75,7 @@ class NamedAndUnitTest {
         val events = mutableListOf<TraceEvent>()
         val tracer = KapTracer { events += it }
 
-        val result = Kap.of(42).named("x").traced("x", tracer).executeGraph()
+        val result = Kap.of(42).named("x").traced("x", tracer).evalGraph()
 
         assertEquals(42, result)
         assertEquals(2, events.size)
@@ -92,14 +91,14 @@ class NamedAndUnitTest {
 
     @Test
     fun `catching returns Result success on success`() = runTest {
-        val result: Result<Int> = catching { 42 }.executeGraph()
+        val result: Result<Int> = catching { 42 }.evalGraph()
         assertTrue(result.isSuccess)
         assertEquals(42, result.getOrNull())
     }
 
     @Test
     fun `catching returns Result failure on exception`() = runTest {
-        val result: Result<String> = catching<String> { throw IllegalStateException("boom") }.executeGraph()
+        val result: Result<String> = catching<String> { throw IllegalStateException("boom") }.evalGraph()
         assertTrue(result.isFailure)
         assertIs<IllegalStateException>(result.exceptionOrNull())
         assertEquals("boom", result.exceptionOrNull()?.message)
@@ -108,7 +107,7 @@ class NamedAndUnitTest {
     @Test
     fun `catching does not catch CancellationException`() = runTest {
         val result = runCatching {
-            catching<String> { throw CancellationException("cancelled") }.executeGraph()
+            catching<String> { throw CancellationException("cancelled") }.evalGraph()
         }
         assertTrue(result.isFailure)
         assertIs<CancellationException>(result.exceptionOrNull())
@@ -118,7 +117,7 @@ class NamedAndUnitTest {
     fun `catching composes with with branches in parallel`() = runTest {
         val result = Kap.of { a: Result<Int> -> { b: Result<String> -> a to b } }
                 .with(catching<Int> { delay(30); 42 })
-                .with(catching<String> { delay(30); "hello" }).executeGraph()
+                .with(catching<String> { delay(30); "hello" }).evalGraph()
         assertTrue(result.first.isSuccess)
         assertEquals(42, result.first.getOrNull())
         assertTrue(result.second.isSuccess)

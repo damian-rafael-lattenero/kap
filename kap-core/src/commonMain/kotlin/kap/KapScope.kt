@@ -14,7 +14,7 @@ import kotlinx.coroutines.CoroutineScope
  *     val user = bind { fetchUser(id) }
  *     val cart = bind { fetchCart(user.cartId) }
  *     Dashboard(user, cart)
- * }.executeGraph()
+ * }.evalGraph()
  * ```
  */
 class KapScope @PublishedApi internal constructor(

@@ -11,7 +11,6 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
@@ -345,7 +344,7 @@ class NonEmptyListTest {
                 if (i % 2 == 0) throw RuntimeException("fail-$i")
                 "ok-$i"
             }
-        }.executeGraph()
+        }.evalGraph()
 
         assertEquals(5, results.size)
         assertTrue(results[0].isSuccess)
@@ -365,7 +364,7 @@ class NonEmptyListTest {
                 delay(50.milliseconds)
                 "done-$i"
             }
-        }.executeGraph()
+        }.evalGraph()
 
         assertEquals(50L, currentTime, "5 parallel tasks @ 50ms should complete in 50ms")
         assertTrue(results.all { it.isSuccess })
@@ -383,7 +382,7 @@ class NonEmptyListTest {
                 synchronized(completed) { completed.add(i) }
                 "ok-$i"
             }
-        }.executeGraph()
+        }.evalGraph()
 
         assertEquals(3, results.size)
         assertTrue(results[0].isFailure)
@@ -399,7 +398,7 @@ class NonEmptyListTest {
                 delay(30.milliseconds)
                 "ok-$i"
             }
-        }.executeGraph()
+        }.evalGraph()
 
         assertEquals(90L, currentTime)
         assertTrue(results.all { it.isSuccess })
@@ -410,7 +409,7 @@ class NonEmptyListTest {
     fun `traverseSettled on single element`() = runTest {
         val results = nonEmptyListOf(42).traverseSettled { i ->
             Kap { i * 2 }
-        }.executeGraph()
+        }.evalGraph()
 
         assertEquals(1, results.size)
         assertEquals(84, results[0].getOrThrow())
@@ -425,7 +424,7 @@ class NonEmptyListTest {
             Kap { "c" },
         )
 
-        val results = computations.sequenceSettled().executeGraph()
+        val results = computations.sequenceSettled().evalGraph()
 
         assertEquals(3, results.size)
         assertTrue(results[0].isSuccess)
@@ -443,7 +442,7 @@ class NonEmptyListTest {
             Kap { delay(25.milliseconds); "d" },
         )
 
-        val results = computations.sequenceSettled(2).executeGraph()
+        val results = computations.sequenceSettled(2).evalGraph()
 
         assertEquals(50L, currentTime)
         assertTrue(results.all { it.isSuccess })

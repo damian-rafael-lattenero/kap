@@ -45,7 +45,7 @@ class ValidatedTest {
     fun `liftV+apV accumulates errors from two failures`() = runTest {
         val result = kapV<Err, ValidCard, StockStatus, Pair<ValidCard, StockStatus>> { card, stock -> card to stock }
             .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("expired"))) }
-            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-99"))) }.executeGraph()
+            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-99"))) }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(2, result.value.size)
@@ -58,7 +58,7 @@ class ValidatedTest {
         val result = kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
             .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("expired"))) }
             .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }
-            .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }.executeGraph()
+            .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(3, result.value.size)
@@ -72,7 +72,7 @@ class ValidatedTest {
         val result = kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
             .withV { Either.Right(ValidCard("4111-1111-1111-1111")) as Either<NonEmptyList<Err>, ValidCard> }
             .withV { Either.Right(StockStatus("sku-42")) }
-            .withV { Either.Right(VerifiedAddress("123 Main St")) }.executeGraph()
+            .withV { Either.Right(VerifiedAddress("123 Main St")) }.evalGraph()
 
         assertEquals(
             Either.Right(ValidatedCheckout(ValidCard("4111-1111-1111-1111"), StockStatus("sku-42"), VerifiedAddress("123 Main St"))),
@@ -85,7 +85,7 @@ class ValidatedTest {
         val result = kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
             .withV { Either.Right(ValidCard("4111-1111-1111-1111")) as Either<NonEmptyList<Err>, ValidCard> }
             .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }
-            .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }.executeGraph()
+            .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(2, result.value.size)
@@ -97,7 +97,7 @@ class ValidatedTest {
     fun `liftV+apV single failure returns that error`() = runTest {
         val result = kapV<Err, ValidCard, StockStatus, Pair<ValidCard, StockStatus>> { card, stock -> card to stock }
             .withV { Either.Right(ValidCard("4111-1111-1111-1111")) as Either<NonEmptyList<Err>, ValidCard> }
-            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }.executeGraph()
+            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(1, result.value.size)
@@ -123,7 +123,7 @@ class ValidatedTest {
                 latchB.complete(Unit)
                 latchA.await()
                 Either.Right(StockStatus("sku-1"))
-            }.executeGraph()
+            }.evalGraph()
 
         // Would deadlock if sequential
         assertEquals(Either.Right(ValidCard("4111") to StockStatus("sku-1")), result)
@@ -138,7 +138,7 @@ class ValidatedTest {
             .withV { latches[1].complete(Unit); latches.awaitOthers(1); Either.Right("B") }
             .withV { latches[2].complete(Unit); latches.awaitOthers(2); Either.Right("C") }
             .withV { latches[3].complete(Unit); latches.awaitOthers(3); Either.Right("D") }
-            .withV { latches[4].complete(Unit); latches.awaitOthers(4); Either.Right("E") }.executeGraph()
+            .withV { latches[4].complete(Unit); latches.awaitOthers(4); Either.Right("E") }.evalGraph()
 
         assertEquals(Either.Right("A|B|C|D|E"), result)
     }
@@ -151,7 +151,7 @@ class ValidatedTest {
     fun `sequential liftV+apV accumulates errors across phases`() = runTest {
         val result = kapV<Err, ValidCard, StockStatus, Pair<ValidCard, StockStatus>> { card, stock -> card to stock }
             .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("declined"))) }
-            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-7"))) }.executeGraph()
+            .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-7"))) }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(2, result.value.size)
@@ -165,7 +165,7 @@ class ValidatedTest {
 
         val result = kapV<String, String, String, Pair<String, String>> { a, b -> a to b }
             .withV { order.add("first"); Either.Right("A") as Either<NonEmptyList<String>, String> }
-            .thenV { order.add("second"); Either.Right("B") as Either<NonEmptyList<String>, String> }.executeGraph()
+            .thenV { order.add("second"); Either.Right("B") as Either<NonEmptyList<String>, String> }.evalGraph()
 
         assertEquals(Either.Right("A" to "B"), result)
         assertEquals(listOf("first", "second"), order)
@@ -180,7 +180,7 @@ class ValidatedTest {
             .thenV {
                 secondCalled.complete(true)
                 Either.Right("should not run") as Either<NonEmptyList<String>, String>
-            }.executeGraph()
+            }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("left failed"), result.value.toList())
@@ -197,7 +197,7 @@ class ValidatedTest {
         val result = kapV<Err, ValidCard, StockStatus, VerifiedAddress, ValidatedCheckout>(::ValidatedCheckout)
             .withV { Either.Left(nonEmptyListOf(Err.InvalidCard("expired"))) }
             .withV { Either.Left(nonEmptyListOf(Err.OutOfStock("sku-123"))) }
-            .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }.executeGraph()
+            .withV { Either.Left(nonEmptyListOf(Err.BadAddress("missing zip"))) }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<Err>>>(result)
         assertEquals(3, result.value.size)
@@ -213,7 +213,7 @@ class ValidatedTest {
     @Test
     fun `catching wraps exception as Left`() = runTest {
         val result = Kap<String> { throw RuntimeException("boom") }
-            .catching { it.message ?: "unknown" }.executeGraph()
+            .catching { it.message ?: "unknown" }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("boom"), result.value.toList())
@@ -221,7 +221,7 @@ class ValidatedTest {
 
     @Test
     fun `catching wraps success as Right`() = runTest {
-        val result = Kap.of("ok").catching { it.message ?: "unknown" }.executeGraph()
+        val result = Kap.of("ok").catching { it.message ?: "unknown" }.evalGraph()
 
         assertEquals(Either.Right("ok"), result)
     }
@@ -230,7 +230,7 @@ class ValidatedTest {
     fun `catching does not catch CancellationException`() = runTest {
         val result = runCatching {
                         Kap<String> { throw CancellationException("cancelled") }
-                .catching { "caught" }.executeGraph()
+                .catching { "caught" }.evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -247,7 +247,7 @@ class ValidatedTest {
                     Either.Left(nonEmptyListOf(e.message ?: "unknown"))
                 }
             }
-            .withV { Either.Left(nonEmptyListOf("validation error")) }.executeGraph()
+            .withV { Either.Left(nonEmptyListOf("validation error")) }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("network error", "validation error"), result.value.toList())
@@ -259,13 +259,13 @@ class ValidatedTest {
 
     @Test
     fun `validate passes when predicate returns null`() = runTest {
-        val result = Kap.of(42).validate<String, Int> { if (it > 0) null else "must be positive" }.executeGraph()
+        val result = Kap.of(42).validate<String, Int> { if (it > 0) null else "must be positive" }.evalGraph()
         assertEquals(Either.Right(42), result)
     }
 
     @Test
     fun `validate fails when predicate returns error`() = runTest {
-        val result = Kap.of(-1).validate<String, Int> { if (it > 0) null else "must be positive" }.executeGraph()
+        val result = Kap.of(-1).validate<String, Int> { if (it > 0) null else "must be positive" }.evalGraph()
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("must be positive"), result.value.toList())
     }
@@ -279,7 +279,7 @@ class ValidatedTest {
         val result = listOf(1, -2, 3, -4, 5).traverseV<String, Int, String> { n ->
             if (n > 0) valid(n.toString())
             else invalid("negative: $n")
-        }.executeGraph()
+        }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("negative: -2", "negative: -4"), result.value.toList())
@@ -287,7 +287,7 @@ class ValidatedTest {
 
     @Test
     fun `traverseV returns all results when all succeed`() = runTest {
-        val result = listOf(1, 2, 3).traverseV<String, Int, Int> { n -> valid(n * 10) }.executeGraph()
+        val result = listOf(1, 2, 3).traverseV<String, Int, Int> { n -> valid(n * 10) }.evalGraph()
         assertEquals(Either.Right(listOf(10, 20, 30)), result)
     }
 
@@ -301,14 +301,14 @@ class ValidatedTest {
                 latches.awaitOthers(i)
                 Either.Right("v$i")
             }
-        }.executeGraph()
+        }.evalGraph()
 
         assertEquals(Either.Right(listOf("v0", "v1", "v2")), result)
     }
 
     @Test
     fun `traverseV on empty list returns Right empty list`() = runTest {
-        val result = emptyList<Int>().traverseV<String, Int, Int> { n -> valid(n) }.executeGraph()
+        val result = emptyList<Int>().traverseV<String, Int, Int> { n -> valid(n) }.evalGraph()
         assertEquals(Either.Right(emptyList<Int>()), result)
     }
 
@@ -318,14 +318,14 @@ class ValidatedTest {
 
     @Test
     fun `orThrow returns value on Right`() = runTest {
-        val result = valid<String, Int>(42).orThrow().executeGraph()
+        val result = valid<String, Int>(42).orThrow().evalGraph()
         assertEquals(42, result)
     }
 
     @Test
     fun `orThrow throws ValidationException on Left`() = runTest {
         val result = runCatching {
-            invalid<String, Int>("err1").orThrow().executeGraph()
+            invalid<String, Int>("err1").orThrow().evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -347,7 +347,7 @@ class ValidatedTest {
             invalid<String, Int>("err2"),
         )
 
-        val result = computations.sequenceV().executeGraph()
+        val result = computations.sequenceV().evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("err1", "err2"), result.value.toList())
@@ -361,7 +361,7 @@ class ValidatedTest {
             valid<String, Int>(3),
         )
 
-        val result = computations.sequenceV().executeGraph()
+        val result = computations.sequenceV().evalGraph()
         assertEquals(Either.Right(listOf(1, 2, 3)), result)
     }
 
@@ -377,7 +377,7 @@ class ValidatedTest {
             }
         }
 
-        val result = computations.sequenceV().executeGraph()
+        val result = computations.sequenceV().evalGraph()
         assertEquals(Either.Right(listOf("v0", "v1", "v2")), result)
     }
 
@@ -388,7 +388,7 @@ class ValidatedTest {
     @Test
     fun `andThenV chains on success`() = runTest {
         val result = valid<String, Int>(42)
-            .andThenV { n -> valid<String, String>("result=$n") }.executeGraph()
+            .andThenV { n -> valid<String, String>("result=$n") }.evalGraph()
         assertEquals(Either.Right("result=42"), result)
     }
 
@@ -400,7 +400,7 @@ class ValidatedTest {
             .andThenV { n ->
                 secondCalled.complete(true)
                 valid<String, String>("result=$n")
-            }.executeGraph()
+            }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("first error"), result.value.toList())
@@ -411,7 +411,7 @@ class ValidatedTest {
     @Test
     fun `andThenV propagates error from second step`() = runTest {
         val result = valid<String, Int>(42)
-            .andThenV { invalid<String, String>("second error") }.executeGraph()
+            .andThenV { invalid<String, String>("second error") }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("second error"), result.value.toList())
@@ -422,7 +422,7 @@ class ValidatedTest {
         val result = valid<String, Int>(10)
             .andThenV { n -> valid<String, Int>(n + 1) }
             .andThenV { n -> valid<String, Int>(n * 2) }
-            .andThenV { n -> valid<String, String>("final=$n") }.executeGraph()
+            .andThenV { n -> valid<String, String>("final=$n") }.evalGraph()
         assertEquals(Either.Right("final=22"), result)
     }
 
@@ -440,7 +440,7 @@ class ValidatedTest {
             .withV(validateName("Alice"))
             .withV(validateEmail("alice@test.com"))
             // Phase 2: sequential check depending on phase 1 values
-            .andThenV { (name, email) -> checkNotTaken(name, email) }.executeGraph()
+            .andThenV { (name, email) -> checkNotTaken(name, email) }.evalGraph()
 
         assertEquals(Either.Right("Alice" to "alice@test.com"), result)
     }
@@ -467,7 +467,7 @@ class ValidatedTest {
         val allBad = kapV<RegError, String, String, Int, User>(::User)
             .withV { validateName("X") }
             .withV { validateEmail("bad") }
-            .withV { validateAge(15) }.executeGraph()
+            .withV { validateAge(15) }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<RegError>>>(allBad)
         assertEquals(3, allBad.value.size)
@@ -476,7 +476,7 @@ class ValidatedTest {
         val allGood = kapV<RegError, String, String, Int, User>(::User)
             .withV { validateName("Alice") }
             .withV { validateEmail("alice@example.com") }
-            .withV { validateAge(25) }.executeGraph()
+            .withV { validateAge(25) }.evalGraph()
 
         assertEquals(Either.Right(User("Alice", "alice@example.com", 25)), allGood)
     }
@@ -504,7 +504,7 @@ class ValidatedTest {
             { validateName("Alice") },
             { validateEmail("alice@test.com") },
             { validateAge(25) },
-        ) { name, email, age -> User(name, email, age) }.executeGraph()
+        ) { name, email, age -> User(name, email, age) }.evalGraph()
 
         assertEquals(Either.Right(User("Alice", "alice@test.com", 25)), result)
     }
@@ -515,7 +515,7 @@ class ValidatedTest {
             { Either.Left(nonEmptyListOf("err1")) },
             { Either.Left(nonEmptyListOf("err2")) },
             { Either.Left(nonEmptyListOf("err3")) },
-        ) { a: String, b: String, c: String -> "$a|$b|$c" }.executeGraph()
+        ) { a: String, b: String, c: String -> "$a|$b|$c" }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("err1", "err2", "err3"), result.value.toList())
@@ -529,7 +529,7 @@ class ValidatedTest {
             { latches[0].complete(Unit); latches.awaitOthers(0); Either.Right("A") as Either<NonEmptyList<String>, String> },
             { latches[1].complete(Unit); latches.awaitOthers(1); Either.Right("B") },
             { latches[2].complete(Unit); latches.awaitOthers(2); Either.Right("C") },
-        ) { a, b, c -> "$a|$b|$c" }.executeGraph()
+        ) { a, b, c -> "$a|$b|$c" }.evalGraph()
 
         assertEquals(Either.Right("A|B|C"), result)
     }
@@ -539,7 +539,7 @@ class ValidatedTest {
         val result = zipV(
             { Either.Left(nonEmptyListOf("e1")) },
             { Either.Left(nonEmptyListOf("e2")) },
-        ) { a: String, b: String -> "$a|$b" }.executeGraph()
+        ) { a: String, b: String -> "$a|$b" }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<String>>>(result)
         assertEquals(listOf("e1", "e2"), result.value.toList())
@@ -552,7 +552,7 @@ class ValidatedTest {
             { Either.Right("b") },
             { Either.Right("c") },
             { Either.Right("d") },
-        ) { a, b, c, d -> "$a$b$c$d" }.executeGraph()
+        ) { a, b, c, d -> "$a$b$c$d" }.evalGraph()
 
         assertEquals(Either.Right("abcd"), result)
     }
@@ -646,7 +646,7 @@ class ValidatedTest {
             { valTerms(true) },
         ) { fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm ->
             UserOnboarding(fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm)
-        }.executeGraph()
+        }.evalGraph()
 
         assertEquals(
             Either.Right(UserOnboarding(
@@ -678,7 +678,7 @@ class ValidatedTest {
             { valTerms(false) },              // must accept
         ) { fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm ->
             UserOnboarding(fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm)
-        }.executeGraph()
+        }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<OnboardingError>>>(result)
         assertEquals(12, result.value.size)
@@ -714,7 +714,7 @@ class ValidatedTest {
             { valTerms(true) },               // OK
         ) { fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm ->
             UserOnboarding(fn, ln, em, ph, pw, bd, co, ci, zc, ad, tx, tm)
-        }.executeGraph()
+        }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<OnboardingError>>>(result)
         assertEquals(5, result.value.size)
@@ -767,7 +767,7 @@ class ValidatedTest {
                 { valTaxId("20345678901") },
                 { valTerms(true) },
             ) { co, ci, zc, ad, tx, tm -> FullRegistration(identity, AddressInfo(co, ci, zc, ad), tx, tm) }
-        }.executeGraph()
+        }.evalGraph()
 
         assertIs<Either.Right<FullRegistration>>(result)
         assertEquals("Alice", result.value.identity.firstName.v)
@@ -796,7 +796,7 @@ class ValidatedTest {
                 { valTaxId("20345678901") },
                 { valTerms(true) },
             ) { co, ci, zc, ad, tx, tm -> FullRegistration(identity, AddressInfo(co, ci, zc, ad), tx, tm) }
-        }.executeGraph()
+        }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<OnboardingError>>>(result)
         assertEquals(6, result.value.size)  // all 6 phase-1 errors accumulated
@@ -822,7 +822,7 @@ class ValidatedTest {
                 { valTaxId("123") },      // FAIL — invalid
                 { valTerms(false) },      // FAIL — must accept
             ) { co, ci, zc, ad, tx, tm -> FullRegistration(identity, AddressInfo(co, ci, zc, ad), tx, tm) }
-        }.executeGraph()
+        }.evalGraph()
 
         assertIs<Either.Left<NonEmptyList<OnboardingError>>>(result)
         assertEquals(6, result.value.size)  // all 6 phase-2 errors accumulated

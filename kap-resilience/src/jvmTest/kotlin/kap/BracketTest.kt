@@ -38,7 +38,7 @@ class BracketTest {
             release = { r -> events.add("release:$r") },
         )
 
-        val result = computation.executeGraph()
+        val result = computation.evalGraph()
 
         assertEquals("result-of-resource", result)
         assertEquals(listOf("acquire", "use:resource", "release:resource"), events)
@@ -58,7 +58,7 @@ class BracketTest {
             release = { _ -> released.set(true) },
         )
 
-        val result = runCatching { computation.executeGraph() }
+        val result = runCatching { computation.evalGraph() }
 
         assertTrue(result.isFailure)
         assertIs<IllegalStateException>(result.exceptionOrNull())
@@ -81,7 +81,7 @@ class BracketTest {
             release = { r -> released.complete("released:$r") },
         )
 
-        val job = launch { computation.executeGraph() }
+        val job = launch { computation.evalGraph() }
 
         started.await()
         job.cancel()
@@ -138,7 +138,7 @@ class BracketTest {
                 .with(branchA)
                 .with(branchB)
                 .with(branchC)
-                .executeGraph()
+                .evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -166,7 +166,7 @@ class BracketTest {
         // ── Success case ──
         val successComp = Kap { delay(30); "ok" }
             .guarantee { events.add("finalizer:success") }
-        val successResult = successComp.executeGraph()
+        val successResult = successComp.evalGraph()
 
         assertEquals("ok", successResult)
         assertTrue(events.contains("finalizer:success"))
@@ -176,7 +176,7 @@ class BracketTest {
         val failComp = Kap<String> { delay(20); throw ArithmeticException("div/0") }
             .guarantee { events.add("finalizer:failure") }
 
-        val failResult = runCatching { failComp.executeGraph() }
+        val failResult = runCatching { failComp.evalGraph() }
 
         assertTrue(failResult.isFailure)
         assertIs<ArithmeticException>(failResult.exceptionOrNull())
@@ -195,7 +195,7 @@ class BracketTest {
         // ── Completed ──
         val completedComp = Kap { delay(10); 42 }
             .guaranteeCase { cases.add(it) }
-        val result = completedComp.executeGraph()
+        val result = completedComp.evalGraph()
 
         assertEquals(42, result)
         assertEquals(1, cases.size)
@@ -207,7 +207,7 @@ class BracketTest {
         val failedComp = Kap<Int> { throw IllegalArgumentException("bad arg") }
             .guaranteeCase { cases.add(it) }
 
-        val failResult = runCatching { failedComp.executeGraph() }
+        val failResult = runCatching { failedComp.evalGraph() }
 
         assertTrue(failResult.isFailure)
         assertEquals(1, cases.size)
@@ -227,7 +227,7 @@ class BracketTest {
         val comp = Kap<String> { started.complete(Unit); awaitCancellation() }
             .guaranteeCase { exitCaseRef.complete(it) }
 
-        val job = launch { comp.executeGraph() }
+        val job = launch { comp.evalGraph() }
 
         started.await()
         job.cancel()
@@ -279,7 +279,7 @@ class BracketTest {
                         val msg = "phase 2 failed: ${triple.first}, ${triple.second}, ${triple.third}"
                         throw RuntimeException(msg)
                     }
-                }.executeGraph()
+                }.evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -317,7 +317,7 @@ class BracketTest {
             release = { r -> events.add("release:$r") },
         )
 
-        val result = computation.executeGraph()
+        val result = computation.evalGraph()
 
         assertEquals("outer+inner", result)
         assertEquals(
@@ -353,7 +353,7 @@ class BracketTest {
             },
         )
 
-        val job = launch { computation.executeGraph() }
+        val job = launch { computation.evalGraph() }
 
         started.await()
         // The computation is suspended in awaitCancellation(). Cancel the job.

@@ -23,7 +23,7 @@ class CollectionsExtTest {
                 Kap { delay(30); "A" },
                 Kap { delay(30); "B" },
                 Kap { delay(30); "C" },
-            ) { a, b, c -> "$a|$b|$c" }.executeGraph()
+            ) { a, b, c -> "$a|$b|$c" }.evalGraph()
 
         assertEquals("A|B|C", result)
         assertEquals(30, currentTime,
@@ -41,7 +41,7 @@ class CollectionsExtTest {
                 Kap { delay(40); "B" },
                 Kap { delay(40); "C" },
                 Kap { delay(40); "D" },
-            ) { a, b, c, d -> "$a|$b|$c|$d" }.executeGraph()
+            ) { a, b, c, d -> "$a|$b|$c|$d" }.evalGraph()
 
         assertEquals("A|B|C|D", result)
         assertEquals(40, currentTime,
@@ -60,7 +60,7 @@ class CollectionsExtTest {
                 Kap { delay(50); "C" },
                 Kap { delay(50); "D" },
                 Kap { delay(50); "E" },
-            ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.executeGraph()
+            ) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.evalGraph()
 
         assertEquals("A|B|C|D|E", result)
         assertEquals(50, currentTime,
@@ -102,7 +102,7 @@ class CollectionsExtTest {
                             throw e
                         }
                     },
-                ) { a, b, c -> "$a|$b|$c" }.executeGraph()
+                ) { a, b, c -> "$a|$b|$c" }.evalGraph()
         }
 
         assertTrue(result.isFailure, "zip3 should propagate the exception")
@@ -119,10 +119,10 @@ class CollectionsExtTest {
         val fa = Kap { delay(30); "X" }
         val fb = Kap { delay(30); "Y" }
 
-        val zipResult = fa.zip(fb) { a, b -> "$a+$b" }.executeGraph()
+        val zipResult = fa.zip(fb) { a, b -> "$a+$b" }.evalGraph()
         val zipTime = currentTime
 
-        val mapNResult = combine(fa, fb) { a, b -> "$a+$b" }.executeGraph()
+        val mapNResult = combine(fa, fb) { a, b -> "$a+$b" }.evalGraph()
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN2 and zip should produce the same result")
@@ -140,10 +140,10 @@ class CollectionsExtTest {
         val fb = Kap { delay(30); "B" }
         val fc = Kap { delay(30); "C" }
 
-        val zipResult = zip(fa, fb, fc) { a, b, c -> "$a|$b|$c" }.executeGraph()
+        val zipResult = zip(fa, fb, fc) { a, b, c -> "$a|$b|$c" }.evalGraph()
         val zipTime = currentTime
 
-        val mapNResult = combine(fa, fb, fc) { a, b, c -> "$a|$b|$c" }.executeGraph()
+        val mapNResult = combine(fa, fb, fc) { a, b, c -> "$a|$b|$c" }.evalGraph()
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN3 and zip3 should produce the same result")
@@ -162,10 +162,10 @@ class CollectionsExtTest {
         val fc = Kap { delay(40); "C" }
         val fd = Kap { delay(40); "D" }
 
-        val zipResult = zip(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" }.executeGraph()
+        val zipResult = zip(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" }.evalGraph()
         val zipTime = currentTime
 
-        val mapNResult = combine(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" }.executeGraph()
+        val mapNResult = combine(fa, fb, fc, fd) { a, b, c, d -> "$a|$b|$c|$d" }.evalGraph()
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN4 and zip4 should produce the same result")
@@ -185,10 +185,10 @@ class CollectionsExtTest {
         val fd = Kap { delay(50); "D" }
         val fe = Kap { delay(50); "E" }
 
-        val zipResult = zip(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.executeGraph()
+        val zipResult = zip(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.evalGraph()
         val zipTime = currentTime
 
-        val mapNResult = combine(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.executeGraph()
+        val mapNResult = combine(fa, fb, fc, fd, fe) { a, b, c, d, e -> "$a|$b|$c|$d|$e" }.evalGraph()
         val mapNTime = currentTime - zipTime
 
         assertEquals(zipResult, mapNResult, "mapN5 and zip5 should produce the same result")
@@ -204,7 +204,7 @@ class CollectionsExtTest {
     fun `traverse runs elements in parallel - timing proof`() = runTest {
         val result = listOf(1, 2, 3, 4, 5).traverse { i ->
                 Kap { delay(30); "v$i" }
-            }.executeGraph()
+            }.evalGraph()
 
         assertEquals(listOf("v1", "v2", "v3", "v4", "v5"), result)
         assertEquals(30, currentTime,
@@ -219,7 +219,7 @@ class CollectionsExtTest {
     fun `traverse with concurrency limit - timing proof`() = runTest {
         val result = (1..9).toList().traverse(3) { i ->
                 Kap { delay(30); "v$i" }
-            }.executeGraph()
+            }.evalGraph()
 
         assertEquals((1..9).map { "v$it" }, result)
         // 9 elements, concurrency=3, 30ms each: 3 batches x 30ms = 90ms
@@ -250,7 +250,7 @@ class CollectionsExtTest {
                         .with(Kap { delay(20); "enriched($summary)" })
                         .then(Kap { delay(10); "shipping" })
                         .with(Kap { delay(20); "tax" })
-                }.executeGraph()
+                }.evalGraph()
 
         assertEquals("enriched(user+cart+prefs)|shipping|tax", result)
         // zip3: 30ms

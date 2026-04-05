@@ -147,7 +147,7 @@ data class RetryResult<out A>(
  * ```
  * val (user, attempts, totalDelay) = Kap { fetchUser() }
  *     .retryWithResult(Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseconds))
- *     .executeGraph()
+ *     .evalGraph()
  * logger.info("Fetched user after $attempts retries (${totalDelay} delay)")
  * ```
  */

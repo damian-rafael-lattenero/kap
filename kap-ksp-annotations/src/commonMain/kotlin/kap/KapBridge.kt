@@ -18,7 +18,7 @@ import kotlin.reflect.KClass
  *     .withFirstName { fetchFirstName() }
  *     .withLastName { fetchLastName() }
  *     .withAge { fetchAge() }
- *     .executeGraph()
+ *     .evalGraph()
  * ```
  *
  * @param target The third-party class to generate builders for.

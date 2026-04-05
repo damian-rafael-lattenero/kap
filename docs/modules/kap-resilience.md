@@ -64,7 +64,7 @@ implementation("io.github.damian-rafael-lattenero:kap-resilience:2.6.0")
         return "success on attempt $attempts"
     }
 
-    val result = Kap { flakyService() }.retry(policy).executeGraph()
+    val result = Kap { flakyService() }.retry(policy).evalGraph()
     // "success on attempt 3"
     ```
 
@@ -163,7 +163,7 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
         .retryOrElse(
             Schedule.times(2) and Schedule.spaced(100.milliseconds)
         ) { "fallback-after-exhaustion" }
-        .executeGraph()
+        .evalGraph()
     ```
 
 #### `.retryWithResult(schedule)` — Returns full context
@@ -206,7 +206,7 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
     ```kotlin
     val retryResult = Kap { flakyService() }.retryWithResult(
         Schedule.times<Throwable>(5) and Schedule.exponential(10.milliseconds)
-    ).executeGraph()
+    ).evalGraph()
     println(retryResult.value)       // "success"
     println(retryResult.attempts)    // 3
     println(retryResult.totalDelay)  // 70ms
@@ -279,7 +279,7 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
 
     val result = Kap { fetchUser() }
         .withCircuitBreaker(breaker)
-        .executeGraph()
+        .evalGraph()
     // While Open: fails immediately with CircuitBreakerOpenException
     // After resetTimeout: tries one request (HalfOpen)
     // If it succeeds: back to Closed
@@ -294,7 +294,7 @@ val result = Kap { fetchUser() }
     .retry(Schedule.times<Throwable>(3)           // retry with backoff
         and Schedule.exponential(10.milliseconds))
     .recover { "cached-user" }                    // fallback on exhaustion
-    .executeGraph()
+    .evalGraph()
 // timeout -> circuit breaker -> retry -> recover. All composable.
 ```
 
@@ -327,7 +327,7 @@ val result = Kap { fetchUser() }
     ```kotlin
     val result = Kap { fetchFromPrimary() }
         .timeoutRace(100.milliseconds, Kap { fetchFromFallback() })
-        .executeGraph()
+        .evalGraph()
     // Both start at t=0. Fallback wins at ~30ms. Primary cancelled.
     ```
 
@@ -387,7 +387,7 @@ t=30ms   ─── fallback wins ───       ← 3x faster
         Kap { fetchReplicaA() },  // 50ms
         Kap { fetchReplicaB() },  // 20ms
         Kap { fetchReplicaC() },  // 80ms
-    ).executeGraph()
+    ).evalGraph()
     // [replica-B, replica-A] — the 2 fastest. C cancelled.
     ```
 
@@ -457,7 +457,7 @@ Supports arities 2-22.
             use = { client -> Kap { client.get("/api") } },
             release = { client -> client.close() },
         ))
-        .executeGraph()
+        .evalGraph()
     // All 3 acquired, used in PARALLEL, ALL released even on failure.
     // Release runs in NonCancellable context — guaranteed.
     ```
@@ -505,7 +505,7 @@ Supports arities 2-22.
             }
             tx.close()
         },
-    ).executeGraph()
+    ).evalGraph()
     ```
 
 ### `Resource` — Composable resource
@@ -563,7 +563,7 @@ Supports arities 2-22.
             .withDbResult { db.query("SELECT 1") }
             .withCacheResult { cache.get("user:prefs") }
             .withHttpResult { http.get("/recommendations") }
-    }.executeGraph()
+    }.evalGraph()
     // All acquired, used in parallel, released in reverse order. Guaranteed.
     ```
 
@@ -614,7 +614,7 @@ Supports arities 2-22.
     val result = guarantee(
         fa = { riskyOperation() },
         finalizer = { cleanup() },
-    ).executeGraph()
+    ).evalGraph()
 
     // guaranteeCase: finalizer receives the exit case
     val result2 = guaranteeCase(
@@ -626,7 +626,7 @@ Supports arities 2-22.
                 is ExitCase.Cancelled -> println("cancellation cleanup")
             }
         },
-    ).executeGraph()
+    ).evalGraph()
     ```
 
 ---
@@ -723,5 +723,5 @@ All features composed in one chain:
             .jittered()
             .withMaxDuration(10.seconds))
         .recover { cachedData() }                        // fallback on exhaustion
-        .executeGraph()
+        .evalGraph()
     ```

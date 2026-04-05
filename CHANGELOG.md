@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Changed
 - README uses `Kap { }` SAM syntax exclusively (no `.toKap()`)
-- README uses single `executeGraph()` per graph via `Kap<A>` overloads on `.withX()` / `.thenX()`
+- README uses single `evalGraph()` per graph via `Kap<A>` overloads on `.withX()` / `.thenX()`
 - Updated docs/index.md tagline and API-at-a-glance to match README narrative
 - Added `timed { }` documentation to kap-core module docs
 

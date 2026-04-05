@@ -370,7 +370,7 @@ fun Routing.coreRoutes() {
                 )
                 .withRecommendations { Services.fetchRecommendations("Gold") }
                 .withNotificationCount { Services.countNotifications(userId) }
-                .executeGraph()
+                .evalGraph()
 
         call.respond(dashboard)
     }
@@ -387,16 +387,16 @@ fun Routing.coreRoutes() {
 
         if (call.request.queryParameters["settled"] == "true") {
             val results = ids.traverseSettled { id -> Kap { Services.fetchProduct(id) } }
-                .executeGraph()
+                .evalGraph()
             products = results.filter { it.isSuccess }.map { it.getOrThrow() }
             failures = results.filter { it.isFailure }.map { "${it.exceptionOrNull()?.message}" }
         } else if (concurrency != null) {
             products = ids.traverse(concurrency) { id -> Kap { Services.fetchProduct(id) } }
-                .executeGraph()
+                .evalGraph()
             failures = emptyList()
         } else {
             products = ids.traverse { id -> Kap { Services.fetchProduct(id) } }
-                .executeGraph()
+                .evalGraph()
             failures = emptyList()
         }
 
@@ -424,7 +424,7 @@ fun Routing.coreRoutes() {
                 } else rawProducts
 
                 SearchResult(q, filtered, filtered.size)
-            }.executeGraph()
+            }.evalGraph()
 
         call.respond(result)
     }
@@ -460,7 +460,7 @@ fun Routing.coreRoutes() {
                 } }.with(memoizedExpensive).with(memoizedExpensive).bind()
 
                 CompareResponse(products, cheapest, statusList)
-            }.executeGraph()
+            }.evalGraph()
 
         call.respond(result)
     }
@@ -489,14 +489,14 @@ fun Routing.resilienceRoutes() {
                         Kap { Services.fetchPricingReplicaA(itemId) },
                         Kap { Services.fetchPricingReplicaB(itemId) },
                         Kap { Services.fetchPricingReplicaC(itemId) },
-                    ).executeGraph()
+                    ).evalGraph()
                 pricing = quotes.first()
                 strategyUsed = "quorum-2-of-3 (sources: ${quotes.map { it.source }})"
             }
             "timeout-race" -> {
                 pricing = Kap { Services.fetchPricingLive(itemId) }
                         .timeoutRace(100.milliseconds, Kap { Services.fetchPricingCache(itemId) })
-                        .executeGraph()
+                        .evalGraph()
                 strategyUsed = "timeout-race (100ms deadline, source: ${pricing.source})"
             }
             "fallback-chain" -> {
@@ -504,14 +504,14 @@ fun Routing.resilienceRoutes() {
                         Kap { Services.fetchPricingPrimary(itemId) },
                         Kap { Services.fetchPricingSecondary(itemId) },
                         Kap { Services.fetchPricingFallback(itemId) },
-                    ).executeGraph()
+                    ).evalGraph()
                 strategyUsed = "fallback-chain (source: ${pricing.source})"
             }
             "orElse" -> {
                 pricing = Kap { Services.fetchPricingPrimary(itemId) }
                         .orElse(Kap { Services.fetchPricingSecondary(itemId) })
                         .orElse(Kap { Services.fetchPricingFallback(itemId) })
-                        .executeGraph()
+                        .evalGraph()
                 strategyUsed = "orElse-chain (source: ${pricing.source})"
             }
             else -> throw IllegalArgumentException("Unknown strategy: $strategy")
@@ -537,7 +537,7 @@ fun Routing.resilienceRoutes() {
                 val retryResult = Kap { Services.fetchUserFlaky(userId) }
                         .withCircuitBreaker(userCircuitBreaker)
                         .retryWithResult(policy)
-                        .executeGraph()
+                        .evalGraph()
 
                 call.respond(UserResponse(retryResult.value, retryResult.attempts, retryResult.totalDelay.toString()))
             }
@@ -550,7 +550,7 @@ fun Routing.resilienceRoutes() {
                         .retryOrElse(policy) {
                             UserProfile(userId, "Cached User", "Basic")
                         }
-                        .executeGraph()
+                        .evalGraph()
 
                 call.respond(UserResponse(user, Services.userApiAttempts, "N/A (fallback)"))
             }
@@ -558,7 +558,7 @@ fun Routing.resilienceRoutes() {
                 val result: Either<Throwable, UserProfile> = Kap { Services.fetchUserFlaky(userId) }
                         .withCircuitBreaker(userCircuitBreaker)
                         .attempt()
-                        .executeGraph()
+                        .evalGraph()
 
                 when (result) {
                     is Either.Right -> call.respond(UserResponse(result.value, Services.userApiAttempts, "0ms"))
@@ -605,7 +605,7 @@ fun Routing.resilienceRoutes() {
                         }
                 },
                 release = { probe -> println("  [Bracket] Released $probe") },
-            ).executeGraph()
+            ).evalGraph()
         checks.add(apiCheck)
 
         val overallStatus = if (checks.all { it.status == "ok" }) "healthy" else "degraded"
@@ -647,7 +647,7 @@ fun Routing.arrowRoutes() {
                 .mapV { it }
                 .mapError { err -> "${err::class.simpleName}: ${err.message}" }
                 .orThrow()
-                .executeGraph()
+                .evalGraph()
 
         call.respond(HttpStatusCode.Created, result)
     }
@@ -658,7 +658,7 @@ fun Routing.arrowRoutes() {
 
         val result: Either<NonEmptyList<String>, List<ValidatedEmail>> = req.emails.traverseV(3) { email ->
                 Kap { Services.validateEmailFormat(email) }
-            }.executeGraph()
+            }.evalGraph()
 
         when (result) {
             is Either.Right -> call.respond(BatchValidationResponse(result.value, null))
@@ -728,7 +728,7 @@ fun Routing.combinedRoutes() {
                             ).traced("confirmation", tracer)
                         )
                 }
-                .executeGraph()
+                .evalGraph()
 
         call.respond(HttpStatusCode.Created, order)
     }

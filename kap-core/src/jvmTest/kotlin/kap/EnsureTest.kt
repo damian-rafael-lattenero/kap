@@ -12,13 +12,13 @@ class EnsureTest {
     @Test
     fun `ensure passes when predicate holds`() = runTest {
         val graph = Kap.of(42).ensure({ IllegalStateException("nope") }) { it > 0 }
-        assertEquals(42, graph.executeGraph())
+        assertEquals(42, graph.evalGraph())
     }
 
     @Test
     fun `ensure throws when predicate fails`() = runTest {
         val graph = Kap.of(-1).ensure({ IllegalStateException("negative") }) { it > 0 }
-        assertFailsWith<IllegalStateException> { val r = graph.executeGraph() }
+        assertFailsWith<IllegalStateException> { val r = graph.evalGraph() }
     }
 
     @Test
@@ -26,7 +26,7 @@ class EnsureTest {
         data class User(val name: String, val active: Boolean)
         val graph = Kap.of(User("Alice", true))
             .ensure({ IllegalStateException("inactive") }) { it.active }
-        assertEquals(User("Alice", true), graph.executeGraph())
+        assertEquals(User("Alice", true), graph.evalGraph())
     }
 
     @Test
@@ -34,7 +34,7 @@ class EnsureTest {
         val graph = Kap.of(10)
             .ensure({ IllegalArgumentException("too small") }) { it >= 5 }
             .andThen { n -> Kap.of(n * 2) }
-        assertEquals(20, graph.executeGraph())
+        assertEquals(20, graph.evalGraph())
     }
 
     @Test
@@ -43,7 +43,7 @@ class EnsureTest {
         val graph = Kap.of(-1)
             .ensure({ IllegalStateException("bad") }) { it > 0 }
             .andThen { n -> andThenExecuted = true; Kap.of(n) }
-        assertFailsWith<IllegalStateException> { val r = graph.executeGraph() }
+        assertFailsWith<IllegalStateException> { val r = graph.evalGraph() }
         assertTrue(!andThenExecuted)
     }
 
@@ -61,7 +61,7 @@ class EnsureTest {
         }.ensure({ error("bad") }) { it > 0 }
 
         val graph = Kap.of { a: Int -> { b: Int -> a + b } }.with(compA).with(compB)
-        assertEquals(30, graph.executeGraph())
+        assertEquals(30, graph.evalGraph())
     }
 
     @Test
@@ -69,7 +69,7 @@ class EnsureTest {
         data class User(val name: String, val email: String?)
         val graph = Kap.of(User("Alice", "alice@test.com"))
             .ensureNotNull({ IllegalStateException("no email") }) { it.email }
-        assertEquals("alice@test.com", graph.executeGraph())
+        assertEquals("alice@test.com", graph.evalGraph())
     }
 
     @Test
@@ -77,7 +77,7 @@ class EnsureTest {
         data class User(val name: String, val email: String?)
         val graph = Kap.of(User("Bob", null))
             .ensureNotNull({ IllegalStateException("no email") }) { it.email }
-        assertFailsWith<IllegalStateException> { val r = graph.executeGraph() }
+        assertFailsWith<IllegalStateException> { val r = graph.evalGraph() }
     }
 
     @Test
@@ -86,7 +86,7 @@ class EnsureTest {
         val graph = Kap.of(Wrapper("hello"))
             .ensureNotNull({ error("null") }) { it.inner }
             .map { it.uppercase() }
-        assertEquals("HELLO", graph.executeGraph())
+        assertEquals("HELLO", graph.evalGraph())
     }
 
     @Test
@@ -104,7 +104,7 @@ class EnsureTest {
         }.ensureNotNull({ error("no url") }) { it.url }
 
         val graph = Kap.of { a: String -> { b: String -> "$a|$b" } }.with(compA).with(compB)
-        assertEquals("https://api.example.com|https://cdn.example.com", graph.executeGraph())
+        assertEquals("https://api.example.com|https://cdn.example.com", graph.evalGraph())
     }
 
     @Test
@@ -114,7 +114,7 @@ class EnsureTest {
             .ensure({ IllegalStateException("inactive") }) { it.active }
             .ensureNotNull({ IllegalStateException("no email") }) { it.email }
             .map { it.uppercase() }
-        assertEquals("ALICE@TEST.COM", graph.executeGraph())
+        assertEquals("ALICE@TEST.COM", graph.evalGraph())
     }
 
     @Test
@@ -122,7 +122,7 @@ class EnsureTest {
         val graph = Kap.of(-1)
             .ensure({ IllegalStateException("negative") }) { it > 0 }
             .recover { 0 }
-        assertEquals(0, graph.executeGraph())
+        assertEquals(0, graph.evalGraph())
     }
 
     @Test
@@ -132,7 +132,7 @@ class EnsureTest {
             attempts++
             if (attempts < 3) -1 else 42
         }.ensure({ IllegalStateException("bad") }) { it > 0 }.retry(3)
-        assertEquals(42, graph.executeGraph())
+        assertEquals(42, graph.evalGraph())
         assertEquals(3, attempts)
     }
 }

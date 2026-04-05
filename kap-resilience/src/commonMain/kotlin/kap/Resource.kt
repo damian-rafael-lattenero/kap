@@ -109,7 +109,7 @@ class Resource<out A> @PublishedApi internal constructor(
      *     kap(::Result)
      *         .with { Kap { conn.query("...") } }
      *         .with { Kap { conn.fetchMeta() } }
-     *         .executeGraph()
+     *         .evalGraph()
      * }
      * ```
      */

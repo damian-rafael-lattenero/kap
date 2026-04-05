@@ -1,7 +1,6 @@
 package kap.benchmarks
 
 import kap.*
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
@@ -10,7 +9,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.supervisorScope
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.openjdk.jmh.annotations.*
 import java.util.concurrent.TimeUnit
@@ -63,7 +61,7 @@ open class ResilienceBenchmark {
     @Benchmark fun kap_retry_schedule_times(): String = runBlocking {
                 Kap { networkCall("service", 30) }
             .retry(Schedule.times<Throwable>(3) and Schedule.spaced(kotlin.time.Duration.parse("10ms")))
-            .recover { "fallback" }.executeGraph()
+            .recover { "fallback" }.evalGraph()
     }
 
     @Benchmark fun kap_retry_schedule_exponential(): String = runBlocking {
@@ -73,7 +71,7 @@ open class ResilienceBenchmark {
                     .and(Schedule.exponential(kotlin.time.Duration.parse("1ms")))
                     .jittered()
             )
-            .recover { "fallback" }.executeGraph()
+            .recover { "fallback" }.evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -88,7 +86,7 @@ open class ResilienceBenchmark {
             attempts++
             if (attempts < 3) error("flaky")
             "ok"
-        }.retry(policy).executeGraph()
+        }.retry(policy).evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -109,7 +107,7 @@ open class ResilienceBenchmark {
             acquire = { "resource" },
             use = { r -> Kap { "$r-used" } },
             release = { },
-        ).executeGraph()
+        ).evalGraph()
     }
 
     @Benchmark fun raw_bracket_latency(): String = runBlocking {
@@ -136,7 +134,7 @@ open class ResilienceBenchmark {
                     .with { networkCall("$conn-q3", 50) }
             },
             release = { },
-        ).executeGraph()
+        ).evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -166,7 +164,7 @@ open class ResilienceBenchmark {
                     else -> {}
                 }
             },
-        ).executeGraph()
+        ).evalGraph()
     }
 
     @Benchmark fun kap_bracketCase_latency(): String = runBlocking {
@@ -179,7 +177,7 @@ open class ResilienceBenchmark {
                     .with { networkCall("$conn-q3", 50) }
             },
             release = { _, _ -> },
-        ).executeGraph()
+        ).evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -195,7 +193,7 @@ open class ResilienceBenchmark {
     }
 
     @Benchmark fun kap_guarantee_overhead(): String = runBlocking {
-        Kap { compute(1) }.guarantee { }.executeGraph()
+        Kap { compute(1) }.guarantee { }.evalGraph()
     }
 
     @Benchmark fun kap_guaranteeCase_overhead(): String = runBlocking {
@@ -205,7 +203,7 @@ open class ResilienceBenchmark {
                 is ExitCase.Failed -> {}
                 ExitCase.Cancelled -> {}
             }
-        }.executeGraph()
+        }.evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -258,11 +256,11 @@ open class ResilienceBenchmark {
     }
 
     @Benchmark fun kap_circuitBreaker_closed_overhead(): String = runBlocking {
-        Kap { compute(1) }.withCircuitBreaker(closedBreaker).executeGraph()
+        Kap { compute(1) }.withCircuitBreaker(closedBreaker).evalGraph()
     }
 
     @Benchmark fun kap_circuitBreaker_closed_latency(): String = runBlocking {
-        Kap { networkCall("service", 50) }.withCircuitBreaker(closedBreaker).executeGraph()
+        Kap { networkCall("service", 50) }.withCircuitBreaker(closedBreaker).evalGraph()
     }
 
     @Benchmark fun kap_circuitBreaker_halfOpen_probe(): String = runBlocking {
@@ -271,10 +269,10 @@ open class ResilienceBenchmark {
             resetTimeout = kotlin.time.Duration.parse("1ms"),
         )
         runCatching {
-            Kap<String> { error("trip") }.withCircuitBreaker(breaker).executeGraph()
+            Kap<String> { error("trip") }.withCircuitBreaker(breaker).evalGraph()
         }
         delay(2)
-        Kap { compute(1) }.withCircuitBreaker(breaker).executeGraph()
+        Kap { compute(1) }.withCircuitBreaker(breaker).evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -292,7 +290,7 @@ open class ResilienceBenchmark {
 
     @Benchmark fun kap_timeoutRace_primary_wins(): String = runBlocking {
                 Kap { networkCall("primary", 30) }
-            .timeoutRace(kotlin.time.Duration.parse("100ms"), Kap { networkCall("fallback", 80) }).executeGraph()
+            .timeoutRace(kotlin.time.Duration.parse("100ms"), Kap { networkCall("fallback", 80) }).evalGraph()
     }
 
     @Benchmark fun raw_timeoutRace_fallback_wins(): String = runBlocking {
@@ -309,12 +307,12 @@ open class ResilienceBenchmark {
 
     @Benchmark fun kap_timeoutRace_fallback_wins(): String = runBlocking {
                 Kap { networkCall("primary", 200) }
-            .timeoutRace(kotlin.time.Duration.parse("50ms"), Kap { networkCall("fallback", 30) }).executeGraph()
+            .timeoutRace(kotlin.time.Duration.parse("50ms"), Kap { networkCall("fallback", 30) }).evalGraph()
     }
 
     @Benchmark fun kap_timeoutRace_vs_timeout(): String = runBlocking {
                 Kap { networkCall("primary", 200) }
-            .timeout(kotlin.time.Duration.parse("50ms"), Kap { networkCall("fallback", 30) }).executeGraph()
+            .timeout(kotlin.time.Duration.parse("50ms"), Kap { networkCall("fallback", 30) }).evalGraph()
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -346,7 +344,7 @@ open class ResilienceBenchmark {
             Kap { networkCall("replica-3", 100) },
             Kap { networkCall("replica-4", 40) },
             Kap { networkCall("replica-5", 80) },
-        ).executeGraph()
+        ).evalGraph()
     }
 
     @Benchmark fun kap_raceQuorum_3of5(): List<String> = runBlocking {
@@ -357,7 +355,7 @@ open class ResilienceBenchmark {
             Kap { networkCall("replica-3", 100) },
             Kap { networkCall("replica-4", 40) },
             Kap { networkCall("replica-5", 80) },
-        ).executeGraph()
+        ).evalGraph()
     }
 
     @Benchmark fun kap_raceQuorum_2of3_overhead(): List<String> = runBlocking {
@@ -366,6 +364,6 @@ open class ResilienceBenchmark {
             Kap { compute(1) },
             Kap { compute(2) },
             Kap { compute(3) },
-        ).executeGraph()
+        ).evalGraph()
     }
 }

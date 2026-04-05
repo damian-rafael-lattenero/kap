@@ -31,7 +31,7 @@ class EnhancedCombinatorsTest {
             }.retry(
                 maxAttempts = 5,
                 shouldRetry = { it is IOException },
-            ).executeGraph()
+            ).evalGraph()
         }
         assertTrue(result.isFailure)
         assertIs<IllegalArgumentException>(result.exceptionOrNull())
@@ -49,7 +49,7 @@ class EnhancedCombinatorsTest {
             }.retry(
                 maxAttempts = 5,
                 shouldRetry = { it is IOException },
-            ).executeGraph()
+            ).evalGraph()
         }
         assertTrue(result.isFailure)
         assertIs<IllegalStateException>(result.exceptionOrNull())
@@ -79,7 +79,7 @@ class EnhancedCombinatorsTest {
                 onRetry = { attempt, error, nextDelay ->
                     records.add(RetryRecord(attempt, error.message!!, nextDelay))
                 },
-            ).executeGraph()
+            ).evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -110,7 +110,7 @@ class EnhancedCombinatorsTest {
                 onRetry = { _, _, _ ->
                     callbackTimes.add(currentTime)
                 },
-            ).executeGraph()
+            ).evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -152,7 +152,7 @@ class EnhancedCombinatorsTest {
                 onRetry = { attempt, error, nextDelay ->
                     logs.add(RetryLog(attempt, error::class.simpleName!!, nextDelay))
                 },
-            ).executeGraph()
+            ).evalGraph()
         }
 
         // Attempt 1: IOException -> shouldRetry=true, onRetry(1), delay 50ms
@@ -185,7 +185,7 @@ class EnhancedCombinatorsTest {
                 delay(30.milliseconds)
                 "fallback"
             },
-        ).executeGraph()
+        ).evalGraph()
 
         assertEquals("fallback", result)
         assertEquals(30L, currentTime,
@@ -203,7 +203,7 @@ class EnhancedCombinatorsTest {
                 delay(100.milliseconds)
                 "fallback"
             },
-        ).executeGraph()
+        ).evalGraph()
 
         assertEquals("primary", result)
         assertEquals(20L, currentTime,
@@ -223,7 +223,7 @@ class EnhancedCombinatorsTest {
                 delay(50.milliseconds)
                 "regular-fallback"
             },
-        ).executeGraph()
+        ).evalGraph()
         val regularTime = currentTime - startRegular
 
         assertEquals("regular-fallback", regularResult)
@@ -241,7 +241,7 @@ class EnhancedCombinatorsTest {
                 delay(50.milliseconds)
                 "race-fallback"
             },
-        ).executeGraph()
+        ).evalGraph()
         val raceTime = currentTime - startRace
 
         assertEquals("race-fallback", raceResult)
@@ -280,7 +280,7 @@ class EnhancedCombinatorsTest {
 
         val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
             .with(timeoutRaceBranch)
-            .with(retryBranch).executeGraph()
+            .with(retryBranch).evalGraph()
 
         assertEquals("cached|retried-ok", result)
         assertEquals(3, retryAttempts)
@@ -318,7 +318,7 @@ class EnhancedCombinatorsTest {
 
         val result = Kap.of { a: String -> { b: String -> "$a|$b" } }
             .with(ioBranch)
-            .with(stateBranch).executeGraph()
+            .with(stateBranch).evalGraph()
 
         assertEquals("io-ok|state-ok", result)
         assertEquals(3, ioAttempts, "IO branch should have taken 3 attempts")

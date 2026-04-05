@@ -108,7 +108,7 @@ kap(::CheckoutResult)
     .thenPayment(Kap { reservePayment() }                             // ── phase 4: barrier
         .withCircuitBreaker(breaker)                                  //    + circuit breaker
         .timeout(5.seconds))                                          //    + timeout
-    .executeGraph()
+    .evalGraph()
 ```
 
 Same 7 calls. Same retry, circuit breaker, timeout. But now the phases are *visible*. `.with` means parallel. `.then` means wait. The retry is on the call, not around it. The circuit breaker is on the call, not interleaved with it. You can read the execution plan top to bottom.
@@ -145,7 +145,7 @@ kap(::Dashboard)
     .withUser { fetchUser() }                // ┐
     .withFeed { fetchFeed() }                // ├─ all three run in parallel
     .withNotifications { countUnread() }     // ┘
-    .executeGraph()
+    .evalGraph()
 ```
 
 ```
@@ -170,7 +170,7 @@ kap(::CheckoutResult)
     .thenStock { validateStock() }       // ── phase 2: waits for phase 1
     .withShipping { calcShipping() }     // ┐ phase 3: parallel
     .withTax { calcTax() }              // ┘
-    .executeGraph()
+    .evalGraph()
 ```
 
 ```
@@ -206,7 +206,7 @@ kap(::UserContext)
             .withPromos { fetchPromotions(ctx.tier) }          // ├─ phase 2: parallel
             .withTrending { fetchTrending(ctx.prefs) }         // ┘
     }
-    .executeGraph()
+    .evalGraph()
 ```
 
 Phase 1 fetches the user context in parallel. Phase 2 uses that context to personalize — also in parallel. The dependency is explicit, type-safe, and readable.
@@ -240,7 +240,7 @@ kap(::CheckoutResult)
     .thenPayment { reservePayment() }              // ── phase 4: barrier
     .withConfirmation { generateConfirmation() }   // ┐ phase 5
     .withEmail { sendEmail() }                     // ┘
-    .executeGraph()
+    .evalGraph()
 ```
 
 ```
@@ -276,7 +276,7 @@ kap(::HomePage)
     .withProfile { fetchProfile() }              // critical — failure cancels everything
     .withFeed(settled { fetchFeed() })           // optional — failure returns Result.failure
     .withAds(settled { fetchAds() })             // optional — failure returns Result.failure
-    .executeGraph()
+    .evalGraph()
 // Feed throws? Profile and ads still complete. You get Result.failure for feed.
 ```
 
@@ -285,7 +285,7 @@ Need ALL results even if some fail? `traverseSettled` runs every item and collec
 ```kotlin
 val results = listOf("svc-a", "svc-b", "svc-c").traverseSettled { svc ->
     Kap { callService(svc) }
-}.executeGraph()
+}.evalGraph()
 // → [Success("ok"), Failure(TimeoutException), Success("ok")]
 ```
 
@@ -313,7 +313,7 @@ kap(::Dashboard)
     .withSlowData(Kap { fetchFromSlowApi() }
         .timeoutRace(100.milliseconds, Kap { fetchFromCache() }))
     .withPromos { fetchPromos() }
-    .executeGraph()
+    .evalGraph()
 ```
 
 `Schedule` policies are reusable objects — define once, apply anywhere. `timeoutRace` starts *both* the primary and fallback at t=0, so the fallback is already warm when the timeout fires. `bracket` guarantees cleanup even on cancellation:
@@ -327,7 +327,7 @@ bracket(
             .withMeta { conn.metadata() }
     },
     release = { conn -> conn.close() }  // runs in NonCancellable context
-).executeGraph()
+).evalGraph()
 ```
 
 ---
@@ -345,7 +345,7 @@ val result: Either<NonEmptyList<RegError>, User> = zipV(
     { validateAge(10) },              // ← too young
     { checkUsername("al") },          // ← too short
 ) { name, email, age, username -> User(name, email, age, username) }
-    .executeGraph()
+    .evalGraph()
 // → Left(NonEmptyList(NameTooShort, InvalidEmail, AgeTooLow, UsernameTaken))
 // ALL 4 errors in ONE response. No round trips.
 ```
@@ -380,7 +380,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
         .withV { validateAddress(input.address) }       // ┐ all three run in parallel
         .withV { validatePaymentInfo(input.card) }      // ├─ errors accumulate
         .withV { validateItems(input.items) }           // ┘
-        .executeGraph()
+        .evalGraph()
 
     val order = validated.getOrElse { return Either.Left(it) }
 
@@ -414,7 +414,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
             is ExitCase.Completed -> tx.commit()
             else                  -> tx.rollback()
         }}
-    ).executeGraph()
+    ).evalGraph()
 }
 ```
 
@@ -454,14 +454,14 @@ kap(::User)
     .withFirstName { fetchFirstName() }     // String
     .withLastName { fetchLastName() }       // String — could accidentally swap
     .withAge { fetchAge() }
-    .executeGraph()
+    .evalGraph()
 
 // Opaque types — enforces order AND type identity
 kapTyped(::User)
     .with { fetchFirstName().firstNameUser }   // String → UserFirstName
     .with { fetchLastName().lastNameUser }     // String → UserLastName
     .with { fetchAge().ageUser }               // Int → UserAge
-    .executeGraph()
+    .evalGraph()
 ```
 
 The IDE shows the expected opaque type in autocomplete — you always know which field comes next. Use `kap()` for most cases, `kapTyped()` when same-typed fields need extra safety.

@@ -109,7 +109,7 @@ suspend fun main() {
             Kap { fetchPricingReplicaA() },
             Kap { fetchPricingReplicaB() },
             Kap { fetchPricingReplicaC() },
-        ).executeGraph()
+        ).evalGraph()
 
     println("  Got ${pricing.size} pricing quotes:")
     pricing.forEach { println("    - ${it.source}: ${it.currency} ${it.price}") }
@@ -126,7 +126,7 @@ suspend fun main() {
 
     val retryResult = Kap { fetchUserFlaky(userAttempt++) }
             .retryWithResult(retryPolicy)
-            .executeGraph()
+            .evalGraph()
 
     println("  Fetched: ${retryResult.value.name} (tier=${retryResult.value.tier})")
     println("  Took ${retryResult.attempts} retries, ${retryResult.totalDelay} total delay")
@@ -150,7 +150,7 @@ suspend fun main() {
                 conn.close()
                 println("  Released: ${conn.name} (closed=${conn.closed})")
             },
-        ).executeGraph()
+        ).evalGraph()
 
     println("  Config: maxItems=${config.maxItems}, flags=${config.featureFlags}")
     println("  Connection cleaned up: ${dbConn[0]?.closed}")
@@ -176,7 +176,7 @@ suspend fun main() {
         kap(::DualConfig)
                 .withPrimary { pair.first.query() }
                 .withSecondary { pair.second.query() }
-                .executeGraph()
+                .evalGraph()
     }
     println("  DB config: ${dualConfig.primary}")
     println("  Cache config: ${dualConfig.secondary}")
@@ -189,7 +189,7 @@ suspend fun main() {
 
     val audit = Kap { fetchAuditLogSlow() }
             .timeoutRace(200.milliseconds, Kap { fetchAuditLogCache() })
-            .executeGraph()
+            .evalGraph()
 
     println("  Audit log: $audit")
     println("  (came from cache because slow source takes 500ms)")
@@ -214,7 +214,7 @@ suspend fun main() {
                     if (cbAttempt <= 4) throw RuntimeException("Service down (call $cbAttempt)")
                     "recovered!"
                 }.withCircuitBreaker(breaker)
-                .executeGraph()
+                .evalGraph()
         }
         println("  Call ${i + 1}: ${result.fold({ "OK: $it" }, { it.message ?: "error" })}")
     }
@@ -233,7 +233,7 @@ suspend fun main() {
             .retryOrElse(limitedPolicy) { err ->
                 "Fallback value (original error: ${err.message})"
             }
-            .executeGraph()
+            .evalGraph()
 
     println("  Result: $graceful")
     println("  (${elapsed()})\n")
@@ -275,7 +275,7 @@ suspend fun main() {
                 Kap { fetchAuditLogSlow() }
                     .timeoutRace(100.milliseconds, Kap { fetchAuditLogCache() })
             )
-            .executeGraph()
+            .evalGraph()
 
     val pipelineElapsed = System.currentTimeMillis() - pipelineStart
     println("  Pricing:  ${fullResult.pricing.source} @ ${fullResult.pricing.currency} ${fullResult.pricing.price}")

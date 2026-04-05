@@ -45,7 +45,7 @@ This is the same problem raw coroutines and Arrow have. No type system can catch
 data class User(val firstName: String, val lastName: String, val age: Int)
 
 // KSP generates a step builder with named methods:
-// kap(::User).withFirstName { }.withLastName { }.withAge { }.executeGraph()
+// kap(::User).withFirstName { }.withLastName { }.withAge { }.evalGraph()
 // Each step only exposes the next method — no way to swap.
 // No wrapper types. No companion object needed.
 ```
@@ -57,7 +57,7 @@ kap(::User)
     .withFirstName { fetchFirstName() }   // Only withFirstName is available here
     .withLastName { fetchLastName() }     // Only withLastName is available here — swap? COMPILE ERROR
     .withAge { fetchAge() }               // Only withAge is available here
-    .executeGraph()
+    .evalGraph()
 ```
 
 **Multiplatform compatible** — generates plain Kotlin code that compiles on every Kotlin target (JVM, JS, WASM, Native, iOS, macOS). Zero overhead — no wrapper types, no extra allocations.
@@ -76,7 +76,7 @@ fun buildDashboard(userName: String, cartSummary: String, promoCode: String): Da
     Dashboard(userName, cartSummary, promoCode)
 
 // KSP generates a marker object: BuildDashboard
-// Usage: kap(BuildDashboard).withUserName { }.withCartSummary { }.withPromoCode { }.executeGraph()
+// Usage: kap(BuildDashboard).withUserName { }.withCartSummary { }.withPromoCode { }.evalGraph()
 ```
 
 ```kotlin
@@ -84,7 +84,7 @@ kap(BuildDashboard)
     .withUserName { fetchUserName() }
     .withCartSummary { fetchCartSummary() }
     .withPromoCode { fetchPromoCode() }
-    .executeGraph()
+    .evalGraph()
 ```
 
 Generated entry point: `kap(::ClassName)` for classes, `kap(MarkerObject)` for functions (KSP generates the marker object from the function name in PascalCase).
@@ -111,14 +111,14 @@ kap(BuildDashboard)
     .withDashboardUserName { fetchUserName() }      // no collision
     .withDashboardCartSummary { fetchCartSummary() }
     .withDashboardPromoCode { fetchPromoCode() }
-    .executeGraph()
+    .evalGraph()
 
 // Report
 kap(BuildReport)
     .withReportUserName { fetchUserName() }          // no collision
     .withReportDateRange { fetchDateRange() }
     .withReportFormat { fetchFormat() }
-    .executeGraph()
+    .evalGraph()
 ```
 
 **Default is no prefix** — clean and short. Add prefix only when you need it.
@@ -138,7 +138,7 @@ kap(::ThirdPartyUser)
     .withFirstName { fetchFirstName() }
     .withLastName { fetchLastName() }
     .withAge { fetchAge() }
-    .executeGraph()
+    .evalGraph()
 ```
 
 KSP reads the constructor parameters from the bridged class and generates the same named step methods as if the class had `@KapTypeSafe` directly.
@@ -151,7 +151,7 @@ For each `@KapTypeSafe` annotated class or function:
 
 | Generated | Example |
 |---|---|
-| Step builder chain | `kap(::User).withFirstName { }.withLastName { }.withAge { }.executeGraph()` |
+| Step builder chain | `kap(::User).withFirstName { }.withLastName { }.withAge { }.evalGraph()` |
 | Named method per param | `.withFirstName { }`, `.withLastName { }`, `.withAge { }` |
 | Marker object (functions only) | `object BuildDashboard` |
 
@@ -191,7 +191,7 @@ Each step interface exposes only the next parameter's method — IDE autocomplet
         .withFirstName { fetchFirstName() }   // Only withFirstName available
         .withLastName { fetchLastName() }     // Only withLastName available
         .withAge { fetchAge() }               // Only withAge available
-        .executeGraph()
+        .evalGraph()
     ```
 
 ---

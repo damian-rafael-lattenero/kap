@@ -49,7 +49,7 @@ class CompositionProofTest {
                     Kap.of { c: String -> { d: String -> "$ab|$c|$d" } }
                         .with { delay(50); "C" }
                         .with { delay(50); "D" }
-                }.executeGraph()
+                }.evalGraph()
 
         assertEquals("A|B|C|D", result)
         // t=0: A, B launch. t=30: A, B done, andThen lambda runs, C+D launch.
@@ -65,7 +65,7 @@ class CompositionProofTest {
                 .with { delay(30); "A" }
                 .then { delay(50); "B" }  // barrier
                 .with { delay(30); "C" }  // waits for barrier, launches at t=80
-                .executeGraph()
+                .evalGraph()
         val thenTime = currentTime  // 30 + 50 + 30 = 110ms
 
         // andThen version: same timing, but passes value
@@ -77,7 +77,7 @@ class CompositionProofTest {
                 Kap.of { c: String -> { d: String -> "$ab|$c|$d" } }
                     .with { delay(50); "C" }
                     .with { delay(50); "D" }
-            }.executeGraph()
+            }.evalGraph()
         val andThenTime = currentTime - thenTime  // 30 + 50 = 80ms
 
         assertEquals("A|B|C", thenResult)
@@ -92,7 +92,7 @@ class CompositionProofTest {
                 .with { delay(30); "A" }
                 .thenValue { delay(50); "B" }
                 .with { delay(30); "C" }          // launches at t=0, overlaps
-                .executeGraph()
+                .evalGraph()
         val thenValueTime = currentTime  // 30 + 50 = 80ms (C was already done)
 
         assertEquals("A|B|C", thenValueResult)
@@ -107,7 +107,7 @@ class CompositionProofTest {
                     .with { delay(30); base * 2 }  // 20
                     .with { delay(30); base * 3 }  // 30
                     .with { delay(30); base * 4 }  // 40
-            }.executeGraph()
+            }.evalGraph()
 
         assertEquals(90, result) // 20 + 30 + 40
         // t=0-20: compute base. t=20-50: three parallel multiplications. Total: 50ms
@@ -127,7 +127,7 @@ class CompositionProofTest {
                     with(Kap { delay(500); "slow-B" }
                         .timeout(50.milliseconds, "timeout-B")) { execute() }
                 }
-                .with { delay(30); "fast-C" }.executeGraph()
+                .with { delay(30); "fast-C" }.evalGraph()
 
         assertEquals("fast-A|timeout-B|fast-C", result)
         // All launch at t=0. A done at 30, C done at 30, B times out at 50.
@@ -142,7 +142,7 @@ class CompositionProofTest {
                     with(Kap { delay(20); "fast" }
                         .timeout(100.milliseconds, "timeout")) { execute() }
                 }
-                .with { delay(30); "other" }.executeGraph()
+                .with { delay(30); "other" }.evalGraph()
 
         assertEquals("fast|other", result)
         assertEquals(30, currentTime, "Max(20,30) = 30ms")
@@ -164,7 +164,7 @@ class CompositionProofTest {
                         delay(20); "recovered-B"
                     }.retry(3, delay = 10.milliseconds)) { execute() }
                 }
-                .with { delay(30); "stable-A" }.executeGraph()
+                .with { delay(30); "stable-A" }.evalGraph()
 
         assertEquals("recovered-B|stable-A", result)
         assertEquals(3, attempts)
@@ -187,7 +187,7 @@ class CompositionProofTest {
                     with(Kap<String> { throw RuntimeException("boom") }
                         .recover { "recovered" }) { execute() }
                 }
-                .with { delay(30); "C" }.executeGraph()
+                .with { delay(30); "C" }.evalGraph()
 
         // B failed and recovered immediately. A and C completed normally.
         assertEquals("A|recovered|C", result)
@@ -206,7 +206,7 @@ class CompositionProofTest {
                     }
                     .with {
                         throw RuntimeException("B-crash")
-                    }.executeGraph()
+                    }.evalGraph()
         }
 
         assertTrue(result.isFailure, "B's exception should propagate")
@@ -222,7 +222,7 @@ class CompositionProofTest {
         val result = race(
                 Kap { delay(100); "slow" },
                 Kap { delay(20); "fast" },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("fast", result)
         assertEquals(20, currentTime,
@@ -236,7 +236,7 @@ class CompositionProofTest {
                 Kap { delay(200); "b" },
                 Kap { delay(10); "c" },
                 Kap { delay(150); "d" },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals("c", result)
         assertEquals(10, currentTime,
@@ -252,7 +252,7 @@ class CompositionProofTest {
                         Kap { delay(20); "cache-A" },
                     )) { execute() }
                 }
-                .with { delay(30); "B" }.executeGraph()
+                .with { delay(30); "B" }.evalGraph()
 
         assertEquals("cache-A|B", result)
         // race(100,20) = 20ms, B = 30ms. All parallel. Total = max(20,30) = 30ms
@@ -292,7 +292,7 @@ class CompositionProofTest {
                         Kap { delay(100); "shipping-api" },
                         Kap { delay(15); "shipping-cache" },
                     )) { execute() }
-                }.executeGraph()
+                }.evalGraph()
 
         assertEquals("user-data|cart-data|promos-cached|shipping-cache", result)
         assertEquals(2, fetchAttempts)
@@ -315,7 +315,7 @@ class CompositionProofTest {
                 .then { delay(20); "A" }
                 .then { delay(30); "B" }
                 .then { delay(40); "C" }
-                .then { delay(10); "D" }.executeGraph()
+                .then { delay(10); "D" }.evalGraph()
 
         assertEquals("A|B|C|D", result)
         // All barriers sequential: 20 + 30 + 40 + 10 = 100ms
@@ -330,7 +330,7 @@ class CompositionProofTest {
                 Kap { delay(50); "B" },
                 Kap { delay(20); "C" },
                 Kap { delay(40); "D" },
-            ).sequence().executeGraph()
+            ).sequence().evalGraph()
 
         assertEquals(listOf("A", "B", "C", "D"), result)
         assertEquals(50, currentTime,
@@ -355,7 +355,7 @@ class CompositionProofTest {
         assertEquals(false, executed, "Kap should NOT execute during construction")
 
         // Now execute
-        val result = graph.executeGraph()
+        val result = graph.evalGraph()
         assertEquals(true, executed, "Kap should execute inside ")
         assertEquals("A|B|C", result)
     }
@@ -366,9 +366,9 @@ class CompositionProofTest {
 
         val graph = Kap { ++counter }
 
-        val r1 = graph.executeGraph()
-        val r2 = graph.executeGraph()
-        val r3 = graph.executeGraph()
+        val r1 = graph.evalGraph()
+        val r2 = graph.evalGraph()
+        val r3 = graph.evalGraph()
 
         assertEquals(1, r1)
         assertEquals(2, r2)

@@ -74,7 +74,7 @@ class KapPluginTest {
 
         routing {
             get("/test") {
-                val result = Kap { "hello" }.traced("my-op", call.kapTracer).executeGraph()
+                val result = Kap { "hello" }.traced("my-op", call.kapTracer).evalGraph()
                 call.respondText(result)
             }
         }
@@ -121,7 +121,7 @@ class KapPluginTest {
                 val breaker = call.circuitBreaker("flaky-api")
                 try {
                                         Kap<String> { throw RuntimeException("fail") }
-                        .withCircuitBreaker(breaker).executeGraph()
+                        .withCircuitBreaker(breaker).evalGraph()
                 } catch (_: Exception) { }
                 call.respondText(breaker.currentState.name)
             }
@@ -141,7 +141,7 @@ class KapPluginTest {
 
         routing {
             get("/test") {
-                val result = Kap { "value" }.traced("op", call.kapTracer).executeGraph()
+                val result = Kap { "value" }.traced("op", call.kapTracer).evalGraph()
                 call.respondText(result)
             }
         }

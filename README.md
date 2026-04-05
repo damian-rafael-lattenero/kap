@@ -112,8 +112,7 @@ kap(::CheckoutResult)
     .withTax { calcTax() }                                            // ┘
     .thenPayment(Kap { reservePayment() }                             // ── phase 4: barrier
         .withCircuitBreaker(breaker)                                  //    + circuit breaker
-        .timeout(5.seconds))                                          //    + timeout
-    .executeGraph()
+        .timeout(5.seconds))()                                          //    + timeout
 ```
 
 Same 7 calls, same 4 phases, same retry, same circuit breaker, same timeouts. `.with` = parallel, `.then` = barrier. Resilience is per-call, inline, composable.
@@ -147,8 +146,7 @@ data class Dashboard(val user: String, val feed: String, val notifications: Int)
 kap(::Dashboard)
     .withUser { fetchUser() }                // ┐
     .withFeed { fetchFeed() }                // ├─ all three run in parallel
-    .withNotifications { countUnread() }     // ┘
-    .executeGraph()
+    .withNotifications { countUnread() }()     // ┘
 ```
 
 Need one field to wait for another? Change `.with` to `.then`:
@@ -160,8 +158,7 @@ data class ProfilePage(val user: String, val avatar: String, val recommendations
 kap(::ProfilePage)
     .withUser { fetchUser(id) }                              // ┐ parallel
     .withAvatar { fetchAvatar(id) }                          // ┘
-    .thenRecommendations { fetchRecommendations(user) }      // waits for user, then fetches
-    .executeGraph()
+    .thenRecommendations { fetchRecommendations(user) }()      // waits for user, then fetches
 ```
 
 Need the result of one graph to decide what to build next? Use `.andThen`:
@@ -176,11 +173,10 @@ kap(::Dashboard)
         kap(::FullPage)
             .withDashboard { dashboard }
             .withSuggestions { fetchSuggestions(dashboard.user) }
-    }
-    .executeGraph()
+    }()
 ```
 
-Nothing runs until `.executeGraph()`. The graph is data — you can build it dynamically, pass it around, compose it.
+Nothing runs until `()`. The graph is data — you can build it dynamically, pass it around, compose it.
 
 ---
 
@@ -210,8 +206,7 @@ kap(::CheckoutResult)
     .withDiscounts { calcDiscounts() }             // ┘
     .thenPayment { reservePayment() }              // ── phase 4: barrier
     .withConfirmation { generateConfirmation() }   // ┐ phase 5
-    .withEmail { sendEmail() }                     // ┘
-    .executeGraph()
+    .withEmail { sendEmail() }()                     // ┘
 ```
 
 <details>
@@ -265,8 +260,7 @@ data class HomePage(val profile: String, val feed: Result<String>, val ads: Resu
 kap(::HomePage)
     .withProfile { fetchProfile() }              // critical — failure cancels everything
     .withFeed(settled { fetchFeed() })           // optional — failure returns Result.failure
-    .withAds(settled { fetchAds() })             // optional — failure returns Result.failure
-    .executeGraph()
+    .withAds(settled { fetchAds() })()             // optional — failure returns Result.failure
 // Feed throws? Profile and ads still complete. You get Result.failure for feed.
 ```
 
@@ -275,7 +269,7 @@ Need ALL results even if some fail? `sequenceSettled` runs every item and collec
 ```kotlin
 val results = listOf("svc-a", "svc-b", "svc-c").traverseSettled { svc ->
     Kap { callService(svc) }
-}.executeGraph()
+}()
 // → [Success("ok"), Failure(TimeoutException), Success("ok")]
 ```
 
@@ -290,7 +284,7 @@ val price = raceN(
     Kap { pricingFromUS(item) },
     Kap { pricingFromEU(item) },
     Kap { pricingFromAsia(item) },
-).executeGraph()  // fastest response wins, other two cancelled
+)()  // fastest response wins, other two cancelled
 ```
 
 **Bounded concurrency** — process N items, max M at a time:
@@ -298,15 +292,14 @@ val price = raceN(
 ```kotlin
 val users = userIds.traverse(concurrency = 5) { id ->
     Kap { fetchUser(id) }
-}.executeGraph()  // 100 users, 5 at a time, results in order
+}()  // 100 users, 5 at a time, results in order
 ```
 
 **Timeout with parallel fallback** — don't wait, race against the cache:
 
 ```kotlin
 val data = Kap { fetchFromApi() }
-    .timeoutRace(2.seconds, fallback = Kap { readFromCache() })
-    .executeGraph()  // both start at t=0, API wins if fast enough, cache if not
+    .timeoutRace(2.seconds, fallback = Kap { readFromCache() })()  // both start at t=0, API wins if fast enough, cache if not
 ```
 
 **Composable retry** — define once, reuse everywhere:
@@ -317,7 +310,7 @@ val policy = Schedule.exponential<Throwable>(100.milliseconds)
     .and(Schedule.times(3))              // max 3 attempts
     .withMaxDuration(10.seconds)         // total budget
 
-Kap { callFlakyService() }.retry(policy).executeGraph()
+Kap { callFlakyService() }.retry(policy)()
 ```
 
 **Timed** — measure any call without manual instrumentation:
@@ -328,8 +321,7 @@ data class Dashboard(val user: String, val latency: TimedResult<String>)
 
 kap(::Dashboard)
     .withUser { fetchUser() }
-    .withLatency(timed { fetchSlowService() })   // TimedResult(value, duration)
-    .executeGraph()
+    .withLatency(timed { fetchSlowService() })()   // TimedResult(value, duration)
 // dashboard.latency.duration → 230.ms
 ```
 
@@ -366,8 +358,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
     val validated = kapV<OrderError, ValidAddress, ValidCard, ValidItems, ValidOrder>(::ValidOrder)
         .withV { validateAddress(input.address) }       // ┐ all three run in parallel
         .withV { validatePaymentInfo(input.card) }      // ├─ errors accumulate
-        .withV { validateItems(input.items) }           // ┘
-        .executeGraph()
+        .withV { validateItems(input.items) }()           // ┘
 
     val order = validated.getOrElse { return Either.Left(it) }
 
@@ -401,7 +392,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
             is ExitCase.Completed -> tx.commit()
             else                  -> tx.rollback()
         }}
-    ).executeGraph()
+    )()
 }
 ```
 
@@ -533,8 +524,7 @@ KAP's `kap-arrow` module builds on Arrow's `Either` and `NonEmptyList` for paral
 val result: Either<Nel<OrderError>, OrderResult> =
     kapV<OrderError, ValidEmail, ValidAge, User>(::User)
         .withV { validateEmail(input) }    // returns Either<Nel<OrderError>, ValidEmail>
-        .withV { validateAge(input) }      // returns Either<Nel<OrderError>, ValidAge>
-        .executeGraph()
+        .withV { validateAge(input) }()      // returns Either<Nel<OrderError>, ValidAge>
 // Both run in parallel. Both errors collected. Arrow types, KAP execution.
 ```
 
@@ -558,9 +548,20 @@ get("/checkout/{id}") {
     val result = kap(::CheckoutResult)
         .withUser { userService.fetch(id) }
         .withCart { cartService.fetch(id) }
-        .withPromos { promoService.fetch(id) }
-        .executeGraph()
+        .withPromos { promoService.fetch(id) }()                  // () is shorthand for ()
     call.respond(result)
+}
+
+// Spring Boot
+@RestController
+class CheckoutController(val userService: UserService, val cartService: CartService) {
+
+    @GetMapping("/checkout/{id}")
+    suspend fun checkout(@PathVariable id: String): CheckoutResult =
+        kap(::CheckoutResult)
+            .withUser { userService.fetch(id) }
+            .withCart { cartService.fetch(id) }
+            .withPromos { promoService.fetch(id) }()
 }
 
 // Android ViewModel
@@ -571,43 +572,13 @@ class HomeViewModel : ViewModel() {
         val home = kap(::HomeData)
             .withProfile { repo.fetchProfile() }
             .withFeed(settled { repo.fetchFeed() })
-            .withNotifications { repo.countUnread() }
-            .executeGraph()
+            .withNotifications { repo.countUnread() }()
         state.value = Ready(home)
     }
 }
 ```
 
 No framework, no runtime, no annotation processing at runtime. Your suspend functions go in, your data class comes out.
-
----
-
-## Extra type safety with `kapTyped`
-
-`kap(::User)` with `@KapTypeSafe` enforces parameter **order** — you can't call `.withAge` before `.withName`. But if two fields share the same type (`firstName: String`, `lastName: String`), nothing stops you from returning the wrong value inside the lambda.
-
-`kapTyped` solves this with **opaque wrapper types**. Each field gets a distinct type (`UserFirstName`, `UserLastName`), so the compiler rejects mismatches:
-
-```kotlin
-@KapTypeSafe
-data class User(val firstName: String, val lastName: String, val age: Int)
-
-// Named builders (kap) — enforces order, accepts raw types
-kap(::User)
-    .withFirstName { fetchFirstName() }    // String
-    .withLastName { fetchLastName() }      // String — could accidentally swap
-    .withAge { fetchAge() }
-    .executeGraph()
-
-// Opaque types (kapTyped) — enforces order AND type identity
-kapTyped(::User)
-    .with { fetchFirstName().firstNameUser }   // String → UserFirstName
-    .with { fetchLastName().lastNameUser }     // String → UserLastName
-    .with { fetchAge().ageUser }               // Int → UserAge
-    .executeGraph()
-```
-
-The IDE shows the expected opaque type in autocomplete, so you always know which field comes next. Use `kap()` for most cases, `kapTyped()` when same-typed fields need extra safety.
 
 ---
 

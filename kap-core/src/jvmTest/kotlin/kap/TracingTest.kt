@@ -20,7 +20,7 @@ class TracingTest {
                 onStart = { events += "start:$it" },
                 onSuccess = { name, _ -> events += "success:$name" },
                 onError = { name, _, _ -> events += "error:$name" },
-            ).executeGraph()
+            ).evalGraph()
 
         assertEquals(42, result)
         assertEquals(listOf("start:compute", "success:compute"), events)
@@ -37,7 +37,7 @@ class TracingTest {
                         onStart = { events += "start:$it" },
                         onSuccess = { name, _ -> events += "success:$name" },
                         onError = { name, _, e -> events += "error:$name:${e.message}" },
-                    ).executeGraph()
+                    ).evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -56,7 +56,7 @@ class TracingTest {
                         onStart = { events += "start:$it" },
                         onSuccess = { name, _ -> events += "success:$name" },
                         onError = { name, _, _ -> events += "error:$name" },
-                    ).executeGraph()
+                    ).evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -71,7 +71,7 @@ class TracingTest {
         Kap { delay(10.milliseconds); "done" }.traced(
                 name = "timed",
                 onSuccess = { _, duration -> recordedDuration = duration },
-            ).executeGraph()
+            ).evalGraph()
 
         assertTrue(recordedDuration!! >= kotlin.time.Duration.ZERO)
     }
@@ -81,7 +81,7 @@ class TracingTest {
         val events = mutableListOf<TraceEvent>()
         val tracer = KapTracer { events += it }
 
-        val result = Kap.of(99).traced("op", tracer).executeGraph()
+        val result = Kap.of(99).traced("op", tracer).evalGraph()
 
         assertEquals(99, result)
         assertEquals(2, events.size)
@@ -98,7 +98,7 @@ class TracingTest {
 
         val result = runCatching {
             Kap<String> { throw RuntimeException("fail") }
-                    .traced("broken", tracer).executeGraph()
+                    .traced("broken", tracer).evalGraph()
         }
 
         assertTrue(result.isFailure)
@@ -116,7 +116,7 @@ class TracingTest {
 
         val result = Kap.of { a: Int -> { b: Int -> a + b } }
                 .with(Kap.of(10).traced("left", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n }))
-                .with(Kap.of(20).traced("right", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n })).executeGraph()
+                .with(Kap.of(20).traced("right", onStart = { started += it }, onSuccess = { n, _ -> succeeded += n })).evalGraph()
 
         assertEquals(30, result)
         assertTrue("left" in started)

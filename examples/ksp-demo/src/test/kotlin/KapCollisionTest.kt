@@ -17,12 +17,12 @@ class KapCollisionTest {
         val g = kap(Greet)
             .withName { "Alice" }
             .withAge { 30 }
-            .executeGraph()
+            .evalGraph()
 
         val f = kap(Farewell)
             .withName { "Alice" }
             .withAge { 30 }
-            .executeGraph()
+            .evalGraph()
 
         assertEquals("Hello Alice, you are 30", g)
         assertEquals("Bye Alice, you are 30", f)

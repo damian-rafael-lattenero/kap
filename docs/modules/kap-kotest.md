@@ -58,13 +58,13 @@ Prove parallel execution in virtual-time tests:
 ```kotlin
 @Test
 fun `runs 5 tasks in parallel`() = runTest {
-    items.traverse { Kap { delay(50); it } }.executeGraph()
+    items.traverse { Kap { delay(50); it } }.evalGraph()
     currentTime.shouldBeMillis(50, "5 tasks should complete in 50ms, not 250ms")
 }
 
 @Test
 fun `completes within timeout`() = runTest {
-    Kap { delay(80) }.executeGraph()
+    Kap { delay(80) }.evalGraph()
     currentTime.shouldBeAtMostMillis(100)
 }
 
@@ -74,7 +74,7 @@ fun `proves parallelism`() = runTest {
         .with(Kap { delay(50) })
         .with(Kap { delay(50) })
         .with(Kap { delay(50) })
-        .executeGraph()
+        .evalGraph()
     currentTime.shouldProveParallel(taskCount = 3, taskDurationMs = 50)
 }
 ```
@@ -116,7 +116,7 @@ bracket(
     acquire = { lifecycle.record("acquire"); openDb() },
     use = { lifecycle.record("use"); Kap { it.query() } },
     release = { lifecycle.record("release"); it.close() }
-).executeGraph()
+).evalGraph()
 
 lifecycle.shouldHaveEvents("acquire", "use", "release")
 lifecycle.shouldHaveReleasedAfterUse("use", "release")
@@ -136,7 +136,7 @@ val left: Either<String, Int> = Either.Left("error")
 left.shouldBeLeft("error")
 
 // Validation error accumulation
-val result: Either<NonEmptyList<RegError>, User> = zipV(...) { ... }.executeGraph()
+val result: Either<NonEmptyList<RegError>, User> = zipV(...) { ... }.evalGraph()
 result.shouldHaveErrors(3)
 result.shouldContainError(RegError.NameTooShort(2))
 ```
