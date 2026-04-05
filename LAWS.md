@@ -2,18 +2,18 @@
 
 Unlike most Kotlin libraries, every algebraic law is **property-based tested** with random inputs via Kotest. This means refactoring with these combinators is provably safe — the laws guarantee substitutability.
 
-## `Effect` satisfies Functor, Applicative, and Monad laws
+## `Kap` satisfies Functor, Applicative, and Monad laws
 
 | Law | Property | What it guarantees |
 |---|---|---|
 | Functor Identity | `fa.map { it } == fa` | `map` with identity is a no-op |
 | Functor Composition | `fa.map(g).map(f) == fa.map { f(g(it)) }` | Fusing two maps is safe |
-| Applicative Identity | `Effect.of(id) with fa == fa` | Lifting identity does nothing |
-| Applicative Homomorphism | `Effect.of(f) with Effect.of(x) == Effect.of(f(x))` | Pure values compose purely |
-| Applicative Interchange | `u with Effect.of(y) == Effect.of { f -> f(y) } with u` | Order of pure application doesn't matter |
-| Applicative Composition | `Effect.of(compose) with u with v with w == u with (v with w)` | Composition is associative |
-| Monad Left Identity | `Effect.of(a).andThen(f) == f(a)` | Wrapping then andThen is same as direct call |
-| Monad Right Identity | `m.andThen { Effect.of(it) } == m` | andThen with wrap is identity |
+| Applicative Identity | `Kap.of(id) with fa == fa` | Lifting identity does nothing |
+| Applicative Homomorphism | `Kap.of(f) with Kap.of(x) == Kap.of(f(x))` | Pure values compose purely |
+| Applicative Interchange | `u with Kap.of(y) == Kap.of { f -> f(y) } with u` | Order of pure application doesn't matter |
+| Applicative Composition | `Kap.of(compose) with u with v with w == u with (v with w)` | Composition is associative |
+| Monad Left Identity | `Kap.of(a).andThen(f) == f(a)` | Wrapping then andThen is same as direct call |
+| Monad Right Identity | `m.andThen { Kap.of(it) } == m` | andThen with wrap is identity |
 | Monad Associativity | `(m.andThen(f)).andThen(g) == m.andThen { f(it).andThen(g) }` | andThen chains are associative |
 
 ## `Validated` (withV/zipV) satisfies Applicative laws

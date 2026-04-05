@@ -408,15 +408,16 @@ suspend fun fetchCart(): String { delay(40); return "3 items" }
 suspend fun fetchPromos(): String { delay(30); return "SAVE20" }
 
 suspend fun main() {
-    // evalGraphTimed() returns the result + how long it took
-    val (dashboard, duration) = kap(::Dashboard)
+    // timed().evalGraph() returns TimedResult(value, duration)
+    val result = kap(::Dashboard)
         .withUser { fetchUser() }
         .withCart { fetchCart() }
         .withPromos { fetchPromos() }
-        .evalGraphTimed()
+        .timed()
+        .evalGraph()
 
-    println(dashboard)
-    println("Built in ${duration.inWholeMilliseconds}ms")
+    println(result.value)
+    println("Built in ${result.duration.inWholeMilliseconds}ms")
     // Dashboard(user=Alice, cart=3 items, promos=SAVE20)
     // Built in 50ms (parallel, not 120ms sequential)
 }
