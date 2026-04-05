@@ -335,6 +335,20 @@ val config = Kap { loadRemoteConfig() }.memoizeOnSuccess()
 // if it fails, next caller retries (failures are NOT cached)
 ```
 
+**Real HTTP** — not just simulated delays. This hits the GitHub API:
+
+```kotlin
+@KapTypeSafe
+data class DeveloperProfile(val user: GithubUser, val topRepos: List<GithubRepo>, val funFact: String)
+
+val profile = kap(::DeveloperProfile)
+    .withUser { client.get("https://api.github.com/users/kotlin").body() }
+    .withTopRepos { client.get("https://api.github.com/users/kotlin/repos?sort=stars").body() }
+    .withFunFact { client.get("https://catfact.ninja/fact").body<CatFact>().fact }
+    .evalGraph()
+// 3 HTTP calls in parallel, one result. See examples/real-world-http for the full example.
+```
+
 ---
 
 ## The full picture
