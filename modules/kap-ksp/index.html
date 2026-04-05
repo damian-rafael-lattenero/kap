@@ -1196,7 +1196,7 @@
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">User</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">firstName</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">lastName</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">age</span><span class="p">:</span><span class="w"> </span><span class="kt">Int</span><span class="p">)</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1">// KSP generates a step builder with named methods:</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1">// kap(::User).withFirstName { }.withLastName { }.withAge { }.executeGraph()</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1">// kap(::User).withFirstName { }.withLastName { }.withAge { }.evalGraph()</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1">// Each step only exposes the next method — no way to swap.</span>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1">// No wrapper types. No companion object needed.</span>
 </span></code></pre></div>
@@ -1205,7 +1205,7 @@
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="p">.</span><span class="na">withFirstName</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchFirstName</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// Only withFirstName is available here</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="p">.</span><span class="na">withLastName</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchLastName</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">     </span><span class="c1">// Only withLastName is available here — swap? COMPILE ERROR</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="p">.</span><span class="na">withAge</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchAge</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">               </span><span class="c1">// Only withAge is available here</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="p">.</span><span class="na">executeGraph</span><span class="p">()</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span></code></pre></div>
 <p><strong>Multiplatform compatible</strong> — generates plain Kotlin code that compiles on every Kotlin target (JVM, JS, WASM, Native, iOS, macOS). Zero overhead — no wrapper types, no extra allocations.</p>
 <hr />
@@ -1218,13 +1218,13 @@
 </span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="n">Dashboard</span><span class="p">(</span><span class="n">userName</span><span class="p">,</span><span class="w"> </span><span class="n">cartSummary</span><span class="p">,</span><span class="w"> </span><span class="n">promoCode</span><span class="p">)</span>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
 </span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1">// KSP generates a marker object: BuildDashboard</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1">// Usage: kap(BuildDashboard).withUserName { }.withCartSummary { }.withPromoCode { }.executeGraph()</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1">// Usage: kap(BuildDashboard).withUserName { }.withCartSummary { }.withPromoCode { }.evalGraph()</span>
 </span></code></pre></div>
 <div class="language-kotlin highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">kap</span><span class="p">(</span><span class="n">BuildDashboard</span><span class="p">)</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="p">.</span><span class="na">withUserName</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUserName</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="p">.</span><span class="na">withCartSummary</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchCartSummary</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="p">.</span><span class="na">withPromoCode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchPromoCode</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="p">.</span><span class="na">executeGraph</span><span class="p">()</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span></code></pre></div>
 <p>Generated entry point: <code>kap(::ClassName)</code> for classes, <code>kap(MarkerObject)</code> for functions (KSP generates the marker object from the function name in PascalCase).</p>
 <hr />
@@ -1242,14 +1242,14 @@
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="p">.</span><span class="na">withDashboardUserName</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUserName</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">      </span><span class="c1">// no collision</span>
 </span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="p">.</span><span class="na">withDashboardCartSummary</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchCartSummary</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 </span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="p">.</span><span class="na">withDashboardPromoCode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchPromoCode</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="p">.</span><span class="na">executeGraph</span><span class="p">()</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
 </span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="c1">// Report</span>
 </span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="n">kap</span><span class="p">(</span><span class="n">BuildReport</span><span class="p">)</span>
 </span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="p">.</span><span class="na">withReportUserName</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUserName</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">          </span><span class="c1">// no collision</span>
 </span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="p">.</span><span class="na">withReportDateRange</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchDateRange</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 </span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">    </span><span class="p">.</span><span class="na">withReportFormat</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchFormat</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="p">.</span><span class="na">executeGraph</span><span class="p">()</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span></code></pre></div>
 <p><strong>Default is no prefix</strong> — clean and short. Add prefix only when you need it.</p>
 <hr />
@@ -1263,7 +1263,7 @@
 </span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="p">.</span><span class="na">withFirstName</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchFirstName</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 </span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="p">.</span><span class="na">withLastName</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchLastName</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 </span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">    </span><span class="p">.</span><span class="na">withAge</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchAge</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">    </span><span class="p">.</span><span class="na">executeGraph</span><span class="p">()</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span></code></pre></div>
 <p>KSP reads the constructor parameters from the bridged class and generates the same named step methods as if the class had <code>@KapTypeSafe</code> directly.</p>
 <hr />
@@ -1279,7 +1279,7 @@
 <tbody>
 <tr>
 <td>Step builder chain</td>
-<td><code>kap(::User).withFirstName { }.withLastName { }.withAge { }.executeGraph()</code></td>
+<td><code>kap(::User).withFirstName { }.withLastName { }.withAge { }.evalGraph()</code></td>
 </tr>
 <tr>
 <td>Named method per param</td>
@@ -1320,7 +1320,7 @@
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="p">.</span><span class="na">withFirstName</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchFirstName</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// Only withFirstName available</span>
 </span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="p">.</span><span class="na">withLastName</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchLastName</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">     </span><span class="c1">// Only withLastName available</span>
 </span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="p">.</span><span class="na">withAge</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchAge</span><span class="p">()</span><span class="w"> </span><span class="p">}</span><span class="w">               </span><span class="c1">// Only withAge available</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="p">.</span><span class="na">executeGraph</span><span class="p">()</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span></code></pre></div>
 </div>
 </div>
