@@ -27,6 +27,13 @@
 A checkout that calls 7 services in 4 phases. Stock validation needs retry. Payment needs a circuit breaker. Promos have a timeout. Read this and tell me: where are the phases? Where's the retry logic vs the business logic?
 
 ```kotlin
+data class CheckoutResult(
+    val user: String, val cart: String, val promos: String,
+    val stock: Boolean,
+    val shipping: Double, val tax: Double,
+    val payment: String,
+)
+
 val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
 coroutineScope {
