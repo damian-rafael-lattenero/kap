@@ -355,13 +355,14 @@ class KapTypeSafeProcessor(
             writer.write("data class $wrapperName(val value: ${param.typeString})\n\n")
         }
 
-        writer.write("// ── Extension properties — wrap raw values: value.fieldClassName ──\n\n")
+        val objectName = "${baseName}Kap"
+        writer.write("// ── Factory — wrap raw values: ${objectName}.fieldName(value) ──\n\n")
+        writer.write("object $objectName {\n")
         for (param in params) {
             val wrapperName = "$baseName${param.name.replaceFirstChar { it.uppercase() }}"
-            val propName = "${param.name}${baseName}"
-            writer.write("val ${param.typeString}.$propName: $wrapperName get() = $wrapperName(this)\n")
+            writer.write("    fun ${param.name}(value: ${param.typeString}): $wrapperName = $wrapperName(value)\n")
         }
-        writer.write("\n")
+        writer.write("}\n\n")
     }
 
     private fun writeKapTypedEntryPoint(
