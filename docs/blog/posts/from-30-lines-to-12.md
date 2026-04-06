@@ -162,49 +162,87 @@ The abstraction compiles away. What's left is pure coroutines running in a struc
 
 ## Everything together
 
-Here's a real order placement: validation with error accumulation, racing, retry, circuit breaker, partial failure, and transactional safety.
+Here's a real order placement. Read it top to bottom — each comment tells you what that line does and *why*:
 
 ```kotlin
+// Retry policy: exponential backoff (100ms, 200ms, 400ms) with ±50% jitter, max 3 attempts
+val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds).jittered() and Schedule.times(3)
+
+// Circuit breaker: after 5 consecutive failures, stop calling payment service for 30s
+val paymentBreaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+
 suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> {
+
+    // ── PHASE 1: Validate everything in parallel ─────────────────
+    // All three validators run concurrently.
+    // If address AND card fail, you get BOTH errors — not just the first.
     val validated = kapV<OrderError, ValidAddress, ValidCard, ValidItems, ValidOrder>(::ValidOrder)
-        .withV { validateAddress(input.address) }
-        .withV { validatePaymentInfo(input.card) }
-        .withV { validateItems(input.items) }
+        .withV { validateAddress(input.address) }       // ┐ all three run at the same time
+        .withV { validatePaymentInfo(input.card) }      // ├─ errors don't short-circuit
+        .withV { validateItems(input.items) }           // ┘ they accumulate
         .evalGraph()
 
+    // If any validation failed, return all errors immediately
     val order = validated.getOrElse { return Either.Left(it) }
 
+    // ── PHASES 2–5: Process inside a DB transaction ──────────────
+    // bracketCase guarantees: if anything fails, the transaction rolls back.
+    // Even if a coroutine is cancelled mid-flight, release ALWAYS runs.
     return bracketCase(
         acquire = { db.beginTransaction() },
         use = { tx ->
             kap(::OrderResult)
+
+                // PHASE 2: Get the best price — race 3 providers
+                // All three start at t=0. First to respond wins. Losers are cancelled.
                 .withFinalPrice(raceN(
                     Kap { pricingServiceA(order) },
                     Kap { pricingServiceB(order) },
                     Kap { pricingServiceC(order) },
                 ))
-                .thenReservationId(Kap { reserveInventory(tx, order) }.retry(retryPolicy))
-                .thenPaymentId(Kap { chargePayment(tx, order) }
-                    .withCircuitBreaker(paymentBreaker)
-                    .timeout(5.seconds))
+
+                // PHASE 3: Reserve inventory — retry if the service is flaky
+                // .then = barrier: waits for phase 2 to complete before starting
+                // .retry = if it fails, try again with exponential backoff + jitter
+                .thenReservationId(
+                    Kap { reserveInventory(tx, order) }
+                        .retry(retryPolicy)
+                )
+
+                // PHASE 4: Charge payment — circuit breaker + timeout
+                // .then = barrier: waits for phase 3
+                // .withCircuitBreaker = if payment service failed 5 times, fail fast
+                // .timeout = don't wait more than 5 seconds
+                .thenPaymentId(
+                    Kap { chargePayment(tx, order) }
+                        .withCircuitBreaker(paymentBreaker)
+                        .timeout(5.seconds)
+                )
+
+                // PHASE 5: Send notifications — partial failure OK
+                // All three run in parallel. If push notification fails,
+                // email and analytics still complete. Each result is wrapped
+                // in Result<Unit> so failures don't cancel siblings.
                 .withNotifications(listOf(
                     Kap { sendEmail(order) },
                     Kap { sendPush(order) },
                     Kap { updateAnalytics(order) },
                 ).sequenceSettled())
+
                 .map { Either.Right(it) }
         },
+        // CLEANUP: commit on success, rollback on any failure or cancellation
         release = { tx, exit -> when (exit) {
             is ExitCase.Completed -> tx.commit()
-            else -> tx.rollback()
+            else                  -> tx.rollback()
         }}
     ).evalGraph()
 }
 ```
 
-35 lines. Five phases. Validation, racing, retry, circuit breaker, partial failure, transactional safety. Each concern is one method call.
+Count the features: **parallel validation with error accumulation**, **racing**, **phase barriers**, **retry with backoff and jitter**, **circuit breaker**, **timeout**, **partial failure tolerance**, **transactional safety with guaranteed cleanup**. Eight production concerns, one readable function.
 
-The raw coroutines version of this is [~90 lines](https://github.com/damian-rafael-lattenero/kap#the-full-picture).
+The raw coroutines version of this is [~90 lines](https://github.com/damian-rafael-lattenero/kap#the-full-picture) of nested try/catch, manual state, and interleaved logic.
 
 ## Try it
 

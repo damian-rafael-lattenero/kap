@@ -353,7 +353,7 @@ val profile = kap(::DeveloperProfile)
 
 ## The full picture
 
-Everything together in a real order placement: validate input (accumulate ALL errors), race pricing providers, reserve inventory with retry, charge payment through a circuit breaker, send notifications where partial failure is OK — all inside a database transaction with guaranteed cleanup.
+A real order placement. Read it top to bottom — each comment tells you what that line does and why:
 
 ```kotlin
 @KapTypeSafe
@@ -364,52 +364,66 @@ data class OrderResult(
     val notifications: List<Result<Unit>>,
 )
 
+// Retry: exponential backoff (100ms, 200ms, 400ms) + jitter, max 3 attempts
 val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds).jittered() and Schedule.times(3)
+// Circuit breaker: after 5 failures, stop calling payment for 30s
 val paymentBreaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
 suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> {
 
-    // ── Phase 1: validate (parallel, accumulate ALL errors) ──────────
+    // ── PHASE 1: Validate in parallel, collect ALL errors ────────
     val validated = kapV<OrderError, ValidAddress, ValidCard, ValidItems, ValidOrder>(::ValidOrder)
-        .withV { validateAddress(input.address) }       // ┐ all three run in parallel
-        .withV { validatePaymentInfo(input.card) }      // ├─ errors accumulate
-        .withV { validateItems(input.items) }()           // ┘
+        .withV { validateAddress(input.address) }       // ┐ all three run at the same time
+        .withV { validatePaymentInfo(input.card) }      // ├─ if address AND card fail,
+        .withV { validateItems(input.items) }           // ┘ you get BOTH errors
+        .evalGraph()
 
     val order = validated.getOrElse { return Either.Left(it) }
 
-    // ── Phases 2–5: process inside DB transaction ────────────────────
+    // ── PHASES 2–5: inside DB transaction (rollback on any failure) ──
     return bracketCase(
         acquire = { db.beginTransaction() },
         use = { tx ->
             kap(::OrderResult)
-                .withFinalPrice(raceN(                              // phase 2: race 3 providers
-                    Kap { pricingServiceA(order) },                 //   fastest wins, losers cancelled
+
+                // PHASE 2: race 3 pricing providers — fastest wins, losers cancelled
+                .withFinalPrice(raceN(
+                    Kap { pricingServiceA(order) },
                     Kap { pricingServiceB(order) },
                     Kap { pricingServiceC(order) },
                 ))
-                .thenReservationId(                                 // phase 3: barrier + retry
+
+                // PHASE 3: reserve inventory — retry with backoff if flaky
+                .thenReservationId(
                     Kap { reserveInventory(tx, order) }
                         .retry(retryPolicy)
                 )
-                .thenPaymentId(                                     // phase 4: barrier + circuit breaker
+
+                // PHASE 4: charge payment — circuit breaker + 5s timeout
+                .thenPaymentId(
                     Kap { chargePayment(tx, order) }
                         .withCircuitBreaker(paymentBreaker)
                         .timeout(5.seconds)
                 )
-                .withNotifications(listOf(                          // phase 5: parallel, partial failure OK
-                    Kap { sendEmail(order) },                       //   settled → Result per call
+
+                // PHASE 5: notifications — if one fails, others still complete
+                .withNotifications(listOf(
+                    Kap { sendEmail(order) },
                     Kap { sendPush(order) },
                     Kap { updateAnalytics(order) },
                 ).sequenceSettled())
+
                 .map { Either.Right(it) }
         },
-        release = { tx, exit -> when (exit) {                       // guaranteed cleanup
-            is ExitCase.Completed -> tx.commit()
-            else                  -> tx.rollback()
+        release = { tx, exit -> when (exit) {
+            is ExitCase.Completed -> tx.commit()      // success → commit
+            else                  -> tx.rollback()    // failure or cancel → rollback
         }}
-    )()
+    ).evalGraph()
 }
 ```
+
+Eight production concerns in one function: **parallel validation**, **error accumulation**, **racing**, **retry with backoff**, **circuit breaker**, **timeout**, **partial failure tolerance**, **transactional safety**.
 
 <details>
 <summary><b>Same thing with raw coroutines (~90 lines)</b></summary>
