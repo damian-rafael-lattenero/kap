@@ -121,7 +121,7 @@ Same 7 calls, same 4 phases, same retry, same circuit breaker, same timeouts. `.
 `@KapTypeSafe` generates a **step class per field** — after `.withUser`, the IDE only offers `.withCart`. You can't swap, skip, or forget a field:
 
 <p align="center">
-  <img src=".github/demo.gif" alt="KAP IDE autocomplete demo" width="700"/>
+  <img src=".github/demo-v2.gif" alt="KAP IDE autocomplete demo" width="700"/>
 </p>
 
 ---
