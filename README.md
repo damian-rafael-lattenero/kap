@@ -104,21 +104,24 @@ data class CheckoutResult(
 val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds) and Schedule.times(3)
 val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
+import kap.CheckoutResultKap.*    // brings user, cart, promos, stock, shipping, tax, payment into scope
+
 kap(::CheckoutResult)
-    .withUser { fetchUser() }                                         // ┐
-    .withCart { fetchCart() }                                          // ├─ phase 1: parallel
-    .withPromos(Kap { fetchPromos() }.timeout(3.seconds))               // ┘  + timeout on promos
-    .thenStock(Kap { validateStock() }.retry(retryPolicy))            // ── phase 2: barrier + retry
-    .withShipping { calcShipping() }                                  // ┐ phase 3: parallel
-    .withTax { calcTax() }                                            // ┘
-    .thenPayment(Kap { reservePayment() }                             // ── phase 4: barrier
-        .withCircuitBreaker(breaker)                                  //    + circuit breaker
-        .timeout(5.seconds)).evalGraph()  //    + timeout
+    .with { user eq fetchUser() }                                    // ┐
+    .with { cart eq fetchCart() }                                     // ├─ phase 1: parallel
+    .with(promos eq Kap { fetchPromos() }.timeout(3.seconds))         // ┘  + timeout on promos
+    .then(stock eq Kap { validateStock() }.retry(retryPolicy))       // ── phase 2: barrier + retry
+    .with { shipping eq calcShipping() }                             // ┐ phase 3: parallel
+    .with { tax eq calcTax() }                                       // ┘
+    .then(payment eq Kap { reservePayment() }                        // ── phase 4: barrier
+        .withCircuitBreaker(breaker)                                 //    + circuit breaker
+        .timeout(5.seconds))
+    .evalGraph()
 ```
 
 Same 7 calls, same 4 phases, same retry, same circuit breaker, same timeouts. `.with` = parallel, `.then` = barrier. Resilience is per-call, inline, composable.
 
-`@KapTypeSafe` generates a **step class per field** — after `.withUser`, the IDE only offers `.withCart`. You can't swap, skip, or forget a field:
+`@KapTypeSafe` generates a **wrapper type and tag per field**. The tags are positional inside the curried applicative chain, so the compiler enforces *which wrapper* belongs *where* — swap two fields and you get a type error naming the exact wrapper expected. Reads like prose (`user eq fetchUser()`), no method-name explosion, single `.with`/`.then` for the whole graph:
 
 <p align="center">
   <img src=".github/demo-v2.gif" alt="KAP IDE autocomplete demo" width="700"/>
@@ -130,9 +133,11 @@ Same 7 calls, same 4 phases, same retry, same circuit breaker, same timeouts. `.
 
 | You write | What happens | Think of it as |
 |---|---|---|
-| `.withX { }` | Runs in parallel with everything else in the same phase | "and at the same time..." |
-| `.thenX { }` | Waits for all above, then continues | "once that's done..." |
+| `.with { field eq value }` | Runs in parallel with everything else in the same phase | "and at the same time..." |
+| `.then { field eq value }` | Waits for all above, then continues | "once that's done..." |
 | `.andThen { result -> }` | Waits, passes the result, builds the next graph | "using what we got..." |
+
+> When `value` is itself a `Kap<T>` (e.g. `Kap { fetchX() }.timeout(...)`), pass it without braces: `.with(field eq Kap { ... })`. Braces select the suspend-lambda overload (`A`); parens select the `Kap<A>` overload — the compiler tells you which one applies.
 
 ---
 
@@ -144,10 +149,12 @@ Most use cases don't need retry or circuit breakers. At its core, KAP is just a 
 @KapTypeSafe
 data class Dashboard(val user: String, val feed: String, val notifications: Int)
 
+import kap.DashboardKap.*
+
 kap(::Dashboard)
-    .withUser { fetchUser() }                // ┐
-    .withFeed { fetchFeed() }                // ├─ all three run in parallel
-    .withNotifications { countUnread() }     // ┘
+    .with { user eq fetchUser() }              // ┐
+    .with { feed eq fetchFeed() }              // ├─ all three run in parallel
+    .with { notifications eq countUnread() }   // ┘
     .evalGraph()
 ```
 
@@ -157,25 +164,30 @@ Need one field to wait for another? Change `.with` to `.then`:
 @KapTypeSafe
 data class ProfilePage(val user: String, val avatar: String, val recommendations: String)
 
+import kap.ProfilePageKap.*
+
 kap(::ProfilePage)
-    .withUser { fetchUser(id) }                              // ┐ parallel
-    .withAvatar { fetchAvatar(id) }                          // ┘
-    .thenRecommendations { fetchRecommendations(user) }      // waits for user, then fetches
+    .with { user eq fetchUser(id) }                         // ┐ parallel
+    .with { avatar eq fetchAvatar(id) }                     // ┘
+    .then { recommendations eq fetchRecommendations(user) } // waits for user, then fetches
     .evalGraph()
 ```
 
 Need the result of one graph to decide what to build next? Use `.andThen`:
 
 ```kotlin
+import kap.DashboardKap.*
+import kap.FullPageKap.*
+
 kap(::Dashboard)
-    .withUser { fetchUser() }
-    .withFeed { fetchFeed() }
-    .withNotifications { countUnread() }
-    .andThen { dashboard ->
-        // use dashboard.user to decide what's next
+    .with { user eq fetchUser() }
+    .with { feed eq fetchFeed() }
+    .with { notifications eq countUnread() }
+    .andThen { result ->
+        // use result.user to decide what's next
         kap(::FullPage)
-            .withDashboard { dashboard }
-            .withSuggestions { fetchSuggestions(dashboard.user) }
+            .with { dashboard eq result }
+            .with { suggestions eq fetchSuggestions(result.user) }
     }.evalGraph()
 ```
 
@@ -198,18 +210,20 @@ data class CheckoutResult(
     val confirmation: String, val email: String,
 )
 
+import kap.CheckoutResultKap.*
+
 kap(::CheckoutResult)
-    .withUser { fetchUser() }                      // ┐
-    .withCart { fetchCart() }                       // ├─ phase 1: parallel
-    .withPromos { fetchPromos() }                  // │
-    .withInventory { fetchInventory() }            // ┘
-    .thenStock { validateStock() }                 // ── phase 2: barrier
-    .withShipping { calcShipping() }               // ┐
-    .withTax { calcTax() }                         // ├─ phase 3: parallel
-    .withDiscounts { calcDiscounts() }             // ┘
-    .thenPayment { reservePayment() }              // ── phase 4: barrier
-    .withConfirmation { generateConfirmation() }   // ┐ phase 5
-    .withEmail { sendEmail() }                     // ┘
+    .with { user eq fetchUser() }               // ┐
+    .with { cart eq fetchCart() }               // ├─ phase 1: parallel
+    .with { promos eq fetchPromos() }           // │
+    .with { inventory eq fetchInventory() }     // ┘
+    .then { stock eq validateStock() }          // ── phase 2: barrier
+    .with { shipping eq calcShipping() }        // ┐
+    .with { tax eq calcTax() }                  // ├─ phase 3: parallel
+    .with { discounts eq calcDiscounts() }      // ┘
+    .then { payment eq reservePayment() }       // ── phase 4: barrier
+    .with { confirmation eq generateConfirmation() }  // ┐ phase 5
+    .with { email eq sendEmail() }              // ┘
     .evalGraph()
 ```
 
@@ -261,10 +275,12 @@ By default, if any `.with` branch fails, the whole graph is cancelled — struct
 @KapTypeSafe
 data class HomePage(val profile: String, val feed: Result<String>, val ads: Result<String>)
 
+import kap.HomePageKap.*
+
 kap(::HomePage)
-    .withProfile { fetchProfile() }              // critical — failure cancels everything
-    .withFeed(settled { fetchFeed() })           // optional — failure returns Result.failure
-    .withAds(settled { fetchAds() }).evalGraph()  // optional — failure returns Result.failure
+    .with { profile eq fetchProfile() }             // critical — failure cancels everything
+    .with(feed eq settled { fetchFeed() })          // optional — failure returns Result.failure
+    .with(ads eq settled { fetchAds() }).evalGraph() // optional — failure returns Result.failure
 // Feed throws? Profile and ads still complete. You get Result.failure for feed.
 ```
 
@@ -324,9 +340,11 @@ Kap { callFlakyService() }.retry(policy).evalGraph()
 @KapTypeSafe
 data class Dashboard(val user: String, val latency: TimedResult<String>)
 
+import kap.DashboardKap.*
+
 kap(::Dashboard)
-    .withUser { fetchUser() }
-    .withLatency(timed { fetchSlowService() })   // TimedResult(value, duration)
+    .with { user eq fetchUser() }
+    .with(latency eq timed { fetchSlowService() })   // TimedResult(value, duration)
     .evalGraph()
 // dashboard.latency.duration → 230.ms
 ```
@@ -346,10 +364,12 @@ val config = Kap { loadRemoteConfig() }.memoizeOnSuccess()
 @KapTypeSafe
 data class DeveloperProfile(val user: GithubUser, val topRepos: List<GithubRepo>, val funFact: String)
 
+import kap.DeveloperProfileKap.*
+
 val profile = kap(::DeveloperProfile)
-    .withUser { client.get("https://api.github.com/users/kotlin").body() }
-    .withTopRepos { client.get("https://api.github.com/users/kotlin/repos?sort=stars").body() }
-    .withFunFact { client.get("https://catfact.ninja/fact").body<CatFact>().fact }
+    .with { user eq client.get("https://api.github.com/users/kotlin").body() }
+    .with { topRepos eq client.get("https://api.github.com/users/kotlin/repos?sort=stars").body() }
+    .with { funFact eq client.get("https://catfact.ninja/fact").body<CatFact>().fact }
     .evalGraph()
 // 3 HTTP calls in parallel, one result. See examples/real-world-http for the full example.
 ```
@@ -386,33 +406,35 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
     val order = validated.getOrElse { return Either.Left(it) }
 
     // ── PHASES 2–5: inside DB transaction (rollback on any failure) ──
+    import kap.OrderResultKap.*
+
     return bracketCase(
         acquire = { db.beginTransaction() },
         use = { tx ->
             kap(::OrderResult)
 
                 // PHASE 2: race 3 pricing providers — fastest wins, losers cancelled
-                .withFinalPrice(raceN(
+                .with(finalPrice eq raceN(
                     Kap { pricingServiceA(order) },
                     Kap { pricingServiceB(order) },
                     Kap { pricingServiceC(order) },
                 ))
 
                 // PHASE 3: reserve inventory — retry with backoff if flaky
-                .thenReservationId(
+                .then(reservationId eq
                     Kap { reserveInventory(tx, order) }
                         .retry(retryPolicy)
                 )
 
                 // PHASE 4: charge payment — circuit breaker + 5s timeout
-                .thenPaymentId(
+                .then(paymentId eq
                     Kap { chargePayment(tx, order) }
                         .withCircuitBreaker(paymentBreaker)
                         .timeout(5.seconds)
                 )
 
                 // PHASE 5: notifications — if one fails, others still complete
-                .withNotifications(listOf(
+                .with(notifications eq listOf(
                     Kap { sendEmail(order) },
                     Kap { sendPush(order) },
                     Kap { updateAnalytics(order) },
@@ -578,38 +600,44 @@ KAP is just suspend functions in, result out. It works anywhere coroutines work:
 
 ```kotlin
 // Ktor
+import kap.CheckoutResultKap.*
+
 get("/checkout/{id}") {
     val id = call.parameters["id"]!!
     val result = kap(::CheckoutResult)
-        .withUser { userService.fetch(id) }
-        .withCart { cartService.fetch(id) }
-        .withPromos { promoService.fetch(id) }
+        .with { user eq userService.fetch(id) }
+        .with { cart eq cartService.fetch(id) }
+        .with { promos eq promoService.fetch(id) }
         .evalGraph()
     call.respond(result)
 }
 
 // Spring Boot
+import kap.CheckoutResultKap.*
+
 @RestController
 class CheckoutController(val userService: UserService, val cartService: CartService) {
 
     @GetMapping("/checkout/{id}")
     suspend fun checkout(@PathVariable id: String): CheckoutResult =
         kap(::CheckoutResult)
-            .withUser { userService.fetch(id) }
-            .withCart { cartService.fetch(id) }
-            .withPromos { promoService.fetch(id) }
+            .with { user eq userService.fetch(id) }
+            .with { cart eq cartService.fetch(id) }
+            .with { promos eq promoService.fetch(id) }
             .evalGraph()
 }
 
 // Android ViewModel
+import kap.HomeDataKap.*
+
 class HomeViewModel : ViewModel() {
     val state = MutableStateFlow<HomeState>(Loading)
 
     fun load() = viewModelScope.launch {
         val home = kap(::HomeData)
-            .withProfile { repo.fetchProfile() }
-            .withFeed(settled { repo.fetchFeed() })
-            .withNotifications { repo.countUnread() }
+            .with { profile eq repo.fetchProfile() }
+            .with(feed eq settled { repo.fetchFeed() })
+            .with { notifications eq repo.countUnread() }
             .evalGraph()
         state.value = Ready(home)
     }

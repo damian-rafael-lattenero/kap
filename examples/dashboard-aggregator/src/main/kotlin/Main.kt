@@ -106,7 +106,7 @@ suspend fun main() {
     // Type-safe: each .with slot is verified at compile time against
     // the corresponding DashboardView constructor parameter name.
     // 14 fields, 7 are String — and the compiler still catches every swap.
-    val dashboard = kap(::DashboardView)
+    val dashboard = kapDsl(::DashboardView)
             // Phase 1: User context (parallel)
             .withUser { fetchUserProfile().also { println("  Phase 1 [${System.currentTimeMillis() - start}ms]: user loaded") } }
             .withPrefs { fetchPreferences() }

@@ -180,7 +180,7 @@ suspend fun main() {
     val retryPolicy = Schedule.times<Throwable>(4) and
         Schedule.exponential<Throwable>(30.milliseconds).jittered()
 
-    val fetched = kap(::FetchedData)
+    val fetched = kapDsl(::FetchedData)
             // Retry flaky inventory API with exponential backoff
             .withInventory(
                 Kap { checkInventory(order.item.value) }
@@ -268,7 +268,7 @@ suspend fun main() {
             .evalGraph()
 
     // Step 2: orchestrate with kap+with+then (all three modules)
-    val fullOrder = kap(::PlacedOrder)
+    val fullOrder = kapDsl(::PlacedOrder)
             .withOrder { validated }
             // Phase: inventory + pricing in parallel (kap-resilience)
             .withInventory(

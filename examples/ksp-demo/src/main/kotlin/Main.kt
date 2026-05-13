@@ -3,7 +3,7 @@
 import kap.*
 import kotlinx.coroutines.delay
 
-// ── Class: kap(::User) — no companion object needed ───────────
+// ── Class: kapDsl(::User) — no companion object needed ───────────
 
 @KapTypeSafe
 data class User(val firstName: String, val lastName: String, val age: Int)
@@ -55,32 +55,32 @@ suspend fun calculateTotal(): Double { delay(15); return 147.50 }
 suspend fun main() {
     println("=== KSP Named Builder Demo ===\n")
 
-    // Class: kap(::User)
-    val user = kap(::User)
+    // Class: kapDsl(::User)
+    val user = kapDsl(::User)
         .withFirstName { fetchFirstName() }
         .withLastName { fetchLastName() }
         .withAge { fetchAge() }
         .evalGraph()
     println("  User: $user")
 
-    // Function with prefix: kap(BuildDashboard)
-    val dash = kap(BuildDashboard)
+    // Function with prefix: kapDsl(BuildDashboard)
+    val dash = kapDsl(BuildDashboard)
         .withDashboardUserName { fetchUserName() }
         .withDashboardCartSummary { fetchCartSummary() }
         .withDashboardPromoCode { fetchPromoCode() }
         .evalGraph()
     println("  Dashboard: $dash")
 
-    // Function with prefix: kap(BuildReport)
-    val report = kap(BuildReport)
+    // Function with prefix: kapDsl(BuildReport)
+    val report = kapDsl(BuildReport)
         .withReportUserName { fetchUserName() }
         .withReportDateRange { fetchDateRange() }
         .withReportFormat { fetchFormat() }
         .evalGraph()
     println("  Report: $report")
 
-    // Third-party class via @KapBridge: kap(::ThirdPartyDto)
-    val dto = kap(::ThirdPartyDto)
+    // Third-party class via @KapBridge: kapDsl(::ThirdPartyDto)
+    val dto = kapDsl(::ThirdPartyDto)
         .withId { 42 }
         .withName { "bridged" }
         .withActive { true }
@@ -88,7 +88,7 @@ suspend fun main() {
     println("  ThirdPartyDto: $dto")
 
     // Phase barriers
-    val checkout = kap(::Checkout)
+    val checkout = kapDsl(::Checkout)
         .withUser { fetchUser() }
         .withCart { fetchCart() }
         .thenValidated { validateOrder() }

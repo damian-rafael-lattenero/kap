@@ -73,7 +73,7 @@ suspend fun main() {
     println("1. Parallel fetch: GitHub user + repos + cat fact\n")
 
     val (profile, duration) = measureTimedValue {
-        kap(::DeveloperProfile)
+        kapDsl(::DeveloperProfile)
                 .withUser { fetchGithubUser(username) }       // ┐
                 .withTopRepos { fetchGithubRepos(username) }   // ├─ all three in parallel
                 .withFunFact { fetchCatFact().fact }           // ┘

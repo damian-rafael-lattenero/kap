@@ -63,19 +63,21 @@ data class CheckoutResult(
 suspend fun heroCheckout() {
     println("=== Hero: KAP Checkout (11 services, 5 phases) ===\n")
 
-    val checkout: CheckoutResult = kap(::CheckoutResult)
-        .withUser { fetchUser() }              // ┐
-        .withCart { fetchCart() }               // ├─ phase 1: parallel
-        .withPromos { fetchPromos() }          // │
-        .withInventory { fetchInventory() }    // ┘
-        .thenStock { validateStock() }         // ── phase 2: barrier
-        .withShipping { calcShipping() }       // ┐
-        .withTax { calcTax() }                 // ├─ phase 3: parallel
-        .withDiscounts { calcDiscounts() }     // ┘
-        .thenPayment { reservePayment() }      // ── phase 4: barrier
-        .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
-        .withEmail { sendEmail() }                    // ┘
-        .evalGraph()
+    val checkout: CheckoutResult = with(CheckoutResultKap) {
+        kap(::CheckoutResult)
+            .with { user eq fetchUser() }               // ┐
+            .with { cart eq fetchCart() }               // ├─ phase 1: parallel
+            .with { promos eq fetchPromos() }           // │
+            .with { inventory eq fetchInventory() }     // ┘
+            .then { stock eq validateStock() }          // ── phase 2: barrier
+            .with { shipping eq calcShipping() }        // ┐
+            .with { tax eq calcTax() }                  // ├─ phase 3: parallel
+            .with { discounts eq calcDiscounts() }      // ┘
+            .then { payment eq reservePayment() }       // ── phase 4: barrier
+            .with { confirmation eq generateConfirmation() }  // ┐ phase 5: parallel
+            .with { email eq sendEmail() }              // ┘
+            .evalGraph()
+    }
 
     println("  Result: $checkout\n")
 }
@@ -165,7 +167,7 @@ suspend fun constructorIsAFunction() {
     println("=== A constructor is a function ===\n")
 
     // ::Greeting has type (String, String) -> Greeting
-    val g1: Greeting = kap(::Greeting)
+    val g1: Greeting = kapDsl(::Greeting)
             .withText { fetchName() }
             .withTarget { "hello" }
             .evalGraph()
@@ -196,7 +198,7 @@ suspend fun constructorIsAFunction() {
 suspend fun nothingRunsUntilAsync() {
     println("=== Nothing runs until evalGraph() ===\n")
 
-    val plan: Kap<Dashboard> = kap(::Dashboard)
+    val plan: Kap<Dashboard> = kapDsl(::Dashboard)
         .withUser { fetchDashUser() }
         .withCart { fetchDashCart() }
         .withPromos { fetchDashPromos() }
@@ -229,7 +231,7 @@ suspend fun allValsNoNulls() {
     println("  Raw (var/null!!): $rawResult")
 
     // KAP: all val, no nulls
-    val kapResult: DashboardView = kap(::DashboardView)
+    val kapResult: DashboardView = kapDsl(::DashboardView)
             .withUser { fetchDashUser() }
             .withCart { fetchDashCart() }
             .evalGraph()
@@ -252,7 +254,7 @@ data class R3(val a: String, val b: String, val c: String)
 suspend fun threePrimitiveWith() {
     println("=== Primitive: .with (parallel) ===\n")
 
-    val result = kap(::AB)
+    val result = kapDsl(::AB)
             .withA { fetchA() }   // ┐ parallel
             .withB { fetchB() }   // ┘
             .evalGraph()
@@ -262,7 +264,7 @@ suspend fun threePrimitiveWith() {
 suspend fun threePrimitiveFollowedBy() {
     println("=== Primitive: .then (barrier) ===\n")
 
-    val result = kap(::R3)
+    val result = kapDsl(::R3)
             .withA { fetchA() }             // ┐ parallel
             .withB { fetchB() }             // ┘
             .thenC { validate() }           // waits for A and B
@@ -286,12 +288,12 @@ suspend fun threePrimitiveFlatMap() {
     println("=== Primitive: .andThen (value-dependent phases) ===\n")
 
     val userId = "user-1"
-    val dashboard = kap(::UserContext)
+    val dashboard = kapDsl(::UserContext)
             .withProfile { fetchProfile(userId) }       // ┐ phase 1: parallel
             .withPrefs { fetchPreferences(userId) }     // │
             .withTier { fetchLoyaltyTier(userId) }      // ┘
             .andThen { ctx ->                            // ── barrier: phase 2 NEEDS ctx
-                kap(::PersonalizedDashboard)
+                kapDsl(::PersonalizedDashboard)
                     .withRecs { fetchRecommendations(ctx.profile) }   // ┐ phase 2: parallel
                     .withPromos { fetchPromotions(ctx.tier) }         // │
                     .withTrending { fetchTrending(ctx.prefs) }        // ┘
@@ -349,18 +351,18 @@ suspend fun phasedFlatMapKap() {
     println("=== Phase Dependencies: KAP andThen ===\n")
     val userId = "user-42"
 
-    val dashboard: FinalDashboard = kap(::UserContext)
+    val dashboard: FinalDashboard = kapDsl(::UserContext)
             .withProfile { fetchProfile(userId) }
             .withPrefs { fetchPreferences(userId) }
             .withTier { fetchLoyaltyTier(userId) }
             .andThen { ctx ->
-                kap(::EnrichedContent)
+                kapDsl(::EnrichedContent)
                     .withRecs { fetchRecommendations(ctx.profile) }
                     .withPromos { fetchPromotions(ctx.tier) }
                     .withTrending { fetchTrending(ctx.prefs) }
                     .withHistory { fetchHistory(ctx.profile) }
                     .andThen { enriched ->
-                        kap(::FinalDashboard)
+                        kapDsl(::FinalDashboard)
                             .withLayout { renderLayout(ctx, enriched) }
                             .withAnalytics { trackAnalytics(ctx, enriched) }
                     }
@@ -377,7 +379,7 @@ suspend fun phasedFlatMapKap() {
 suspend fun quickStartBasic() {
     println("=== Quick Start: Basic ===\n")
 
-    val result = kap(::Dashboard)
+    val result = kapDsl(::Dashboard)
             .withUser { fetchDashUser() }    // ┐ all three in parallel
             .withCart { fetchDashCart() }     // │ total time = max(individual)
             .withPromos { fetchDashPromos() } // ┘ not sum
@@ -398,7 +400,7 @@ suspend fun quickStartResilience() {
     val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
     val retryPolicy = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
 
-    val result = kap(::Dashboard)
+    val result = kapDsl(::Dashboard)
             .withUser(Kap { fetchDashUser() }
                 .withCircuitBreaker(breaker)
                 .retry(retryPolicy))
@@ -485,7 +487,7 @@ suspend fun chooseYourStyle() {
     println("=== Choose Your Style ===\n")
 
     // Style 1: kap + with — compile-time parameter order safety
-    val s1 = kap(::Dashboard)
+    val s1 = kapDsl(::Dashboard)
             .withUser { fetchDashUser() }
             .withCart { fetchDashCart() }
             .withPromos { fetchDashPromos() }
@@ -541,7 +543,7 @@ suspend fun featureSettled() {
     println("=== Feature: Partial Failure with .settled() ===\n")
 
     // settled { } wraps the result in Result<T> — failure doesn't cancel siblings
-    val dashboard = kap(BuildPartialDashboard)
+    val dashboard = kapDsl(BuildPartialDashboard)
             .withUser(settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
             .withCart { fetchCartAlways() }              // normal String — failure here cancels all
             .withConfig { fetchConfigAlways() }          // normal String
@@ -915,7 +917,7 @@ fun combineThree(a: String, b: String, c: String): String = "$a+$b+$c"
 suspend fun executionModel() {
     println("=== Execution Model ===\n")
 
-    val graph = kap(CombineThree)
+    val graph = kapDsl(CombineThree)
         .withA { fetchA() }
         .withB { fetchB() }
 
@@ -1835,22 +1837,24 @@ suspend fun readmeRawProblem() {
 // ═══════════════════════════════════════════════════════════════════════
 
 suspend fun readmeKapSolution() {
-    println("=== README: KAP solution (Kap overloads) ===\n")
+    println("=== README: KAP solution (typed-applicative + eq) ===\n")
 
     val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds) and Schedule.times(3)
     val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
-    val result = kap(::ResilientCheckout)
-        .withUser { fetchUser() }
-        .withCart { fetchCart() }
-        .withPromos(Kap { fetchPromos() }.timeout(3.seconds))
-        .thenStock(Kap { validateStock() }.retry(retryPolicy))
-        .withShipping { calcShipping() }
-        .withTax { calcTax() }
-        .thenPayment(Kap { reservePayment() }
-            .withCircuitBreaker(breaker)
-            .timeout(5.seconds))
-        .evalGraph()
+    val result = with(ResilientCheckoutKap) {
+        kap(::ResilientCheckout)
+            .with { user eq fetchUser() }
+            .with { cart eq fetchCart() }
+            .with(promos eq Kap { fetchPromos() }.timeout(3.seconds))
+            .then(stock eq Kap { validateStock() }.retry(retryPolicy))
+            .with { shipping eq calcShipping() }
+            .with { tax eq calcTax() }
+            .then(payment eq Kap { reservePayment() }
+                .withCircuitBreaker(breaker)
+                .timeout(5.seconds))
+            .evalGraph()
+    }
 
     println("  Result: $result\n")
 }
@@ -1880,32 +1884,40 @@ suspend fun readmeStartSimple() {
     println("=== README: Start simple ===\n")
 
     // Basic parallel
-    val dash = kap(::SimpleDashboard)
-        .withUser { fetchUser() }
-        .withFeed { fetchFeed() }
-        .withNotifications { countUnread() }
-        .evalGraph()
+    val dash = with(SimpleDashboardKap) {
+        kap(::SimpleDashboard)
+            .with { user eq fetchUser() }              // ┐
+            .with { feed eq fetchFeed() }              // ├─ all three run in parallel
+            .with { notifications eq countUnread() }   // ┘
+            .evalGraph()
+    }
     println("  Dashboard: $dash")
 
     // With barrier
-    val profile = kap(::ProfilePage)
-        .withUser { fetchUser() }
-        .withAvatar { fetchAvatar("42") }
-        .thenRecommendations { fetchRecs(dash.user) }
-        .evalGraph()
+    val profile = with(ProfilePageKap) {
+        kap(::ProfilePage)
+            .with { user eq fetchUser() }                         // ┐ parallel
+            .with { avatar eq fetchAvatar("42") }                 // ┘
+            .then { recommendations eq fetchRecs(dash.user) }     // waits for user, then fetches
+            .evalGraph()
+    }
     println("  Profile: $profile")
 
     // andThen
-    val full = kap(::SimpleDashboard)
-        .withUser { fetchUser() }
-        .withFeed { fetchFeed() }
-        .withNotifications { countUnread() }
-        .andThen { dashboard ->
-            kap(::FullPage)
-                .withDashboard { dashboard }
-                .withSuggestions { fetchSuggestions(dashboard.user) }
-        }
-        .evalGraph()
+    val full = with(SimpleDashboardKap) {
+        kap(::SimpleDashboard)
+            .with { user eq fetchUser() }
+            .with { feed eq fetchFeed() }
+            .with { notifications eq countUnread() }
+            .andThen { result ->
+                with(FullPageKap) {
+                    kap(::FullPage)
+                        .with { dashboard eq result }
+                        .with { suggestions eq fetchSuggestions(result.user) }
+                }
+            }
+            .evalGraph()
+    }
     println("  Full page: $full\n")
 }
 
@@ -1935,11 +1947,13 @@ suspend fun readmeSettledAndTimed() {
     println("=== README: settled { } and timed { } ===\n")
 
     // HomePage with settled — feed fails but profile and ads still complete
-    val home = kap(::HomePage)
-        .withProfile { fetchProfileHP() }
-        .withFeed(settled { fetchFeedHP() })
-        .withAds(settled { fetchAdsHP() })
-        .evalGraph()
+    val home = with(HomePageKap) {
+        kap(::HomePage)
+            .with { profile eq fetchProfileHP() }              // critical — failure cancels everything
+            .with(feed eq settled { fetchFeedHP() })           // optional — failure returns Result.failure
+            .with(ads eq settled { fetchAdsHP() })             // optional — failure returns Result.failure
+            .evalGraph()
+    }
     println("  HomePage: profile=${home.profile}, feed=${home.feed.isFailure}, ads=${home.ads.getOrNull()}")
 
     // traverseSettled
@@ -1949,10 +1963,12 @@ suspend fun readmeSettledAndTimed() {
     println("  traverseSettled: $results")
 
     // timed { }
-    val dashboard = kap(::TimedDashboard)
-        .withUser { fetchUser() }
-        .withLatency(timed { fetchSlowService() })
-        .evalGraph()
+    val dashboard = with(TimedDashboardKap) {
+        kap(::TimedDashboard)
+            .with { user eq fetchUser() }
+            .with(latency eq timed { fetchSlowService() })   // TimedResult(value, duration)
+            .evalGraph()
+    }
     println("  timed: value=${dashboard.latency.value}, duration=${dashboard.latency.duration}\n")
 }
 
@@ -2093,26 +2109,36 @@ suspend fun readmeFullPicture() {
     val result = bracketCase(
         acquire = { "tx-001" }, // simulated transaction
         use = { tx ->
-            kap(::OrderResult)
-                .withFinalPrice(raceN(
-                    Kap { pricingServiceA(order) },
-                    Kap { pricingServiceB(order) },
-                    Kap { pricingServiceC(order) },
-                ))
-                .thenReservationId(
-                    Kap { reserveInventory(tx, order) }
-                        .retry(retryPolicy)
-                )
-                .thenPaymentId(
-                    Kap { chargePayment(tx, order) }
-                        .withCircuitBreaker(paymentBreaker)
-                        .timeout(5.seconds)
-                )
-                .withNotifications(listOf(
-                    Kap { sendEmailOrder(order) },
-                    Kap { sendPush(order) },
-                    Kap { updateAnalytics(order) },
-                ).sequenceSettled())
+            with(OrderResultKap) {
+                kap(::OrderResult)
+
+                    // PHASE 2: race 3 pricing providers — fastest wins, losers cancelled
+                    .with(finalPrice eq raceN(
+                        Kap { pricingServiceA(order) },
+                        Kap { pricingServiceB(order) },
+                        Kap { pricingServiceC(order) },
+                    ))
+
+                    // PHASE 3: reserve inventory — retry with backoff if flaky
+                    .then(reservationId eq
+                        Kap { reserveInventory(tx, order) }
+                            .retry(retryPolicy)
+                    )
+
+                    // PHASE 4: charge payment — circuit breaker + 5s timeout
+                    .then(paymentId eq
+                        Kap { chargePayment(tx, order) }
+                            .withCircuitBreaker(paymentBreaker)
+                            .timeout(5.seconds)
+                    )
+
+                    // PHASE 5: notifications — if one fails, others still complete
+                    .with(notifications eq listOf(
+                        Kap { sendEmailOrder(order) },
+                        Kap { sendPush(order) },
+                        Kap { updateAnalytics(order) },
+                    ).sequenceSettled())
+            }
         },
         release = { tx, exit -> when (exit) {
             is ExitCase.Completed<*> -> println("  Transaction $tx committed")

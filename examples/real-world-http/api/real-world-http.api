@@ -54,9 +54,25 @@ public final class DeveloperProfileFunFact {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class DeveloperProfileFunFactTag {
+}
+
+public final class DeveloperProfileKap {
+	public static final field INSTANCE LDeveloperProfileKap;
+	public final fun getFunFact ()LDeveloperProfileFunFactTag;
+	public final fun getTopRepos ()LDeveloperProfileTopReposTag;
+	public final fun getUser ()LDeveloperProfileUserTag;
+}
+
 public final class DeveloperProfileKapBuilderKt {
-	public static final fun kap (Lkotlin/jvm/functions/Function3;)LDeveloperProfileStep0;
-	public static final fun kapTyped (Lkotlin/jvm/functions/Function3;)Lkap/Kap;
+	public static final fun eq (LDeveloperProfileFunFactTag;Ljava/lang/String;)LDeveloperProfileFunFact;
+	public static final fun eq (LDeveloperProfileFunFactTag;Lkap/Kap;)Lkap/Kap;
+	public static final fun eq (LDeveloperProfileTopReposTag;Ljava/util/List;)LDeveloperProfileTopRepos;
+	public static final fun eq (LDeveloperProfileTopReposTag;Lkap/Kap;)Lkap/Kap;
+	public static final fun eq (LDeveloperProfileUserTag;LGithubUser;)LDeveloperProfileUser;
+	public static final fun eq (LDeveloperProfileUserTag;Lkap/Kap;)Lkap/Kap;
+	public static final fun kap (Lkotlin/jvm/functions/Function3;)Lkap/Kap;
+	public static final fun kapDsl (Lkotlin/jvm/functions/Function3;)LDeveloperProfileStep0;
 }
 
 public final class DeveloperProfileStep0 {
@@ -91,6 +107,9 @@ public final class DeveloperProfileTopRepos {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class DeveloperProfileTopReposTag {
+}
+
 public final class DeveloperProfileUser {
 	public fun <init> (LGithubUser;)V
 	public final fun component1 ()LGithubUser;
@@ -100,6 +119,9 @@ public final class DeveloperProfileUser {
 	public final fun getValue ()LGithubUser;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class DeveloperProfileUserTag {
 }
 
 public final class GithubRepo {

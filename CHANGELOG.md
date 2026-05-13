@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Breaking
+- **`kap(::Type)` is now the typed-applicative entry point** — returns `Kap<curried opaque type>` for use with `.with { field eq value }`. The old step-class entry is now `kapDsl(::Type)` (marked `@Deprecated`).
+- **`kapTyped(::Type)` is gone** — renamed to `kap(::Type)`. Search-and-replace: `kapTyped(::` → `kap(::`.
+- **`kapTyped{FunctionName}(::fn)` is gone** — renamed to `kap{FunctionName}(::fn)`. E.g., `kapTypedBuildGreeting` → `kapBuildGreeting`.
+
+### Added
+- **Infix `eq` per field** — `@KapTypeSafe` now generates `infix fun CheckoutUserTag.eq(value: String): CheckoutUser` (and a `Kap<String>` overload). Tag val singletons live in the `CheckoutResultKap` object; use `import kap.CheckoutResultKap.*` or `with(CheckoutResultKap) { }` at call sites.
+
+### Deprecated
+- **`kapDsl(::Type)`** (was `kap(::Type)`) — the `.withX { } / .thenX { }` step-class API. Still compiles with a warning. Use `kap(::Type).with { field eq value }` going forward.
+
+### Migration guide
+```kotlin
+// Before
+kap(::CheckoutResult)
+    .withUser { fetchUser() }
+    .withCart { fetchCart() }
+    .thenStock { validateStock() }
+    .evalGraph()
+
+// After (new official API)
+import kap.CheckoutResultKap.*
+
+kap(::CheckoutResult)
+    .with { user eq fetchUser() }
+    .with { cart eq fetchCart() }
+    .then { stock eq validateStock() }
+    .evalGraph()
+```
+
 ## [2.7.0] - 2026-04-04
 
 ### Breaking

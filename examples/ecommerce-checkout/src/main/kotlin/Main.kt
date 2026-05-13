@@ -47,7 +47,7 @@ suspend fun main() {
 
     // Type safety: swap any two .with lines and the compiler rejects it.
     // 11 fields, 8 are String — named builders make each slot unique.
-    val result = kap(::CheckoutResult)
+    val result = kapDsl(::CheckoutResult)
             // Phase 1: Fetch everything we need (parallel)
             .withUser { fetchUser() }
             .withCart { fetchCart() }

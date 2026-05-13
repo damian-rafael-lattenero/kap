@@ -348,7 +348,7 @@ fun Routing.coreRoutes() {
     get("/dashboard/{userId}") {
         val userId = call.parameters["userId"]!!
 
-        val dashboard = kap(::Dashboard)
+        val dashboard = kapDsl(::Dashboard)
                 .withUser(
                     Kap { Services.fetchUserProfile(userId) }
                         .named("fetchProfile")
@@ -699,7 +699,7 @@ fun Routing.combinedRoutes() {
                 .mapError { "${it::class.simpleName}: ${it.message}" }
                 .orThrow()
                 .andThen { validated ->
-                    kap(::PlacedOrder)
+                    kapDsl(::PlacedOrder)
                         .withItemId { validated.item.value }
                         .withQuantity { validated.qty.value }
                         .withInventory(

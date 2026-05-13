@@ -173,7 +173,7 @@ suspend fun main() {
     val combined = Resource.zip(dbResource, cacheResource) { db, cache -> db to cache }
 
     val dualConfig = combined.use { pair ->
-        kap(::DualConfig)
+        kapDsl(::DualConfig)
                 .withPrimary { pair.first.query() }
                 .withSecondary { pair.second.query() }
                 .evalGraph()
@@ -246,7 +246,7 @@ suspend fun main() {
 
     val pipelineStart = System.currentTimeMillis()
 
-    val fullResult = kap(::FetcherResult)
+    val fullResult = kapDsl(::FetcherResult)
             // Phase 1: quorum pricing (parallel 2-of-3), take first result
             .withPricing(
                 raceQuorum(

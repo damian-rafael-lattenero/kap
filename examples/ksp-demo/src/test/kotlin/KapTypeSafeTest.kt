@@ -70,7 +70,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `named builders work for 2-param class`() = runTest {
-        val result = kap(::SimpleTwo)
+        val result = kapDsl(::SimpleTwo)
             .withName { "Alice" }
             .withAge { 30 }
             .evalGraph()
@@ -82,7 +82,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `named builders work for 3-param class`() = runTest {
-        val result = kap(::SimpleThree)
+        val result = kapDsl(::SimpleThree)
             .withA { "hello" }
             .withB { 42 }
             .withC { true }
@@ -95,7 +95,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `single param class works`() = runTest {
-        val result = kap(::SingleParam)
+        val result = kapDsl(::SingleParam)
             .withValue { "only-one" }
             .evalGraph()
 
@@ -106,7 +106,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `5-param class works`() = runTest {
-        val result = kap(::FiveParams)
+        val result = kapDsl(::FiveParams)
             .withP1 { "str" }
             .withP2 { 42 }
             .withP3 { true }
@@ -121,7 +121,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `withX runs in parallel`() = runTest {
-        val result = kap(::SimpleThree)
+        val result = kapDsl(::SimpleThree)
             .withA { delay(50); "a" }
             .withB { delay(50); 1 }
             .withC { delay(50); true }
@@ -134,7 +134,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `thenX creates phase barrier`() = runTest {
-        val result = kap(::PhaseDemo)
+        val result = kapDsl(::PhaseDemo)
             .withUser { delay(30); "Alice" }        // ┐ phase 1: parallel
             .withCart { delay(30); "3 items" }       // ┘
             .thenValidated { delay(10); true }       // ── barrier
@@ -149,7 +149,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `all same type params have distinct named methods`() = runTest {
-        val result = kap(::AllSameType)
+        val result = kapDsl(::AllSameType)
             .withFirst { "one" }
             .withSecond { "two" }
             .withThird { "three" }
@@ -163,7 +163,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `nullable param with value`() = runTest {
-        val result = kap(::WithNullable)
+        val result = kapDsl(::WithNullable)
             .withRequired { "hello" }
             .withOptional { "world" }
             .evalGraph()
@@ -173,7 +173,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `nullable param with null`() = runTest {
-        val result = kap(::WithNullable)
+        val result = kapDsl(::WithNullable)
             .withRequired { "hello" }
             .withOptional { null }
             .evalGraph()
@@ -185,7 +185,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `generic param types work`() = runTest {
-        val result = kap(::WithGeneric)
+        val result = kapDsl(::WithGeneric)
             .withItems { listOf("a", "b", "c") }
             .withCount { 3 }
             .evalGraph()
@@ -200,7 +200,7 @@ class KapTypeSafeTest {
         val nameKap = Kap { delay(30); "Alice" }
         val ageKap = Kap { delay(20); 30 }
 
-        val result = kap(::SimpleTwo)
+        val result = kapDsl(::SimpleTwo)
             .withName(nameKap)
             .withAge(ageKap)
             .evalGraph()
@@ -212,7 +212,7 @@ class KapTypeSafeTest {
     fun `thenX accepts Kap value`() = runTest {
         val validatedKap = Kap { delay(10); true }
 
-        val result = kap(::PhaseDemo)
+        val result = kapDsl(::PhaseDemo)
             .withUser { "Alice" }
             .withCart { "items" }
             .thenValidated(validatedKap)
@@ -227,7 +227,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `annotated function generates named builders`() = runTest {
-        val result = kap(BuildGreeting)
+        val result = kapDsl(BuildGreeting)
             .withName { "Bob" }
             .withAge { 25 }
             .evalGraph()
@@ -239,12 +239,12 @@ class KapTypeSafeTest {
 
     @Test
     fun `prefix avoids name collision between functions with same param names`() = runTest {
-        val a = kap(BuildA)
+        val a = kapDsl(BuildA)
             .withPrefixAX { "hello" }
             .withPrefixAY { 1 }
             .evalGraph()
 
-        val b = kap(BuildB)
+        val b = kapDsl(BuildB)
             .withPrefixBX { "hello" }
             .withPrefixBY { 1 }
             .evalGraph()
@@ -257,7 +257,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `KapBridge generates builders for third-party class`() = runTest {
-        val result = kap(::ThirdPartyDto)
+        val result = kapDsl(::ThirdPartyDto)
             .withId { 42 }
             .withName { "bridged" }
             .withActive { true }
@@ -270,7 +270,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `last step returns Kap so andThen works natively`() = runTest {
-        val result = kap(::SimpleTwo)
+        val result = kapDsl(::SimpleTwo)
             .withName { "Alice" }
             .withAge { 30 }
             .andThen { user ->
@@ -285,7 +285,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `last step returns Kap so map works natively`() = runTest {
-        val result = kap(::SimpleTwo)
+        val result = kapDsl(::SimpleTwo)
             .withName { "Alice" }
             .withAge { 30 }
             .map { "${it.name}(${it.age})" }
@@ -299,7 +299,7 @@ class KapTypeSafeTest {
     @Test
     fun `exception in one branch cancels siblings`() = runTest {
         val result = runCatching {
-            kap(::SimpleTwo)
+            kapDsl(::SimpleTwo)
                 .withName { delay(100); "should be cancelled" }
                 .withAge { throw IllegalStateException("boom") }
                 .evalGraph()
@@ -313,7 +313,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `recover composes with named builder result`() = runTest {
-        val result = kap(::SimpleTwo)
+        val result = kapDsl(::SimpleTwo)
             .withName { "Alice" }
             .withAge { 30 }
             .recover { SimpleTwo("fallback", 0) }
@@ -324,7 +324,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `timeout composes with named builder result`() = runTest {
-        val result = kap(::SimpleTwo)
+        val result = kapDsl(::SimpleTwo)
             .withName { delay(10); "Alice" }
             .withAge { delay(10); 30 }
             .timeout(1000.milliseconds)
@@ -338,7 +338,7 @@ class KapTypeSafeTest {
     @Test
     fun `memoize works with named builder result`() = runTest {
         var callCount = 0
-        val memoized = kap(::SimpleTwo)
+        val memoized = kapDsl(::SimpleTwo)
             .withName { callCount++; "Alice" }
             .withAge { 30 }
             .memoize()
@@ -355,7 +355,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `settled wraps result without cancelling`() = runTest {
-        val result = kap(::SimpleTwo)
+        val result = kapDsl(::SimpleTwo)
             .withName { "Alice" }
             .withAge { 30 }
             .settled()
@@ -369,7 +369,7 @@ class KapTypeSafeTest {
 
     @Test
     fun `multiple barriers chain correctly`() = runTest {
-        val result = kap(::FiveParams)
+        val result = kapDsl(::FiveParams)
             .withP1 { delay(10); "a" }
             .thenP2 { delay(10); 1 }        // barrier 1
             .withP3 { delay(10); true }
@@ -432,8 +432,8 @@ class KapTypeSafeTest {
     // ══════════════════════════════════════════════════════════════════
 
     @Test
-    fun `kapTyped returns curried Kap with opaque types`() = runTest {
-        val result = kapTyped(::SimpleTwo)
+    fun `kap returns curried Kap with opaque types`() = runTest {
+        val result = kap(::SimpleTwo)
             .with { SimpleTwoName("Alice") }
             .with { SimpleTwoAge(30) }
             .evalGraph()
@@ -442,8 +442,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped with 5 params`() = runTest {
-        val result = kapTyped(::FiveParams)
+    fun `kap with 5 params`() = runTest {
+        val result = kap(::FiveParams)
             .with { FiveParamsP1("str") }
             .with { FiveParamsP2(42) }
             .with { FiveParamsP3(true) }
@@ -455,8 +455,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped runs in parallel`() = runTest {
-        val result = kapTyped(::SimpleThree)
+    fun `kap runs in parallel`() = runTest {
+        val result = kap(::SimpleThree)
             .with { delay(50); SimpleThreeA("a") }
             .with { delay(50); SimpleThreeB(1) }
             .with { delay(50); SimpleThreeC(true) }
@@ -466,8 +466,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped with phase barriers via then`() = runTest {
-        val result = kapTyped(::PhaseDemo)
+    fun `kap with phase barriers via then`() = runTest {
+        val result = kap(::PhaseDemo)
             .with { PhaseDemoUser("Alice") }
             .with { PhaseDemoCart("items") }
             .then { PhaseDemoValidated(true) }
@@ -479,8 +479,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped composes with andThen`() = runTest {
-        val result = kapTyped(::SimpleTwo)
+    fun `kap composes with andThen`() = runTest {
+        val result = kap(::SimpleTwo)
             .with { SimpleTwoName("Alice") }
             .with { SimpleTwoAge(30) }
             .andThen { user ->
@@ -492,8 +492,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped composes with map`() = runTest {
-        val result = kapTyped(::SimpleTwo)
+    fun `kap composes with map`() = runTest {
+        val result = kap(::SimpleTwo)
             .with { SimpleTwoName("Alice") }
             .with { SimpleTwoAge(30) }
             .map { "${it.name}(${it.age})" }
@@ -503,9 +503,9 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped error propagation cancels siblings`() = runTest {
+    fun `kap error propagation cancels siblings`() = runTest {
         val result = runCatching {
-            kapTyped(::SimpleTwo)
+            kap(::SimpleTwo)
                 .with { delay(100); SimpleTwoName("should be cancelled") }
                 .with { throw IllegalStateException("boom") }
                 .evalGraph()
@@ -516,8 +516,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped composes with recover`() = runTest {
-        val result = kapTyped(::SimpleTwo)
+    fun `kap composes with recover`() = runTest {
+        val result = kap(::SimpleTwo)
             .with { SimpleTwoName("Alice") }
             .with { SimpleTwoAge(30) }
             .recover { SimpleTwo("fallback", 0) }
@@ -527,8 +527,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped composes with settled`() = runTest {
-        val result = kapTyped(::SimpleTwo)
+    fun `kap composes with settled`() = runTest {
+        val result = kap(::SimpleTwo)
             .with { SimpleTwoName("Alice") }
             .with { SimpleTwoAge(30) }
             .settled()
@@ -539,9 +539,9 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped composes with memoize`() = runTest {
+    fun `kap composes with memoize`() = runTest {
         var callCount = 0
-        val memoized = kapTyped(::SimpleTwo)
+        val memoized = kap(::SimpleTwo)
             .with { callCount++; SimpleTwoName("Alice") }
             .with { SimpleTwoAge(30) }
             .memoize()
@@ -554,8 +554,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped for functions uses kapTypedFunctionName`() = runTest {
-        val result = kapTypedBuildGreeting(::buildGreeting)
+    fun `kap for functions uses kap{FunctionName} entry point`() = runTest {
+        val result = kapBuildGreeting(::buildGreeting)
             .with { BuildGreetingName("Bob") }
             .with { BuildGreetingAge(25) }
             .evalGraph()
@@ -564,8 +564,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped for prefixed functions`() = runTest {
-        val a = kapTypedBuildA(::buildA)
+    fun `kap for prefixed functions`() = runTest {
+        val a = kapBuildA(::buildA)
             .with { BuildAX("hello") }
             .with { BuildAY(1) }
             .evalGraph()
@@ -574,8 +574,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped with nullable opaque type`() = runTest {
-        val result = kapTyped(::WithNullable)
+    fun `kap with nullable opaque type`() = runTest {
+        val result = kap(::WithNullable)
             .with { WithNullableRequired("hello") }
             .with { WithNullableOptional(null) }
             .evalGraph()
@@ -584,8 +584,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped with generic opaque type`() = runTest {
-        val result = kapTyped(::WithGeneric)
+    fun `kap with generic opaque type`() = runTest {
+        val result = kap(::WithGeneric)
             .with { WithGenericItems(listOf("a", "b", "c")) }
             .with { WithGenericCount(3) }
             .evalGraph()
@@ -594,8 +594,8 @@ class KapTypeSafeTest {
     }
 
     @Test
-    fun `kapTyped for KapBridge third-party class`() = runTest {
-        val result = kapTyped(::ThirdPartyDto)
+    fun `kap for KapBridge third-party class`() = runTest {
+        val result = kap(::ThirdPartyDto)
             .with { ThirdPartyDtoId(42) }
             .with { ThirdPartyDtoName("bridged") }
             .with { ThirdPartyDtoActive(true) }
@@ -609,14 +609,14 @@ class KapTypeSafeTest {
     // ══════════════════════════════════════════════════════════════════
 
     @Test
-    fun `named builders and kapTyped produce identical results`() = runTest {
-        val named = kap(::SimpleThree)
+    fun `named builders (kapDsl) and kap produce identical results`() = runTest {
+        val named = kapDsl(::SimpleThree)
             .withA { "hello" }
             .withB { 42 }
             .withC { true }
             .evalGraph()
 
-        val typed = kapTyped(::SimpleThree)
+        val typed = kap(::SimpleThree)
             .with { SimpleThreeA("hello") }
             .with { SimpleThreeB(42) }
             .with { SimpleThreeC(true) }
@@ -628,11 +628,11 @@ class KapTypeSafeTest {
     @Test
     fun `named builders and opaque types compose in chain`() = runTest {
         // Named builder for first phase, opaque kapTyped for second via andThen
-        val result = kap(::SimpleTwo)
+        val result = kapDsl(::SimpleTwo)
             .withName { "Alice" }
             .withAge { 30 }
             .andThen { user ->
-                kapTyped(::SimpleThree)
+                kap(::SimpleThree)
                     .with { SimpleThreeA(user.name) }
                     .with { SimpleThreeB(user.age) }
                     .with { SimpleThreeC(true) }
@@ -649,7 +649,7 @@ class KapTypeSafeTest {
     @Test
     fun `partial graph can be stored in a val and completed later`() = runTest {
         // The graph is just data — nothing runs until .evalGraph()
-        val partial = kap(::SimpleThree)
+        val partial = kapDsl(::SimpleThree)
             .withA { "hello" }
 
         // Later, somewhere else, complete it:
@@ -664,7 +664,7 @@ class KapTypeSafeTest {
     @Test
     fun `partial graph can be passed to a function that completes it`() = runTest {
         // Start building the graph
-        val partial: SimpleTwoStep1 = kap(::SimpleTwo)
+        val partial: SimpleTwoStep1 = kapDsl(::SimpleTwo)
             .withName { "Alice" }
 
         // A function receives the partial graph and completes it based on logic
@@ -684,7 +684,7 @@ class KapTypeSafeTest {
     @Test
     fun `graph branches dynamically based on runtime conditions`() = runTest {
         fun buildCheckout(type: CartType): Kap<SimpleThree> {
-            val base = kap(::SimpleThree)
+            val base = kapDsl(::SimpleThree)
                 .withA { "user-data" }
 
             return when (type) {
@@ -713,7 +713,7 @@ class KapTypeSafeTest {
     @Test
     fun `same partial graph reused with different completions`() = runTest {
         // A shared base that fetches the expensive common data once
-        val base = kap(::SimpleThree)
+        val base = kapDsl(::SimpleThree)
             .withA { delay(50); "expensive-shared-data" }
 
         // Two different completions — the base is reused, not re-executed per se
@@ -727,10 +727,87 @@ class KapTypeSafeTest {
         assertEquals(2, resultB.b)
     }
 
+    // ══════════════════════════════════════════════════════════════════
+    //  Typed-applicative API with infix `eq`
+    // ══════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `eq infix with raw values`() = runTest {
+        // Import the per-class tag namespace and read like prose:
+        // "with name eq 'Alice', with age eq 30"
+        with(SimpleTwoKap) {
+            val result = kap(::SimpleTwo)
+                .with { name eq "Alice" }
+                .with { age eq 30 }
+                .evalGraph()
+
+            assertEquals(SimpleTwo("Alice", 30), result)
+        }
+    }
+
+    @Test
+    fun `eq infix with Kap-decorated values composes combinators`() = runTest {
+        // The Kap<T> overload of `eq` lets timeout/retry/etc. stay inside the
+        // graph instead of escaping via .evalGraph() in the lambda. Note the
+        // call shape: parens (not braces) so `.with(fa: Kap<A>)` is selected,
+        // not `.with(fa: suspend () -> A)`.
+        with(SimpleTwoKap) {
+            val result = kap(::SimpleTwo)
+                .with(name eq Kap { delay(10); "Alice" })
+                .with(age eq Kap { delay(10); 30 })
+                .evalGraph()
+
+            assertEquals(SimpleTwo("Alice", 30), result)
+        }
+    }
+
+    @Test
+    fun `eq infix runs in parallel like the rest of the applicative API`() = runTest {
+        with(SimpleThreeKap) {
+            val result = kap(::SimpleThree)
+                .with(a eq Kap { delay(50); "a" })
+                .with(b eq Kap { delay(50); 1 })
+                .with(c eq Kap { delay(50); true })
+                .evalGraph()
+
+            assertEquals(SimpleThree("a", 1, true), result)
+        }
+    }
+
+    @Test
+    fun `eq infix with phase barrier via then`() = runTest {
+        with(PhaseDemoKap) {
+            val result = kap(::PhaseDemo)
+                .with { user eq "Alice" }
+                .with { cart eq "items" }
+                .then { validated eq true }
+                .with { shipping eq 9.99 }
+                .with { tax eq 1.50 }
+                .evalGraph()
+
+            assertEquals(PhaseDemo("Alice", "items", true, 9.99, 1.50), result)
+        }
+    }
+
+    @Test
+    fun `eq infix on all-same-type class still distinguishes fields by tag`() = runTest {
+        with(AllSameTypeKap) {
+            val result = kap(::AllSameType)
+                .with { first eq "one" }
+                .with { second eq "two" }
+                .with { third eq "three" }
+                .evalGraph()
+
+            assertEquals(AllSameType("one", "two", "three"), result)
+            // Swapping `.with { second eq "x" }` before `first` would not compile:
+            // SimpleTwoAgeTag (the inferred first slot) ≠ AllSameTypeSecondTag.
+        }
+    }
+
     @Test
     fun `graph built across multiple functions composes cleanly`() = runTest {
         // Function 1: starts the graph
-        fun createBase(): FiveParamsStep0 = kap(::FiveParams)
+        fun createBase(): FiveParamsStep0 = kapDsl(::FiveParams)
 
         // Function 2: fills in the user context
         fun addUserContext(graph: FiveParamsStep0): FiveParamsStep2 =

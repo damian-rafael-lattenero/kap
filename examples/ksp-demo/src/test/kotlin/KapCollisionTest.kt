@@ -3,7 +3,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-// Two functions with SAME param types and SAME return type → kap() collision
+// Two functions with SAME param types and SAME return type → kapDsl() uses marker objects to avoid collision
 @KapTypeSafe
 fun greet(name: String, age: Int): String = "Hello $name, you are $age"
 
@@ -13,13 +13,13 @@ fun farewell(name: String, age: Int): String = "Bye $name, you are $age"
 class KapCollisionTest {
 
     @Test
-    fun `two functions with same signature both generate kap and kapFunctionName`() = runTest {
-        val g = kap(Greet)
+    fun `two functions with same signature both generate kapDsl and kap{FunctionName}`() = runTest {
+        val g = kapDsl(Greet)
             .withName { "Alice" }
             .withAge { 30 }
             .evalGraph()
 
-        val f = kap(Farewell)
+        val f = kapDsl(Farewell)
             .withName { "Alice" }
             .withAge { 30 }
             .evalGraph()
