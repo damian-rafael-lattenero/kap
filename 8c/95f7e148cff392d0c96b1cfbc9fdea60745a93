@@ -1,0 +1,74 @@
+examples/resilient-fetcher/src/main/kotlin/Main.kt
+  s_a6d3e97cf20f71::t_2452de83af485e 176,249
+examples/ksp-demo/src/test/kotlin/KapCollisionTest.kt
+  s_a6d3e97cf20f71::t_bec9645e57c576 16-17,22
+  s_a6d3e97cf20f71::t_951ea08a9bdc8a 6
+examples/readme-examples/src/main/kotlin/Main.kt
+  s_a6d3e97cf20f71::t_75e9125c58e327 920
+  s_a6d3e97cf20f71::t_45505e3350bd9e 1887-1893,1897-1903,1907-1920
+  s_a6d3e97cf20f71::t_077949e93f9bb2 66-80
+  s_a6d3e97cf20f71::t_3b3b66711d09b5 1950-1956,1966-1971
+  s_a6d3e97cf20f71::t_2452de83af485e 170,201,234,257,267,291,296,354,359,365,382,403,490,546
+  s_a6d3e97cf20f71::t_ae562624ed9a38 1840,1845-1857
+  s_a6d3e97cf20f71::t_d0ca6a8c07cfbe 2112-2141
+CHANGELOG.md
+  s_a6d3e97cf20f71::t_0feeb43978d9a0 9-38
+kap-ksp/src/main/kotlin/kap/ksp/KapTypeSafeProcessor.kt
+  s_a6d3e97cf20f71::t_03b234d68b8913 355,374,379-384
+  s_a6d3e97cf20f71::t_3b4c969dbfe4f7 245,293
+  s_a6d3e97cf20f71::t_77e0da03545d4a 411
+  s_a6d3e97cf20f71::t_9075f08eadcabd 248,252-253
+  s_a6d3e97cf20f71::t_aca397ba635409 343
+  s_a6d3e97cf20f71::t_3ea4d85fb19a55 321-322
+  s_a6d3e97cf20f71::t_dcd746c325e78a 350,357-358,364-373,375-378,385-389,391,395-396
+  s_a6d3e97cf20f71::t_ea30376acc48f6 260
+  s_a6d3e97cf20f71::t_5fb06ebc3e6d03 413
+  s_a6d3e97cf20f71::t_85fd24f4294802 304-305
+README.md
+  s_a6d3e97cf20f71::t_409d66e839d8a0 152-153,155-157,167-168,170-172,179-181,183-187,189-190
+  s_a6d3e97cf20f71::t_363a1210ee2bf5 409-410,417,424,430,437
+  s_a6d3e97cf20f71::t_4c63654ec6c970 107-108,110-119,124
+  s_a6d3e97cf20f71::t_1ff8b8acc2594d 343-344,346-347
+  s_a6d3e97cf20f71::t_ca66e58b8b739b 603-604,608-610,616-617,624-626,631-632,638-640
+  s_a6d3e97cf20f71::t_99df898867f33c 213-214,216-226
+  s_a6d3e97cf20f71::t_b5342d0574362d 136-137,140
+  s_a6d3e97cf20f71::t_42a450af2536e9 278-279,281-283
+  s_a6d3e97cf20f71::t_054d0787bd89a9 367-368,370-372
+examples/ksp-demo/src/test/kotlin/KapTypeSafeTest.kt
+  s_a6d3e97cf20f71::t_5c5fbf445b6f91 750-753,756-757,768-770
+  s_a6d3e97cf20f71::t_b336bccc3c75bf 435,445,458,469,482,495,506,519,530,542,557,567,577,587,597,612
+  s_a6d3e97cf20f71::t_c0e9d5824fdf48 730-738,740-749,754,758-766,771-779,781-794,796-806
+  s_a6d3e97cf20f71::t_f0005bb311d18a 73,85,98,109,124,137,152,166,176,188,203,215,230,242,247,260,273,288,302,316,327,341,358,372,436,446,459,470,483,496,508,520,531,544,558,568,578,588,598,613,619,631,635,652,667,687,716,739,755,767,780,795,810
+examples/ktor-integration/src/main/kotlin/Main.kt
+  s_a6d3e97cf20f71::t_2452de83af485e 351,702
+examples/dashboard-aggregator/src/main/kotlin/Main.kt
+  s_a6d3e97cf20f71::t_2452de83af485e 109
+examples/real-world-http/api/real-world-http.api
+  s_a6d3e97cf20f71::t_1ffff3f805dceb 57-66,68-75,110-112,124
+examples/real-world-http/src/main/kotlin/Main.kt
+  s_a6d3e97cf20f71::t_2452de83af485e 76
+examples/ksp-demo/src/main/kotlin/Main.kt
+  s_a6d3e97cf20f71::t_2452de83af485e 6,58-59,66-67,74-75,82-83,91
+examples/full-stack-order/src/main/kotlin/Main.kt
+  s_a6d3e97cf20f71::t_2452de83af485e 183,271
+examples/ecommerce-checkout/src/main/kotlin/Main.kt
+  s_a6d3e97cf20f71::t_2452de83af485e 50
+kap-core/api/kap-core.api
+  s_a6d3e97cf20f71::t_536f016e41c846 32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "8c95f7e148cff392d0c96b1cfbc9fdea60745a93",
+  "prompts": {},
+  "sessions": {
+    "s_a6d3e97cf20f71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2296f9da-853f-4e7d-9f32-5d10f023c13d",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Damian Rafael Lattenero <damianlattenero@gmail.com>"
+    }
+  }
+}
