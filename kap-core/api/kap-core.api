@@ -90,6 +90,7 @@ public final class kap/KapKt {
 	public static final fun evalGraphTimed (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static final fun getContext ()Lkap/Kap;
 	public static final fun getEmpty (Lkap/Kap$Companion;)Lkap/Kap;
+	public static final fun kap (Lkotlin/jvm/functions/Function0;)Lkap/Kap;
 	public static final fun keepFirst (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
 	public static final fun keepSecond (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
 	public static final fun map (Lkap/Kap;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
