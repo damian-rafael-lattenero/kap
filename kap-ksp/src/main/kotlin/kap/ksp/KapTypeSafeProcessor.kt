@@ -486,48 +486,76 @@ class KapTypeSafeProcessor(
     ) {
         val wrapperName = "${baseName}Kap"
 
-        writer.write("/** Scoped builder for @KapTypeSafe $baseName. Tag vals are members of this class,\n")
-        writer.write(" *  so `.with { field eq value }` resolves them via the lambda's implicit receiver —\n")
-        writer.write(" *  IDE autocomplete sees `${params.joinToString(", ") { it.name }}` without any import.\n")
-        writer.write(" *  Delegates to the underlying `Kap<F>` so all kap-core operators apply transparently\n")
-        writer.write(" *  (.map, .recover, .timeout, .retry, .settled, ...).\n")
-        writer.write(" */\n")
-        writer.write("class $wrapperName<F>(@PublishedApi internal val _kap: Kap<F>) : Kap<F> by _kap {\n")
+        // ── Per-slot tag interfaces — each exposes ONLY the tag for its slot. ──
+        // The slot-specific `.with`/`.then` overloads below use these as the
+        // lambda receiver, so when the cursor is in `.with { ___ }` the IDE
+        // sees exactly one member (`fieldName`) and suggests it directly. Type
+        // any other field → compile error naming the expected tag.
+        writer.write("// ── Per-slot interfaces (lambda receivers for `.with` / `.then`) ──\n\n")
         for (param in params) {
-            val wrapperParamType = "$baseName${param.name.replaceFirstChar { it.uppercase() }}"
-            writer.write("    val ${param.name}: ${wrapperParamType}Tag = ${wrapperParamType}Tag()\n")
+            val cap = param.name.replaceFirstChar { it.uppercase() }
+            writer.write("interface $baseName${cap}Slot { val ${param.name}: $baseName${cap}Tag }\n")
         }
-        // Companion mirrors the member tag vals so they're reachable from outside
-        // the `.with { ... }` lambda receiver, e.g. `.with($wrapperName.name eq Kap { ... })`.
-        // Qualified by class name — no collision across @KapTypeSafe declarations.
+        writer.write("\n")
+
+        writer.write("/** Scoped builder for @KapTypeSafe $baseName. Implements every slot interface\n")
+        writer.write(" *  so each field is reachable as a member, BUT the per-slot `.with` overloads\n")
+        writer.write(" *  below narrow the lambda receiver to a single tag — the IDE shows only the\n")
+        writer.write(" *  field expected at the current curry position when the body is empty.\n")
+        writer.write(" *  Delegates to `Kap<F>` so all kap-core operators apply (.map/.recover/...).\n")
+        writer.write(" */\n")
+        val slotImpls = params.joinToString(", ") { "$baseName${it.name.replaceFirstChar { c -> c.uppercase() }}Slot" }
+        writer.write("class $wrapperName<F>(@PublishedApi internal val _kap: Kap<F>) : Kap<F> by _kap, $slotImpls {\n")
+        for (param in params) {
+            val cap = param.name.replaceFirstChar { it.uppercase() }
+            writer.write("    override val ${param.name}: $baseName${cap}Tag = $baseName${cap}Tag()\n")
+        }
+        // Companion mirrors the tag vals so they're reachable from outside the
+        // lambda receiver — e.g. `.with($wrapperName.field eq Kap { ... })`.
         writer.write("\n    companion object {\n")
         for (param in params) {
-            val wrapperParamType = "$baseName${param.name.replaceFirstChar { it.uppercase() }}"
-            writer.write("        val ${param.name}: ${wrapperParamType}Tag = ${wrapperParamType}Tag()\n")
+            val cap = param.name.replaceFirstChar { it.uppercase() }
+            writer.write("        val ${param.name}: $baseName${cap}Tag = $baseName${cap}Tag()\n")
         }
         writer.write("    }\n")
         writer.write("}\n\n")
 
-        writer.write("// ── Wrapper operators — keep `.with`/`.then` chains receiver-scoped ──\n\n")
+        // ── Per-slot `.with` and `.then` — narrowed lambda receiver per slot ──
+        // Each overload only matches when F begins with that slot's wrapper type.
+        // When the user writes `kap(::T).with { _ }`, only ONE overload applies
+        // (the one for the head wrapper), and its lambda receiver is the slot
+        // interface exposing the single relevant tag.
+        writer.write("// ── Per-slot operators — IDE shows exactly the field expected at this position ──\n\n")
+        for (param in params) {
+            val cap = param.name.replaceFirstChar { it.uppercase() }
+            val wrapperType = "$baseName$cap"
+            val slotType = "${wrapperType}Slot"
 
-        // `.with { field eq fetchSomething() }` — raw value (or suspend) overload.
-        writer.write("inline fun <A, B> $wrapperName<(A) -> B>.with(\n")
-        writer.write("    crossinline fa: suspend $wrapperName<(A) -> B>.() -> A,\n")
-        writer.write("): $wrapperName<B> {\n")
-        writer.write("    val self = this\n")
-        writer.write("    return $wrapperName(self._kap.with(suspend { self.fa() }))\n")
-        writer.write("}\n\n")
+            // .with { field eq value } — raw / suspend. @JvmName per slot because
+            // generics erase to the same JVM signature (`with(Wrapper, Function2)`).
+            writer.write("@kotlin.jvm.JvmName(\"with_${param.name}\")\n")
+            writer.write("inline fun <Rest> $wrapperName<($wrapperType) -> Rest>.with(\n")
+            writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
+            writer.write("): $wrapperName<Rest> {\n")
+            writer.write("    val self = this\n")
+            writer.write("    return $wrapperName(self._kap.with(suspend { self.fa() }))\n")
+            writer.write("}\n\n")
 
-        // `.with(Kap<A>)` — parens form, useful when the Kap is already a value.
+            // .then { field eq value } — raw / suspend.
+            writer.write("@kotlin.jvm.JvmName(\"then_${param.name}\")\n")
+            writer.write("inline fun <Rest> $wrapperName<($wrapperType) -> Rest>.then(\n")
+            writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
+            writer.write("): $wrapperName<Rest> {\n")
+            writer.write("    val self = this\n")
+            writer.write("    return $wrapperName(self._kap.then(suspend { self.fa() }))\n")
+            writer.write("}\n\n")
+        }
+
+        // ── Generic Kap<A> overloads (parens form) — single, shared. ──
+        // Used when the value is already a Kap<A> built outside the lambda
+        // (e.g. `.with($wrapperName.field eq Kap { ... }.timeout(...))`).
         writer.write("fun <A, B> $wrapperName<(A) -> B>.with(fa: Kap<A>): $wrapperName<B> =\n")
         writer.write("    $wrapperName(_kap.with(fa))\n\n")
-
-        writer.write("inline fun <A, B> $wrapperName<(A) -> B>.then(\n")
-        writer.write("    crossinline fa: suspend $wrapperName<(A) -> B>.() -> A,\n")
-        writer.write("): $wrapperName<B> {\n")
-        writer.write("    val self = this\n")
-        writer.write("    return $wrapperName(self._kap.then(suspend { self.fa() }))\n")
-        writer.write("}\n\n")
 
         writer.write("fun <A, B> $wrapperName<(A) -> B>.then(fa: Kap<A>): $wrapperName<B> =\n")
         writer.write("    $wrapperName(_kap.then(fa))\n\n")
