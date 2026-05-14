@@ -497,10 +497,20 @@ class KapTypeSafeProcessor(
             val wrapperParamType = "$baseName${param.name.replaceFirstChar { it.uppercase() }}"
             writer.write("    val ${param.name}: ${wrapperParamType}Tag = ${wrapperParamType}Tag()\n")
         }
+        // Companion mirrors the member tag vals so they're reachable from outside
+        // the `.with { ... }` lambda receiver, e.g. `.with($wrapperName.name eq Kap { ... })`.
+        // Qualified by class name — no collision across @KapTypeSafe declarations.
+        writer.write("\n    companion object {\n")
+        for (param in params) {
+            val wrapperParamType = "$baseName${param.name.replaceFirstChar { it.uppercase() }}"
+            writer.write("        val ${param.name}: ${wrapperParamType}Tag = ${wrapperParamType}Tag()\n")
+        }
+        writer.write("    }\n")
         writer.write("}\n\n")
 
         writer.write("// ── Wrapper operators — keep `.with`/`.then` chains receiver-scoped ──\n\n")
 
+        // `.with { field eq fetchSomething() }` — raw value (or suspend) overload.
         writer.write("inline fun <A, B> $wrapperName<(A) -> B>.with(\n")
         writer.write("    crossinline fa: suspend $wrapperName<(A) -> B>.() -> A,\n")
         writer.write("): $wrapperName<B> {\n")
@@ -508,6 +518,7 @@ class KapTypeSafeProcessor(
         writer.write("    return $wrapperName(self._kap.with(suspend { self.fa() }))\n")
         writer.write("}\n\n")
 
+        // `.with(Kap<A>)` — parens form, useful when the Kap is already a value.
         writer.write("fun <A, B> $wrapperName<(A) -> B>.with(fa: Kap<A>): $wrapperName<B> =\n")
         writer.write("    $wrapperName(_kap.with(fa))\n\n")
 

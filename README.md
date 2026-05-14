@@ -101,20 +101,20 @@ data class CheckoutResult(
     val payment: String,
 )
 
+import CheckoutResultKap.*
+
 val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds) and Schedule.times(3)
 val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
-import kap.CheckoutResultKap.*    // brings user, cart, promos, stock, shipping, tax, payment into scope
-
 kap(::CheckoutResult)
-    .with { user eq fetchUser() }                                    // ┐
-    .with { cart eq fetchCart() }                                     // ├─ phase 1: parallel
-    .with(promos eq Kap { fetchPromos() }.timeout(3.seconds))         // ┘  + timeout on promos
-    .then(stock eq Kap { validateStock() }.retry(retryPolicy))       // ── phase 2: barrier + retry
-    .with { shipping eq calcShipping() }                             // ┐ phase 3: parallel
-    .with { tax eq calcTax() }                                       // ┘
-    .then(payment eq Kap { reservePayment() }                        // ── phase 4: barrier
-        .withCircuitBreaker(breaker)                                 //    + circuit breaker
+    .with { user eq fetchUser() }                                  // ┐
+    .with { cart eq fetchCart() }                                  // ├─ phase 1: parallel
+    .with(promos eq Kap { fetchPromos() }.timeout(3.seconds))      // ┘  + timeout on promos
+    .then(stock eq Kap { validateStock() }.retry(retryPolicy))     // ── phase 2: barrier + retry
+    .with { shipping eq calcShipping() }                           // ┐ phase 3: parallel
+    .with { tax eq calcTax() }                                     // ┘
+    .then(payment eq Kap { reservePayment() }                      // ── phase 4: barrier
+        .withCircuitBreaker(breaker)                               //    + circuit breaker
         .timeout(5.seconds))
     .evalGraph()
 ```
@@ -137,7 +137,7 @@ Same 7 calls, same 4 phases, same retry, same circuit breaker, same timeouts. `.
 | `.then { field eq value }` | Waits for all above, then continues | "once that's done..." |
 | `.andThen { result -> }` | Waits, passes the result, builds the next graph | "using what we got..." |
 
-> When `value` is itself a `Kap<T>` (e.g. `Kap { fetchX() }.timeout(...)`), pass it without braces: `.with(field eq Kap { ... })`. Braces select the suspend-lambda overload (`A`); parens select the `Kap<A>` overload — the compiler tells you which one applies.
+> When `value` is itself a `Kap<T>` (e.g. `Kap { fetchX() }.timeout(...)`), use parens: `.with(field eq Kap { ... })`. Either `import MyTypeKap.*` at the top of the file, or qualify inline as `MyTypeKap.field`. Inside the braces form `.with { field eq ... }` the lambda's implicit receiver brings tags into scope — no import needed there.
 
 ---
 
@@ -148,8 +148,6 @@ Most use cases don't need retry or circuit breakers. At its core, KAP is just a 
 ```kotlin
 @KapTypeSafe
 data class Dashboard(val user: String, val feed: String, val notifications: Int)
-
-import kap.DashboardKap.*
 
 kap(::Dashboard)
     .with { user eq fetchUser() }              // ┐
@@ -164,8 +162,6 @@ Need one field to wait for another? Change `.with` to `.then`:
 @KapTypeSafe
 data class ProfilePage(val user: String, val avatar: String, val recommendations: String)
 
-import kap.ProfilePageKap.*
-
 kap(::ProfilePage)
     .with { user eq fetchUser(id) }                         // ┐ parallel
     .with { avatar eq fetchAvatar(id) }                     // ┘
@@ -176,8 +172,6 @@ kap(::ProfilePage)
 Need the result of one graph to decide what to build next? Use `.andThen`:
 
 ```kotlin
-import kap.DashboardKap.*
-import kap.FullPageKap.*
 
 kap(::Dashboard)
     .with { user eq fetchUser() }
@@ -209,8 +203,6 @@ data class CheckoutResult(
     val payment: String,
     val confirmation: String, val email: String,
 )
-
-import kap.CheckoutResultKap.*
 
 kap(::CheckoutResult)
     .with { user eq fetchUser() }               // ┐
@@ -275,12 +267,13 @@ By default, if any `.with` branch fails, the whole graph is cancelled — struct
 @KapTypeSafe
 data class HomePage(val profile: String, val feed: Result<String>, val ads: Result<String>)
 
-import kap.HomePageKap.*
+import HomePageKap.*
 
 kap(::HomePage)
-    .with { profile eq fetchProfile() }             // critical — failure cancels everything
-    .with(feed eq settled { fetchFeed() })          // optional — failure returns Result.failure
-    .with(ads eq settled { fetchAds() }).evalGraph() // optional — failure returns Result.failure
+    .with { profile eq fetchProfile() }              // critical — failure cancels everything
+    .with(feed eq settled { fetchFeed() })           // optional — failure returns Result.failure
+    .with(ads eq settled { fetchAds() })             // optional — failure returns Result.failure
+    .evalGraph()
 // Feed throws? Profile and ads still complete. You get Result.failure for feed.
 ```
 
@@ -340,7 +333,7 @@ Kap { callFlakyService() }.retry(policy).evalGraph()
 @KapTypeSafe
 data class Dashboard(val user: String, val latency: TimedResult<String>)
 
-import kap.DashboardKap.*
+import DashboardKap.*
 
 kap(::Dashboard)
     .with { user eq fetchUser() }
@@ -363,8 +356,6 @@ val config = Kap { loadRemoteConfig() }.memoizeOnSuccess()
 ```kotlin
 @KapTypeSafe
 data class DeveloperProfile(val user: GithubUser, val topRepos: List<GithubRepo>, val funFact: String)
-
-import kap.DeveloperProfileKap.*
 
 val profile = kap(::DeveloperProfile)
     .with { user eq client.get("https://api.github.com/users/kotlin").body() }
@@ -389,6 +380,8 @@ data class OrderResult(
     val notifications: List<Result<Unit>>,
 )
 
+import OrderResultKap.*
+
 // Retry: exponential backoff (100ms, 200ms, 400ms) + jitter, max 3 attempts
 val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds).jittered() and Schedule.times(3)
 // Circuit breaker: after 5 failures, stop calling payment for 30s
@@ -406,8 +399,6 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
     val order = validated.getOrElse { return Either.Left(it) }
 
     // ── PHASES 2–5: inside DB transaction (rollback on any failure) ──
-    import kap.OrderResultKap.*
-
     return bracketCase(
         acquire = { db.beginTransaction() },
         use = { tx ->
@@ -600,7 +591,6 @@ KAP is just suspend functions in, result out. It works anywhere coroutines work:
 
 ```kotlin
 // Ktor
-import kap.CheckoutResultKap.*
 
 get("/checkout/{id}") {
     val id = call.parameters["id"]!!
@@ -613,7 +603,6 @@ get("/checkout/{id}") {
 }
 
 // Spring Boot
-import kap.CheckoutResultKap.*
 
 @RestController
 class CheckoutController(val userService: UserService, val cartService: CartService) {
@@ -628,7 +617,7 @@ class CheckoutController(val userService: UserService, val cartService: CartServ
 }
 
 // Android ViewModel
-import kap.HomeDataKap.*
+import HomeDataKap.*
 
 class HomeViewModel : ViewModel() {
     val state = MutableStateFlow<HomeState>(Loading)
@@ -645,6 +634,46 @@ class HomeViewModel : ViewModel() {
 ```
 
 No framework, no runtime, no annotation processing at runtime. Your suspend functions go in, your data class comes out.
+
+---
+
+## Functions, not just data classes
+
+`@KapTypeSafe` works on functions too. Same `kap(::name).with { … }` shape — useful when you want a factory or a transform in front of the constructor (validation, normalization, joining multiple sources into one shape):
+
+```kotlin
+@KapTypeSafe
+fun buildCheckout(
+    user: String,
+    cart: String,
+    promos: String,
+    stock: Boolean,
+    shipping: Double,
+    tax: Double,
+    payment: String,
+): Checkout = Checkout(
+    user = user.trim(),                                  // normalize here…
+    cart = cart,
+    promos = promos.ifBlank { "NONE" },
+    stock = stock,
+    total = shipping + tax,                              // …or compute derived fields
+    payment = payment,
+)
+
+kap(::buildCheckout)
+    .with { user eq fetchUser() }                        // ┐
+    .with { cart eq fetchCart() }                        // ├─ same IDE autocomplete
+    .with { promos eq fetchPromos() }                    // │   as the data-class form
+    .then { stock eq validateStock() }                   // ┘
+    .with { shipping eq calcShipping() }
+    .with { tax eq calcTax() }
+    .then { payment eq reservePayment() }
+    .evalGraph()
+```
+
+Constructor reference (`::Checkout`) and function reference (`::buildCheckout`) are both first-class — pick whichever matches your domain.
+
+> If both your data class and a pass-through factory share the same `(params) -> R` signature, only annotate **one** — otherwise both generate `fun kap(f: (...) -> R)` overloads with identical signatures and the call site is ambiguous.
 
 ---
 

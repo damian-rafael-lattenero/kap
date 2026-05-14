@@ -57,22 +57,37 @@ public final class DeveloperProfileFunFact {
 public final class DeveloperProfileFunFactTag {
 }
 
-public final class DeveloperProfileKap {
-	public static final field INSTANCE LDeveloperProfileKap;
+public final class DeveloperProfileKap : kap/Kap {
+	public static final field Companion LDeveloperProfileKap$Companion;
+	public fun <init> (Lkap/Kap;)V
+	public fun execute (Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getFunFact ()LDeveloperProfileFunFactTag;
+	public final fun getTopRepos ()LDeveloperProfileTopReposTag;
+	public final fun getUser ()LDeveloperProfileUserTag;
+	public final fun get_kap ()Lkap/Kap;
+}
+
+public final class DeveloperProfileKap$Companion {
 	public final fun getFunFact ()LDeveloperProfileFunFactTag;
 	public final fun getTopRepos ()LDeveloperProfileTopReposTag;
 	public final fun getUser ()LDeveloperProfileUserTag;
 }
 
 public final class DeveloperProfileKapBuilderKt {
+	public static final fun andThen (LDeveloperProfileKap;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
 	public static final fun eq (LDeveloperProfileFunFactTag;Ljava/lang/String;)LDeveloperProfileFunFact;
 	public static final fun eq (LDeveloperProfileFunFactTag;Lkap/Kap;)Lkap/Kap;
 	public static final fun eq (LDeveloperProfileTopReposTag;Ljava/util/List;)LDeveloperProfileTopRepos;
 	public static final fun eq (LDeveloperProfileTopReposTag;Lkap/Kap;)Lkap/Kap;
 	public static final fun eq (LDeveloperProfileUserTag;LGithubUser;)LDeveloperProfileUser;
 	public static final fun eq (LDeveloperProfileUserTag;Lkap/Kap;)Lkap/Kap;
-	public static final fun kap (Lkotlin/jvm/functions/Function3;)Lkap/Kap;
+	public static final fun evalGraph (LDeveloperProfileKap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun kap (Lkotlin/jvm/functions/Function3;)LDeveloperProfileKap;
 	public static final fun kapDsl (Lkotlin/jvm/functions/Function3;)LDeveloperProfileStep0;
+	public static final fun then (LDeveloperProfileKap;Lkap/Kap;)LDeveloperProfileKap;
+	public static final fun then (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;
+	public static final fun with (LDeveloperProfileKap;Lkap/Kap;)LDeveloperProfileKap;
+	public static final fun with (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;
 }
 
 public final class DeveloperProfileStep0 {

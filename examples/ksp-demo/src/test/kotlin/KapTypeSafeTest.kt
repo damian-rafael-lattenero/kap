@@ -733,75 +733,66 @@ class KapTypeSafeTest {
 
     @Test
     fun `eq infix with raw values`() = runTest {
-        // Import the per-class tag namespace and read like prose:
+        // Scoped builder: tag vals come from the lambda's implicit receiver —
+        // no `with(...)` or `import` needed. Reads like prose:
         // "with name eq 'Alice', with age eq 30"
-        with(SimpleTwoKap) {
-            val result = kap(::SimpleTwo)
-                .with { name eq "Alice" }
-                .with { age eq 30 }
-                .evalGraph()
+        val result = kap(::SimpleTwo)
+            .with { name eq "Alice" }
+            .with { age eq 30 }
+            .evalGraph()
 
-            assertEquals(SimpleTwo("Alice", 30), result)
-        }
+        assertEquals(SimpleTwo("Alice", 30), result)
     }
 
     @Test
     fun `eq infix with Kap-decorated values composes combinators`() = runTest {
         // The Kap<T> overload of `eq` lets timeout/retry/etc. stay inside the
-        // graph instead of escaping via .evalGraph() in the lambda. Note the
-        // call shape: parens (not braces) so `.with(fa: Kap<A>)` is selected,
-        // not `.with(fa: suspend () -> A)`.
-        with(SimpleTwoKap) {
-            val result = kap(::SimpleTwo)
-                .with(name eq Kap { delay(10); "Alice" })
-                .with(age eq Kap { delay(10); 30 })
-                .evalGraph()
+        // graph instead of escaping via .evalGraph() in the lambda. Use parens
+        // and qualify the tag via the wrapper's companion (`SimpleTwoKap.name`)
+        // so it's accessible outside the `.with { ... }` lambda receiver.
+        val result = kap(::SimpleTwo)
+            .with(SimpleTwoKap.name eq Kap { delay(10); "Alice" })
+            .with(SimpleTwoKap.age eq Kap { delay(10); 30 })
+            .evalGraph()
 
-            assertEquals(SimpleTwo("Alice", 30), result)
-        }
+        assertEquals(SimpleTwo("Alice", 30), result)
     }
 
     @Test
     fun `eq infix runs in parallel like the rest of the applicative API`() = runTest {
-        with(SimpleThreeKap) {
-            val result = kap(::SimpleThree)
-                .with(a eq Kap { delay(50); "a" })
-                .with(b eq Kap { delay(50); 1 })
-                .with(c eq Kap { delay(50); true })
-                .evalGraph()
+        val result = kap(::SimpleThree)
+            .with(SimpleThreeKap.a eq Kap { delay(50); "a" })
+            .with(SimpleThreeKap.b eq Kap { delay(50); 1 })
+            .with(SimpleThreeKap.c eq Kap { delay(50); true })
+            .evalGraph()
 
-            assertEquals(SimpleThree("a", 1, true), result)
-        }
+        assertEquals(SimpleThree("a", 1, true), result)
     }
 
     @Test
     fun `eq infix with phase barrier via then`() = runTest {
-        with(PhaseDemoKap) {
-            val result = kap(::PhaseDemo)
-                .with { user eq "Alice" }
-                .with { cart eq "items" }
-                .then { validated eq true }
-                .with { shipping eq 9.99 }
-                .with { tax eq 1.50 }
-                .evalGraph()
+        val result = kap(::PhaseDemo)
+            .with { user eq "Alice" }
+            .with { cart eq "items" }
+            .then { validated eq true }
+            .with { shipping eq 9.99 }
+            .with { tax eq 1.50 }
+            .evalGraph()
 
-            assertEquals(PhaseDemo("Alice", "items", true, 9.99, 1.50), result)
-        }
+        assertEquals(PhaseDemo("Alice", "items", true, 9.99, 1.50), result)
     }
 
     @Test
     fun `eq infix on all-same-type class still distinguishes fields by tag`() = runTest {
-        with(AllSameTypeKap) {
-            val result = kap(::AllSameType)
-                .with { first eq "one" }
-                .with { second eq "two" }
-                .with { third eq "three" }
-                .evalGraph()
+        val result = kap(::AllSameType)
+            .with { first eq "one" }
+            .with { second eq "two" }
+            .with { third eq "three" }
+            .evalGraph()
 
-            assertEquals(AllSameType("one", "two", "three"), result)
-            // Swapping `.with { second eq "x" }` before `first` would not compile:
-            // SimpleTwoAgeTag (the inferred first slot) ≠ AllSameTypeSecondTag.
-        }
+        assertEquals(AllSameType("one", "two", "three"), result)
+        // Swapping the order would not compile — each slot expects its own
+        // wrapper type (AllSameTypeFirst, AllSameTypeSecond, AllSameTypeThird).
     }
 
     @Test
