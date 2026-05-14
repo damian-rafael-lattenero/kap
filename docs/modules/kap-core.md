@@ -3,7 +3,7 @@
 The foundation module. Type-safe parallel orchestration with visible phases.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-core:2.7.0")
+implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
 ```
 
 **Depends on:** `kotlinx-coroutines-core` only.
@@ -16,7 +16,7 @@ implementation("io.github.damian-rafael-lattenero:kap-core:2.7.0")
 
 You have multiple async calls. Some parallel, some sequential. kap-core gives you `.with` for independent tasks, `.then` for barriers, and `.andThen` for dependent phases. The code shape becomes the execution plan.
 
-With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named builder methods** generated from your data class properties — `.withUser {}`, `.thenStock {}`, etc. — making chains self-documenting while retaining full compile-time type safety. The generic `.with {}` / `.then {}` API shown throughout this page is the underlying core API; named builders are the recommended user-facing pattern built on top of it.
+With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named builder methods** generated from your data class properties — `.with { user from  }`, `.then { stock from  }`, etc. — making chains self-documenting while retaining full compile-time type safety. The generic `.with {}` / `.then {}` API shown throughout this page is the underlying core API; named builders are the recommended user-facing pattern built on top of it.
 
 ---
 
@@ -58,9 +58,9 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
     data class Dashboard(val user: String, val cart: String, val promos: String)
 
     val dashboard: Dashboard = kap(::Dashboard)
-        .withUser { fetchUser() }     // ┐ all three start at t=0
-        .withCart { fetchCart() }      // │ total time = max(individual)
-        .withPromos { fetchPromos() }  // ┘ swap any two? COMPILE ERROR
+        .with { user from fetchUser() }     // ┐ all three start at t=0
+        .with { cart from fetchCart() }      // │ total time = max(individual)
+        .with { promos from fetchPromos() }  // ┘ swap any two? COMPILE ERROR
         .evalGraph()
     ```
 
@@ -74,7 +74,7 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         .evalGraph()
     ```
 
-`@KapTypeSafe` generates `.withUser {}`, `.withCart {}`, `.withPromos {}` from the data class properties. The generic `.with {}` API is equivalent but positional — named builders enforce the correct parameter at each step.
+`@KapTypeSafe` generates `.with { user from  }`, `.with { cart from  }`, `.with { promos from  }` from the data class properties. The generic `.with {}` API is equivalent but positional — named builders enforce the correct parameter at each step.
 
 ### `.then` — Phase barrier
 
@@ -99,9 +99,9 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
     data class Result(val a: A, val b: B, val validated: Validated)
 
     val result = kap(::Result)
-        .withA { fetchA() }             // ┐ parallel
-        .withB { fetchB() }             // ┘
-        .thenValidated { validate() }   // ── barrier: waits for A and B
+        .with { a from fetchA() }             // ┐ parallel
+        .with { b from fetchB() }             // ┘
+        .then { validated from validate() }   // ── barrier: waits for A and B
         .evalGraph()
     ```
 
@@ -140,19 +140,19 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
     ```kotlin
     // With @KapTypeSafe on UserContext, EnrichedContent, and FinalDashboard
     val dashboard: FinalDashboard = kap(::UserContext)
-        .withProfile { fetchProfile(userId) }       // ┐
-        .withPreferences { fetchPreferences(userId) }   // ├─ phase 1
-        .withLoyaltyTier { fetchLoyaltyTier(userId) }   // ┘
+        .with { profile from fetchProfile(userId) }       // ┐
+        .with { preferences from fetchPreferences(userId) }   // ├─ phase 1
+        .with { loyaltyTier from fetchLoyaltyTier(userId) }   // ┘
         .andThen { ctx ->                    // ── barrier: ctx available
             kap(::EnrichedContent)
-                .withRecommendations { fetchRecommendations(ctx.profile) }  // ┐
-                .withPromotions { fetchPromotions(ctx.tier) }               // ├─ phase 2
-                .withTrending { fetchTrending(ctx.prefs) }                  // │
-                .withHistory { fetchHistory(ctx.profile) }                  // ┘
+                .with { recommendations from fetchRecommendations(ctx.profile) }  // ┐
+                .with { promotions from fetchPromotions(ctx.tier) }               // ├─ phase 2
+                .with { trending from fetchTrending(ctx.prefs) }                  // │
+                .with { history from fetchHistory(ctx.profile) }                  // ┘
                 .andThen { enriched ->                         // ── barrier
                     kap(::FinalDashboard)
-                        .withLayout { renderLayout(ctx, enriched) }     // ┐ phase 3
-                        .withAnalytics { trackAnalytics(ctx, enriched) }   // ┘
+                        .with { layout from renderLayout(ctx, enriched) }     // ┐ phase 3
+                        .with { analytics from trackAnalytics(ctx, enriched) }   // ┘
                 }
         }
         .evalGraph()
@@ -195,9 +195,9 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
     data class Dashboard(val user: String, val cart: String, val promos: String)
 
     val result = kap(::Dashboard)
-        .withUser { fetchUser() }
-        .withCart { fetchCart() }
-        .withPromos { fetchPromos() }
+        .with { user from fetchUser() }
+        .with { cart from fetchCart() }
+        .with { promos from fetchPromos() }
         .evalGraph()
     ```
 
@@ -270,9 +270,9 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
     data class Dashboard(val user: String, val cart: String, val config: String)
 
     val dashboard = kap(::Dashboard)
-        .withUser { fetchUser() }     // throws! → cart and config CANCELLED
-        .withCart { fetchCart() }      // never runs
-        .withConfig { fetchConfig() }  // never runs
+        .with { user from fetchUser() }     // throws! → cart and config CANCELLED
+        .with { cart from fetchCart() }      // never runs
+        .with { config from fetchConfig() }  // never runs
         .evalGraph()
     // RuntimeException — entire dashboard lost. Cart and config were fine.
     ```
@@ -285,9 +285,9 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
     data class Dashboard(val user: Result<String>, val cart: String, val config: String)
 
     val dashboard = kap(::Dashboard)
-        .withUser(settled { fetchUser() })   // Result<String> — won't cancel siblings
-        .withCart { fetchCart() }              // String — runs normally
-        .withConfig { fetchConfig() }          // String — runs normally
+        .with(DashboardKap.user from settled { fetchUser() })   // Result<String> — won't cancel siblings
+        .with { cart from fetchCart() }                         // String — runs normally
+        .with { config from fetchConfig() }                     // String — runs normally
         .evalGraph()
     // Dashboard(user=Result.failure(RuntimeException), cart=cart-ok, config=config-ok)
 
@@ -304,8 +304,8 @@ The `timed { }` shorthand wraps a call so it returns `TimedResult<A>` — the va
 data class Dashboard(val user: String, val latency: TimedResult<String>)
 
 val dashboard = kap(::Dashboard)
-    .withUser { fetchUser() }
-    .withLatency(timed { fetchSlowService() })   // TimedResult(value, duration)
+    .with { user from fetchUser() }
+    .with(DashboardKap.latency from timed { fetchSlowService() })   // TimedResult(value, duration)
     .evalGraph()
 
 println(dashboard.latency.duration) // 230.ms
@@ -772,7 +772,7 @@ Works with constructor refs, function refs, and lambdas:
 @KapTypeSafe
 data class Greeting(val name: String, val message: String)
 
-val g1 = kap(::Greeting).withName { fetchName() }.withMessage { "hello" }.evalGraph()
+val g1 = kap(::Greeting).with { name from fetchName() }.with { message from "hello" }.evalGraph()
 
 // Lambda — use Kap.of with manual currying
 val greet: (String, Int) -> String = { name, age -> "Hi $name, you're $age" }
@@ -782,7 +782,7 @@ val g2 = Kap.of { name: String -> { age: Int -> greet(name, age) } }
 // Function — annotate with @KapTypeSafe for named builders
 @KapTypeSafe
 fun buildSummary(name: String, items: Int): String = "$name has $items items"
-val g3 = kap(BuildSummary).withName { fetchName() }.withItems { 5 }.evalGraph()
+val g3 = kap(BuildSummary).with { name from fetchName() }.with { items from 5 }.evalGraph()
 ```
 
 #### `Kap.of(value)` / `Kap.empty()` / `Kap.failed(error)` / `Kap.defer { }`
@@ -818,9 +818,9 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
     data class Page(val content: Content, val sidebar: Sidebar, val timestamp: Timestamp)
 
     val result = kap(::Page)
-        .withContent { fetchContent() }           // parallel
-        .withSidebar { fetchSidebar() }           // parallel
-        .thenValue { computeTimestamp() }  // sequential fill, no barrier
+        .with { content from fetchContent() }           // parallel
+        .with { sidebar from fetchSidebar() }           // parallel
+        .then { value from computeTimestamp() }  // sequential fill, no barrier
         .evalGraph()
     ```
 
@@ -1000,8 +1000,8 @@ val tracer = KapTracer { event ->
 }
 
 val result = kap(::Dashboard)
-    .withUser(Kap { fetchUser() }.traced("fetch-user", tracer))
-    .withConfig(Kap { fetchConfig() }.traced("fetch-config", tracer))
+    .with(DashboardKap.user   from Kap { fetchUser()   }.traced("fetch-user", tracer))
+    .with(DashboardKap.config from Kap { fetchConfig() }.traced("fetch-config", tracer))
     .evalGraph()
 ```
 
@@ -1083,9 +1083,9 @@ val maybeResult: String? = withOrNull { Kap { riskyOperation() } }
 data class Dashboard(val user: String, val cart: String, val promos: String)
 
 val plan: Kap<Dashboard> = kap(::Dashboard)
-    .withUser { fetchDashUser() }
-    .withCart { fetchDashCart() }
-    .withPromos { fetchDashPromos() }
+    .with { user from fetchDashUser() }
+    .with { cart from fetchDashCart() }
+    .with { promos from fetchDashPromos() }
 
 println("Plan built. Nothing has executed yet.")
 println("plan is: ${plan::class.simpleName}")
@@ -1107,9 +1107,9 @@ val result: Dashboard = plan.evalGraph()  // NOW it runs
 
 | I want to... | Use this |
 |---|---|
-| Run tasks in parallel (named) | `.withParamName { }` via `@KapTypeSafe` |
+| Run tasks in parallel (named) | `.with { paramName from  }` via `@KapTypeSafe` |
 | Run tasks in parallel (generic) | `.with { }` |
-| Wait for all before continuing | `.then { }` / `.thenParamName { }` |
+| Wait for all before continuing | `.then { }` / `.then { paramName from  }` |
 | Use previous result in next phase | `.andThen { ctx -> }` |
 | Handle one failure without cancelling rest | `settled { }` |
 | Process a list with bounded concurrency | `traverse(concurrency) { }` |

@@ -49,33 +49,35 @@ One annotation. KSP generates everything:
 data class User(val firstName: String, val lastName: String, val age: Int)
 ```
 
-KSP generates a step builder chain where each step only exposes the method for the next parameter:
+KSP generates a scoped wrapper `UserKap<F>` with **per-slot tag interfaces**. Inside `.with { … }` the lambda's implicit receiver only resolves the field expected at the current curry position:
 
 ```kotlin
-// Step builder interfaces — no wrapper types needed
-// kap(::User) returns a builder that only has .withFirstName
-// .withFirstName { } returns a builder that only has .withLastName
-// .withLastName { } returns a builder that only has .withAge
-// .withAge { } returns an executable graph
+// Scoped builder + slot interfaces — no wrapper types at the call site
+// kap(::User)         → UserKap<(UserFirstName) -> (UserLastName) -> (UserAge) -> User>
+//                       lambda receiver = UserFirstNameSlot { val firstName: UserFirstNameTag }
+// .with { firstName … } → UserKap<(UserLastName) -> (UserAge) -> User>
+//                       lambda receiver = UserLastNameSlot { val lastName: UserLastNameTag }
+// .with { lastName  … } → UserKap<(UserAge) -> User>
+// .with { age       … } → UserKap<User> — runnable via .evalGraph()
 ```
 
 Usage:
 
 ```kotlin
 kap(::User)
-    .withFirstName { fetchFirstName() }   // only .withFirstName is available here
-    .withLastName { fetchLastName() }     // only .withLastName is available here
-    .withAge { fetchAge() }               // only .withAge is available here
+    .with { firstName from fetchFirstName() }   // only `firstName` resolves here
+    .with { lastName  from fetchLastName()  }   // only `lastName`  resolves here
+    .with { age       from fetchAge()       }   // only `age`       resolves here
     .evalGraph()
 ```
 
-Try calling `.withLastName` before `.withFirstName`? The compiler rejects it — that method doesn't exist on the current step. Done.
+Try `.with { lastName from … }` first? `lastName` is unresolved at that curry position — the lambda receiver is `UserFirstNameSlot`, which only exposes `firstName`. The compiler rejects it with a name that points directly at the expected slot. Done.
 
 ## Multiplatform by design
 
-The generated step builders are pure Kotlin interfaces — they work on every Kotlin target: JVM, JS, WASM, Native, iOS, macOS. The KSP processor runs on JVM during compilation, but the code it generates compiles everywhere. No platform restrictions.
+The generated scoped wrapper and slot interfaces are pure Kotlin — they work on every Kotlin target: JVM, JS, WASM, Native, iOS, macOS. The KSP processor runs on JVM during compilation, but the code it generates compiles everywhere. No platform restrictions.
 
-There are no wrapper types or extra allocations — the step builders guide the developer at compile time and add zero runtime overhead. The type safety is what matters, and it's enforced at compile time.
+The runtime cost is a single wrapper allocation per chain (the underlying `Kap<F>` would have been allocated anyway). The slot interfaces are compile-time IDE narrowing only — no virtual dispatch, no per-field state.
 
 ## Works on functions too
 
@@ -89,9 +91,9 @@ fun buildDashboard(userName: String, cartSummary: String, promoCode: String): Da
 // KSP generates a BuildDashboard marker object and named step builders
 
 kap(BuildDashboard)
-    .withUserName { fetchUserName() }
-    .withCartSummary { fetchCartSummary() }
-    .withPromoCode { fetchPromoCode() }
+    .with { userName from fetchUserName() }
+    .with { cartSummary from fetchCartSummary() }
+    .with { promoCode from fetchPromoCode() }
     .evalGraph()
 ```
 
@@ -107,7 +109,7 @@ fun buildDashboard(userName: String, cartSummary: String, promoCode: String): Da
 fun buildReport(userName: String, dateRange: String, format: String): Report
 ```
 
-Dashboard generates `.withDashboardUserName { }`. Report generates `.withReportUserName { }`. No collision. Default is no prefix — clean and short for the common case.
+Dashboard generates `.with { dashboardUserName from  }`. Report generates `.with { reportUserName from  }`. No collision. Default is no prefix — clean and short for the common case.
 
 ## Why nobody else does this
 
@@ -128,7 +130,7 @@ Instead of hiding it, we:
 1. Acknowledged the limitation
 2. Explored solutions (value classes, compiler plugins, KSP)
 3. Built the simplest thing that works (`@KapTypeSafe` + KSP2)
-4. Made it ergonomic (named step builders like `.withFirstName { }`, `prefix` for collisions)
+4. Made it ergonomic (named step builders like `.with { firstName from  }`, `prefix` for collisions)
 5. Eliminated wrapper types entirely — step builders enforce order without runtime overhead
 
 Each step was driven by one question: "what would make the developer's life easier?"
@@ -141,9 +143,9 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.7.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.7.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:3.0.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:3.0.0")
 }
 ```
 

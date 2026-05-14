@@ -3,21 +3,21 @@ package kap
 import kotlin.reflect.KClass
 
 /**
- * Generate type-safe named builders for a **third-party class** whose source
+ * Generate a type-safe scoped builder for a **third-party class** whose source
  * you don't control (and therefore can't annotate with [KapTypeSafe]).
  *
- * KSP reads the target class's primary constructor parameter names and
- * generates the same step-builder chain as [KapTypeSafe]:
+ * KSP reads the target class's primary constructor parameter names and emits
+ * the same scoped wrapper as [KapTypeSafe]:
  *
  * ```kotlin
  * // In any .kt file in your project:
  * @file:KapBridge(ThirdPartyUser::class)
  *
- * // Usage — same named-builder experience:
+ * // Usage — `.with { field from value }` is order-aware, IDE-narrowed:
  * kap(::ThirdPartyUser)
- *     .withFirstName { fetchFirstName() }
- *     .withLastName { fetchLastName() }
- *     .withAge { fetchAge() }
+ *     .with { firstName from fetchFirstName() }
+ *     .with { lastName from fetchLastName() }
+ *     .with { age from fetchAge() }
  *     .evalGraph()
  * ```
  *

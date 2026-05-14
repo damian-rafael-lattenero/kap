@@ -93,15 +93,15 @@ val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds) and Schedule
 val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
 kap(::CheckoutResult)
-    .withUser { fetchUser() }                                         // ┐
-    .withCart { fetchCart() }                                          // ├─ phase 1: parallel
-    .withPromos(Kap { fetchPromos() }.timeout(3.seconds))             // ┘  + timeout
-    .thenStock(Kap { validateStock() }.retry(retryPolicy))            // ── phase 2: barrier + retry
-    .withShipping { calcShipping() }                                  // ┐ phase 3: parallel
-    .withTax { calcTax() }                                            // ┘
-    .thenPayment(Kap { reservePayment() }                             // ── phase 4: barrier
-        .withCircuitBreaker(breaker)                                  //    + circuit breaker
-        .timeout(5.seconds))                                          //    + timeout
+    .with { user from fetchUser() }                                                  // ┐
+    .with { cart from fetchCart() }                                                  // ├─ phase 1: parallel
+    .with(CheckoutResultKap.promos from Kap { fetchPromos() }.timeout(3.seconds))    // ┘  + timeout
+    .then(CheckoutResultKap.stock from Kap { validateStock() }.retry(retryPolicy))   // ── phase 2: barrier + retry
+    .with { shipping from calcShipping() }                                           // ┐ phase 3: parallel
+    .with { tax from calcTax() }                                                     // ┘
+    .then(CheckoutResultKap.payment from Kap { reservePayment() }                    // ── phase 4: barrier
+        .withCircuitBreaker(breaker)                                                 //    + circuit breaker
+        .timeout(5.seconds))                                                         //    + timeout
     .evalGraph()
 ```
 
@@ -115,8 +115,8 @@ The entire library is three ideas:
 
 | You write | What happens | Think of it as |
 |---|---|---|
-| `.withX { }` | Runs in parallel with everything else in the same phase | *"and at the same time..."* |
-| `.thenX { }` | Waits for all above, then continues | *"once that's done..."* |
+| `.with { x from  }` | Runs in parallel with everything else in the same phase | *"and at the same time..."* |
+| `.then { x from  }` | Waits for all above, then continues | *"once that's done..."* |
 | `.andThen { result -> }` | Waits, passes the result, builds the next graph | *"using what we got..."* |
 
 Everything else — retry, circuit breaker, racing, validation — is built on top of these three.
@@ -127,9 +127,9 @@ By default, one failure cancels everything — that's structured concurrency. Bu
 
 ```kotlin
 kap(::HomePage)
-    .withProfile { fetchProfile() }              // critical — failure cancels all
-    .withFeed(settled { fetchFeed() })           // optional — returns Result.failure
-    .withAds(settled { fetchAds() })             // optional — returns Result.failure
+    .with { profile from fetchProfile() }                              // critical — failure cancels all
+    .with(HomePageKap.feed from settled { fetchFeed() })               // optional — returns Result.failure
+    .with(HomePageKap.ads  from settled { fetchAds()  })               // optional — returns Result.failure
     .evalGraph()
 ```
 
@@ -137,13 +137,13 @@ Feed crashes? You still get the profile and ads. No `supervisorScope`, no `runCa
 
 ## The part nobody expected: compile-time parameter safety
 
-`@KapTypeSafe` generates a **step class per field**. After `.withUser`, the IDE only offers `.withCart`. You can't swap, skip, or forget a field:
+`@KapTypeSafe` generates a **scoped wrapper with per-slot tags**. Inside `.with { … }` the lambda's receiver only exposes the field expected at the current curry position. You can't swap, skip, or forget a field:
 
 ```kotlin
 kap(::CheckoutResult)
-    .withUser { fetchUser() }     // Step 0 → only .withUser available
-    .withCart { fetchCart() }      // Step 1 → only .withCart available
-    .thenStock { ... }            // Step 2 → only .thenStock available
+    .with { user from fetchUser() }     // only `user`  resolves here
+    .with { cart from fetchCart() }     // only `cart`  resolves here
+    .then { stock from … }              // only `stock` resolves here
 ```
 
 This is compile-time enforced. Not a runtime check. Not a lint rule. The wrong code literally doesn't compile. As far as I know, no other Kotlin framework does this.
@@ -177,9 +177,9 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
     // All three validators run concurrently.
     // If address AND card fail, you get BOTH errors — not just the first.
     val validated = kapV<OrderError, ValidAddress, ValidCard, ValidItems, ValidOrder>(::ValidOrder)
-        .withV { validateAddress(input.address) }       // ┐ all three run at the same time
-        .withV { validatePaymentInfo(input.card) }      // ├─ errors don't short-circuit
-        .withV { validateItems(input.items) }           // ┘ they accumulate
+        .with { v from validateAddress(input.address) }       // ┐ all three run at the same time
+        .with { v from validatePaymentInfo(input.card) }      // ├─ errors don't short-circuit
+        .with { v from validateItems(input.items) }           // ┘ they accumulate
         .evalGraph()
 
     // If any validation failed, return all errors immediately
@@ -195,7 +195,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
 
                 // PHASE 2: Get the best price — race 3 providers
                 // All three start at t=0. First to respond wins. Losers are cancelled.
-                .withFinalPrice(raceN(
+                .with(OrderResultKap.finalPrice from raceN(
                     Kap { pricingServiceA(order) },
                     Kap { pricingServiceB(order) },
                     Kap { pricingServiceC(order) },
@@ -204,7 +204,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
                 // PHASE 3: Reserve inventory — retry if the service is flaky
                 // .then = barrier: waits for phase 2 to complete before starting
                 // .retry = if it fails, try again with exponential backoff + jitter
-                .thenReservationId(
+                .then(OrderResultKap.reservationId from
                     Kap { reserveInventory(tx, order) }
                         .retry(retryPolicy)
                 )
@@ -213,7 +213,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
                 // .then = barrier: waits for phase 3
                 // .withCircuitBreaker = if payment service failed 5 times, fail fast
                 // .timeout = don't wait more than 5 seconds
-                .thenPaymentId(
+                .then(OrderResultKap.paymentId from
                     Kap { chargePayment(tx, order) }
                         .withCircuitBreaker(paymentBreaker)
                         .timeout(5.seconds)
@@ -223,12 +223,13 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
                 // All three run in parallel. If push notification fails,
                 // email and analytics still complete. Each result is wrapped
                 // in Result<Unit> so failures don't cancel siblings.
-                .withNotifications(listOf(
+                .with(OrderResultKap.notifications from listOf(
                     Kap { sendEmail(order) },
                     Kap { sendPush(order) },
                     Kap { updateAnalytics(order) },
                 ).sequenceSettled())
 
+                .asKap                                              // drop wrapper to chain .map
                 .map { Either.Right(it) }
         },
         // CLEANUP: commit on success, rollback on any failure or cancellation
@@ -248,9 +249,9 @@ The raw coroutines version of this is [~90 lines](https://github.com/damian-rafa
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.7.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.7.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:3.0.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:3.0.0")
 }
 ```
 

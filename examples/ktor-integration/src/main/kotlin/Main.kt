@@ -348,29 +348,29 @@ fun Routing.coreRoutes() {
     get("/dashboard/{userId}") {
         val userId = call.parameters["userId"]!!
 
-        val dashboard = kapDsl(::Dashboard)
-                .withUser(
-                    Kap { Services.fetchUserProfile(userId) }
-                        .named("fetchProfile")
-                        .traced("profile", tracer)
-                )
-                .withCart(
-                    Kap { Services.fetchCart(userId) }
-                        .named("fetchCart")
-                        .traced("cart", tracer)
-                )
-                .withRecentOrders(
-                    Kap { Services.fetchRecentOrders(userId) }
-                        .on(Dispatchers.IO)
-                        .traced("recentOrders", tracer)
-                )
-                .thenAuthToken(
-                    Kap { Services.authorize(userId) }
-                        .traced("authorize", tracer)
-                )
-                .withRecommendations { Services.fetchRecommendations("Gold") }
-                .withNotificationCount { Services.countNotifications(userId) }
-                .evalGraph()
+        val dashboard = kap(::Dashboard)
+            .with(DashboardKap.user from
+                Kap { Services.fetchUserProfile(userId) }
+                    .named("fetchProfile")
+                    .traced("profile", tracer)
+            )
+            .with(DashboardKap.cart from
+                Kap { Services.fetchCart(userId) }
+                    .named("fetchCart")
+                    .traced("cart", tracer)
+            )
+            .with(DashboardKap.recentOrders from
+                Kap { Services.fetchRecentOrders(userId) }
+                    .on(Dispatchers.IO)
+                    .traced("recentOrders", tracer)
+            )
+            .then(DashboardKap.authToken from
+                Kap { Services.authorize(userId) }
+                    .traced("authorize", tracer)
+            )
+            .with { recommendations from Services.fetchRecommendations("Gold") }
+            .with { notificationCount from Services.countNotifications(userId) }
+            .evalGraph()
 
         call.respond(dashboard)
     }
@@ -699,28 +699,28 @@ fun Routing.combinedRoutes() {
                 .mapError { "${it::class.simpleName}: ${it.message}" }
                 .orThrow()
                 .andThen { validated ->
-                    kapDsl(::PlacedOrder)
-                        .withItemId { validated.item.value }
-                        .withQuantity { validated.qty.value }
-                        .withInventory(
+                    kap(::PlacedOrder)
+                        .with { itemId from validated.item.value }
+                        .with { quantity from validated.qty.value }
+                        .with(PlacedOrderKap.inventory from
                             Kap { Services.checkInventory(validated.item.value) }
                                 .retry(retryPolicy) { attempt, err, nextDelay ->
                                     println("  Inventory retry #$attempt: ${err.message} (waiting $nextDelay)")
                                 }
                                 .traced("inventory", tracer)
                         )
-                        .withPricing(
+                        .with(PlacedOrderKap.pricing from
                             Kap { Services.fetchLivePricing(validated.item.value) }
                                 .timeoutRace(100.milliseconds, Kap { Services.fetchCachedPricing(validated.item.value) })
                                 .traced("pricing", tracer)
                         )
-                        .thenPayment(
+                        .then(PlacedOrderKap.payment from
                             Kap { Services.processPayment(validated.qty.value * 49.99 * 0.95) }
                                 .withCircuitBreaker(paymentBreaker)
                                 .retry(Schedule.times<Throwable>(2) and Schedule.spaced(30.milliseconds))
                                 .traced("payment", tracer)
                         )
-                        .thenConfirmation(
+                        .then(PlacedOrderKap.confirmation from
                             bracket(
                                 acquire = { Services.openOrderDb() },
                                 use = { db -> Kap { db.insert("ORD-${System.currentTimeMillis()}") } },

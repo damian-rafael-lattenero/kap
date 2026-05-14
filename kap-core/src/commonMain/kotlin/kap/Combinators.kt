@@ -261,8 +261,8 @@ fun <A> settled(block: suspend () -> A): Kap<Result<A>> = Kap { block() }.settle
  *
  * ```
  * kap(::Dashboard)
- *     .withLatency(timed { fetchUser() })   // TimedResult<String>
- *     .withCart { fetchCart() }              // String
+ *     .with(DashboardKap.latency from timed { fetchUser() })   // TimedResult<String>
+ *     .with { cart from fetchCart() }                          // String
  * ```
  */
 fun <A> timed(block: suspend () -> A): Kap<TimedResult<A>> = Kap { block() }.timed()

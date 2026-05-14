@@ -8,8 +8,8 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.7.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:3.0.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:3.0.0")
 }
 ```
 
@@ -34,33 +34,33 @@ kap(::User)
 // Compiles. Wrong data. Production bug.
 ```
 
-This is the same problem raw coroutines and Arrow have. No type system can catch it — unless you give each parameter a distinct step.
+This is the same problem raw coroutines and Arrow have. No type system can catch it — unless you give each parameter a distinct slot.
 
 ## The Solution
 
-`@KapTypeSafe` generates a step builder where each parameter gets its own named method. The IDE only shows the next parameter's method in autocomplete — you literally cannot wire them in the wrong order:
+`@KapTypeSafe` generates a scoped wrapper where each parameter gets its own **tagged slot**. Inside `.with { … }`, the lambda's implicit receiver is the slot interface for the current curry position — the IDE shows exactly the field you owe, by name. Swapping fields is a compile error citing the expected tag:
 
 ```kotlin
 @KapTypeSafe
 data class User(val firstName: String, val lastName: String, val age: Int)
 
-// KSP generates a step builder with named methods:
-// kap(::User).withFirstName { }.withLastName { }.withAge { }.evalGraph()
-// Each step only exposes the next method — no way to swap.
-// No wrapper types. No companion object needed.
+// KSP generates a scoped wrapper UserKap<F> with per-slot tags:
+// kap(::User).with { firstName from … }.with { lastName from … }.with { age from … }.evalGraph()
+//                    ↑ the lambda's receiver exposes ONLY `firstName: UserFirstNameTag`
+//                      — typing any other field is a compile error.
 ```
 
 Usage — clean, fluent, compile-time safe:
 
 ```kotlin
 kap(::User)
-    .withFirstName { fetchFirstName() }   // Only withFirstName is available here
-    .withLastName { fetchLastName() }     // Only withLastName is available here — swap? COMPILE ERROR
-    .withAge { fetchAge() }               // Only withAge is available here
+    .with { firstName from fetchFirstName() }   // Only `firstName` resolves here
+    .with { lastName  from fetchLastName()  }   // Only `lastName`  resolves here — swap? COMPILE ERROR
+    .with { age       from fetchAge()       }   // Only `age`       resolves here
     .evalGraph()
 ```
 
-**Multiplatform compatible** — generates plain Kotlin code that compiles on every Kotlin target (JVM, JS, WASM, Native, iOS, macOS). Zero overhead — no wrapper types, no extra allocations.
+**Multiplatform compatible** — generates plain Kotlin code that compiles on every Kotlin target (JVM, JS, WASM, Native, iOS, macOS). Zero runtime overhead beyond a single wrapper instance per chain.
 
 ---
 
@@ -74,26 +74,23 @@ data class Dashboard(val userName: String, val cartSummary: String, val promoCod
 @KapTypeSafe
 fun buildDashboard(userName: String, cartSummary: String, promoCode: String): Dashboard =
     Dashboard(userName, cartSummary, promoCode)
-
-// KSP generates a marker object: BuildDashboard
-// Usage: kap(BuildDashboard).withUserName { }.withCartSummary { }.withPromoCode { }.evalGraph()
 ```
 
 ```kotlin
-kap(BuildDashboard)
-    .withUserName { fetchUserName() }
-    .withCartSummary { fetchCartSummary() }
-    .withPromoCode { fetchPromoCode() }
+kap(::buildDashboard)
+    .with { userName    from fetchUserName()    }
+    .with { cartSummary from fetchCartSummary() }
+    .with { promoCode   from fetchPromoCode()   }
     .evalGraph()
 ```
 
-Generated entry point: `kap(::ClassName)` for classes, `kap(MarkerObject)` for functions (KSP generates the marker object from the function name in PascalCase).
+Generated entry point: `kap(::callable)` for both classes and functions. If multiple `@KapTypeSafe` functions share the same `(params) -> return` signature, the processor emits suffixed fallbacks like `kapBuildDashboard(::buildDashboard)` to avoid identical-signature overloads.
 
 ---
 
-## Prefix — Avoiding Collisions
+## Prefix — Avoiding Generated-Type Collisions
 
-Two functions with the same parameter name? Use `prefix`:
+Two functions with overlapping parameter names? Use `prefix` to namespace the generated **file names and tag class names** — call-site tag names stay as the original parameter names:
 
 ```kotlin
 @KapTypeSafe(prefix = "Dashboard")
@@ -103,45 +100,76 @@ fun buildDashboard(userName: String, cartSummary: String, promoCode: String): Da
 fun buildReport(userName: String, dateRange: String, format: String): Report = ...
 ```
 
-Both have `userName: String`, but no collision:
+The prefix prevents the generated `*UserNameTag` classes from colliding in your module. The call sites read the same as if there were no prefix:
 
 ```kotlin
-// Dashboard
-kap(BuildDashboard)
-    .withDashboardUserName { fetchUserName() }      // no collision
-    .withDashboardCartSummary { fetchCartSummary() }
-    .withDashboardPromoCode { fetchPromoCode() }
+// Dashboard — call-site uses original parameter names
+kap(::buildDashboard)
+    .with { userName    from fetchUserName()    }
+    .with { cartSummary from fetchCartSummary() }
+    .with { promoCode   from fetchPromoCode()   }
     .evalGraph()
 
-// Report
-kap(BuildReport)
-    .withReportUserName { fetchUserName() }          // no collision
-    .withReportDateRange { fetchDateRange() }
-    .withReportFormat { fetchFormat() }
+// Report — same, no collision because tag classes are namespaced
+kap(::buildReport)
+    .with { userName  from fetchUserName()  }
+    .with { dateRange from fetchDateRange() }
+    .with { format    from fetchFormat()    }
     .evalGraph()
 ```
 
-**Default is no prefix** — clean and short. Add prefix only when you need it.
+**Default is no prefix** — clean and short. Add prefix only when generated-type names would otherwise collide.
 
 ---
 
 ## @KapBridge — Third-Party Classes
 
-Can't annotate a class you don't own? Use `@KapBridge` to generate a step builder for any third-party class:
+Can't annotate a class you don't own? Use `@KapBridge` to generate the scoped wrapper for any third-party class:
 
 ```kotlin
-@KapBridge(ThirdPartyUser::class)
-class ThirdPartyUserBridge
+@file:KapBridge(ThirdPartyUser::class)
 
-// Now you can use the same step-builder pattern:
+// Now you can use the same scoped-builder pattern:
 kap(::ThirdPartyUser)
-    .withFirstName { fetchFirstName() }
-    .withLastName { fetchLastName() }
-    .withAge { fetchAge() }
+    .with { firstName from fetchFirstName() }
+    .with { lastName  from fetchLastName()  }
+    .with { age       from fetchAge()       }
     .evalGraph()
 ```
 
-KSP reads the constructor parameters from the bridged class and generates the same named step methods as if the class had `@KapTypeSafe` directly.
+KSP reads the constructor parameters from the bridged class and generates the same scoped wrapper as if the class had `@KapTypeSafe` directly.
+
+---
+
+## Composing With kap-core Operators
+
+The wrapper is intentionally NOT a `Kap<F>` — it shadows the slot members against the generic `Kap.with(suspend () -> A)` extension. However, two mechanisms eliminate almost all friction:
+
+**1. Last slot returns `Kap<R>` directly.** When the curry reduces to the final parameter, `.with { lastField from … }` returns `Kap<ReturnType>`. Kap-core operators (`.map`, `.recover`, `.timeout`, …) chain naturally:
+
+```kotlin
+val user: User = kap(::User)
+    .with { firstName from fetchFirstName() }
+    .with { lastName  from fetchLastName()  }
+    .with { age       from fetchAge()       }   // ← Kap<User> from here
+    .recover { User("Anon", "", 0) }
+    .timeout(2.seconds)
+    .evalGraph()
+```
+
+**2. `KapLike<F>` on the wrapper.** Partial wrappers (mid-chain) implement `KapLike<F>`, which ships delegate extensions for all kap-core operators. If you need to apply operators before the chain is complete, they are available directly — no `.asKap` required for kap-core operators.
+
+For Kap-decorated **per-slot** values (timeout/retry on a single field), use the parens form — `from` has a `Kap<T>` overload:
+
+```kotlin
+kap(::User)
+    .with(UserKap.firstName from Kap { fetchFirstName() }.timeout(500.milliseconds))
+    .with(UserKap.lastName  from Kap { fetchLastName()  }.retry(retryPolicy))
+    .with(UserKap.age       from Kap { fetchAge()       })
+    .evalGraph()
+```
+
+`.asKap` is still available as a member (`UserKap<F>.asKap: Kap<F>`) when you need to pass the raw `Kap<F>` to an external API that expects it.
 
 ---
 
@@ -151,11 +179,17 @@ For each `@KapTypeSafe` annotated class or function:
 
 | Generated | Example |
 |---|---|
-| Step builder chain | `kap(::User).withFirstName { }.withLastName { }.withAge { }.evalGraph()` |
-| Named method per param | `.withFirstName { }`, `.withLastName { }`, `.withAge { }` |
-| Marker object (functions only) | `object BuildDashboard` |
+| Scoped wrapper | `class UserKap<F>(...)` — holds the chain's `Kap<F>`, exposes per-slot tags |
+| Per-slot interface | `interface UserFirstNameSlot { val firstName: UserFirstNameTag }` |
+| Per-slot `.with`/`.then` | `UserKap<(UserFirstName) -> Rest>.with(UserFirstNameSlot.() -> UserFirstName)` |
+| Infix `from` | `infix fun UserFirstNameTag.from(value: String): UserFirstName` |
+| Entry point | `fun kap(f: (String, String, Int) -> User): UserKap<...>` |
+| `KapLike<F>` impl | `class UserKap<F> : KapLike<F>, …` — kap-core operators available on partial wrappers |
+| `.asKap` member | `UserKap<F>.asKap: Kap<F>` — raw `Kap<F>` for external APIs |
+| Last-slot optimization | Last `.with`/`.then` returns `Kap<R>` for direct chaining of kap-core operators |
+| Validated builder (kap-arrow) | `class UserValidatedKap<E, F>`, `fun <E> kapV(f: ...): UserValidatedKap<E, ...>` |
 
-Each step interface exposes only the next parameter's method — IDE autocomplete enforces the correct order.
+The slot-specific `.with` overload only matches when the chain's curried function head is that slot's wrapper type — so at each position only ONE field is in scope, and the IDE narrows accordingly.
 
 ---
 
@@ -186,11 +220,11 @@ Each step interface exposes only the next parameter's method — IDE autocomplet
 === "KAP + @KapTypeSafe"
 
     ```kotlin
-    // Every parameter gets a named step. Swap anything? COMPILE ERROR.
+    // Every parameter gets a named slot. Swap anything? COMPILE ERROR.
     kap(::User)
-        .withFirstName { fetchFirstName() }   // Only withFirstName available
-        .withLastName { fetchLastName() }     // Only withLastName available
-        .withAge { fetchAge() }               // Only withAge available
+        .with { firstName from fetchFirstName() }   // Only `firstName` in scope
+        .with { lastName  from fetchLastName()  }   // Only `lastName`  in scope
+        .with { age       from fetchAge()       }   // Only `age`       in scope
         .evalGraph()
     ```
 

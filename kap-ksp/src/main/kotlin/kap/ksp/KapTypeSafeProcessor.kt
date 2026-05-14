@@ -26,6 +26,10 @@ class KapTypeSafeProcessor(
         val unprocessed = mutableListOf<KSAnnotated>()
         signatureCounts.clear()
 
+        val kapArrowPresent = resolver.getClassDeclarationByName(
+            resolver.getKSNameFromString("arrow.core.Either")
+        ) != null
+
         // Pre-pass: count signatures across classes + functions + bridges so the
         // function generator can decide whether `kap(f: ...)` would collide.
         resolver.getSymbolsWithAnnotation("kap.KapTypeSafe").forEach { symbol ->
@@ -46,12 +50,12 @@ class KapTypeSafeProcessor(
             when (symbol) {
                 is KSClassDeclaration -> {
                     if (symbol.classKind == ClassKind.CLASS) {
-                        generateForClass(symbol)
+                        generateForClass(symbol, kapArrowPresent)
                     } else {
                         logger.error("@KapTypeSafe can only be applied to classes or functions", symbol)
                     }
                 }
-                is KSFunctionDeclaration -> generateForFunction(symbol)
+                is KSFunctionDeclaration -> generateForFunction(symbol, kapArrowPresent)
                 else -> logger.error("@KapTypeSafe can only be applied to classes or functions", symbol)
             }
         }
@@ -169,7 +173,7 @@ class KapTypeSafeProcessor(
         val isNullable: Boolean,
     )
 
-    private fun generateForClass(classDecl: KSClassDeclaration) {
+    private fun generateForClass(classDecl: KSClassDeclaration, kapArrowPresent: Boolean = false) {
         val className = classDecl.simpleName.asString()
         val packageName = classDecl.packageName.asString()
         val prefix = extractPrefix(classDecl)
@@ -203,10 +207,11 @@ class KapTypeSafeProcessor(
             params = params,
             returnType = returnType,
             prefix = prefix,
+            kapArrowPresent = kapArrowPresent,
         )
     }
 
-    private fun generateForFunction(funcDecl: KSFunctionDeclaration) {
+    private fun generateForFunction(funcDecl: KSFunctionDeclaration, kapArrowPresent: Boolean = false) {
         val funcName = funcDecl.simpleName.asString()
         val packageName = funcDecl.packageName.asString()
         val prefix = extractPrefix(funcDecl)
@@ -248,6 +253,7 @@ class KapTypeSafeProcessor(
             returnType = returnType,
             prefix = prefix,
             signatureIsUnique = signatureIsUnique,
+            kapArrowPresent = kapArrowPresent,
         )
     }
 
@@ -273,9 +279,8 @@ class KapTypeSafeProcessor(
     // ── Code generation: constructor-based (classes + bridges) ──────
 
     /**
-     * Generates kap(f: (P1, P2, ...) -> ReturnType): Step0
-     * Used for @KapTypeSafe classes and @KapBridge — the return type
-     * makes the overload unique, so no marker object is needed.
+     * Generates `kap(f: (P1, P2, ...) -> R): ${baseName}Kap<curried>` — the scoped
+     * wrapper API. Used for @KapTypeSafe classes and @KapBridge.
      */
     private fun generateForConstructor(
         containingFile: KSFile,
@@ -285,45 +290,46 @@ class KapTypeSafeProcessor(
         params: List<ParamInfo>,
         returnType: String,
         prefix: String = "",
+        kapArrowPresent: Boolean = false,
     ) {
         val hasPackage = packageName.isNotEmpty()
-        val stepPrefix = if (prefix.isEmpty()) baseName else "$prefix$baseName"
+        val fileBaseName = if (prefix.isEmpty()) baseName else "$prefix$baseName"
 
         val file = codeGenerator.createNewFile(
             Dependencies(true, containingFile),
             packageName,
-            "${stepPrefix}KapBuilder"
+            "${fileBaseName}KapBuilder"
         )
 
         OutputStreamWriter(file).use { writer ->
             writeHeader(writer, hasPackage, packageName, params)
-            writeOpaqueTypes(writer, baseName, params, prefix)
-            writeScopedBuilder(writer, baseName, params)
-            writeStepClasses(writer, stepPrefix, params, returnType, prefix)
-
-            // Entry point: kapDsl(f: (...) -> ReturnType) — deprecated step-class path
-            val originalTypes = params.joinToString(", ") { it.typeString }
-            val step0 = "${stepPrefix}Step0"
-
-            writer.write("@Deprecated(\"The .withX/.thenX step-class API is deprecated. Use kap(::Type).with { fieldName from value } with the typed-applicative API.\")\n")
-            writer.write("fun kapDsl(f: ($originalTypes) -> $returnType): $step0 =\n")
-            writer.write("    $step0(\n")
-            writer.write("        Kap.of(")
-            writeCurriedLambda(writer, params, "f")
-            writer.write(")\n")
-            writer.write("    )\n")
-
-            // Entry point: kap(f) — returns the scoped wrapper.
+            writeOpaqueTypes(writer, baseName, params)
+            writeScopedBuilder(writer, baseName, params, returnType)
             writeScopedEntry(writer, baseName, params, returnType, entryFnName = "kap", callableExpression = "f")
+        }
+
+        if (kapArrowPresent) {
+            val validatedFile = codeGenerator.createNewFile(
+                Dependencies(true, containingFile),
+                packageName,
+                "${fileBaseName}KapBuilderValidated"
+            )
+            OutputStreamWriter(validatedFile).use { writer ->
+                writeValidatedHeader(writer, hasPackage, packageName)
+                writeValidatedFromOverloads(writer, baseName, params)
+                writeValidatedScopedBuilder(writer, baseName, params, returnType)
+                writeValidatedScopedEntry(writer, baseName, params, returnType, entryFnName = "kapV", callableExpression = "f")
+            }
         }
     }
 
-    // ── Code generation: marker-based (functions) ──────────────────
+    // ── Code generation: function-based ────────────────────────────
 
     /**
-     * Generates an object marker + kap(marker: MarkerObject): Step0
-     * Used for @KapTypeSafe functions — the marker object makes the
-     * overload unique even when multiple functions share the same types.
+     * Generates the scoped wrapper entry for @KapTypeSafe functions. When the
+     * function's (params, return) signature is unique, emits `fun kap(f)`;
+     * otherwise emits `fun kap${baseName}(f)` to avoid identical-signature
+     * overload collisions on the plain `kap` name.
      */
     private fun generateForMarkerObject(
         containingFile: KSFile,
@@ -335,49 +341,22 @@ class KapTypeSafeProcessor(
         returnType: String,
         prefix: String = "",
         signatureIsUnique: Boolean = true,
+        kapArrowPresent: Boolean = false,
     ) {
         val hasPackage = packageName.isNotEmpty()
-        val stepPrefix = if (prefix.isEmpty()) baseName else "$prefix$baseName"
+        val fileBaseName = if (prefix.isEmpty()) baseName else "$prefix$baseName"
 
         val file = codeGenerator.createNewFile(
             Dependencies(true, containingFile),
             packageName,
-            "${stepPrefix}KapBuilder"
+            "${fileBaseName}KapBuilder"
         )
 
         OutputStreamWriter(file).use { writer ->
             writeHeader(writer, hasPackage, packageName, params)
-            writeOpaqueTypes(writer, baseName, params, prefix)
-            writeScopedBuilder(writer, baseName, params)
+            writeOpaqueTypes(writer, baseName, params)
+            writeScopedBuilder(writer, baseName, params, returnType)
 
-            // Marker object — kept ONLY as a handle for the deprecated step-class
-            // entry `kapDsl(MarkerObject)`. New code uses `kap(::functionName)`.
-            writer.write("object $markerObjectName\n\n")
-
-            writeStepClasses(writer, stepPrefix, params, returnType, prefix)
-
-            // Deprecated entry point: kapDsl(marker: MarkerObject) → Step0
-            val step0 = "${stepPrefix}Step0"
-
-            writer.write("@Suppress(\"UNUSED_PARAMETER\")\n")
-            writer.write("@Deprecated(\"The .withX/.thenX step-class API is deprecated. Use kap(::functionName).with { fieldName from value } with the typed-applicative API.\")\n")
-            writer.write("fun kapDsl(marker: $markerObjectName): $step0 =\n")
-            writer.write("    $step0(\n")
-            writer.write("        Kap.of(")
-
-            val paramNames = params.indices.map { "p$it" }
-            paramNames.zip(params).forEach { (name, param) ->
-                writer.write("{ $name: ${param.typeString} -> ")
-            }
-            val callArgs = paramNames.joinToString(", ")
-            writer.write("$functionCall($callArgs)")
-            writer.write(" }".repeat(params.size))
-
-            writer.write(")\n")
-            writer.write("    )\n")
-
-            // Official typed-applicative entry. When this function's (params, return)
-            // signature is unique, emit `fun kap`; otherwise fall back to `fun kap{Name}`.
             val entryFnName = if (signatureIsUnique) "kap" else "kap$baseName"
             writeScopedEntry(writer, baseName, params, returnType, entryFnName, callableExpression = "f")
 
@@ -401,6 +380,21 @@ class KapTypeSafeProcessor(
                 writer.write("))\n")
             }
         }
+
+        if (kapArrowPresent) {
+            val validatedFile = codeGenerator.createNewFile(
+                Dependencies(true, containingFile),
+                packageName,
+                "${fileBaseName}KapBuilderValidated"
+            )
+            OutputStreamWriter(validatedFile).use { writer ->
+                writeValidatedHeader(writer, hasPackage, packageName)
+                writeValidatedFromOverloads(writer, baseName, params)
+                writeValidatedScopedBuilder(writer, baseName, params, returnType)
+                val validatedEntryFnName = if (signatureIsUnique) "kapV" else "kapV$baseName"
+                writeValidatedScopedEntry(writer, baseName, params, returnType, entryFnName = validatedEntryFnName, callableExpression = "f")
+            }
+        }
     }
 
     // ── Shared generation helpers ──────────────────────────────────
@@ -416,24 +410,173 @@ class KapTypeSafeProcessor(
             writer.write("package $packageName\n\n")
         }
         writer.write("import kap.Kap\n")
+        writer.write("import kap.KapLike\n")
         writer.write("import kap.of\n")
         writer.write("import kap.with\n")
         writer.write("import kap.then\n")
         writer.write("import kap.map\n")
         writer.write("import kap.andThen\n")
         writer.write("import kap.evalGraph\n")
-        if (params.any { it.isNullable }) {
-            writer.write("import kap.withOrNull\n")
-        }
         writer.write("\n")
     }
 
-    @Suppress("UNUSED_PARAMETER")
+    private fun writeValidatedHeader(
+        writer: OutputStreamWriter,
+        hasPackage: Boolean,
+        packageName: String,
+    ) {
+        writer.write("// AUTO-GENERATED by kap-ksp — do not edit\n")
+        if (hasPackage) {
+            writer.write("package $packageName\n\n")
+        }
+        writer.write("import arrow.core.Either\n")
+        writer.write("import arrow.core.NonEmptyList\n")
+        writer.write("import kap.Kap\n")
+        writer.write("import kap.KapLike\n")
+        writer.write("import kap.of\n")
+        writer.write("import kap.withV\n")
+        writer.write("import kap.thenV\n")
+        writer.write("import kap.evalGraph\n")
+        writer.write("\n")
+    }
+
+    private fun writeValidatedFromOverloads(
+        writer: OutputStreamWriter,
+        baseName: String,
+        params: List<ParamInfo>,
+    ) {
+        writer.write("// ── Validated infix `from` — maps Either<Nel<E>, FieldType> into tagged wrapper ──\n\n")
+        for (param in params) {
+            val wrapperName = "$baseName${param.name.replaceFirstChar { it.uppercase() }}"
+            val tagClassName = "${wrapperName}Tag"
+            writer.write("infix fun <E> $tagClassName.from(value: Either<NonEmptyList<E>, ${param.typeString}>): Either<NonEmptyList<E>, $wrapperName> =\n")
+            writer.write("    value.map(::$wrapperName)\n\n")
+        }
+    }
+
+    private fun writeValidatedScopedBuilder(
+        writer: OutputStreamWriter,
+        baseName: String,
+        params: List<ParamInfo>,
+        returnType: String,
+    ) {
+        val wrapperName = "${baseName}ValidatedKap"
+
+        writer.write("/** Validated scoped builder for @KapTypeSafe $baseName. Uses the same per-slot\n")
+        writer.write(" *  tag interfaces as ${baseName}Kap — each `.withV { field from validateField() }`\n")
+        writer.write(" *  narrows the receiver to one slot, accumulating errors via Arrow's applicative.\n")
+        writer.write(" */\n")
+        val slotImpls = params.joinToString(", ") { "$baseName${it.name.replaceFirstChar { c -> c.uppercase() }}Slot" }
+        writer.write("class $wrapperName<E, F>(@PublishedApi internal val _kap: Kap<Either<NonEmptyList<E>, F>>) : KapLike<Either<NonEmptyList<E>, F>>, $slotImpls {\n")
+        writer.write("    override val asKap: Kap<Either<NonEmptyList<E>, F>> get() = _kap\n")
+        for (param in params) {
+            val cap = param.name.replaceFirstChar { it.uppercase() }
+            writer.write("    override val ${param.name}: $baseName${cap}Tag = $baseName${cap}Tag()\n")
+        }
+        writer.write("\n    companion object {\n")
+        for (param in params) {
+            val cap = param.name.replaceFirstChar { it.uppercase() }
+            writer.write("        val ${param.name}: $baseName${cap}Tag = $baseName${cap}Tag()\n")
+        }
+        writer.write("    }\n")
+        writer.write("}\n\n")
+
+        writer.write("// ── Per-slot .withV / .thenV operators ──\n\n")
+        for ((index, param) in params.withIndex()) {
+            val isLast = index == params.size - 1
+            val cap = param.name.replaceFirstChar { it.uppercase() }
+            val wrapperType = "$baseName$cap"
+            val slotType = "${wrapperType}Slot"
+
+            if (isLast) {
+                writer.write("@kotlin.jvm.JvmName(\"withV_${param.name}\")\n")
+                writer.write("inline fun <E> $wrapperName<E, ($wrapperType) -> $returnType>.withV(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> Either<NonEmptyList<E>, $wrapperType>,\n")
+                writer.write("): Kap<Either<NonEmptyList<E>, $returnType>> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return self._kap.withV(Kap { self.fa() })\n")
+                writer.write("}\n\n")
+
+                writer.write("@kotlin.jvm.JvmName(\"thenV_${param.name}\")\n")
+                writer.write("inline fun <E> $wrapperName<E, ($wrapperType) -> $returnType>.thenV(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> Either<NonEmptyList<E>, $wrapperType>,\n")
+                writer.write("): Kap<Either<NonEmptyList<E>, $returnType>> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return self._kap.thenV(Kap { self.fa() })\n")
+                writer.write("}\n\n")
+            } else {
+                writer.write("@kotlin.jvm.JvmName(\"withV_${param.name}\")\n")
+                writer.write("inline fun <E, Rest> $wrapperName<E, ($wrapperType) -> Rest>.withV(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> Either<NonEmptyList<E>, $wrapperType>,\n")
+                writer.write("): $wrapperName<E, Rest> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return $wrapperName(self._kap.withV(Kap { self.fa() }))\n")
+                writer.write("}\n\n")
+
+                writer.write("@kotlin.jvm.JvmName(\"thenV_${param.name}\")\n")
+                writer.write("inline fun <E, Rest> $wrapperName<E, ($wrapperType) -> Rest>.thenV(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> Either<NonEmptyList<E>, $wrapperType>,\n")
+                writer.write("): $wrapperName<E, Rest> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return $wrapperName(self._kap.thenV(Kap { self.fa() }))\n")
+                writer.write("}\n\n")
+            }
+        }
+
+        // Generic Kap<Either<Nel<E>, A>> overloads (parens form)
+        writer.write("fun <E, A, B> $wrapperName<E, (A) -> B>.withV(fa: Kap<Either<NonEmptyList<E>, A>>): $wrapperName<E, B> =\n")
+        writer.write("    $wrapperName(_kap.withV(fa))\n\n")
+
+        writer.write("fun <E, A, B> $wrapperName<E, (A) -> B>.thenV(fa: Kap<Either<NonEmptyList<E>, A>>): $wrapperName<E, B> =\n")
+        writer.write("    $wrapperName(_kap.thenV(fa))\n\n")
+
+        // Last-slot parens form
+        if (params.isNotEmpty()) {
+            val lastCap = params.last().name.replaceFirstChar { it.uppercase() }
+            val lastWrapperType = "$baseName$lastCap"
+            writer.write("fun <E> $wrapperName<E, ($lastWrapperType) -> $returnType>.withV(fa: Kap<Either<NonEmptyList<E>, $lastWrapperType>>): Kap<Either<NonEmptyList<E>, $returnType>> =\n")
+            writer.write("    _kap.withV(fa)\n\n")
+
+            writer.write("fun <E> $wrapperName<E, ($lastWrapperType) -> $returnType>.thenV(fa: Kap<Either<NonEmptyList<E>, $lastWrapperType>>): Kap<Either<NonEmptyList<E>, $returnType>> =\n")
+            writer.write("    _kap.thenV(fa)\n\n")
+        }
+
+        writer.write("suspend fun <E, A> $wrapperName<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()\n\n")
+    }
+
+    private fun writeValidatedScopedEntry(
+        writer: OutputStreamWriter,
+        baseName: String,
+        params: List<ParamInfo>,
+        returnType: String,
+        entryFnName: String,
+        callableExpression: String,
+    ) {
+        val wrapperName = "${baseName}ValidatedKap"
+        val opaqueNames = params.map { "$baseName${it.name.replaceFirstChar { c -> c.uppercase() }}" }
+        val curriedType = opaqueNames.joinToString(" -> ") { "($it)" } + " -> $returnType"
+        val inputType = "(${params.joinToString(", ") { it.typeString }}) -> $returnType"
+
+        writer.write("\n/** Validated entry — returns $wrapperName so `.withV { field from validate() }` works without imports. */\n")
+        writer.write("fun <E> $entryFnName(f: $inputType): $wrapperName<E, $curriedType> {\n")
+        writer.write("    val fn: $curriedType = ")
+        val opaqueParamNames = params.indices.map { "p$it" }
+        opaqueParamNames.zip(opaqueNames).forEach { (name, opaque) ->
+            writer.write("{ $name: $opaque -> ")
+        }
+        val opaqueCallArgs = opaqueParamNames.joinToString(", ") { "$it.value" }
+        writer.write("$callableExpression($opaqueCallArgs)")
+        writer.write(" }".repeat(params.size))
+        writer.write("\n")
+        writer.write("    val kap: Kap<Either<NonEmptyList<E>, $curriedType>> = Kap.of(Either.Right(fn))\n")
+        writer.write("    return $wrapperName(kap)\n")
+        writer.write("}\n")
+    }
+
     private fun writeOpaqueTypes(
         writer: OutputStreamWriter,
         baseName: String,
         params: List<ParamInfo>,
-        prefix: String = "",
     ) {
         // Wrapper data classes — one per field, named uniquely by class+field.
         writer.write("// ── Opaque wrappers — one per field ──\n\n")
@@ -483,6 +626,7 @@ class KapTypeSafeProcessor(
         writer: OutputStreamWriter,
         baseName: String,
         params: List<ParamInfo>,
+        returnType: String,
     ) {
         val wrapperName = "${baseName}Kap"
 
@@ -499,13 +643,24 @@ class KapTypeSafeProcessor(
         writer.write("\n")
 
         writer.write("/** Scoped builder for @KapTypeSafe $baseName. Implements every slot interface\n")
-        writer.write(" *  so each field is reachable as a member, BUT the per-slot `.with` overloads\n")
+        writer.write(" *  so each field is reachable as a member. The per-slot `.with` overloads\n")
         writer.write(" *  below narrow the lambda receiver to a single tag — the IDE shows only the\n")
         writer.write(" *  field expected at the current curry position when the body is empty.\n")
-        writer.write(" *  Delegates to `Kap<F>` so all kap-core operators apply (.map/.recover/...).\n")
+        writer.write(" *\n")
+        writer.write(" *  The wrapper deliberately does NOT delegate to `Kap<F>`. If it did, the\n")
+        writer.write(" *  imported `Kap.with(suspend () -> A)` would compete with the slot-specific\n")
+        writer.write(" *  `.with { field from … }` and K2's overload resolution sometimes picks the\n")
+        writer.write(" *  generic one (before typechecking the lambda body), causing the slot's tag\n")
+        writer.write(" *  reference to fail with `Unresolved reference`.\n")
+        writer.write(" *\n")
+        writer.write(" *  The wrapper implements `KapLike<F>`, so kap-core operators (.map /\n")
+        writer.write(" *  .recover / .timeout / .settled / .memoize / .timed / .andThen /\n")
+        writer.write(" *  .evalGraph) are available directly on partial wrappers as well. For raw\n")
+        writer.write(" *  `Kap<F>` (e.g. an external API parameter), use `.asKap`.\n")
         writer.write(" */\n")
         val slotImpls = params.joinToString(", ") { "$baseName${it.name.replaceFirstChar { c -> c.uppercase() }}Slot" }
-        writer.write("class $wrapperName<F>(@PublishedApi internal val _kap: Kap<F>) : Kap<F> by _kap, $slotImpls {\n")
+        writer.write("class $wrapperName<F>(@PublishedApi internal val _kap: Kap<F>) : KapLike<F>, $slotImpls {\n")
+        writer.write("    override val asKap: Kap<F> get() = _kap\n")
         for (param in params) {
             val cap = param.name.replaceFirstChar { it.uppercase() }
             writer.write("    override val ${param.name}: $baseName${cap}Tag = $baseName${cap}Tag()\n")
@@ -525,45 +680,81 @@ class KapTypeSafeProcessor(
         // When the user writes `kap(::T).with { _ }`, only ONE overload applies
         // (the one for the head wrapper), and its lambda receiver is the slot
         // interface exposing the single relevant tag.
+        //
+        // Last-slot optimization: when F = (LastWrapper) -> ReturnType, the overload
+        // returns `Kap<ReturnType>` directly — no `.asKap` needed to chain into
+        // `andThen { kap(::X)... }` or to apply kap-core operators on the result.
         writer.write("// ── Per-slot operators — IDE shows exactly the field expected at this position ──\n\n")
-        for (param in params) {
+        for ((index, param) in params.withIndex()) {
+            val isLast = index == params.size - 1
             val cap = param.name.replaceFirstChar { it.uppercase() }
             val wrapperType = "$baseName$cap"
             val slotType = "${wrapperType}Slot"
 
-            // .with { field from value } — raw / suspend. @JvmName per slot because
-            // generics erase to the same JVM signature (`with(Wrapper, Function2)`).
-            writer.write("@kotlin.jvm.JvmName(\"with_${param.name}\")\n")
-            writer.write("inline fun <Rest> $wrapperName<($wrapperType) -> Rest>.with(\n")
-            writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
-            writer.write("): $wrapperName<Rest> {\n")
-            writer.write("    val self = this\n")
-            writer.write("    return $wrapperName(self._kap.with(suspend { self.fa() }))\n")
-            writer.write("}\n\n")
+            if (isLast) {
+                // Last slot: curry is fully applied → return Kap<ReturnType> directly.
+                writer.write("@kotlin.jvm.JvmName(\"with_${param.name}\")\n")
+                writer.write("inline fun $wrapperName<($wrapperType) -> $returnType>.with(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
+                writer.write("): Kap<$returnType> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return self._kap.with(suspend { self.fa() })\n")
+                writer.write("}\n\n")
 
-            // .then { field from value } — raw / suspend.
-            writer.write("@kotlin.jvm.JvmName(\"then_${param.name}\")\n")
-            writer.write("inline fun <Rest> $wrapperName<($wrapperType) -> Rest>.then(\n")
-            writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
-            writer.write("): $wrapperName<Rest> {\n")
-            writer.write("    val self = this\n")
-            writer.write("    return $wrapperName(self._kap.then(suspend { self.fa() }))\n")
-            writer.write("}\n\n")
+                writer.write("@kotlin.jvm.JvmName(\"then_${param.name}\")\n")
+                writer.write("inline fun $wrapperName<($wrapperType) -> $returnType>.then(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
+                writer.write("): Kap<$returnType> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return self._kap.then(suspend { self.fa() })\n")
+                writer.write("}\n\n")
+            } else {
+                // Non-last slot: returns wrapper so the chain continues.
+                writer.write("@kotlin.jvm.JvmName(\"with_${param.name}\")\n")
+                writer.write("inline fun <Rest> $wrapperName<($wrapperType) -> Rest>.with(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
+                writer.write("): $wrapperName<Rest> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return $wrapperName(self._kap.with(suspend { self.fa() }))\n")
+                writer.write("}\n\n")
+
+                writer.write("@kotlin.jvm.JvmName(\"then_${param.name}\")\n")
+                writer.write("inline fun <Rest> $wrapperName<($wrapperType) -> Rest>.then(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
+                writer.write("): $wrapperName<Rest> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return $wrapperName(self._kap.then(suspend { self.fa() }))\n")
+                writer.write("}\n\n")
+            }
         }
 
-        // ── Generic Kap<A> overloads (parens form) — single, shared. ──
-        // Used when the value is already a Kap<A> built outside the lambda
-        // (e.g. `.with($wrapperName.field from Kap { ... }.timeout(...))`).
+        // ── Generic Kap<A> overloads (parens form) — for non-last slots. ──
+        // Used when the value is already a Kap<A> built outside the lambda.
+        // The last-slot specific overloads below take precedence when the
+        // wrapper is at the final curry position.
         writer.write("fun <A, B> $wrapperName<(A) -> B>.with(fa: Kap<A>): $wrapperName<B> =\n")
         writer.write("    $wrapperName(_kap.with(fa))\n\n")
 
         writer.write("fun <A, B> $wrapperName<(A) -> B>.then(fa: Kap<A>): $wrapperName<B> =\n")
         writer.write("    $wrapperName(_kap.then(fa))\n\n")
 
+        // ── Last-slot parens form — more specific, returns Kap<ReturnType>. ──
+        if (params.isNotEmpty()) {
+            val lastCap = params.last().name.replaceFirstChar { it.uppercase() }
+            val lastWrapperType = "$baseName$lastCap"
+            writer.write("fun $wrapperName<($lastWrapperType) -> $returnType>.with(fa: Kap<$lastWrapperType>): Kap<$returnType> =\n")
+            writer.write("    _kap.with(fa)\n\n")
+
+            writer.write("fun $wrapperName<($lastWrapperType) -> $returnType>.then(fa: Kap<$lastWrapperType>): Kap<$returnType> =\n")
+            writer.write("    _kap.then(fa)\n\n")
+        }
+
         writer.write("inline fun <A, B> $wrapperName<A>.andThen(\n")
         writer.write("    crossinline f: (A) -> Kap<B>,\n")
         writer.write("): Kap<B> = _kap.andThen(f)\n\n")
 
+        // `.asKap` is now a member of the class (via KapLike<F>), exposed here as
+        // a reminder that it is the escape hatch to raw Kap<F> for external APIs.
         writer.write("suspend fun <A> $wrapperName<A>.evalGraph(): A = _kap.evalGraph()\n\n")
     }
 
@@ -598,76 +789,4 @@ class KapTypeSafeProcessor(
         writer.write("))\n")
     }
 
-    private fun writeStepClasses(
-        writer: OutputStreamWriter,
-        stepPrefix: String,
-        params: List<ParamInfo>,
-        returnType: String,
-        prefix: String,
-    ) {
-        for (i in params.indices) {
-            val stepClassName = "${stepPrefix}Step$i"
-            val remainingCurried = buildCurriedType(params, i, returnType)
-            val param = params[i]
-            val paramNameCap = param.name.replaceFirstChar { it.uppercase() }
-            val methodPrefix = if (prefix.isEmpty()) "" else prefix
-            val withName = "with$methodPrefix$paramNameCap"
-            val thenName = "then$methodPrefix$paramNameCap"
-
-            val isLastStep = i == params.size - 1
-            val nextType = if (isLastStep) "Kap<$returnType>" else "${stepPrefix}Step${i + 1}"
-            val wrapNext = { expr: String ->
-                if (isLastStep) expr else "${stepPrefix}Step${i + 1}($expr)"
-            }
-
-            writer.write("class $stepClassName internal constructor(\n")
-            writer.write("    internal val inner: Kap<$remainingCurried>,\n")
-            writer.write(") {\n")
-
-            // withX (suspend lambda)
-            writer.write("    fun $withName(f: suspend () -> ${param.typeString}): $nextType =\n")
-            writer.write("        ${wrapNext("inner.with(f)")}\n")
-
-            // withX (Kap overload)
-            writer.write("    fun $withName(fa: Kap<${param.typeString}>): $nextType =\n")
-            writer.write("        ${wrapNext("inner.with(fa)")}\n")
-
-            // thenX (suspend lambda)
-            writer.write("    fun $thenName(f: suspend () -> ${param.typeString}): $nextType =\n")
-            writer.write("        ${wrapNext("inner.then(f)")}\n")
-
-            // thenX (Kap overload)
-            writer.write("    fun $thenName(fa: Kap<${param.typeString}>): $nextType =\n")
-            writer.write("        ${wrapNext("inner.then(fa)")}\n")
-
-            // withXOrNull for nullable types
-            if (param.isNullable) {
-                val nonNullType = param.typeString.removeSuffix("?")
-                writer.write("    fun ${withName}OrNull(fa: Kap<$nonNullType>?): $nextType =\n")
-                writer.write("        ${wrapNext("inner.withOrNull(fa)")}\n")
-            }
-
-            writer.write("}\n\n")
-        }
-    }
-
-    private fun writeCurriedLambda(
-        writer: OutputStreamWriter,
-        params: List<ParamInfo>,
-        functionRef: String,
-    ) {
-        val paramNames = params.indices.map { "p$it" }
-        paramNames.zip(params).forEach { (name, param) ->
-            writer.write("{ $name: ${param.typeString} -> ")
-        }
-        val callArgs = paramNames.joinToString(", ")
-        writer.write("$functionRef($callArgs)")
-        writer.write(" }".repeat(params.size))
-    }
-
-    private fun buildCurriedType(params: List<ParamInfo>, fromIndex: Int, returnType: String): String {
-        val parts = params.subList(fromIndex, params.size)
-            .joinToString(" -> ") { "(${it.typeString})" }
-        return "$parts -> $returnType"
-    }
 }

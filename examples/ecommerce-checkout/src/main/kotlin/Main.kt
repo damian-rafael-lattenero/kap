@@ -1,4 +1,4 @@
-import kap.KapTypeSafe
+import kap.*
 import kotlinx.coroutines.delay
 
 /**

@@ -173,10 +173,10 @@ suspend fun main() {
     val combined = Resource.zip(dbResource, cacheResource) { db, cache -> db to cache }
 
     val dualConfig = combined.use { pair ->
-        kapDsl(::DualConfig)
-                .withPrimary { pair.first.query() }
-                .withSecondary { pair.second.query() }
-                .evalGraph()
+        kap(::DualConfig)
+            .with { primary from pair.first.query() }
+            .with { secondary from pair.second.query() }
+            .evalGraph()
     }
     println("  DB config: ${dualConfig.primary}")
     println("  Cache config: ${dualConfig.secondary}")
@@ -246,36 +246,36 @@ suspend fun main() {
 
     val pipelineStart = System.currentTimeMillis()
 
-    val fullResult = kapDsl(::FetcherResult)
-            // Phase 1: quorum pricing (parallel 2-of-3), take first result
-            .withPricing(
-                raceQuorum(
-                    required = 2,
-                    Kap { fetchPricingReplicaA() },
-                    Kap { fetchPricingReplicaB() },
-                    Kap { fetchPricingReplicaC() },
-                ).map { it.first() }
+    val fullResult = kap(::FetcherResult)
+        // Phase 1: quorum pricing (parallel 2-of-3), take first result
+        .with(FetcherResultKap.pricing from
+            raceQuorum(
+                required = 2,
+                Kap { fetchPricingReplicaA() },
+                Kap { fetchPricingReplicaB() },
+                Kap { fetchPricingReplicaC() },
+            ).map { it.first() }
+        )
+        // Phase 2: resilient user fetch (retry with backoff)
+        .with(FetcherResultKap.user from run {
+            var att = 0
+            Kap { fetchUserFlaky(att++) }
+                .retry(Schedule.times<Throwable>(3) and Schedule.exponential(20.milliseconds))
+        })
+        // Phase 3: bracketed config (sequential — needs user for auth)
+        .then(FetcherResultKap.config from
+            bracket(
+                acquire = { openDbConnection() },
+                use = { conn -> Kap { conn.query() } },
+                release = { conn -> conn.close() },
             )
-            // Phase 2: resilient user fetch (retry with backoff)
-            .withUser(run {
-                var att = 0
-                Kap { fetchUserFlaky(att++) }
-                    .retry(Schedule.times<Throwable>(3) and Schedule.exponential(20.milliseconds))
-            })
-            // Phase 3: bracketed config (sequential — needs user for auth)
-            .thenConfig(
-                bracket(
-                    acquire = { openDbConnection() },
-                    use = { conn -> Kap { conn.query() } },
-                    release = { conn -> conn.close() },
-                )
-            )
-            // Phase 4: audit with timeout fallback
-            .withAudit(
-                Kap { fetchAuditLogSlow() }
-                    .timeoutRace(100.milliseconds, Kap { fetchAuditLogCache() })
-            )
-            .evalGraph()
+        )
+        // Phase 4: audit with timeout fallback
+        .with(FetcherResultKap.audit from
+            Kap { fetchAuditLogSlow() }
+                .timeoutRace(100.milliseconds, Kap { fetchAuditLogCache() })
+        )
+        .evalGraph()
 
     val pipelineElapsed = System.currentTimeMillis() - pipelineStart
     println("  Pricing:  ${fullResult.pricing.source} @ ${fullResult.pricing.currency} ${fullResult.pricing.price}")

@@ -8,8 +8,8 @@ KAP's `kap-arrow` module **uses** Arrow's `Either` and `NonEmptyList`. You don't
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.7.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.7.0") // uses Arrow Core
+    implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:3.0.0") // uses Arrow Core
 }
 ```
 
@@ -58,8 +58,8 @@ Almost identical. KAP's `combine` is Arrow's `parZip` equivalent.
 
     // Typed chain — swap .with lines? COMPILE ERROR.
     val result = kap(::Page)
-        .withUser { fetchUser() }
-        .withCart { fetchCart() }
+        .with { user from fetchUser() }
+        .with { cart from fetchCart() }
         .evalGraph()
     ```
 
@@ -93,11 +93,11 @@ This is where KAP shines. Arrow requires separate `parZip` calls with intermedia
     data class Result(val user: User, val cart: Cart, val validated: Validated, val shipping: Shipping, val tax: Tax)
 
     val result = kap(::Result)
-        .withUser { fetchUser() }           // ┐ phase 1
-        .withCart { fetchCart() }            // ┘
-        .thenValidated { validate() }       // ── phase 2: barrier
-        .withShipping { calcShipping() }    // ┐ phase 3
-        .withTax { calcTax() }              // ┘
+        .with { user from fetchUser() }           // ┐ phase 1
+        .with { cart from fetchCart() }            // ┘
+        .then { validated from validate() }       // ── phase 2: barrier
+        .with { shipping from calcShipping() }    // ┐ phase 3
+        .with { tax from calcTax() }              // ┘
         .evalGraph()
     ```
 
@@ -125,12 +125,12 @@ This is where KAP shines. Arrow requires separate `parZip` calls with intermedia
     data class Enriched(val recs: String, val promos: String)
 
     val enriched = kap(::UserContext)
-        .withProfile { fetchProfile(userId) }
-        .withPrefs { fetchPrefs(userId) }
+        .with { profile from fetchProfile(userId) }
+        .with { prefs from fetchPrefs(userId) }
         .andThen { ctx ->
             kap(::Enriched)
-                .withRecs { fetchRecs(ctx.profile) }
-                .withPromos { fetchPromos(ctx.prefs) }
+                .with { recs from fetchRecs(ctx.profile) }
+                .with { promos from fetchPromos(ctx.prefs) }
         }
         .evalGraph()
     ```

@@ -99,21 +99,21 @@ val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds) and Schedule
 val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
 kap(::CheckoutResult)
-    .withUser { fetchUser() }                                         // ┐
-    .withCart { fetchCart() }                                          // ├─ phase 1: parallel
-    .withPromos(Kap { fetchPromos() }.timeout(3.seconds))             // ┘
-    .thenStock(Kap { validateStock() }.retry(retryPolicy))            // ── phase 2: barrier + retry
-    .withShipping { calcShipping() }                                  // ┐ phase 3: parallel
-    .withTax { calcTax() }                                            // ┘
-    .thenPayment(Kap { reservePayment() }                             // ── phase 4: barrier
-        .withCircuitBreaker(breaker)                                  //    + circuit breaker
-        .timeout(5.seconds))                                          //    + timeout
+    .with { user from fetchUser() }                                                  // ┐
+    .with { cart from fetchCart() }                                                  // ├─ phase 1: parallel
+    .with(CheckoutResultKap.promos from Kap { fetchPromos() }.timeout(3.seconds))    // ┘
+    .then(CheckoutResultKap.stock from Kap { validateStock() }.retry(retryPolicy))   // ── phase 2: barrier + retry
+    .with { shipping from calcShipping() }                                           // ┐ phase 3: parallel
+    .with { tax from calcTax() }                                                     // ┘
+    .then(CheckoutResultKap.payment from Kap { reservePayment() }                    // ── phase 4: barrier
+        .withCircuitBreaker(breaker)                                                 //    + circuit breaker
+        .timeout(5.seconds))                                                         //    + timeout
     .evalGraph()
 ```
 
 Same 7 calls. Same retry, circuit breaker, timeout. But now the phases are *visible*. `.with` means parallel. `.then` means wait. The retry is on the call, not around it. The circuit breaker is on the call, not interleaved with it. You can read the execution plan top to bottom.
 
-`@KapTypeSafe` generates a step class per field — after `.withUser`, the IDE only offers `.withCart`. You can't swap, skip, or forget a field.
+`@KapTypeSafe` generates a **scoped wrapper** with per-slot tags — inside `.with { … }`, only the field expected at the current curry position is in scope. You can't swap, skip, or forget a field; the swap is a compile error citing the expected tag.
 
 That's KAP. Let's start from the beginning.
 
@@ -125,8 +125,8 @@ That's it. Three.
 
 | You write | What happens | Think of it as |
 |---|---|---|
-| `.withX { }` | Runs in parallel with everything else in the same phase | *"and at the same time..."* |
-| `.thenX { }` | Waits for all above, then continues | *"once that's done..."* |
+| `.with { field from value }` | Runs in parallel with everything else in the same phase | *"and at the same time..."* |
+| `.then { field from value }` | Waits for all above, then continues | *"once that's done..."* |
 | `.andThen { result -> }` | Waits, passes the result, builds the next graph | *"using what we got..."* |
 
 Everything else in KAP — retry, circuit breaker, racing, validation — is built *on top* of these three. Learn them once, and the rest follows.
@@ -142,9 +142,9 @@ A dashboard that loads user, feed, and notification count in parallel:
 data class Dashboard(val user: String, val feed: String, val notifications: Int)
 
 kap(::Dashboard)
-    .withUser { fetchUser() }                // ┐
-    .withFeed { fetchFeed() }                // ├─ all three run in parallel
-    .withNotifications { countUnread() }     // ┘
+    .with { user from fetchUser() }                  // ┐
+    .with { feed from fetchFeed() }                  // ├─ all three run in parallel
+    .with { notifications from countUnread() }       // ┘
     .evalGraph()
 ```
 
@@ -165,11 +165,11 @@ Real APIs have dependencies. You can't calculate shipping until you know the car
 
 ```kotlin
 kap(::CheckoutResult)
-    .withUser { fetchUser() }            // ┐ phase 1: parallel
-    .withCart { fetchCart() }             // ┘
-    .thenStock { validateStock() }       // ── phase 2: waits for phase 1
-    .withShipping { calcShipping() }     // ┐ phase 3: parallel
-    .withTax { calcTax() }              // ┘
+    .with { user from fetchUser() }            // ┐ phase 1: parallel
+    .with { cart from fetchCart() }            // ┘
+    .then { stock from validateStock() }       // ── phase 2: waits for phase 1
+    .with { shipping from calcShipping() }     // ┐ phase 3: parallel
+    .with { tax from calcTax() }               // ┘
     .evalGraph()
 ```
 
@@ -197,14 +197,15 @@ data class UserContext(val profile: String, val prefs: String, val tier: String)
 data class PersonalizedDashboard(val recs: String, val promos: String, val trending: String)
 
 kap(::UserContext)
-    .withProfile { fetchProfile(userId) }       // ┐
-    .withPrefs { fetchPreferences(userId) }     // ├─ phase 1: parallel
-    .withTier { fetchLoyaltyTier(userId) }      // ┘
-    .andThen { ctx ->                           // ── barrier: ctx available
+    .with { profile from fetchProfile(userId) }       // ┐
+    .with { prefs from fetchPreferences(userId) }     // ├─ phase 1: parallel
+    .with { tier from fetchLoyaltyTier(userId) }      // ┘
+    .andThen { ctx ->                                 // ── barrier: ctx available
         kap(::PersonalizedDashboard)
-            .withRecs { fetchRecommendations(ctx.profile) }    // ┐
-            .withPromos { fetchPromotions(ctx.tier) }          // ├─ phase 2: parallel
-            .withTrending { fetchTrending(ctx.prefs) }         // ┘
+            .with { recs from fetchRecommendations(ctx.profile) }    // ┐
+            .with { promos from fetchPromotions(ctx.tier) }          // ├─ phase 2: parallel
+            .with { trending from fetchTrending(ctx.prefs) }         // ┘
+            .asKap                                                   // unwrap so andThen returns Kap<…>
     }
     .evalGraph()
 ```
@@ -229,17 +230,17 @@ data class CheckoutResult(
 )
 
 kap(::CheckoutResult)
-    .withUser { fetchUser() }                      // ┐
-    .withCart { fetchCart() }                       // ├─ phase 1: parallel
-    .withPromos { fetchPromos() }                  // │
-    .withInventory { fetchInventory() }            // ┘
-    .thenStock { validateStock() }                 // ── phase 2: barrier
-    .withShipping { calcShipping() }               // ┐
-    .withTax { calcTax() }                         // ├─ phase 3: parallel
-    .withDiscounts { calcDiscounts() }             // ┘
-    .thenPayment { reservePayment() }              // ── phase 4: barrier
-    .withConfirmation { generateConfirmation() }   // ┐ phase 5
-    .withEmail { sendEmail() }                     // ┘
+    .with { user from fetchUser() }                      // ┐
+    .with { cart from fetchCart() }                      // ├─ phase 1: parallel
+    .with { promos from fetchPromos() }                  // │
+    .with { inventory from fetchInventory() }            // ┘
+    .then { stock from validateStock() }                 // ── phase 2: barrier
+    .with { shipping from calcShipping() }               // ┐
+    .with { tax from calcTax() }                         // ├─ phase 3: parallel
+    .with { discounts from calcDiscounts() }             // ┘
+    .then { payment from reservePayment() }              // ── phase 4: barrier
+    .with { confirmation from generateConfirmation() }   // ┐ phase 5
+    .with { email from sendEmail() }                     // ┘
     .evalGraph()
 ```
 
@@ -273,9 +274,9 @@ Good question. By default, if any `.with` branch fails, the whole graph is cance
 data class HomePage(val profile: String, val feed: Result<String>, val ads: Result<String>)
 
 kap(::HomePage)
-    .withProfile { fetchProfile() }              // critical — failure cancels everything
-    .withFeed(settled { fetchFeed() })           // optional — failure returns Result.failure
-    .withAds(settled { fetchAds() })             // optional — failure returns Result.failure
+    .with { profile from fetchProfile() }                                // critical — failure cancels everything
+    .with(HomePageKap.feed from settled { fetchFeed() })                 // optional — failure returns Result.failure
+    .with(HomePageKap.ads  from settled { fetchAds()  })                 // optional — failure returns Result.failure
     .evalGraph()
 // Feed throws? Profile and ads still complete. You get Result.failure for feed.
 ```
@@ -307,12 +308,12 @@ val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds)
     .withMaxDuration(10.seconds)         // total budget
 
 kap(::Dashboard)
-    .withUser(Kap { fetchUser() }
+    .with(DashboardKap.user from Kap { fetchUser() }
         .withCircuitBreaker(breaker)
         .retry(retryPolicy))
-    .withSlowData(Kap { fetchFromSlowApi() }
+    .with(DashboardKap.slowData from Kap { fetchFromSlowApi() }
         .timeoutRace(100.milliseconds, Kap { fetchFromCache() }))
-    .withPromos { fetchPromos() }
+    .with { promos from fetchPromos() }
     .evalGraph()
 ```
 
@@ -323,8 +324,9 @@ bracket(
     acquire = { openConnection() },
     use = { conn ->
         kap(::QueryResult)
-            .withData { conn.query("SELECT ...") }
-            .withMeta { conn.metadata() }
+            .with { data from conn.query("SELECT ...") }
+            .with { meta from conn.metadata() }
+            .asKap                                 // bracket's `use` returns Kap<…>
     },
     release = { conn -> conn.close() }  // runs in NonCancellable context
 ).evalGraph()
@@ -389,25 +391,26 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
         acquire = { db.beginTransaction() },
         use = { tx ->
             kap(::OrderResult)
-                .withFinalPrice(raceN(                              // phase 2: race 3 providers
-                    Kap { pricingServiceA(order) },                 //   fastest wins
+                .with(OrderResultKap.finalPrice from raceN(             // phase 2: race 3 providers
+                    Kap { pricingServiceA(order) },                     //   fastest wins
                     Kap { pricingServiceB(order) },
                     Kap { pricingServiceC(order) },
                 ))
-                .thenReservationId(                                 // phase 3: barrier + retry
+                .then(OrderResultKap.reservationId from                 // phase 3: barrier + retry
                     Kap { reserveInventory(tx, order) }
                         .retry(retryPolicy)
                 )
-                .thenPaymentId(                                     // phase 4: circuit breaker
+                .then(OrderResultKap.paymentId from                     // phase 4: circuit breaker
                     Kap { chargePayment(tx, order) }
                         .withCircuitBreaker(paymentBreaker)
                         .timeout(5.seconds)
                 )
-                .withNotifications(listOf(                          // phase 5: partial failure OK
+                .with(OrderResultKap.notifications from listOf(         // phase 5: partial failure OK
                     Kap { sendEmail(order) },
                     Kap { sendPush(order) },
                     Kap { updateAnalytics(order) },
                 ).sequenceSettled())
+                .asKap                                                  // drop wrapper to chain .map
                 .map { Either.Right(it) }
         },
         release = { tx, exit -> when (exit) {
@@ -439,32 +442,30 @@ Every one of these is a method call — no boilerplate, no manual state:
 
 ---
 
-## Extra type safety with `kapTyped`
+## Extra type safety with per-slot tags
 
-`kap(::User)` with `@KapTypeSafe` enforces parameter **order** via step classes. But if `firstName` and `lastName` are both `String`, nothing stops you from returning the wrong one inside the lambda.
-
-`kapTyped` adds **opaque wrapper types** — each field gets a distinct type, so the compiler rejects mismatches:
+`@KapTypeSafe` generates **per-slot tag interfaces** — each field gets a distinct tag type, so the lambda receiver inside `.with { … }` only resolves the field expected at the current curry position. If `firstName` and `lastName` are both `String`, the compiler still rejects a swap: typing `lastName from …` where `firstName` is expected produces "Unresolved reference: lastName".
 
 ```kotlin
 @KapTypeSafe
 data class User(val firstName: String, val lastName: String, val age: Int)
 
-// Named builders — enforces order, raw types
 kap(::User)
-    .withFirstName { fetchFirstName() }     // String
-    .withLastName { fetchLastName() }       // String — could accidentally swap
-    .withAge { fetchAge() }
-    .evalGraph()
-
-// Opaque types — enforces order AND type identity
-kapTyped(::User)
-    .with { fetchFirstName().firstNameUser }   // String → UserFirstName
-    .with { fetchLastName().lastNameUser }     // String → UserLastName
-    .with { fetchAge().ageUser }               // Int → UserAge
+    .with { firstName from fetchFirstName() }   // Only `firstName` in scope here
+    .with { lastName  from fetchLastName()  }   // Only `lastName`  in scope here — swap? COMPILE ERROR
+    .with { age       from fetchAge()       }   // Only `age`       in scope here
     .evalGraph()
 ```
 
-The IDE shows the expected opaque type in autocomplete — you always know which field comes next. Use `kap()` for most cases, `kapTyped()` when same-typed fields need extra safety.
+The IDE autocompletes the expected field name when the body is empty — you always know which slot comes next. For Kap-decorated values built outside the lambda (e.g. `Kap { … }.timeout(…)`), use the parens form with the companion-qualified tag:
+
+```kotlin
+kap(::User)
+    .with(UserKap.firstName from Kap { fetchFirstName() }.timeout(500.milliseconds))
+    .with(UserKap.lastName  from Kap { fetchLastName()  })
+    .with(UserKap.age       from Kap { fetchAge()       })
+    .evalGraph()
+```
 
 ---
 
@@ -513,17 +514,17 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
 
     // KSP — named builder generation (@KapTypeSafe)
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.7.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:3.0.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:3.0.0")
 
     // Optional
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.7.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.7.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ktor:2.7.0")
-    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ktor:3.0.0")
+    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:3.0.0")
 }
 ```
 

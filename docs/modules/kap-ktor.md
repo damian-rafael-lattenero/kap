@@ -6,7 +6,7 @@ Ktor server integration plugin for KAP. Shared configuration, circuit breakers, 
     This module is available in source but **not yet published to Maven Central**. To use it now, build from source or use a JitPack dependency. Maven Central publication is planned for the next release.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-ktor:2.7.0") // coming soon
+implementation("io.github.damian-rafael-lattenero:kap-ktor:3.0.0") // coming soon
 ```
 
 **Depends on:** `kap-core`, `kap-resilience`, `ktor-server-core`.
@@ -77,9 +77,9 @@ data class Dashboard(val user: String, val cart: String, val promos: String)
 get("/dashboard/{userId}") {
     call.respondAsync {
         kap(::Dashboard)
-            .withUser { fetchUser(userId) }
-            .withCart { fetchCart(userId) }
-            .withPromos { fetchPromos(userId) }
+            .with { user from fetchUser(userId) }
+            .with { cart from fetchCart(userId) }
+            .with { promos from fetchPromos(userId) }
     }
 }
 ```
@@ -95,8 +95,8 @@ data class UserResponse(val profile: String, val preferences: String)
 get("/user/{id}") {
     call.respondKap {
         kap(::UserResponse)
-            .withProfile { fetchProfile(id) }
-            .withPreferences { fetchPreferences(id) }
+            .with { profile from fetchProfile(id) }
+            .with { preferences from fetchPreferences(id) }
             .evalGraph()
     }
 }
@@ -143,13 +143,13 @@ fun Application.module() {
             val tracer = call.kapTracer
 
             val dashboard = kap(::Dashboard)
-                .withUser {
+                .with(DashboardKap.user from
                     Kap { fetchUser(userId) }
                         .withCircuitBreaker(breaker)
                         .traced("fetch-user", tracer)
-                }
-                .withCart { fetchCart(userId) }
-                .withPromos { fetchPromos(userId) }
+                )
+                .with { cart from fetchCart(userId) }
+                .with { promos from fetchPromos(userId) }
                 .evalGraph()
             call.respond(dashboard)
         }

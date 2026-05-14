@@ -111,6 +111,23 @@ public final class kap/KapKt {
 	public static final fun withOrNull (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
 }
 
+public abstract interface class kap/KapLike {
+	public abstract fun getAsKap ()Lkap/Kap;
+}
+
+public final class kap/KapLikeKt {
+	public static final fun andThen (Lkap/KapLike;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
+	public static final fun evalGraph (Lkap/KapLike;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun map (Lkap/KapLike;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
+	public static final fun memoize (Lkap/KapLike;)Lkap/Kap;
+	public static final fun recover (Lkap/KapLike;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
+	public static final fun recoverWith (Lkap/KapLike;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
+	public static final fun settled (Lkap/KapLike;)Lkap/Kap;
+	public static final fun timed (Lkap/KapLike;)Lkap/Kap;
+	public static final fun timeout-8Mi8wO0 (Lkap/KapLike;JLjava/lang/Object;)Lkap/Kap;
+	public static final fun timeout-HG0u8IE (Lkap/KapLike;J)Lkap/Kap;
+}
+
 public final class kap/KapScope {
 	public fun <init> (Lkotlinx/coroutines/CoroutineScope;)V
 	public final fun bind (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

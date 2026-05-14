@@ -608,9 +608,9 @@ data class TimedResult<out A>(val value: A, val duration: Duration)
  *
  * ```
  * val (dashboard, duration) = kap(::Dashboard)
- *     .withUser { fetchUser() }
- *     .withCart { fetchCart() }
- *     .withPromos { fetchPromos() }
+ *     .with { user from fetchUser() }
+ *     .with { cart from fetchCart() }
+ *     .with { promos from fetchPromos() }
  *     .timed()
  *     .evalGraph()
  *
@@ -621,8 +621,8 @@ data class TimedResult<out A>(val value: A, val duration: Duration)
  *
  * ```
  * kap(::Dashboard)
- *     .withUser(Kap { fetchUser() }.timed().map { log("user: ${it.duration}"); it.value })
- *     .withCart { fetchCart() }
+ *     .with(DashboardKap.user from Kap { fetchUser() }.timed().map { log("user: ${it.duration}"); it.value })
+ *     .with { cart from fetchCart() }
  * ```
  */
 fun <A> Kap<A>.timed(): Kap<TimedResult<A>> = Kap {
@@ -639,8 +639,8 @@ fun <A> Kap<A>.timed(): Kap<TimedResult<A>> = Kap {
  *
  * ```
  * val (result, duration) = kap(::Dashboard)
- *     .withUser { fetchUser() }
- *     .withCart { fetchCart() }
+ *     .with { user from fetchUser() }
+ *     .with { cart from fetchCart() }
  *     .evalGraphTimed()
  * ```
  */

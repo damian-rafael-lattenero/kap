@@ -61,10 +61,10 @@ public abstract interface class DeveloperProfileFunFactSlot {
 public final class DeveloperProfileFunFactTag {
 }
 
-public final class DeveloperProfileKap : DeveloperProfileFunFactSlot, DeveloperProfileTopReposSlot, DeveloperProfileUserSlot, kap/Kap {
+public final class DeveloperProfileKap : DeveloperProfileFunFactSlot, DeveloperProfileTopReposSlot, DeveloperProfileUserSlot, kap/KapLike {
 	public static final field Companion LDeveloperProfileKap$Companion;
 	public fun <init> (Lkap/Kap;)V
-	public fun execute (Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAsKap ()Lkap/Kap;
 	public fun getFunFact ()LDeveloperProfileFunFactTag;
 	public fun getTopRepos ()LDeveloperProfileTopReposTag;
 	public fun getUser ()LDeveloperProfileUserTag;
@@ -87,36 +87,16 @@ public final class DeveloperProfileKapBuilderKt {
 	public static final fun from (LDeveloperProfileUserTag;LGithubUser;)LDeveloperProfileUser;
 	public static final fun from (LDeveloperProfileUserTag;Lkap/Kap;)Lkap/Kap;
 	public static final fun kap (Lkotlin/jvm/functions/Function3;)LDeveloperProfileKap;
-	public static final fun kapDsl (Lkotlin/jvm/functions/Function3;)LDeveloperProfileStep0;
 	public static final fun then (LDeveloperProfileKap;Lkap/Kap;)LDeveloperProfileKap;
-	public static final fun then_funFact (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;
+	public static final fun then (LDeveloperProfileKap;Lkap/Kap;)Lkap/Kap;
+	public static final fun then_funFact (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
 	public static final fun then_topRepos (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;
 	public static final fun then_user (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;
 	public static final fun with (LDeveloperProfileKap;Lkap/Kap;)LDeveloperProfileKap;
-	public static final fun with_funFact (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;
+	public static final fun with (LDeveloperProfileKap;Lkap/Kap;)Lkap/Kap;
+	public static final fun with_funFact (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
 	public static final fun with_topRepos (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;
 	public static final fun with_user (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;
-}
-
-public final class DeveloperProfileStep0 {
-	public final fun thenUser (Lkap/Kap;)LDeveloperProfileStep1;
-	public final fun thenUser (Lkotlin/jvm/functions/Function1;)LDeveloperProfileStep1;
-	public final fun withUser (Lkap/Kap;)LDeveloperProfileStep1;
-	public final fun withUser (Lkotlin/jvm/functions/Function1;)LDeveloperProfileStep1;
-}
-
-public final class DeveloperProfileStep1 {
-	public final fun thenTopRepos (Lkap/Kap;)LDeveloperProfileStep2;
-	public final fun thenTopRepos (Lkotlin/jvm/functions/Function1;)LDeveloperProfileStep2;
-	public final fun withTopRepos (Lkap/Kap;)LDeveloperProfileStep2;
-	public final fun withTopRepos (Lkotlin/jvm/functions/Function1;)LDeveloperProfileStep2;
-}
-
-public final class DeveloperProfileStep2 {
-	public final fun thenFunFact (Lkap/Kap;)Lkap/Kap;
-	public final fun thenFunFact (Lkotlin/jvm/functions/Function1;)Lkap/Kap;
-	public final fun withFunFact (Lkap/Kap;)Lkap/Kap;
-	public final fun withFunFact (Lkotlin/jvm/functions/Function1;)Lkap/Kap;
 }
 
 public final class DeveloperProfileTopRepos {

@@ -30,9 +30,9 @@ suspend fun fetchPromos(): String { delay(10); return "SAVE20" }
 
 suspend fun main() {
     val result: Dashboard = kap(::Dashboard)
-        .withUser { fetchUser() }     // ┐ all three start at t=0
-        .withCart { fetchCart() }      // │ total time = max(30, 20, 10) = 30ms
-        .withPromos { fetchPromos() }    // ┘ not 60ms sequential
+        .with { user from fetchUser() }     // ┐ all three start at t=0
+        .with { cart from fetchCart() }      // │ total time = max(30, 20, 10) = 30ms
+        .with { promos from fetchPromos() }    // ┘ not 60ms sequential
         .evalGraph()
     println(result)
     // Dashboard(user=Alice, cart=3 items, promos=SAVE20)
@@ -60,9 +60,9 @@ suspend fun fetchAge(): Int { delay(10); return 30 }
 suspend fun main() {
     // CreateUser is a generated marker object — classes use ::ClassName, functions use ObjectName
     val result = kap(CreateUser)
-        .withName { fetchName() }
-        .withEmail { fetchEmail() }
-        .withAge { fetchAge() }
+        .with { name from fetchName() }
+        .with { email from fetchEmail() }
+        .with { age from fetchAge() }
         .evalGraph()
     println(result)
     // User(Alice, alice@example.com, age=30)
@@ -99,17 +99,17 @@ suspend fun sendEmail(): String { delay(20); return "alice@example.com" }
 
 suspend fun main() {
     val checkout: CheckoutResult = kap(::CheckoutResult)
-        .withUser { fetchUser() }              // ┐
-        .withCart { fetchCart() }               // ├─ phase 1: parallel
-        .withPromos { fetchPromos() }             // │
-        .withInventory { fetchInventory() }          // ┘
-        .thenStock { validateStock() }           // ── phase 2: barrier
-        .withShipping { calcShipping() }            // ┐
-        .withTax { calcTax() }                 // ├─ phase 3: parallel
-        .withDiscounts { calcDiscounts() }           // ┘
-        .thenPayment { reservePayment() }          // ── phase 4: barrier
-        .withConfirmation { generateConfirmation() }    // ┐ phase 5: parallel
-        .withEmail { sendEmail() }              // ┘
+        .with { user from fetchUser() }              // ┐
+        .with { cart from fetchCart() }               // ├─ phase 1: parallel
+        .with { promos from fetchPromos() }             // │
+        .with { inventory from fetchInventory() }          // ┘
+        .then { stock from validateStock() }           // ── phase 2: barrier
+        .with { shipping from calcShipping() }            // ┐
+        .with { tax from calcTax() }                 // ├─ phase 3: parallel
+        .with { discounts from calcDiscounts() }           // ┘
+        .then { payment from reservePayment() }          // ── phase 4: barrier
+        .with { confirmation from generateConfirmation() }    // ┐ phase 5: parallel
+        .with { email from sendEmail() }              // ┘
         .evalGraph()
     println(checkout)
     // CheckoutResult(user=Alice, cart=147.5, promos=SUMMER20, inventory=true, stock=true, shipping=5.99, tax=12.38, discounts=29.5, payment=true, confirmation=order-#90142, email=alice@example.com)
@@ -139,14 +139,14 @@ suspend fun fetchTrending(prefs: String): String { delay(20); return "trending-$
 
 suspend fun main() {
     val dashboard = kap(::UserContext)
-        .withProfile { fetchProfile("user-1") }       // ┐ phase 1: parallel
-        .withPrefs { fetchPreferences("user-1") }   // │
-        .withTier { fetchLoyaltyTier("user-1") }   // ┘
+        .with { profile from fetchProfile("user-1") }       // ┐ phase 1: parallel
+        .with { prefs from fetchPreferences("user-1") }   // │
+        .with { tier from fetchLoyaltyTier("user-1") }   // ┘
         .andThen { ctx ->                       // ── barrier: ctx available
             kap(::PersonalizedDashboard)
-                .withRecs { fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
-                .withPromos { fetchPromotions(ctx.tier) }           // │ uses ctx from phase 1
-                .withTrending { fetchTrending(ctx.prefs) }            // ┘
+                .with { recs from fetchRecommendations(ctx.profile) }  // ┐ phase 2: parallel
+                .with { promos from fetchPromotions(ctx.tier) }           // │ uses ctx from phase 1
+                .with { trending from fetchTrending(ctx.prefs) }            // ┘
         }
         .evalGraph()
     println(dashboard)
@@ -173,9 +173,9 @@ suspend fun fetchConfigAlways(): String { delay(15); return "config-ok" }
 
 suspend fun main() {
     val dashboard = kap(::PartialDashboard)
-        .withUser(settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
-        .withCart { fetchCartAlways() }             // String — runs normally
-        .withConfig { fetchConfigAlways() }            // String — runs normally
+        .with(PartialDashboardKap.user from settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
+        .with { cart from fetchCartAlways() }                                // String — runs normally
+        .with { config from fetchConfigAlways() }                            // String — runs normally
         .evalGraph()
 
     println(dashboard)
@@ -410,9 +410,9 @@ suspend fun fetchPromos(): String { delay(30); return "SAVE20" }
 suspend fun main() {
     // timed().evalGraph() returns TimedResult(value, duration)
     val result = kap(::Dashboard)
-        .withUser { fetchUser() }
-        .withCart { fetchCart() }
-        .withPromos { fetchPromos() }
+        .with { user from fetchUser() }
+        .with { cart from fetchCart() }
+        .with { promos from fetchPromos() }
         .timed()
         .evalGraph()
 
@@ -460,16 +460,21 @@ suspend fun fetchPremiumCart(): String { delay(30); return "3 items + priority" 
 
 suspend fun main() {
     // The graph is data — nothing runs until .evalGraph()
-    val base = kap(::Order).withUser { fetchUser() }
+    val base = kap(::Order).with { user from fetchUser() }
 
-    // Complete it differently based on runtime conditions
-    fun addCart(partial: OrderStep1, premium: Boolean): OrderStep2 =
-        if (premium) partial.withCart { fetchPremiumCart() }
-        else partial.withCart { fetchStandardCart() }
+    // Complete it differently based on runtime conditions.
+    // Type inference handles the wrapper shape — no need to spell out OrderKap<...>
+    // unless you want to (it's the curried function type after `cart` is filled).
+    fun addCart(
+        partial: OrderKap<(OrderCart) -> (OrderTotal) -> Order>,
+        premium: Boolean,
+    ): OrderKap<(OrderTotal) -> Order> =
+        if (premium) partial.with { cart from fetchPremiumCart() }
+        else         partial.with { cart from fetchStandardCart() }
 
     // Build two different graphs from the same base
-    val standard = addCart(base, premium = false).withTotal { 99.0 }.evalGraph()
-    val premium = addCart(base, premium = true).withTotal { 149.0 }.evalGraph()
+    val standard = addCart(base, premium = false).with { total from 99.0 }.evalGraph()
+    val premium = addCart(base, premium = true).with { total from 149.0 }.evalGraph()
 
     println("Standard: $standard")
     println("Premium: $premium")
@@ -532,9 +537,9 @@ suspend fun fetchCatFact(): CatFact =
 
 suspend fun main() {
     val profile = kap(::DeveloperProfile)
-        .withUser { fetchGithubUser("JetBrains") }      // ┐
-        .withTopRepos { fetchGithubRepos("JetBrains") }      // ├─ all three in parallel
-        .withFunFact { fetchCatFact().fact }                  // ┘
+        .with { user from fetchGithubUser("JetBrains") }      // ┐
+        .with { topRepos from fetchGithubRepos("JetBrains") }      // ├─ all three in parallel
+        .with { funFact from fetchCatFact().fact }                  // ┘
         .evalGraph()
 
     println("User: ${profile.user.login} (${profile.user.name})")

@@ -1,21 +1,24 @@
 package kap
 
 /**
- * Generate type-safe named builders for this class or function.
+ * Generate a type-safe scoped builder for this class or function.
  *
- * KSP reads the parameter names and generates step-builder classes where
- * each step exposes only `.withParamName {}` and `.thenParamName {}`.
- * The IDE autocomplete guides the user through the correct parameter order.
+ * KSP reads the parameter names and emits a scoped wrapper `${Type}Kap<F>` with
+ * per-slot tag interfaces. At the call site, `.with { field from value }` exposes
+ * the lambda's slot as an implicit receiver — the IDE shows exactly the field
+ * expected at the current curry position. Swapping fields produces a crisp
+ * compile error naming the expected tag.
  *
  * ```kotlin
  * @KapTypeSafe
  * data class User(val firstName: String, val lastName: String, val age: Int)
  *
- * // Usage:
+ * // Usage — `.with { firstName from … }` is order-aware; type any other field
+ * //         and the compiler rejects it with the slot's tag name.
  * kap(::User)
- *     .withFirstName { fetchFirstName() }
- *     .withLastName { fetchLastName() }   // swap? COMPILE ERROR
- *     .withAge { fetchAge() }
+ *     .with { firstName from fetchFirstName() }
+ *     .with { lastName from fetchLastName() }
+ *     .with { age from fetchAge() }
  *     .evalGraph()
  * ```
  *
@@ -28,17 +31,22 @@ package kap
  *     com.thirdparty.buildDashboard(userName, cartSummary)
  * ```
  *
- * Use [prefix] to avoid name collisions when multiple classes share parameter names:
+ * Use [prefix] to disambiguate generated **file names and tag class names** when
+ * multiple `@KapTypeSafe` functions share parameter names. The call-site tag
+ * names are always the original parameter names — the prefix only affects the
+ * internal types so they don't collide across generated files.
  *
  * ```kotlin
  * @KapTypeSafe(prefix = "Dashboard")
  * fun buildDashboard(userName: String, cartSummary: String): Dashboard
  *
- * // Generates: .withDashboardUserName(), .thenDashboardCartSummary()
+ * // Call site is unchanged — `userName`, `cartSummary` are the slot members:
+ * kap(::buildDashboard).with { userName from … }.with { cartSummary from … }
  * ```
  *
- * @param prefix Optional prefix for generated method names and step class names.
- *               Default is empty (no prefix). Use when parameter names collide across types.
+ * @param prefix Optional prefix for generated file names + tag class names.
+ *               Default is empty. Use when several functions share parameter
+ *               names to avoid generated-type collisions.
  */
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)

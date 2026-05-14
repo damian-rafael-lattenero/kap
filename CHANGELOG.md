@@ -4,37 +4,61 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [3.0.0] - 2026-05-14
 
 ### Breaking
-- **`kap(::Type)` is now the typed-applicative entry point** — returns `Kap<curried opaque type>` for use with `.with { field eq value }`. The old step-class entry is now `kapDsl(::Type)` (marked `@Deprecated`).
-- **`kapTyped(::Type)` is gone** — renamed to `kap(::Type)`. Search-and-replace: `kapTyped(::` → `kap(::`.
-- **`kapTyped{FunctionName}(::fn)` is gone** — renamed to `kap{FunctionName}(::fn)`. E.g., `kapTypedBuildGreeting` → `kapBuildGreeting`.
+- **Step-class API removed entirely.** `kapDsl(...)`, `.withX { }`, `.thenX { }`, `XxxStep0/Step1/...` are no longer generated. The single supported entry point is `kap(::T)` (or `kap${FunctionName}(::fn)` for functions with colliding signatures), which returns a **scoped wrapper `${T}Kap<F>`** with per-slot tag interfaces.
+- **Infix verb renamed: `eq` → `from`.** Search-and-replace `eq` → `from` inside `.with { … }` / `.then { … }` blocks. Reads more naturally as prose: `.with { user from fetchUser() }`.
+- **`.with(field eq Kap { ... })` parens form is now `.with(WrapperKap.field from Kap { ... })`** — the tag val lives on the wrapper's companion object so it's accessible outside the slot lambda.
+- **Marker objects are no longer generated for `@KapTypeSafe` functions.** Use `kap(::functionName)` directly. If two `@KapTypeSafe` functions share the same `(params) -> return` signature, the processor falls back to `kap${FunctionName}(::fn)` to disambiguate.
+- **`@KapTypeSafe(prefix = "...")` semantics narrowed** — `prefix` now only affects generated **file names and tag class names**, not call-site method or tag names. The call site is always `.with { paramName from value }` using the original parameter name.
 
 ### Added
-- **Infix `eq` per field** — `@KapTypeSafe` now generates `infix fun CheckoutUserTag.eq(value: String): CheckoutUser` (and a `Kap<String>` overload). Tag val singletons live in the `CheckoutResultKap` object; use `import kap.CheckoutResultKap.*` or `with(CheckoutResultKap) { }` at call sites.
-
-### Deprecated
-- **`kapDsl(::Type)`** (was `kap(::Type)`) — the `.withX { } / .thenX { }` step-class API. Still compiles with a warning. Use `kap(::Type).with { field eq value }` going forward.
+- **Per-slot interfaces `${BaseName}${Field}Slot`** — the lambda receiver of `.with { … }` / `.then { … }` exposes exactly one tag (`fieldName: ${BaseName}${Field}Tag`). The IDE narrows autocomplete to that single member; typing any other field is a compile error citing the expected tag.
+- **Companion mirrors of tag vals** — `${BaseName}Kap.field` is accessible from anywhere, enabling the parens form `.with(${BaseName}Kap.field from Kap { ... })` for Kap-decorated values without entering the slot lambda.
+- **Infix `from` with `Kap<T>` overload** — `WrapperKap.field from Kap { ... }.timeout(…)` keeps combinators inside the graph instead of escaping via `.evalGraph()` per slot.
+- **`.asKap` member property** — `${BaseName}Kap<F>.asKap: Kap<F>` (via `KapLike<F>`) unwraps the scoped wrapper to a plain `Kap<F>` for external APIs or type-annotation conformance.
+- **Last slot returns `Kap<R>` directly** — when the curry has reduced to the final parameter, `.with { lastField from … }` / `.then { lastField from … }` return `Kap<ReturnType>` instead of the wrapper. Chains inside `andThen { kap(::X)… }`, `bracketCase use { … }`, or followed by kap-core operators (`.map`, `.recover`, `.timeout`, …) no longer need `.asKap` at the end.
+- **`KapLike<F>` marker interface in kap-core** — generated wrappers implement it; kap-core ships delegate extensions (`.map`, `.recover`, `.recoverWith`, `.timeout`, `.settled`, `.memoize`, `.timed`, `.andThen`, `.evalGraph`) that delegate to `asKap`. The wrapper is operatively interchangeable with `Kap<F>` for all kap-core operators, without extending the `Kap` hierarchy and without K2 overload conflicts.
+- **`kapV<E>(::T)` auto-emitted for every `@KapTypeSafe` class when kap-arrow is in the classpath** — generates `${T}ValidatedKap<E, F>` with slot-narrowed `.withV { field from validate() }` / `.thenV { field from … }` operators, sharing the same slot interfaces as `kap(::T)`. The infix `from` gets a third overload accepting `Either<NonEmptyList<E>, FieldType>`, emitted in a separate `${T}KapBuilderValidated.kt` file. Migration: `kapV<E, P1, …, Pn, R>(::T).withV { fn() }` → `@KapTypeSafe data class T(…); kapV<E>(::T).withV { field from fn() }`.
 
 ### Migration guide
 ```kotlin
-// Before
+// Before (2.x step-class)
 kap(::CheckoutResult)
     .withUser { fetchUser() }
     .withCart { fetchCart() }
     .thenStock { validateStock() }
     .evalGraph()
 
-// After (new official API)
-import kap.CheckoutResultKap.*
-
+// After (3.0 scoped wrapper)
 kap(::CheckoutResult)
-    .with { user eq fetchUser() }
-    .with { cart eq fetchCart() }
-    .then { stock eq validateStock() }
+    .with { user from fetchUser() }
+    .with { cart from fetchCart() }
+    .then { stock from validateStock() }
+    .evalGraph()
+
+// Kap-decorated values: parens + companion-qualified tag
+kap(::CheckoutResult)
+    .with(CheckoutResultKap.user from Kap { fetchUser() }.timeout(2.seconds))
+    .with { cart from fetchCart() }
+    .evalGraph()
+
+// Inside .andThen returning another kap(::X)... chain — end with .asKap
+kap(::UserContext)
+    .with { profile from fetchProfile() }
+    .with { tier from fetchTier() }
+    .andThen { ctx ->
+        kap(::PersonalizedDashboard)
+            .with { recs from fetchRecs(ctx.profile) }
+            .with { promos from fetchPromos(ctx.tier) }
+            .asKap                            // ← drop wrapper to Kap<…>
+    }
     .evalGraph()
 ```
+
+## [Unreleased]
+
 
 ## [2.7.0] - 2026-04-04
 

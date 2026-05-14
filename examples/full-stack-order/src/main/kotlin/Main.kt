@@ -33,6 +33,7 @@ sealed class OrderError(val message: String) {
     class InvalidAddress(message: String) : OrderError(message)
 }
 
+@KapTypeSafe
 data class ValidatedOrder(val item: ValidItemId, val qty: ValidQuantity, val address: ValidAddress)
 
 data class InventoryCheck(val available: Boolean, val warehouse: String)
@@ -144,10 +145,10 @@ suspend fun main() {
 
     // Scenario A: all valid
     println("  Scenario A: valid input")
-    val validResult = kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
-            .withV { validateItem("ITEM-12345") }
-            .withV { validateQuantity(3) }
-            .withV { validateAddress("123 Main St", "Springfield", "62701") }
+    val validResult = kapV<OrderError>(::ValidatedOrder)
+            .withV { item from validateItem("ITEM-12345") }
+            .withV { qty from validateQuantity(3) }
+            .withV { address from validateAddress("123 Main St", "Springfield", "62701") }
             .evalGraph()
 
     when (validResult) {
@@ -157,10 +158,10 @@ suspend fun main() {
 
     // Scenario B: multiple failures accumulated in parallel
     println("  Scenario B: invalid input (errors accumulated)")
-    val invalidResult = kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
-            .withV { validateItem("bad") }
-            .withV { validateQuantity(0) }
-            .withV { validateAddress("", "", "abc") }
+    val invalidResult = kapV<OrderError>(::ValidatedOrder)
+            .withV { item from validateItem("bad") }
+            .withV { qty from validateQuantity(0) }
+            .withV { address from validateAddress("", "", "abc") }
             .evalGraph()
 
     when (invalidResult) {
@@ -175,25 +176,25 @@ suspend fun main() {
     // ─── Phase 2: Resilient data fetching (kap-resilience + kap-core) ─
     println("=== Phase 2: Resilient data fetching ===\n")
 
-    val order = (validResult as Either.Right).value
+    val validatedOrder = (validResult as Either.Right).value
 
     val retryPolicy = Schedule.times<Throwable>(4) and
         Schedule.exponential<Throwable>(30.milliseconds).jittered()
 
-    val fetched = kapDsl(::FetchedData)
-            // Retry flaky inventory API with exponential backoff
-            .withInventory(
-                Kap { checkInventory(order.item.value) }
-                    .retry(retryPolicy) { attempt, err, nextDelay ->
-                        println("  Inventory retry #$attempt: ${err.message} (waiting $nextDelay)")
-                    }
-            )
-            // timeoutRace: try live pricing, fall back to cache if slow
-            .withPricing(
-                Kap { fetchLivePricing(order.item.value) }
-                    .timeoutRace(100.milliseconds, Kap { fetchCachedPricing(order.item.value) })
-            )
-            .evalGraph()
+    val fetched = kap(::FetchedData)
+        // Retry flaky inventory API with exponential backoff
+        .with(FetchedDataKap.inventory from
+            Kap { checkInventory(validatedOrder.item.value) }
+                .retry(retryPolicy) { attempt, err, nextDelay ->
+                    println("  Inventory retry #$attempt: ${err.message} (waiting $nextDelay)")
+                }
+        )
+        // timeoutRace: try live pricing, fall back to cache if slow
+        .with(FetchedDataKap.pricing from
+            Kap { fetchLivePricing(validatedOrder.item.value) }
+                .timeoutRace(100.milliseconds, Kap { fetchCachedPricing(validatedOrder.item.value) })
+        )
+        .evalGraph()
 
     println("  Inventory: ${fetched.inventory.warehouse} (available=${fetched.inventory.available})")
     println("  Pricing: $${fetched.pricing.unitPrice} (discount=${(fetched.pricing.discount * 100).toInt()}%)")
@@ -208,7 +209,7 @@ suspend fun main() {
         onStateChange = { old, new -> println("  Circuit: $old -> $new") },
     )
 
-    val totalAmount = order.qty.value * fetched.pricing.unitPrice * (1 - fetched.pricing.discount)
+    val totalAmount = validatedOrder.qty.value * fetched.pricing.unitPrice * (1 - fetched.pricing.discount)
 
     val payment = Kap { processPayment(totalAmount) }
             .withCircuitBreaker(breaker)
@@ -260,40 +261,40 @@ suspend fun main() {
     val pipeStart = System.currentTimeMillis()
 
     // Step 1: validate input (kap-arrow)
-    val validated = kapV<OrderError, ValidItemId, ValidQuantity, ValidAddress, ValidatedOrder>(::ValidatedOrder)
-            .withV { validateItem("ITEM-99999") }
-            .withV { validateQuantity(2) }
-            .withV { validateAddress("456 Oak Ave", "Shelbyville", "62702") }
+    val validated = kapV<OrderError>(::ValidatedOrder)
+            .withV { item from validateItem("ITEM-99999") }
+            .withV { qty from validateQuantity(2) }
+            .withV { address from validateAddress("456 Oak Ave", "Shelbyville", "62702") }
             .orThrow()
             .evalGraph()
 
     // Step 2: orchestrate with kap+with+then (all three modules)
-    val fullOrder = kapDsl(::PlacedOrder)
-            .withOrder { validated }
-            // Phase: inventory + pricing in parallel (kap-resilience)
-            .withInventory(
-                Kap { checkInventory(validated.item.value) }
-                    .retry(Schedule.times<Throwable>(4) and Schedule.exponential(20.milliseconds))
+    val fullOrder = kap(::PlacedOrder)
+        .with { order from validated }
+        // Phase: inventory + pricing in parallel (kap-resilience)
+        .with(PlacedOrderKap.inventory from
+            Kap { checkInventory(validated.item.value) }
+                .retry(Schedule.times<Throwable>(4) and Schedule.exponential(20.milliseconds))
+        )
+        .with(PlacedOrderKap.pricing from
+            Kap { fetchLivePricing(validated.item.value) }
+                .timeoutRace(80.milliseconds, Kap { fetchCachedPricing(validated.item.value) })
+        )
+        // Phase: payment (sequential, depends on pricing)
+        .then(PlacedOrderKap.payment from
+            Kap { processPayment(validated.qty.value * 49.99 * 0.95) }
+                .withCircuitBreaker(breaker)
+                .retry(Schedule.times<Throwable>(2) and Schedule.spaced(30.milliseconds))
+        )
+        // Phase: confirmation (sequential, depends on payment)
+        .then(PlacedOrderKap.confirmation from
+            bracket(
+                acquire = { openOrderDb() },
+                use = { db -> Kap { db.insert("ORD-FULL-${System.currentTimeMillis()}") } },
+                release = { db -> db.close() },
             )
-            .withPricing(
-                Kap { fetchLivePricing(validated.item.value) }
-                    .timeoutRace(80.milliseconds, Kap { fetchCachedPricing(validated.item.value) })
-            )
-            // Phase: payment (sequential, depends on pricing)
-            .thenPayment(
-                Kap { processPayment(validated.qty.value * 49.99 * 0.95) }
-                    .withCircuitBreaker(breaker)
-                    .retry(Schedule.times<Throwable>(2) and Schedule.spaced(30.milliseconds))
-            )
-            // Phase: confirmation (sequential, depends on payment)
-            .thenConfirmation(
-                bracket(
-                    acquire = { openOrderDb() },
-                    use = { db -> Kap { db.insert("ORD-FULL-${System.currentTimeMillis()}") } },
-                    release = { db -> db.close() },
-                )
-            )
-            .evalGraph()
+        )
+        .evalGraph()
 
     val pipeElapsed = System.currentTimeMillis() - pipeStart
     println("  Order:        ${fullOrder.order}")

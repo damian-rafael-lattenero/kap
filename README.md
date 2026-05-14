@@ -121,11 +121,7 @@ kap(::CheckoutResult)
 
 Same 7 calls, same 4 phases, same retry, same circuit breaker, same timeouts. `.with` = parallel, `.then` = barrier. Resilience is per-call, inline, composable.
 
-`@KapTypeSafe` generates a **wrapper type and tag per field**. The tags are positional inside the curried applicative chain, so the compiler enforces *which wrapper* belongs *where* — swap two fields and you get a type error naming the exact wrapper expected. Reads like prose (`user from fetchUser()`), no method-name explosion, single `.with`/`.then` for the whole graph:
-
-<p align="center">
-  <img src=".github/demo-v2.gif" alt="KAP IDE autocomplete demo" width="700"/>
-</p>
+`@KapTypeSafe` generates a **scoped wrapper with per-slot tag interfaces**. Each `.with { field from value }` lambda exposes the slot for the field at the current curry position — the IDE shows exactly the field you owe, by name. Swap two fields and you get a compile error naming the expected tag. Reads like prose (`user from fetchUser()`), no method-name explosion, single `.with`/`.then` for the whole graph.
 
 ---
 
@@ -685,13 +681,13 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
 
     // optional — add any combination
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:2.7.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.7.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:2.7.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:3.0.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:3.0.0")
 }
 ```
 

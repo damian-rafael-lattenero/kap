@@ -128,19 +128,19 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
     )
 
     val checkout: CheckoutResult = kap(::CheckoutResult)
-        .withUser { fetchUser() }              // ┐
-        .withCart { fetchCart() }               // ├─ phase 1: parallel
-        .withPromos { fetchPromos() }           // │
-        .withInventory { fetchInventory() }     // ┘
-        .thenStock { validateStock() }          // ── phase 2: barrier
-        .withShipping { calcShipping() }        // ┐
-        .withTax { calcTax() }                  // ├─ phase 3: parallel
-        .withDiscounts { calcDiscounts() }      // ┘
-        .thenPayment { reservePayment() }       // ── phase 4: barrier
-        .withConfirmation { generateConfirmation() }  // ┐ phase 5: parallel
-        .withEmail { sendEmail() }             // ┘
+        .with { user from fetchUser() }                       // ┐
+        .with { cart from fetchCart() }                       // ├─ phase 1: parallel
+        .with { promos from fetchPromos() }                   // │
+        .with { inventory from fetchInventory() }             // ┘
+        .then { stock from validateStock() }                  // ── phase 2: barrier
+        .with { shipping from calcShipping() }                // ┐
+        .with { tax from calcTax() }                          // ├─ phase 3: parallel
+        .with { discounts from calcDiscounts() }              // ┘
+        .then { payment from reservePayment() }               // ── phase 4: barrier
+        .with { confirmation from generateConfirmation() }    // ┐ phase 5: parallel
+        .with { email from sendEmail() }                      // ┘
         .evalGraph()
-    // 12 lines. Phases explicit. Swap any .withX → compile error.
+    // 12 lines. Phases explicit. Swap any field → compile error citing the tag.
     // No shuttle variables. No intermediate data classes.
     ```
 
@@ -274,12 +274,12 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
     @KapTypeSafe
     data class Booking(val guestName: String, val hotelName: String, val nights: Int, val guests: Int)
 
-    // KSP generates named step builders — each step only shows the next parameter
+    // KSP generates a scoped wrapper — each slot only resolves the next field
     kap(::Booking)
-        .withGuestName { fetchGuest() }     // only .withGuestName available here
-        .withHotelName { fetchHotel() }     // only .withHotelName — swap? COMPILE ERROR
-        .withNights { fetchNights() }       // only .withNights available here
-        .withGuests { fetchGuests() }       // only .withGuests — swap with nights? COMPILE ERROR
+        .with { guestName from fetchGuest()  }   // only `guestName` resolves here
+        .with { hotelName from fetchHotel()  }   // only `hotelName` — swap? COMPILE ERROR
+        .with { nights    from fetchNights() }   // only `nights`    resolves here
+        .with { guests    from fetchGuests() }   // only `guests`    — swap with nights? COMPILE ERROR
         .evalGraph()
     ```
 
@@ -309,8 +309,8 @@ KAP doesn't compete with Arrow — the `kap-arrow` module **uses** Arrow's types
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.7.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:2.7.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:3.0.0")
 }
 ```
 

@@ -167,10 +167,10 @@ suspend fun constructorIsAFunction() {
     println("=== A constructor is a function ===\n")
 
     // ::Greeting has type (String, String) -> Greeting
-    val g1: Greeting = kapDsl(::Greeting)
-            .withText { fetchName() }
-            .withTarget { "hello" }
-            .evalGraph()
+    val g1: Greeting = kap(::Greeting)
+        .with { text from fetchName() }
+        .with { target from "hello" }
+        .evalGraph()
     println("  Constructor ref: $g1")
 
     // Manual currying for lambda variables:
@@ -198,10 +198,10 @@ suspend fun constructorIsAFunction() {
 suspend fun nothingRunsUntilAsync() {
     println("=== Nothing runs until evalGraph() ===\n")
 
-    val plan: Kap<Dashboard> = kapDsl(::Dashboard)
-        .withUser { fetchDashUser() }
-        .withCart { fetchDashCart() }
-        .withPromos { fetchDashPromos() }
+    val plan = kap(::Dashboard)
+        .with { user from fetchDashUser() }
+        .with { cart from fetchDashCart() }
+        .with { promos from fetchDashPromos() }
 
     println("  Plan built. Nothing has executed yet.")
     println("  plan is: ${plan::class.simpleName}")
@@ -221,20 +221,20 @@ suspend fun allValsNoNulls() {
     println("=== All val, no null ===\n")
 
     // Raw coroutines: vars and nulls
-    var user: String? = null
-    var cart: String? = null
+    var rawUser: String? = null
+    var rawCart: String? = null
     coroutineScope {
-        launch { user = fetchDashUser() }
-        launch { cart = fetchDashCart() }
+        launch { rawUser = fetchDashUser() }
+        launch { rawCart = fetchDashCart() }
     }
-    val rawResult = DashboardView(user!!, cart!!)
+    val rawResult = DashboardView(rawUser!!, rawCart!!)
     println("  Raw (var/null!!): $rawResult")
 
     // KAP: all val, no nulls
-    val kapResult: DashboardView = kapDsl(::DashboardView)
-            .withUser { fetchDashUser() }
-            .withCart { fetchDashCart() }
-            .evalGraph()
+    val kapResult: DashboardView = kap(::DashboardView)
+        .with { user from fetchDashUser() }
+        .with { cart from fetchDashCart() }
+        .evalGraph()
     println("  KAP (val, safe):  $kapResult\n")
 }
 
@@ -254,21 +254,21 @@ data class R3(val a: String, val b: String, val c: String)
 suspend fun threePrimitiveWith() {
     println("=== Primitive: .with (parallel) ===\n")
 
-    val result = kapDsl(::AB)
-            .withA { fetchA() }   // ┐ parallel
-            .withB { fetchB() }   // ┘
-            .evalGraph()
+    val result = kap(::AB)
+        .with { a from fetchA() }   // ┐ parallel
+        .with { b from fetchB() }   // ┘
+        .evalGraph()
     println("  .with result: $result\n")
 }
 
 suspend fun threePrimitiveFollowedBy() {
     println("=== Primitive: .then (barrier) ===\n")
 
-    val result = kapDsl(::R3)
-            .withA { fetchA() }             // ┐ parallel
-            .withB { fetchB() }             // ┘
-            .thenC { validate() }           // waits for A and B
-            .evalGraph()
+    val result = kap(::R3)
+        .with { a from fetchA() }             // ┐ parallel
+        .with { b from fetchB() }             // ┘
+        .then { c from validate() }           // waits for A and B
+        .evalGraph()
     println("  .then result: $result\n")
 }
 
@@ -288,17 +288,17 @@ suspend fun threePrimitiveFlatMap() {
     println("=== Primitive: .andThen (value-dependent phases) ===\n")
 
     val userId = "user-1"
-    val dashboard = kapDsl(::UserContext)
-            .withProfile { fetchProfile(userId) }       // ┐ phase 1: parallel
-            .withPrefs { fetchPreferences(userId) }     // │
-            .withTier { fetchLoyaltyTier(userId) }      // ┘
-            .andThen { ctx ->                            // ── barrier: phase 2 NEEDS ctx
-                kapDsl(::PersonalizedDashboard)
-                    .withRecs { fetchRecommendations(ctx.profile) }   // ┐ phase 2: parallel
-                    .withPromos { fetchPromotions(ctx.tier) }         // │
-                    .withTrending { fetchTrending(ctx.prefs) }        // ┘
-            }
-            .evalGraph()
+    val dashboard = kap(::UserContext)
+        .with { profile from fetchProfile(userId) }       // ┐ phase 1: parallel
+        .with { prefs from fetchPreferences(userId) }     // │
+        .with { tier from fetchLoyaltyTier(userId) }      // ┘
+        .andThen { ctx ->                                  // ── barrier: phase 2 NEEDS ctx
+            kap(::PersonalizedDashboard)
+                .with { recs from fetchRecommendations(ctx.profile) }   // ┐ phase 2: parallel
+                .with { promos from fetchPromotions(ctx.tier) }         // │
+                .with { trending from fetchTrending(ctx.prefs) }        // ┘
+        }
+        .evalGraph()
     println("  .andThen result: $dashboard\n")
 }
 
@@ -351,23 +351,23 @@ suspend fun phasedFlatMapKap() {
     println("=== Phase Dependencies: KAP andThen ===\n")
     val userId = "user-42"
 
-    val dashboard: FinalDashboard = kapDsl(::UserContext)
-            .withProfile { fetchProfile(userId) }
-            .withPrefs { fetchPreferences(userId) }
-            .withTier { fetchLoyaltyTier(userId) }
-            .andThen { ctx ->
-                kapDsl(::EnrichedContent)
-                    .withRecs { fetchRecommendations(ctx.profile) }
-                    .withPromos { fetchPromotions(ctx.tier) }
-                    .withTrending { fetchTrending(ctx.prefs) }
-                    .withHistory { fetchHistory(ctx.profile) }
-                    .andThen { enriched ->
-                        kapDsl(::FinalDashboard)
-                            .withLayout { renderLayout(ctx, enriched) }
-                            .withAnalytics { trackAnalytics(ctx, enriched) }
-                    }
-            }
-            .evalGraph()
+    val dashboard: FinalDashboard = kap(::UserContext)
+        .with { profile from fetchProfile(userId) }
+        .with { prefs from fetchPreferences(userId) }
+        .with { tier from fetchLoyaltyTier(userId) }
+        .andThen { ctx ->
+            kap(::EnrichedContent)
+                .with { recs from fetchRecommendations(ctx.profile) }
+                .with { promos from fetchPromotions(ctx.tier) }
+                .with { trending from fetchTrending(ctx.prefs) }
+                .with { history from fetchHistory(ctx.profile) }
+                .andThen { enriched ->
+                    kap(::FinalDashboard)
+                        .with { layout from renderLayout(ctx, enriched) }
+                        .with { analytics from trackAnalytics(ctx, enriched) }
+                }
+        }
+        .evalGraph()
 
     println("  KAP result: $dashboard\n")
 }
@@ -379,11 +379,11 @@ suspend fun phasedFlatMapKap() {
 suspend fun quickStartBasic() {
     println("=== Quick Start: Basic ===\n")
 
-    val result = kapDsl(::Dashboard)
-            .withUser { fetchDashUser() }    // ┐ all three in parallel
-            .withCart { fetchDashCart() }     // │ total time = max(individual)
-            .withPromos { fetchDashPromos() } // ┘ not sum
-            .evalGraph()
+    val result = kap(::Dashboard)
+        .with { user from fetchDashUser() }    // ┐ all three in parallel
+        .with { cart from fetchDashCart() }     // │ total time = max(individual)
+        .with { promos from fetchDashPromos() } // ┘ not sum
+        .evalGraph()
     println("  Dashboard: $result\n")
 }
 
@@ -400,14 +400,14 @@ suspend fun quickStartResilience() {
     val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
     val retryPolicy = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
 
-    val result = kapDsl(::Dashboard)
-            .withUser(Kap { fetchDashUser() }
-                .withCircuitBreaker(breaker)
-                .retry(retryPolicy))
-            .withCart(Kap { fetchFromSlowApi() }
-                .timeoutRace(100.milliseconds, Kap { fetchFromCache() }))
-            .withPromos { fetchDashPromos() }
-            .evalGraph()
+    val result = kap(::Dashboard)
+        .with(DashboardKap.user from Kap { fetchDashUser() }
+            .withCircuitBreaker(breaker)
+            .retry(retryPolicy))
+        .with(DashboardKap.cart from Kap { fetchFromSlowApi() }
+            .timeoutRace(100.milliseconds, Kap { fetchFromCache() }))
+        .with { promos from fetchDashPromos() }
+        .evalGraph()
     println("  Resilient dashboard: $result\n")
 }
 
@@ -426,6 +426,7 @@ data class ValidName(val value: String)
 data class ValidEmail(val value: String)
 data class ValidAge(val value: Int)
 data class ValidUsername(val value: String)
+@KapTypeSafe
 data class User(val name: ValidName, val email: ValidEmail, val age: ValidAge, val username: ValidUsername)
 
 suspend fun validateName(name: String): Either<NonEmptyList<RegError>, ValidName> {
@@ -455,22 +456,22 @@ suspend fun checkUsername(username: String): Either<NonEmptyList<RegError>, Vali
 suspend fun quickStartValidation() {
     println("=== Quick Start: Validation ===\n")
 
-    val valid: Either<NonEmptyList<RegError>, User> = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
-            .withV { validateName("Alice") }
-            .withV { validateEmail("alice@example.com") }
-            .withV { validateAge(25) }
-            .withV { checkUsername("alice") }
+    val valid: Either<NonEmptyList<RegError>, User> = kapV<RegError>(::User)
+            .withV { name from validateName("Alice") }
+            .withV { email from validateEmail("alice@example.com") }
+            .withV { age from validateAge(25) }
+            .withV { username from checkUsername("alice") }
             .evalGraph()
     when (valid) {
         is Either.Right -> println("  Valid: ${valid.value}")
         is Either.Left -> println("  Errors: ${valid.value.map { it.message }}")
     }
 
-    val invalid: Either<NonEmptyList<RegError>, User> = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
-            .withV { validateName("A") }
-            .withV { validateEmail("bad") }
-            .withV { validateAge(10) }
-            .withV { checkUsername("al") }
+    val invalid: Either<NonEmptyList<RegError>, User> = kapV<RegError>(::User)
+            .withV { name from validateName("A") }
+            .withV { email from validateEmail("bad") }
+            .withV { age from validateAge(10) }
+            .withV { username from checkUsername("al") }
             .evalGraph()
     when (invalid) {
         is Either.Right -> println("  Valid: ${invalid.value}")
@@ -487,11 +488,11 @@ suspend fun chooseYourStyle() {
     println("=== Choose Your Style ===\n")
 
     // Style 1: kap + with — compile-time parameter order safety
-    val s1 = kapDsl(::Dashboard)
-            .withUser { fetchDashUser() }
-            .withCart { fetchDashCart() }
-            .withPromos { fetchDashPromos() }
-            .evalGraph()
+    val s1 = kap(::Dashboard)
+        .with { user from fetchDashUser() }
+        .with { cart from fetchDashCart() }
+        .with { promos from fetchDashPromos() }
+        .evalGraph()
     println("  kap+with:  $s1")
 
     // Style 2: combine with suspend lambdas
@@ -543,11 +544,11 @@ suspend fun featureSettled() {
     println("=== Feature: Partial Failure with .settled() ===\n")
 
     // settled { } wraps the result in Result<T> — failure doesn't cancel siblings
-    val dashboard = kapDsl(BuildPartialDashboard)
-            .withUser(settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
-            .withCart { fetchCartAlways() }              // normal String — failure here cancels all
-            .withConfig { fetchConfigAlways() }          // normal String
-            .evalGraph()
+    val dashboard = kap(::buildPartialDashboard)
+        .with(BuildPartialDashboardKap.user from settled { fetchUserMayFail() })  // Result<String> — won't cancel siblings
+        .with { cart from fetchCartAlways() }              // normal String — failure here cancels all
+        .with { config from fetchConfigAlways() }          // normal String
+        .evalGraph()
     println("  settled: $dashboard")
     // PartialDashboard(user=anonymous, cart=cart-ok, config=config-ok)
     // fetchUserMayFail() threw → settled { } wrapped as Result.failure → buildPartialDashboard used fallback
@@ -917,12 +918,12 @@ fun combineThree(a: String, b: String, c: String): String = "$a+$b+$c"
 suspend fun executionModel() {
     println("=== Execution Model ===\n")
 
-    val graph = kapDsl(CombineThree)
-        .withA { fetchA() }
-        .withB { fetchB() }
+    val graph = kap(::combineThree)
+        .with { a from fetchA() }
+        .with { b from fetchB() }
 
     println("  graph built, not executed")
-    val result = graph.withC { "C" }.evalGraph()
+    val result = graph.with { c from "C" }.evalGraph()
     println("  evalGraph(): $result\n")
 }
 
@@ -1511,11 +1512,11 @@ suspend fun featureRetryWithResult() {
 suspend fun featureKapVWithV() {
     println("=== Feature: kapV + withV builder ===\n")
 
-    val result: Either<NonEmptyList<RegError>, User> = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
-            .withV { validateName("Bob") }
-            .withV { validateEmail("bob@example.com") }
-            .withV { validateAge(30) }
-            .withV { checkUsername("bobby") }
+    val result: Either<NonEmptyList<RegError>, User> = kapV<RegError>(::User)
+            .withV { name from validateName("Bob") }
+            .withV { email from validateEmail("bob@example.com") }
+            .withV { age from validateAge(30) }
+            .withV { username from checkUsername("bobby") }
             .evalGraph()
     when (result) {
         is Either.Right -> println("  Valid user: ${result.value}")
@@ -1523,11 +1524,11 @@ suspend fun featureKapVWithV() {
     }
 
     // All invalid — errors accumulate
-    val invalid: Either<NonEmptyList<RegError>, User> = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
-            .withV { validateName("X") }
-            .withV { validateEmail("no-at-sign") }
-            .withV { validateAge(5) }
-            .withV { checkUsername("ab") }
+    val invalid: Either<NonEmptyList<RegError>, User> = kapV<RegError>(::User)
+            .withV { name from validateName("X") }
+            .withV { email from validateEmail("no-at-sign") }
+            .withV { age from validateAge(5) }
+            .withV { username from checkUsername("ab") }
             .evalGraph()
     when (invalid) {
         is Either.Right -> println("  Valid: ${invalid.value}")
@@ -1904,20 +1905,16 @@ suspend fun readmeStartSimple() {
     println("  Profile: $profile")
 
     // andThen
-    val full = with(SimpleDashboardKap) {
-        kap(::SimpleDashboard)
-            .with { user from fetchUser() }
-            .with { feed from fetchFeed() }
-            .with { notifications from countUnread() }
-            .andThen { result ->
-                with(FullPageKap) {
-                    kap(::FullPage)
-                        .with { dashboard from result }
-                        .with { suggestions from fetchSuggestions(result.user) }
-                }
-            }
-            .evalGraph()
-    }
+    val full = kap(::SimpleDashboard)
+        .with { user from fetchUser() }
+        .with { feed from fetchFeed() }
+        .with { notifications from countUnread() }
+        .andThen { result ->
+            kap(::FullPage)
+                .with { dashboard from result }
+                .with { suggestions from fetchSuggestions(result.user) }
+        }
+        .evalGraph()
     println("  Full page: $full\n")
 }
 
@@ -2109,36 +2106,34 @@ suspend fun readmeFullPicture() {
     val result = bracketCase(
         acquire = { "tx-001" }, // simulated transaction
         use = { tx ->
-            with(OrderResultKap) {
-                kap(::OrderResult)
+            kap(::OrderResult)
 
-                    // PHASE 2: race 3 pricing providers — fastest wins, losers cancelled
-                    .with(finalPrice from raceN(
-                        Kap { pricingServiceA(order) },
-                        Kap { pricingServiceB(order) },
-                        Kap { pricingServiceC(order) },
-                    ))
+                // PHASE 2: race 3 pricing providers — fastest wins, losers cancelled
+                .with(OrderResultKap.finalPrice from raceN(
+                    Kap { pricingServiceA(order) },
+                    Kap { pricingServiceB(order) },
+                    Kap { pricingServiceC(order) },
+                ))
 
-                    // PHASE 3: reserve inventory — retry with backoff if flaky
-                    .then(reservationId from
-                        Kap { reserveInventory(tx, order) }
-                            .retry(retryPolicy)
-                    )
+                // PHASE 3: reserve inventory — retry with backoff if flaky
+                .then(OrderResultKap.reservationId from
+                    Kap { reserveInventory(tx, order) }
+                        .retry(retryPolicy)
+                )
 
-                    // PHASE 4: charge payment — circuit breaker + 5s timeout
-                    .then(paymentId from
-                        Kap { chargePayment(tx, order) }
-                            .withCircuitBreaker(paymentBreaker)
-                            .timeout(5.seconds)
-                    )
+                // PHASE 4: charge payment — circuit breaker + 5s timeout
+                .then(OrderResultKap.paymentId from
+                    Kap { chargePayment(tx, order) }
+                        .withCircuitBreaker(paymentBreaker)
+                        .timeout(5.seconds)
+                )
 
-                    // PHASE 5: notifications — if one fails, others still complete
-                    .with(notifications from listOf(
-                        Kap { sendEmailOrder(order) },
-                        Kap { sendPush(order) },
-                        Kap { updateAnalytics(order) },
-                    ).sequenceSettled())
-            }
+                // PHASE 5: notifications — if one fails, others still complete
+                .with(OrderResultKap.notifications from listOf(
+                    Kap { sendEmailOrder(order) },
+                    Kap { sendPush(order) },
+                    Kap { updateAnalytics(order) },
+                ).sequenceSettled())
         },
         release = { tx, exit -> when (exit) {
             is ExitCase.Completed<*> -> println("  Transaction $tx committed")

@@ -3,7 +3,9 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-// Two functions with SAME param types and SAME return type → kapDsl() uses marker objects to avoid collision
+// Two functions with SAME param types and SAME return type → the processor
+// detects the collision and emits `kap{FunctionName}(::fn)` fallback instead
+// of a plain `kap(::fn)` (which would clash as identical-signature overloads).
 @KapTypeSafe
 fun greet(name: String, age: Int): String = "Hello $name, you are $age"
 
@@ -13,15 +15,15 @@ fun farewell(name: String, age: Int): String = "Bye $name, you are $age"
 class KapCollisionTest {
 
     @Test
-    fun `two functions with same signature both generate kapDsl and kap{FunctionName}`() = runTest {
-        val g = kapDsl(Greet)
-            .withName { "Alice" }
-            .withAge { 30 }
+    fun `same-signature functions get function-suffixed kap entries`() = runTest {
+        val g = kapGreet(::greet)
+            .with { name from "Alice" }
+            .with { age from 30 }
             .evalGraph()
 
-        val f = kapDsl(Farewell)
-            .withName { "Alice" }
-            .withAge { 30 }
+        val f = kapFarewell(::farewell)
+            .with { name from "Alice" }
+            .with { age from 30 }
             .evalGraph()
 
         assertEquals("Hello Alice, you are 30", g)

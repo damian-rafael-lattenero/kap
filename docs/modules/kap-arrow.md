@@ -3,7 +3,7 @@
 Arrow integration for parallel validation with error accumulation.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-arrow:2.7.0")
+implementation("io.github.damian-rafael-lattenero:kap-arrow:3.0.0")
 ```
 
 **Depends on:** `kap-core` + Arrow Core.
@@ -192,9 +192,25 @@ Scales to **22 validators**. Arrow's `zipOrAccumulate` maxes at 9.
 
 ---
 
-## `kapV` + `withV` — Curried Builder
+## `kapV` + `withV` — Slot-Narrowed Builder
 
-Same parallel execution and error accumulation, typed chain syntax:
+When your target class is annotated with `@KapTypeSafe`, kap-ksp auto-generates a `${T}ValidatedKap<E, F>` wrapper with slot-narrowed `.withV { field from validate() }` operators — identical semantics to `kap(::T)` but for validated chains:
+
+```kotlin
+@KapTypeSafe
+data class User(val name: ValidName, val email: ValidEmail, val age: ValidAge, val username: ValidUsername)
+
+val result = kapV<RegError>(::User)
+    .withV { name     from validateName("Alice") }
+    .withV { email    from validateEmail("alice@example.com") }
+    .withV { age      from validateAge(25) }
+    .withV { username from checkUsername("alice") }
+    .evalGraph()
+```
+
+Swap two `.withV` lines? **Compile error** — same type safety as `kap` + `.with`. The infix `from` has three overloads: raw value, `Kap<T>`, and `Either<NonEmptyList<E>, T>` (for validated results).
+
+The last `.withV` returns `Kap<Either<NonEmptyList<E>, R>>` directly — kap-core operators (`.map`, `.recover`, …) chain naturally without `.asKap`.
 
 === "Raw Coroutines"
 
@@ -213,11 +229,11 @@ Same parallel execution and error accumulation, typed chain syntax:
 === "KAP"
 
     ```kotlin
-    val result = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
-        .withV { validateName("Alice") }
-        .withV { validateEmail("alice@example.com") }
-        .withV { validateAge(25) }
-        .withV { checkUsername("alice") }
+    val result = kapV<RegError>(::User)
+        .withV { name     from validateName("Alice") }
+        .withV { email    from validateEmail("alice@example.com") }
+        .withV { age      from validateAge(25) }
+        .withV { username from checkUsername("alice") }
         .evalGraph()
     ```
 
@@ -228,7 +244,8 @@ Same parallel execution and error accumulation, typed chain syntax:
     // You must use zipOrAccumulate with all args in one call.
     ```
 
-Swap two `.withV` lines? **Compile error** — same type safety as `kap` + `.with`.
+!!! note "Without `@KapTypeSafe`"
+    If the target class is not annotated, the generic `kapV<E, P1, …, Pn, R>(::T).withV { fn() }` form from kap-arrow's `ValidatedOverloads` is still available.
 
 ---
 

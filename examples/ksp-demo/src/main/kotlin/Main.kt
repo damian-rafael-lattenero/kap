@@ -3,7 +3,7 @@
 import kap.*
 import kotlinx.coroutines.delay
 
-// ── Class: kapDsl(::User) — no companion object needed ───────────
+// ── Class: kap(::User) — no companion object needed ───────────
 
 @KapTypeSafe
 data class User(val firstName: String, val lastName: String, val age: Int)
@@ -53,46 +53,49 @@ suspend fun calculateTotal(): Double { delay(15); return 147.50 }
 // ── Main ───────────────────────────────────────────────────────
 
 suspend fun main() {
-    println("=== KSP Named Builder Demo ===\n")
+    println("=== KSP Scoped Builder Demo ===\n")
 
-    // Class: kapDsl(::User)
-    val user = kapDsl(::User)
-        .withFirstName { fetchFirstName() }
-        .withLastName { fetchLastName() }
-        .withAge { fetchAge() }
+    // Class: kap(::User)
+    val userResult = kap(::User)
+        .with { firstName from fetchFirstName() }
+        .with { lastName from fetchLastName() }
+        .with { age from fetchAge() }
         .evalGraph()
-    println("  User: $user")
+    println("  User: $userResult")
 
-    // Function with prefix: kapDsl(BuildDashboard)
-    val dash = kapDsl(BuildDashboard)
-        .withDashboardUserName { fetchUserName() }
-        .withDashboardCartSummary { fetchCartSummary() }
-        .withDashboardPromoCode { fetchPromoCode() }
+    // Function: kap(::buildDashboard). The `prefix=Dashboard` affects the
+    // generated file/tag class names internally, but call-site tag names are
+    // always the original param names (`userName`, `cartSummary`, ...).
+    val dash = kap(::buildDashboard)
+        .with { userName from fetchUserName() }
+        .with { cartSummary from fetchCartSummary() }
+        .with { promoCode from fetchPromoCode() }
         .evalGraph()
     println("  Dashboard: $dash")
 
-    // Function with prefix: kapDsl(BuildReport)
-    val report = kapDsl(BuildReport)
-        .withReportUserName { fetchUserName() }
-        .withReportDateRange { fetchDateRange() }
-        .withReportFormat { fetchFormat() }
+    // Function: kap(::buildReport). Same `userName` param name as buildDashboard
+    // but no collision — each wrapper has its own slot interface.
+    val report = kap(::buildReport)
+        .with { userName from fetchUserName() }
+        .with { dateRange from fetchDateRange() }
+        .with { format from fetchFormat() }
         .evalGraph()
     println("  Report: $report")
 
-    // Third-party class via @KapBridge: kapDsl(::ThirdPartyDto)
-    val dto = kapDsl(::ThirdPartyDto)
-        .withId { 42 }
-        .withName { "bridged" }
-        .withActive { true }
+    // Third-party class via @KapBridge: kap(::ThirdPartyDto)
+    val dto = kap(::ThirdPartyDto)
+        .with { id from 42 }
+        .with { name from "bridged" }
+        .with { active from true }
         .evalGraph()
     println("  ThirdPartyDto: $dto")
 
-    // Phase barriers
-    val checkout = kapDsl(::Checkout)
-        .withUser { fetchUser() }
-        .withCart { fetchCart() }
-        .thenValidated { validateOrder() }
-        .withTotal { calculateTotal() }
+    // Phase barriers — `.then` waits for everything above
+    val checkout = kap(::Checkout)
+        .with { user from fetchUser() }
+        .with { cart from fetchCart() }
+        .then { validated from validateOrder() }
+        .with { total from calculateTotal() }
         .evalGraph()
     println("  Checkout: $checkout")
 

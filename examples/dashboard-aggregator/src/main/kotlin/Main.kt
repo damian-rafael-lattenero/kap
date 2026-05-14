@@ -8,8 +8,9 @@ import kotlinx.coroutines.delay
  * many microservices with sequential authorization and enrichment gates.
  *
  * 14 fields: 7 are String, 4 are Int, 1 is a List, 1 is a Map, 1 is a Boolean.
- * Named builders (.withUser, .withPrefs, ...) make every slot unique at compile time —
- * no wrapper types needed. Swap any two .with lines and it won't compile.
+ * The scoped wrapper exposes per-slot tags inside each `.with { field from … }`
+ * lambda — every slot is unique at compile time. Swap any two `.with` lines
+ * and it won't compile (the swapped tag is unresolved at the wrong position).
  */
 
 // ── Assembled dashboard ─────────────────────────────────────────────
@@ -106,27 +107,27 @@ suspend fun main() {
     // Type-safe: each .with slot is verified at compile time against
     // the corresponding DashboardView constructor parameter name.
     // 14 fields, 7 are String — and the compiler still catches every swap.
-    val dashboard = kapDsl(::DashboardView)
-            // Phase 1: User context (parallel)
-            .withUser { fetchUserProfile().also { println("  Phase 1 [${System.currentTimeMillis() - start}ms]: user loaded") } }
-            .withPrefs { fetchPreferences() }
-            .withFlags { fetchFeatureFlags() }
-            // Phase 2: Authorization (must know user first)
-            .thenAuth { authorize().also { println("  Phase 2 [${System.currentTimeMillis() - start}ms]: authorized") } }
-            // Phase 3: Main content (parallel, requires auth)
-            .withFeed { fetchFeed() }
-            .withNotifications { fetchNotifications() }
-            .withMessages { fetchMessages() }
-            .withRecommendations { fetchRecommendations().also { println("  Phase 3 [${System.currentTimeMillis() - start}ms]: content loaded") } }
-            // Phase 4: Analytics enrichment (sequential)
-            .thenAnalytics { enrichWithAnalytics().also { println("  Phase 4 [${System.currentTimeMillis() - start}ms]: analytics enriched") } }
-            // Phase 5: Sidebar (parallel)
-            .withTrending { fetchTrending() }
-            .withSuggestions { fetchSuggestions() }
-            .withAds { fetchAds() }
-            .withSocial { fetchSocialProof() }
-            .withVersion { fetchAppVersion().also { println("  Phase 5 [${System.currentTimeMillis() - start}ms]: sidebar loaded") } }
-            .evalGraph()
+    val dashboard = kap(::DashboardView)
+        // Phase 1: User context (parallel)
+        .with { user from fetchUserProfile().also { println("  Phase 1 [${System.currentTimeMillis() - start}ms]: user loaded") } }
+        .with { prefs from fetchPreferences() }
+        .with { flags from fetchFeatureFlags() }
+        // Phase 2: Authorization (must know user first)
+        .then { auth from authorize().also { println("  Phase 2 [${System.currentTimeMillis() - start}ms]: authorized") } }
+        // Phase 3: Main content (parallel, requires auth)
+        .with { feed from fetchFeed() }
+        .with { notifications from fetchNotifications() }
+        .with { messages from fetchMessages() }
+        .with { recommendations from fetchRecommendations().also { println("  Phase 3 [${System.currentTimeMillis() - start}ms]: content loaded") } }
+        // Phase 4: Analytics enrichment (sequential)
+        .then { analytics from enrichWithAnalytics().also { println("  Phase 4 [${System.currentTimeMillis() - start}ms]: analytics enriched") } }
+        // Phase 5: Sidebar (parallel)
+        .with { trending from fetchTrending() }
+        .with { suggestions from fetchSuggestions() }
+        .with { ads from fetchAds() }
+        .with { social from fetchSocialProof() }
+        .with { version from fetchAppVersion().also { println("  Phase 5 [${System.currentTimeMillis() - start}ms]: sidebar loaded") } }
+        .evalGraph()
 
     val elapsed = System.currentTimeMillis() - start
     println("\nDashboard assembled in ${elapsed}ms with 14 fields")

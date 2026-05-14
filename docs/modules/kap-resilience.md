@@ -3,7 +3,7 @@
 Retry, resource safety, and protection patterns. All composable in the KAP chain.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-resilience:2.7.0")
+implementation("io.github.damian-rafael-lattenero:kap-resilience:3.0.0")
 ```
 
 **Depends on:** `kap-core`.
@@ -441,18 +441,18 @@ Supports arities 2-22.
 === "KAP"
 
     ```kotlin
-    val result = kap { db: String, cache: String, api: String -> "$db|$cache|$api" }
-        .withDb(bracket(
+    val result = Kap.of { db: String -> { cache: String -> { api: String -> "$db|$cache|$api" } } }
+        .with(bracket(
             acquire = { openDbConnection() },
             use = { conn -> Kap { conn.query("SELECT 1") } },
             release = { conn -> conn.close() },
         ))
-        .withCache(bracket(
+        .with(bracket(
             acquire = { openCacheConnection() },
             use = { conn -> Kap { conn.get("key") } },
             release = { conn -> conn.close() },
         ))
-        .withApi(bracket(
+        .with(bracket(
             acquire = { openHttpClient() },
             use = { client -> Kap { client.get("/api") } },
             release = { client -> client.close() },
@@ -560,9 +560,9 @@ Supports arities 2-22.
 
     val result = infra.useKap { (db, cache, http) ->
         kap(::DashboardData)
-            .withDbResult { db.query("SELECT 1") }
-            .withCacheResult { cache.get("user:prefs") }
-            .withHttpResult { http.get("/recommendations") }
+            .with { dbResult from db.query("SELECT 1") }
+            .with { cacheResult from cache.get("user:prefs") }
+            .with { httpResult from http.get("/recommendations") }
     }.evalGraph()
     // All acquired, used in parallel, released in reverse order. Guaranteed.
     ```

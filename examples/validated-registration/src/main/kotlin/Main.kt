@@ -32,6 +32,7 @@ sealed class RegError(val message: String) {
 
 // ── Domain type ──────────────────────────────────────────────────────────
 
+@KapTypeSafe
 data class User(val name: ValidName, val email: ValidEmail, val age: ValidAge, val username: ValidUsername)
 
 // ── Validation functions (simulate async checks) ────────────────────────
@@ -78,11 +79,11 @@ suspend fun main() {
     // Type safety: swap any two .withV calls and it won't compile!
     // The types ValidName, ValidEmail, ValidAge, ValidUsername are all distinct,
     // so the compiler enforces the correct order of arguments.
-    val result1 = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
-            .withV { validateName("Alice") }
-            .withV { validateEmail("alice@example.com") }
-            .withV { validateAge(28) }
-            .withV { checkUsernameAvailable("alice_new") }
+    val result1 = kapV<RegError>(::User)
+            .withV { name from validateName("Alice") }
+            .withV { email from validateEmail("alice@example.com") }
+            .withV { age from validateAge(28) }
+            .withV { username from checkUsernameAvailable("alice_new") }
             .evalGraph()
 
     when (result1) {
@@ -93,11 +94,11 @@ suspend fun main() {
     // ── Scenario 2: Multiple validations fail ──
     println("\n=== Scenario 2: Multiple failures (all errors collected) ===\n")
 
-    val result2 = kapV<RegError, ValidName, ValidEmail, ValidAge, ValidUsername, User>(::User)
-            .withV { validateName("A") }           // too short
-            .withV { validateEmail("not-an-email") } // no @
-            .withV { validateAge(5) }               // too young
-            .withV { checkUsernameAvailable("admin") } // taken
+    val result2 = kapV<RegError>(::User)
+            .withV { name from validateName("A") }           // too short
+            .withV { email from validateEmail("not-an-email") } // no @
+            .withV { age from validateAge(5) }               // too young
+            .withV { username from checkUsernameAvailable("admin") } // taken
             .evalGraph()
 
     when (result2) {

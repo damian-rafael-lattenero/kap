@@ -31,9 +31,9 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.evalGraph(
     data class Dashboard(val user: String, val cart: String, val promos: String)
 
     val result = kap(::Dashboard)
-        .withUser { fetchUser() }
-        .withCart { fetchCart() }
-        .withPromos { fetchPromos() }
+        .with { user from fetchUser() }
+        .with { cart from fetchCart() }
+        .with { promos from fetchPromos() }
         .evalGraph()
     ```
 
@@ -64,11 +64,11 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.evalGraph(
     data class Result(val a: A, val b: B, val validated: Validated, val c: C, val d: D)
 
     val result = kap(::Result)
-        .withA { fetchA() }             // ┐ phase 1
-        .withB { fetchB() }             // ┘
-        .thenValidated { validate() }   // ── explicit barrier
-        .withC { fetchC() }             // ┐ phase 2
-        .withD { fetchD() }             // ┘
+        .with { a from fetchA() }             // ┐ phase 1
+        .with { b from fetchB() }             // ┘
+        .then { validated from validate() }   // ── explicit barrier
+        .with { c from fetchC() }             // ┐ phase 2
+        .with { d from fetchD() }             // ┘
         .evalGraph()
     ```
 
@@ -229,8 +229,8 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.evalGraph(
         Dashboard(user.getOrDefault("anonymous"), cart)
 
     val result = kap(::buildDashboard)
-        .withUser(settled { fetchUserMayFail() })  // .settled() → Result<String>
-        .withCart { fetchCart() }                          // normal String
+        .with(BuildDashboardKap.user from settled { fetchUserMayFail() })  // .settled() → Result<String>
+        .with { cart from fetchCart() }                                    // normal String
         .evalGraph()
     // fetchUserMayFail() fails → Result.failure → buildDashboard uses "anonymous"
     // fetchCart() is NOT cancelled
