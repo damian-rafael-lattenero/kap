@@ -1,0 +1,35 @@
+kap-ksp/src/main/kotlin/kap/ksp/KapTypeSafeProcessor.kt
+  s_afe2d5ad5c639a::t_01b28c46b31a9a 500-508
+  s_afe2d5ad5c639a::t_8c25c58ffb0981 513,521
+README.md
+  s_afe2d5ad5c639a::t_3ac627f99951ec 640-679
+  s_afe2d5ad5c639a::t_079b438d7aba8f 104-105,110-117
+  s_afe2d5ad5c639a::t_75510ffa6b6f7d 270,273-275
+  s_afe2d5ad5c639a::t_56baf43b494fc6 276
+  s_afe2d5ad5c639a::t_84750397c302a9 336
+  s_afe2d5ad5c639a::t_88b65189ec5ad1 620
+  s_afe2d5ad5c639a::t_6c1da7c03c4818 140
+  s_afe2d5ad5c639a::t_0411484cb1895c 383-384
+examples/ksp-demo/src/test/kotlin/KapTypeSafeTest.kt
+  s_afe2d5ad5c639a::t_79e91fd972db69 763
+  s_afe2d5ad5c639a::t_826ddcf4682bda 736-737,739-742,744,753,756,758,767,769,774-780,782,787-791,793-795
+  s_afe2d5ad5c639a::t_2a137898668fb4 750-752,754-755,764-766
+examples/real-world-http/api/real-world-http.api
+  s_afe2d5ad5c639a::t_22e36d1fbb0e9f 60-70,77,84-85,87-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "16ce3daaeb252ee60de30d37ba7506a61cc9f9d1",
+  "prompts": {},
+  "sessions": {
+    "s_afe2d5ad5c639a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5742e700-a600-4174-8464-8a19176b83e7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Damian Rafael Lattenero <damianlattenero@gmail.com>"
+    }
+  }
+}
