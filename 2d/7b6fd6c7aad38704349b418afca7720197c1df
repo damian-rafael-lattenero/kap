@@ -1,0 +1,185 @@
+examples/ktor-integration/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_a171a0c1a6d639 351-373
+  s_afe2d5ad5c639a::t_35a3c6ac949169 702-705,712,717,723
+kap-core/src/commonMain/kotlin/kap/Kap.kt
+  s_afe2d5ad5c639a::t_7da537d95acae5 611-613,624-625
+  s_afe2d5ad5c639a::t_22bdd522a56469 642-643
+examples/validated-registration/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_153a75d0e3281a 82-86
+  s_afe2d5ad5c639a::t_f50831290de2bc 97-101
+  s_afe2d5ad5c639a::t_545a17bd5e6c12 35
+docs/comparison.md
+  s_afe2d5ad5c639a::t_e08635c5cebfd9 131-141,143
+  s_afe2d5ad5c639a::t_6681cd07a2063c 312-313
+  s_afe2d5ad5c639a::t_9485e6249993de 277,279-282
+docs/guide/quickstart.md
+  s_afe2d5ad5c639a::t_05e0ab83ab3349 71-73,80,99-101,133-137,168-169,172-173,199,208-209,217-219,241-243
+  s_afe2d5ad5c639a::t_6681cd07a2063c 19-21,33-35,45
+  s_afe2d5ad5c639a::t_7853c5067387c9 51
+  s_afe2d5ad5c639a::t_9d7f044def1d68 201-207,213-216
+docs/blog/posts/from-30-lines-to-12.md
+  s_afe2d5ad5c639a::t_6681cd07a2063c 252-254
+  s_afe2d5ad5c639a::t_3026bfd96a0f73 140,144-146
+  s_afe2d5ad5c639a::t_af85e969ef61ce 198,207,216,226,232
+  s_afe2d5ad5c639a::t_0bed6908281c95 96-104
+  s_afe2d5ad5c639a::t_05e0ab83ab3349 118-119,180-182
+  s_afe2d5ad5c639a::t_a40f3dec11c544 130-132
+docs/playground.md
+  s_afe2d5ad5c639a::t_05e0ab83ab3349 33-35,63-65,102-112,142-144,147-149,413-415,463,472,476-477,540-542
+  s_afe2d5ad5c639a::t_69c65a9408de00 176-178
+  s_afe2d5ad5c639a::t_81e870c32f6c4f 465-471,473
+examples/full-stack-order/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_c485ead3a3af7e 264-267
+  s_afe2d5ad5c639a::t_a32f6a0663a31e 179,187,194-195,212
+  s_afe2d5ad5c639a::t_c71f351007d77f 36
+  s_afe2d5ad5c639a::t_51058b0fc0141e 272-294,296-297
+  s_afe2d5ad5c639a::t_029b4563217730 161-164
+  s_afe2d5ad5c639a::t_bd11bb4d8e9505 184-186,188-193,196-197
+  s_afe2d5ad5c639a::t_7e69c7c030dd5a 148-151
+kap-core/src/commonMain/kotlin/kap/Combinators.kt
+  s_afe2d5ad5c639a::t_2411263dbee9b9 264-265
+CHANGELOG.md
+  s_afe2d5ad5c639a::t_15f33f29dad8d6 7,10-14,17-19,27,34-39,41,43-56,60-61
+  s_afe2d5ad5c639a::t_673af0af23faea 20-23
+kap-ksp-annotations/src/commonMain/kotlin/kap/KapTypeSafe.kt
+  s_afe2d5ad5c639a::t_40e13e1ee18ad6 4,6-10,16-17,19-21,34-37,43-44,47-49
+kap-ksp/src/main/kotlin/kap/ksp/KapTypeSafeProcessor.kt
+  s_afe2d5ad5c639a::t_34dfe1b0b70b48 29-32,53,58
+  s_afe2d5ad5c639a::t_a2ee0354c58385 344
+  s_afe2d5ad5c639a::t_517d8e5ea1b18c 646,649-655
+  s_afe2d5ad5c639a::t_64f48eca3f2de7 413
+  s_afe2d5ad5c639a::t_3ecfa4c06a03c2 282-283,296,301,306,326,329-332,347,352,357
+  s_afe2d5ad5c639a::t_1b9a25b8a4d685 629
+  s_afe2d5ad5c639a::t_a1d89e1e8e07d4 214
+  s_afe2d5ad5c639a::t_6ffb7eb95b630c 423-430,432-439,443-575
+  s_afe2d5ad5c639a::t_b321e23da168ad 293,310-322
+  s_afe2d5ad5c639a::t_1871c1867a3f09 176
+  s_afe2d5ad5c639a::t_861083955e9bfe 307
+  s_afe2d5ad5c639a::t_87ea2124e2fb1f 656-659,662-663
+  s_afe2d5ad5c639a::t_9d27477134fa8e 383-397
+  s_afe2d5ad5c639a::t_ee8b5343d6f484 683-686,688-689,694-734,741-751,756-757
+  s_afe2d5ad5c639a::t_442d8e80370e3e 256
+  s_afe2d5ad5c639a::t_87bc9642c5cb94 210
+  s_afe2d5ad5c639a::t_2ca34ed2fa9d97 358
+examples/readme-examples/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_21ee7bd2cf92c8 547-551
+  s_afe2d5ad5c639a::t_03c6053d121d9a 382-386
+  s_afe2d5ad5c639a::t_d0756468082d6d 202-204
+  s_afe2d5ad5c639a::t_a9bfe41953d9ad 1515-1519,1527-1531
+  s_afe2d5ad5c639a::t_71cd5e886a1a3c 491-495
+  s_afe2d5ad5c639a::t_491ddf4e739093 2109-2136
+  s_afe2d5ad5c639a::t_cc42a3c0e5d3aa 459-463,470-474
+  s_afe2d5ad5c639a::t_66cd62eceeab0f 234-237
+  s_afe2d5ad5c639a::t_216e3d025f2a74 429
+  s_afe2d5ad5c639a::t_eff5884c2d0c60 224-225,227-228,230
+  s_afe2d5ad5c639a::t_34281fc7b2d171 170-173
+  s_afe2d5ad5c639a::t_1ca10f672eed56 257-260,267-271
+  s_afe2d5ad5c639a::t_61cb7286c5d94e 201
+  s_afe2d5ad5c639a::t_ebf207964990d4 291-301
+  s_afe2d5ad5c639a::t_1164e8ef05e12d 354-370
+  s_afe2d5ad5c639a::t_08b1c1970e2546 403-410
+  s_afe2d5ad5c639a::t_8c83c213fafd56 921-923,926
+  s_afe2d5ad5c639a::t_c67566fa36b1f5 1908-1917
+blog-draft.md
+  s_afe2d5ad5c639a::t_05e0ab83ab3349 98-108
+README.md
+  s_afe2d5ad5c639a::t_6681cd07a2063c 684,687-690
+  s_afe2d5ad5c639a::t_7bf6969cbabc9f 124
+docs/modules/kap-resilience.md
+  s_afe2d5ad5c639a::t_05e0ab83ab3349 563-565
+  s_afe2d5ad5c639a::t_6681cd07a2063c 6
+  s_afe2d5ad5c639a::t_ad2c62f96e3ed4 444-445,450,455
+docs/modules/kap-ksp.md
+  s_afe2d5ad5c639a::t_fc9ea64bb66857 11-12,37,41,47-50,57-59,63,80-83,87,91,93,103,106-110,113-117,121,127,130,132,134-136,140-143,145,147,150-153,155-156,162-170,182-186,191-192,223,225-227
+  s_afe2d5ad5c639a::t_3b2eba8f795534 144,146,148-149,154,160-161,171-172
+  s_afe2d5ad5c639a::t_73a30c9032c847 187-190
+docs/guide/migration-arrow.md
+  s_afe2d5ad5c639a::t_6681cd07a2063c 11-12
+  s_afe2d5ad5c639a::t_05e0ab83ab3349 61-62,96-100,128-129,132-133
+docs/guide/migration-coroutines.md
+  s_afe2d5ad5c639a::t_05e0ab83ab3349 34-36,67-71
+  s_afe2d5ad5c639a::t_cac3181cad6243 232-233
+kap-core/api/kap-core.api
+  s_afe2d5ad5c639a::t_6e3848e871aece 114-130
+examples/ksp-demo/src/test/kotlin/KapTypeSafeTest.kt
+  s_afe2d5ad5c639a::t_68693a4d36c231 72-75,84-88,98-99,109-114,123-127,133,136-142,151-155,159-160,167-169,177-179,189-191,197,200-203,210-216,225,230-231,242-243,247-248,258-262,268,271-274,287-289,301-302,318-320,329-331,341-343,356-358,371-375,378,388-389,393-394,402-404,406-412,414-415,425-427,431-433,435-437,439-441,445-447,457-458,460-462,471,475-491,493-496,498-499,502-505,507-510,513,517-522,525,529-535
+  s_afe2d5ad5c639a::t_7a2742170c46ac 303-306
+  s_afe2d5ad5c639a::t_edf42cbaa7ac10 314,317,328,339,355
+  s_afe2d5ad5c639a::t_1385d9de599f93 283,286
+  s_afe2d5ad5c639a::t_451820b03a93ce 226-229,240
+  s_afe2d5ad5c639a::t_dfd8f7096ab4b3 241,246
+examples/real-world-http/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_2da820c5e3004f 76-80
+examples/ksp-demo/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_0b365992768994 56,58,60-62,66-72,76-81,85-89,93-94,96-98
+  s_afe2d5ad5c639a::t_618e2ce5bac714 6
+  s_afe2d5ad5c639a::t_28f54e310eb041 59,64
+  s_afe2d5ad5c639a::t_187b96f414203e 95
+docs/blog/posts/kaptypesafe-same-type-problem.md
+  s_afe2d5ad5c639a::t_05e0ab83ab3349 94-96,112,133
+  s_afe2d5ad5c639a::t_11674dd5bd4f81 52,55-61,68-70,74,78,80
+  s_afe2d5ad5c639a::t_6681cd07a2063c 146-148
+examples/real-world-http/api/real-world-http.api
+  s_afe2d5ad5c639a::t_1effffdbd50e7f 64,67,91-92,96-97
+docs/modules/kap-kotest.md
+  s_afe2d5ad5c639a::t_6681cd07a2063c 9
+build.gradle.kts
+  s_afe2d5ad5c639a::t_c882db984c6e97 11
+kap-ksp-annotations/src/commonMain/kotlin/kap/KapBridge.kt
+  s_afe2d5ad5c639a::t_f44aa24dd81419 6,9-10,16,18-20
+examples/resilient-fetcher/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_6d48bf43665c47 176-179
+  s_afe2d5ad5c639a::t_ae43ab2a86c6d9 249-270,272-278
+docs/modules/kap-ktor.md
+  s_afe2d5ad5c639a::t_05e0ab83ab3349 80-82,98-99,151-152
+  s_afe2d5ad5c639a::t_31f8c6f067ae92 146,150
+  s_afe2d5ad5c639a::t_6681cd07a2063c 9
+docs/modules/kap-core.md
+  s_afe2d5ad5c639a::t_6681cd07a2063c 6
+  s_afe2d5ad5c639a::t_05e0ab83ab3349 19,61-63,77,102-104,143-145,148-151,154-155,198-200,273-275,307,775,785,821-823,1086-1088,1110,1112
+  s_afe2d5ad5c639a::t_a8b1c991814e2f 288-290
+  s_afe2d5ad5c639a::t_0ae7910332336a 308
+  s_afe2d5ad5c639a::t_0bd5a58a9eef64 1003-1004
+examples/dashboard-aggregator/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_504c725f58e24f 11-13
+  s_afe2d5ad5c639a::t_c806b2d8b4c465 110-130
+examples/ecommerce-checkout/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_f1bb2ba8ad679c 1
+examples/ksp-demo/src/test/kotlin/KapCollisionTest.kt
+  s_afe2d5ad5c639a::t_38c22cf5d5bd54 6-8,18-21,24-26
+docs/modules/kap-arrow.md
+  s_afe2d5ad5c639a::t_6681cd07a2063c 6
+  s_afe2d5ad5c639a::t_41484cf377cb5d 195,197-213,232-236,247-248
+kap-core/src/commonMain/kotlin/kap/KapLike.kt
+  s_afe2d5ad5c639a::t_4540ddfba3df97 1-16,19-22,24,26,28,30-32,34-39
+  s_afe2d5ad5c639a::t_a2bde79a6f1505 23,25,27,29
+  s_afe2d5ad5c639a::t_d6ccfde229be63 17-18,33
+docs/index.md
+  s_afe2d5ad5c639a::t_3331cca59544bb 327-329
+  s_afe2d5ad5c639a::t_6fb0c5f2523b1b 445,447,454-456,458-460,462-466
+  s_afe2d5ad5c639a::t_b394ac7419fc2c 145-147
+  s_afe2d5ad5c639a::t_ff1ded3451f4ca 311,314,316
+  s_afe2d5ad5c639a::t_a2855c491ee6b9 168-172
+  s_afe2d5ad5c639a::t_ee3d4e76433eeb 200-203,205-208
+  s_afe2d5ad5c639a::t_6dd7307bc172fd 102-110,116,128-129
+  s_afe2d5ad5c639a::t_3409faa39b4121 277-279
+  s_afe2d5ad5c639a::t_73df45c27e3d46 233-243
+  s_afe2d5ad5c639a::t_6681cd07a2063c 517,520-521,524-527
+  s_afe2d5ad5c639a::t_8275fb8c48005c 394-395,399,403,408,413
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "2d7b6fd6c7aad38704349b418afca7720197c1df",
+  "prompts": {},
+  "sessions": {
+    "s_afe2d5ad5c639a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5742e700-a600-4174-8464-8a19176b83e7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Damian Rafael Lattenero <damianlattenero@gmail.com>"
+    }
+  }
+}
