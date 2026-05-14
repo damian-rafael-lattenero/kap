@@ -1,0 +1,20 @@
+kap-ksp/src/main/kotlin/kap/ksp/KapTypeSafeProcessor.kt
+  s_afe2d5ad5c639a::t_85bb347c32a35e 534-536,544-545
+  s_afe2d5ad5c639a::t_35a686798faf0b 489-505,507-508,510-511,513-514,517-518,523-532,537-542,546-552,554-556
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "309deb2c4436126403574f5ad33b84b2dc656a78",
+  "prompts": {},
+  "sessions": {
+    "s_afe2d5ad5c639a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5742e700-a600-4174-8464-8a19176b83e7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Damian Rafael Lattenero <damianlattenero@gmail.com>"
+    }
+  }
+}
