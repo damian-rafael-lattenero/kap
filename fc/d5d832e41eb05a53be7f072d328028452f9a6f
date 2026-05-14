@@ -1,0 +1,52 @@
+kap-core/src/commonMain/kotlin/kap/Kap.kt
+  s_afe2d5ad5c639a::t_e01b2424e6e103 133-152
+examples/ecommerce-checkout/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_f4c240f37ac561 98,108
+  s_a6d3e97cf20f71::t_b7544ca106b871 49,51-60
+  s_afe2d5ad5c639a::t_e7258f9fec8c9d 30-33
+  s_afe2d5ad5c639a::t_1c506593de5a42 102-107,109-123
+  s_a6d3e97cf20f71::t_318282b71b20b1 127-128
+  s_afe2d5ad5c639a::t_2621c4180c55ef 50,61
+kap-ksp/src/main/kotlin/kap/ksp/KapTypeSafeProcessor.kt
+  s_afe2d5ad5c639a::t_caa2a010ea17ca 381,383-385,394-395,401
+  s_afe2d5ad5c639a::t_bfc62989f77fb8 301,316-317
+  s_afe2d5ad5c639a::t_d2304cbecae463 74-102
+  s_a6d3e97cf20f71::t_eeb4c1ae91b59f 467-469,472,481,483-486
+  s_afe2d5ad5c639a::t_b74a3d03aa5ef1 393
+  s_afe2d5ad5c639a::t_270de2811c2b12 337
+  s_afe2d5ad5c639a::t_c8fe58bbd43651 351
+  s_afe2d5ad5c639a::t_5c581ba7b3491b 353-354,359,363
+  s_afe2d5ad5c639a::t_9f1ed54461cff7 396-400,402
+  s_afe2d5ad5c639a::t_79394585f3d59b 423
+  s_afe2d5ad5c639a::t_a2d9597e0ed222 470-471,473-480,482,487-491,494,497-498,501-528,531-536,541-542,544,547,549-553,556-557,559
+  s_afe2d5ad5c639a::t_52e066a4c613f7 492-493,495
+  s_afe2d5ad5c639a::t_bd5221f5a00043 379-380,382,386-392
+  s_afe2d5ad5c639a::t_01da80d943f484 238-239,250
+  s_afe2d5ad5c639a::t_57cc68cc5cefb1 424
+kap-core/api/kap-core.api
+  s_afe2d5ad5c639a::t_2ef92d139ad47e 93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "fcd5d832e41eb05a53be7f072d328028452f9a6f",
+  "prompts": {},
+  "sessions": {
+    "s_a6d3e97cf20f71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2296f9da-853f-4e7d-9f32-5d10f023c13d",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Damian Rafael Lattenero <damianlattenero@gmail.com>"
+    },
+    "s_afe2d5ad5c639a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5742e700-a600-4174-8464-8a19176b83e7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Damian Rafael Lattenero <damianlattenero@gmail.com>"
+    }
+  }
+}
