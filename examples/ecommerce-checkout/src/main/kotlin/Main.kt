@@ -82,21 +82,21 @@ suspend fun main() {
     // 11 fields, 8 are String — named builders make each slot unique.
     val result = kap(::CheckoutResult)
             // Phase 1: Fetch everything we need (parallel)
-            .with { user eq fetchUser() }
-            .with { cart eq fetchCart() }
-            .with { promos eq fetchPromos() }
-            .with { inventory eq fetchInventory() }
+            .with { user from fetchUser() }
+            .with { cart from fetchCart() }
+            .with { promos from fetchPromos() }
+            .with { inventory from fetchInventory() }
             // Phase 2: Validate stock (sequential — must wait for phase 1)
-            .then { stock eq validateStock() }
+            .then { stock from validateStock() }
             // Phase 3: Calculate costs (parallel)
-            .with { shipping eq calcShipping() }
-            .with { tax eq calcTax() }
-            .with { discounts eq calcDiscounts() }
+            .with { shipping from calcShipping() }
+            .with { tax from calcTax() }
+            .with { discounts from calcDiscounts() }
             // Phase 4: Reserve payment (sequential)
-            .then { payment eq reservePayment() }
+            .then { payment from reservePayment() }
             // Phase 5: Confirmation + email (parallel)
-            .with { confirmation eq generateConfirmation() }
-            .with { email eq sendEmail() }
+            .with { confirmation from generateConfirmation() }
+            .with { email from sendEmail() }
             .evalGraph()
 
     // Same flow, on a @KapTypeSafe *function*. `kap(::doSomething)` returns the
@@ -105,21 +105,21 @@ suspend fun main() {
     // needed at the call site.
     val result2 = kap(::doSomething)
         // Phase 1: Fetch everything we need (parallel)
-        .with { user eq fetchUser() }
-        .with { cart eq fetchCart() }
-        .with { promos eq fetchPromos() }
-        .with { inventory eq fetchInventory() }
+        .with { user from fetchUser() }
+        .with { cart from fetchCart() }
+        .with { promos from fetchPromos() }
+        .with { inventory from fetchInventory() }
         // Phase 2: Validate stock (sequential — must wait for phase 1)
-        .then { stock eq validateStock() }
+        .then { stock from validateStock() }
         // Phase 3: Calculate costs (parallel)
-        .with { shipping eq calcShipping() }
-        .with { tax eq calcTax() }
-        .with { discounts eq calcDiscounts() }
+        .with { shipping from calcShipping() }
+        .with { tax from calcTax() }
+        .with { discounts from calcDiscounts() }
         // Phase 4: Reserve payment (sequential)
-        .then { payment eq reservePayment() }
+        .then { payment from reservePayment() }
         // Phase 5: Confirmation + email (parallel)
-        .with { confirmation eq generateConfirmation() }
-        .with { email eq sendEmail() }
+        .with { confirmation from generateConfirmation() }
+        .with { email from sendEmail() }
         .evalGraph()
 
 

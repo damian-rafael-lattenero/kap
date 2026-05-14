@@ -728,66 +728,66 @@ class KapTypeSafeTest {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  Typed-applicative API with infix `eq`
+    //  Typed-applicative API with infix `from`
     // ══════════════════════════════════════════════════════════════════
 
     @Test
-    fun `eq infix with raw values`() = runTest {
+    fun `from infix with raw values`() = runTest {
         // Scoped builder: tag vals come from the lambda's implicit receiver —
         // no `with(...)` or `import` needed. Reads like prose:
-        // "with name eq 'Alice', with age eq 30"
+        // "with name from 'Alice', with age from 30"
         val result = kap(::SimpleTwo)
-            .with { name eq "Alice" }
-            .with { age eq 30 }
+            .with { name from "Alice" }
+            .with { age from 30 }
             .evalGraph()
 
         assertEquals(SimpleTwo("Alice", 30), result)
     }
 
     @Test
-    fun `eq infix with Kap-decorated values composes combinators`() = runTest {
-        // The Kap<T> overload of `eq` lets timeout/retry/etc. stay inside the
+    fun `from infix with Kap-decorated values composes combinators`() = runTest {
+        // The Kap<T> overload of `from` lets timeout/retry/etc. stay inside the
         // graph instead of escaping via .evalGraph() in the lambda. Use parens
         // and qualify the tag via the wrapper's companion (`SimpleTwoKap.name`)
         // so it's accessible outside the `.with { ... }` lambda receiver.
         val result = kap(::SimpleTwo)
-            .with(SimpleTwoKap.name eq Kap { delay(10); "Alice" })
-            .with(SimpleTwoKap.age eq Kap { delay(10); 30 })
+            .with(SimpleTwoKap.name from Kap { delay(10); "Alice" })
+            .with(SimpleTwoKap.age from Kap { delay(10); 30 })
             .evalGraph()
 
         assertEquals(SimpleTwo("Alice", 30), result)
     }
 
     @Test
-    fun `eq infix runs in parallel like the rest of the applicative API`() = runTest {
+    fun `from infix runs in parallel like the rest of the applicative API`() = runTest {
         val result = kap(::SimpleThree)
-            .with(SimpleThreeKap.a eq Kap { delay(50); "a" })
-            .with(SimpleThreeKap.b eq Kap { delay(50); 1 })
-            .with(SimpleThreeKap.c eq Kap { delay(50); true })
+            .with(SimpleThreeKap.a from Kap { delay(50); "a" })
+            .with(SimpleThreeKap.b from Kap { delay(50); 1 })
+            .with(SimpleThreeKap.c from Kap { delay(50); true })
             .evalGraph()
 
         assertEquals(SimpleThree("a", 1, true), result)
     }
 
     @Test
-    fun `eq infix with phase barrier via then`() = runTest {
+    fun `from infix with phase barrier via then`() = runTest {
         val result = kap(::PhaseDemo)
-            .with { user eq "Alice" }
-            .with { cart eq "items" }
-            .then { validated eq true }
-            .with { shipping eq 9.99 }
-            .with { tax eq 1.50 }
+            .with { user from "Alice" }
+            .with { cart from "items" }
+            .then { validated from true }
+            .with { shipping from 9.99 }
+            .with { tax from 1.50 }
             .evalGraph()
 
         assertEquals(PhaseDemo("Alice", "items", true, 9.99, 1.50), result)
     }
 
     @Test
-    fun `eq infix on all-same-type class still distinguishes fields by tag`() = runTest {
+    fun `from infix on all-same-type class still distinguishes fields by tag`() = runTest {
         val result = kap(::AllSameType)
-            .with { first eq "one" }
-            .with { second eq "two" }
-            .with { third eq "three" }
+            .with { first from "one" }
+            .with { second from "two" }
+            .with { third from "three" }
             .evalGraph()
 
         assertEquals(AllSameType("one", "two", "three"), result)

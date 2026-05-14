@@ -305,7 +305,7 @@ class KapTypeSafeProcessor(
             val originalTypes = params.joinToString(", ") { it.typeString }
             val step0 = "${stepPrefix}Step0"
 
-            writer.write("@Deprecated(\"The .withX/.thenX step-class API is deprecated. Use kap(::Type).with { fieldName eq value } with the typed-applicative API.\")\n")
+            writer.write("@Deprecated(\"The .withX/.thenX step-class API is deprecated. Use kap(::Type).with { fieldName from value } with the typed-applicative API.\")\n")
             writer.write("fun kapDsl(f: ($originalTypes) -> $returnType): $step0 =\n")
             writer.write("    $step0(\n")
             writer.write("        Kap.of(")
@@ -360,7 +360,7 @@ class KapTypeSafeProcessor(
             val step0 = "${stepPrefix}Step0"
 
             writer.write("@Suppress(\"UNUSED_PARAMETER\")\n")
-            writer.write("@Deprecated(\"The .withX/.thenX step-class API is deprecated. Use kap(::functionName).with { fieldName eq value } with the typed-applicative API.\")\n")
+            writer.write("@Deprecated(\"The .withX/.thenX step-class API is deprecated. Use kap(::functionName).with { fieldName from value } with the typed-applicative API.\")\n")
             writer.write("fun kapDsl(marker: $markerObjectName): $step0 =\n")
             writer.write("    $step0(\n")
             writer.write("        Kap.of(")
@@ -444,8 +444,8 @@ class KapTypeSafeProcessor(
 
         // Tag classes — one per field, top-level. Unique-named (class+field+Tag)
         // so no collisions across @KapTypeSafe data classes. Receivers for the
-        // infix `eq` extension functions below.
-        writer.write("// ── Tag classes (receivers for infix `eq`) ──\n\n")
+        // infix `from` extension functions below.
+        writer.write("// ── Tag classes (receivers for infix `from`) ──\n\n")
         for (param in params) {
             val wrapperName = "$baseName${param.name.replaceFirstChar { it.uppercase() }}"
             val tagClassName = "${wrapperName}Tag"
@@ -453,21 +453,21 @@ class KapTypeSafeProcessor(
         }
         writer.write("\n")
 
-        // Infix `eq` — two overloads per field (raw value + `Kap<T>` so
+        // Infix `from` — two overloads per field (raw value + `Kap<T>` so
         // combinators like `Kap { ... }.timeout(...)` compose without
         // leaving the graph). Top-level — receivers are unique per class.
-        writer.write("// ── Infix `eq` — wraps raw value or Kap<T> into the tagged wrapper ──\n\n")
+        writer.write("// ── Infix `from` — wraps raw value or Kap<T> into the tagged wrapper ──\n\n")
         for (param in params) {
             val wrapperName = "$baseName${param.name.replaceFirstChar { it.uppercase() }}"
             val tagClassName = "${wrapperName}Tag"
-            writer.write("infix fun $tagClassName.eq(value: ${param.typeString}): $wrapperName = $wrapperName(value)\n")
-            writer.write("infix fun $tagClassName.eq(kap: Kap<${param.typeString}>): Kap<$wrapperName> = kap.map(::$wrapperName)\n\n")
+            writer.write("infix fun $tagClassName.from(value: ${param.typeString}): $wrapperName = $wrapperName(value)\n")
+            writer.write("infix fun $tagClassName.from(kap: Kap<${param.typeString}>): Kap<$wrapperName> = kap.map(::$wrapperName)\n\n")
         }
 
     }
 
     /**
-     * Emits the scoped builder class + operators that make `kap(::T).with { field eq value }`
+     * Emits the scoped builder class + operators that make `kap(::T).with { field from value }`
      * IDE-friendly:
      *
      * 1. `class ${baseName}Kap<F>(internal val _kap: Kap<F>)` — holds the underlying
@@ -511,7 +511,7 @@ class KapTypeSafeProcessor(
             writer.write("    override val ${param.name}: $baseName${cap}Tag = $baseName${cap}Tag()\n")
         }
         // Companion mirrors the tag vals so they're reachable from outside the
-        // lambda receiver — e.g. `.with($wrapperName.field eq Kap { ... })`.
+        // lambda receiver — e.g. `.with($wrapperName.field from Kap { ... })`.
         writer.write("\n    companion object {\n")
         for (param in params) {
             val cap = param.name.replaceFirstChar { it.uppercase() }
@@ -531,7 +531,7 @@ class KapTypeSafeProcessor(
             val wrapperType = "$baseName$cap"
             val slotType = "${wrapperType}Slot"
 
-            // .with { field eq value } — raw / suspend. @JvmName per slot because
+            // .with { field from value } — raw / suspend. @JvmName per slot because
             // generics erase to the same JVM signature (`with(Wrapper, Function2)`).
             writer.write("@kotlin.jvm.JvmName(\"with_${param.name}\")\n")
             writer.write("inline fun <Rest> $wrapperName<($wrapperType) -> Rest>.with(\n")
@@ -541,7 +541,7 @@ class KapTypeSafeProcessor(
             writer.write("    return $wrapperName(self._kap.with(suspend { self.fa() }))\n")
             writer.write("}\n\n")
 
-            // .then { field eq value } — raw / suspend.
+            // .then { field from value } — raw / suspend.
             writer.write("@kotlin.jvm.JvmName(\"then_${param.name}\")\n")
             writer.write("inline fun <Rest> $wrapperName<($wrapperType) -> Rest>.then(\n")
             writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
@@ -553,7 +553,7 @@ class KapTypeSafeProcessor(
 
         // ── Generic Kap<A> overloads (parens form) — single, shared. ──
         // Used when the value is already a Kap<A> built outside the lambda
-        // (e.g. `.with($wrapperName.field eq Kap { ... }.timeout(...))`).
+        // (e.g. `.with($wrapperName.field from Kap { ... }.timeout(...))`).
         writer.write("fun <A, B> $wrapperName<(A) -> B>.with(fa: Kap<A>): $wrapperName<B> =\n")
         writer.write("    $wrapperName(_kap.with(fa))\n\n")
 
@@ -585,7 +585,7 @@ class KapTypeSafeProcessor(
         val curriedType = opaqueNames.joinToString(" -> ") { "($it)" } + " -> $returnType"
         val inputType = "(${params.joinToString(", ") { it.typeString }}) -> $returnType"
 
-        writer.write("\n/** Official entry point — returns $wrapperName so `.with { field eq value }` works without imports. */\n")
+        writer.write("\n/** Official entry point — returns $wrapperName so `.with { field from value }` works without imports. */\n")
         writer.write("fun $entryFnName(f: $inputType): $wrapperName<$curriedType> =\n")
         writer.write("    $wrapperName(Kap.of(")
         val opaqueParamNames = params.indices.map { "p$it" }
