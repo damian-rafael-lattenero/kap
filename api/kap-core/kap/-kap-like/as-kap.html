@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
-    <title>withMaxDuration</title>
+    <title>asKap</title>
 <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
     <script>document.documentElement.classList.replace("no-js", "js");</script>
     <script>const storage = localStorage.getItem("dokka-dark-mode")
@@ -42,7 +42,7 @@
         </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
-                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":kap-resilience/commonMain">common</button>
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":kap-core/commonMain">common</button>
             <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
                 <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
                 <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
@@ -53,7 +53,7 @@
                     </div>
                         <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
                             <label class="checkbox">
-                                <input type="checkbox" class="checkbox--input" id=":kap-resilience/commonMain" data-filter=":kap-resilience/commonMain">
+                                <input type="checkbox" class="checkbox--input" id=":kap-core/commonMain" data-filter=":kap-core/commonMain">
                                 <span class="checkbox--icon"></span>
                                 common
                             </label>
@@ -89,12 +89,12 @@
         </nav>
         <div id="resizer" class="resizer" data-item-type="BAR"></div>
         <div id="main" data-item-type="SECTION" role="main">
-<div class="main-content" data-page-type="member" id="content" pageids="kap-resilience::kap/Schedule/withMaxDuration/#kotlin.time.Duration#kotlin.time.TimeSource/PointingToDeclaration//-865208273">
-  <div class="breadcrumbs"><a href="../../index.html">kap-resilience</a><span class="delimiter">/</span><a href="../index.html">kap</a><span class="delimiter">/</span><a href="index.html">Schedule</a><span class="delimiter">/</span><span class="current">withMaxDuration</span></div>
+<div class="main-content" data-page-type="member" id="content" pageids="kap-core::kap/KapLike/asKap/#/PointingToDeclaration//606109949">
+  <div class="breadcrumbs"><a href="../../index.html">kap-core</a><span class="delimiter">/</span><a href="../index.html">kap</a><span class="delimiter">/</span><a href="index.html">KapLike</a><span class="delimiter">/</span><span class="current">asKap</span></div>
   <div class="cover ">
-    <h1 class="cover"><span>with</span><wbr><span>Max</span><wbr><span><span>Duration</span></span></h1>
+    <h1 class="cover"><span>as</span><wbr><span><span>Kap</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-max-duration.html"><span class="token function">withMaxDuration</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">maxDuration<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">, </span></span><span class="parameter ">timeSource<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-time-source/index.html">TimeSource</a><span class="token operator"> = </span>TimeSource.Monotonic</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Schedule</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><p class="paragraph">Limits the total time across all retries. Once the elapsed time since the first <span data-unresolved-link="kap/Schedule//#kotlin.Function2[kotlin.Int,TypeParam(bounds=[kotlin.Any?]),kap.Schedule.Decision]/PointingToCallableParameters(0)/">decide</span> call exceeds <a href="with-max-duration.html">maxDuration</a>, the schedule stops.</p><p class="paragraph">If the next delay would push the total past <a href="with-max-duration.html">maxDuration</a>, the schedule returns <a href="-decision/-done/index.html">Decision.Done</a> instead of overshooting.</p><p class="paragraph"><strong>Statefulness warning:</strong> This creates a stateful schedule — each instance tracks its own start time. If you reuse the same instance across multiple <a href="../retry.html">Kap.retry</a> calls, the timer carries over from the first invocation. Use the <code class="lang-kotlin">retry(scheduleFactory)</code> overload to get a fresh schedule each time:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">comp.retry { Schedule.exponential&lt;Throwable&gt;(100.ms).withMaxDuration(5.seconds) }</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">val policy = Schedule.exponential&lt;Throwable&gt;(100.milliseconds)<br>    .withMaxDuration(5.seconds)<br>// Stops retrying after 5 seconds total, regardless of attempt count.</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div></div></div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="as-kap.html">asKap</a><span class="token operator">: </span><a href="../-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="index.html">F</a><span class="token operator">&gt;</span></div></div></div>
 </div>
     <div class="footer">
         <div class="footer--container">
