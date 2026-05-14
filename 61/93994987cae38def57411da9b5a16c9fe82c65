@@ -1,0 +1,31 @@
+kap-ksp/src/main/kotlin/kap/ksp/KapTypeSafeProcessor.kt
+  s_afe2d5ad5c639a::t_2551f55793e724 308,363,447-448,456,459,470,514,534,544,556,588
+  s_afe2d5ad5c639a::t_dc3d7bd5197604 463-464
+examples/ksp-demo/src/test/kotlin/KapTypeSafeTest.kt
+  s_afe2d5ad5c639a::t_8e61cb286cc053 731,735,738,740-741,748-749,754-755,762,764-766,773,775-779,786,788-790
+README.md
+  s_afe2d5ad5c639a::t_8e61cb286cc053 110-116,124,136-137,140,153-155,166-168,177-179,183-184,208-218,273-275,339-340,361-363,408,415,421,428,598-600,613-615,627-629,664-670
+examples/readme-examples/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_8e61cb286cc053 68-78,1840,1847-1853,1889-1891,1899-1901,1909-1911,1915-1916,1952-1954,1968-1969,2116,2123,2129,2136
+examples/ecommerce-checkout/src/main/kotlin/Main.kt
+  s_afe2d5ad5c639a::t_8e61cb286cc053 85-88,90,92-94,96,98-99,109-111,113,115-117,119,121-122
+  s_afe2d5ad5c639a::t_392a750fc48938 108
+examples/real-world-http/api/real-world-http.api
+  s_afe2d5ad5c639a::t_7adbb92f14eb5c 57-60,64,68-70,83-88,92-94,96-98,133-136,151-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "6193994987cae38def57411da9b5a16c9fe82c65",
+  "prompts": {},
+  "sessions": {
+    "s_afe2d5ad5c639a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5742e700-a600-4174-8464-8a19176b83e7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Damian Rafael Lattenero <damianlattenero@gmail.com>"
+    }
+  }
+}
