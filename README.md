@@ -198,12 +198,17 @@ Nothing runs until `.evalGraph()`. The graph is data — you can build it dynami
 ```kotlin
 @KapTypeSafe
 data class CheckoutResult(
-    val user: String, val cart: String,
-    val promos: String, val inventory: Boolean,
+    val user: String,
+    val cart: String,
+    val promos: String,
+    val inventory: Boolean,
     val stock: Boolean,
-    val shipping: Double, val tax: Double, val discounts: Double,
+    val shipping: Double,
+    val tax: Double,
+    val discounts: Double,
     val payment: String,
-    val confirmation: String, val email: String,
+    val confirmation: String,
+    val email: String,
 )
 
 kap(::CheckoutResult)
@@ -250,9 +255,17 @@ val checkout = coroutineScope {
     val dEmail = async { sendEmail() }
 
     CheckoutResult(
-        user, cart, promos, inventory, stock,
-        shipping, tax, discounts, payment,
-        dConfirmation.await(), dEmail.await()
+        user,
+        cart,
+        promos,
+        inventory,
+        stock,
+        shipping,
+        tax,
+        discounts,
+        payment,
+        dConfirmation.await(),
+        dEmail.await()
     )
 }
 ```
