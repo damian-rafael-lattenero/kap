@@ -29,9 +29,12 @@ A checkout that calls 7 services in 4 phases. Stock validation needs retry. Paym
 
 ```kotlin
 data class CheckoutResult(
-    val user: String, val cart: String, val promos: String,
+    val user: String,
+    val cart: String,
+    val promos: String,
     val stock: Boolean,
-    val shipping: Double, val tax: Double,
+    val shipping: Double,
+    val tax: Double,
     val payment: String,
 )
 
