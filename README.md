@@ -98,9 +98,12 @@ The phases are buried. The retry loop broke the async/await rhythm. The circuit 
 ```kotlin
 @KapTypeSafe
 data class CheckoutResult(
-    val user: String, val cart: String, val promos: String,
+    val user: String,
+    val cart: String,
+    val promos: String,
     val stock: Boolean,
-    val shipping: Double, val tax: Double,
+    val shipping: Double,
+    val tax: Double,
     val payment: String,
 )
 
