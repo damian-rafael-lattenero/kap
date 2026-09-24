@@ -23,6 +23,9 @@
 
 ---
 
+# What is KAP?
+KAP is a type-safe coroutine orchestration library for Kotlin Multiplatform that lets you write complex asynchronous flows—parallel phases, retries, and resilience policies—declaratively, so the code reads like a diagram and the compiler prevents wiring errors. It solves the problem of mixing business logic with infrastructure concerns (timeouts, retries, circuit breakers) when orchestrating calls to multiple services by keeping those concerns separate and the flow readable.
+
 ## The problem
 
 A checkout that calls 7 services in 4 phases. Stock validation needs retry. Payment needs a circuit breaker. Promos have a timeout. Read this and tell me: where are the phases? Where's the retry logic vs the business logic?
