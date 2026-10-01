@@ -740,11 +740,11 @@ dependencies {
 | Multi-phase (9 calls, 4 phases) | 180.85ms | 180.98ms |
 | 5 parallel calls @ 50ms each | 50.27ms | 50.31ms |
 
-KAP adds **zero measurable overhead**. The abstraction compiles away. [Full benchmark suite (119 JMH benchmarks)](https://damian-rafael-lattenero.github.io/kap/benchmarks/).
+KAP adds **zero measurable overhead**. The abstraction compiles away. [Full benchmark suite (122 JMH benchmarks)](https://damian-rafael-lattenero.github.io/kap/benchmarks/).
 
 ---
 
-900+ tests · [Maven Central](https://central.sonatype.com/artifact/io.github.damian-rafael-lattenero/kap-core) · Kotlin Multiplatform (JVM, JS, WASM, Native) · Apache 2.0
+1000+ tests · [Maven Central](https://central.sonatype.com/artifact/io.github.damian-rafael-lattenero/kap-core) · Kotlin Multiplatform (JVM, JS, WASM, Native) · Apache 2.0
 
 <p align="center">
   <a href="https://damian-rafael-lattenero.github.io/kap/guide/quickstart/"><strong>Get Started</strong></a> · <a href="https://damian-rafael-lattenero.github.io/kap/"><strong>Docs</strong></a> · <a href="https://damian-rafael-lattenero.github.io/kap/playground/"><strong>Cookbook</strong></a>

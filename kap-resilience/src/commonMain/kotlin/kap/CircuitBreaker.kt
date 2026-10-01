@@ -46,22 +46,17 @@ class CircuitBreaker(
 
     enum class State { Closed, Open, HalfOpen }
 
-    @PublishedApi
     internal val mutex = Mutex()
 
-    @PublishedApi
     internal var state: State = State.Closed
 
-    @PublishedApi
     internal var failureCount: Int = 0
 
-    @PublishedApi
     internal var openedAt: TimeMark? = null
 
     /** Current state of the circuit breaker (snapshot — may change immediately after reading). */
     val currentState: State get() = state
 
-    @PublishedApi
     internal fun transitionTo(newState: State) {
         val old = state
         if (old != newState) {
@@ -70,13 +65,11 @@ class CircuitBreaker(
         }
     }
 
-    @PublishedApi
     internal fun recordSuccess() {
         failureCount = 0
         transitionTo(State.Closed)
     }
 
-    @PublishedApi
     internal fun recordFailure() {
         failureCount++
         if (failureCount >= maxFailures) {
@@ -85,7 +78,6 @@ class CircuitBreaker(
         }
     }
 
-    @PublishedApi
     internal fun shouldAttempt(): Boolean {
         return when (state) {
             State.Closed -> true

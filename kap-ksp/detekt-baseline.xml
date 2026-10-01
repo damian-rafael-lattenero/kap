@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$override fun process(resolver: Resolver): List&lt;KSAnnotated></ID>
+    <ID>LargeClass:KapTypeSafeProcessor.kt$KapTypeSafeProcessor : SymbolProcessor</ID>
+    <ID>LongMethod:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$private fun writeScopedBuilder( writer: OutputStreamWriter, baseName: String, params: List&lt;ParamInfo>, returnType: String, )</ID>
+    <ID>LongMethod:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$private fun writeValidatedScopedBuilder( writer: OutputStreamWriter, baseName: String, params: List&lt;ParamInfo>, returnType: String, )</ID>
+    <ID>LongParameterList:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$( containingFile: KSFile, packageName: String, baseName: String, constructorCall: String, params: List&lt;ParamInfo>, returnType: String, prefix: String = "", kapArrowPresent: Boolean = false, )</ID>
+    <ID>LongParameterList:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$( containingFile: KSFile, packageName: String, baseName: String, markerObjectName: String, functionCall: String, params: List&lt;ParamInfo>, returnType: String, prefix: String = "", signatureIsUnique: Boolean = true, kapArrowPresent: Boolean = false, )</ID>
+    <ID>LongParameterList:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$( writer: OutputStreamWriter, baseName: String, params: List&lt;ParamInfo>, returnType: String, entryFnName: String, callableExpression: String, )</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writeValidatedScopedEntry(writer, baseName, params, returnType, entryFnName = "kapV", callableExpression = "f")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writeValidatedScopedEntry(writer, baseName, params, returnType, entryFnName = validatedEntryFnName, callableExpression = "f")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("\n/** Official entry point — returns $wrapperName so `.with { field from value }` works without imports. */\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("\n/** Validated entry — returns $wrapperName so `.withV { field from validate() }` works without imports. */\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("class $wrapperName&lt;E, F>(@PublishedApi internal val _kap: Kap&lt;Either&lt;NonEmptyList&lt;E>, F>>) : KapLike&lt;Either&lt;NonEmptyList&lt;E>, F>>, $slotImpls {\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("fun $wrapperName&lt;($lastWrapperType) -> $returnType>.then(fa: Kap&lt;$lastWrapperType>): Kap&lt;$returnType> =\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("fun $wrapperName&lt;($lastWrapperType) -> $returnType>.with(fa: Kap&lt;$lastWrapperType>): Kap&lt;$returnType> =\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("fun &lt;E, A, B> $wrapperName&lt;E, (A) -> B>.thenV(fa: Kap&lt;Either&lt;NonEmptyList&lt;E>, A>>): $wrapperName&lt;E, B> =\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("fun &lt;E, A, B> $wrapperName&lt;E, (A) -> B>.withV(fa: Kap&lt;Either&lt;NonEmptyList&lt;E>, A>>): $wrapperName&lt;E, B> =\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("fun &lt;E> $wrapperName&lt;E, ($lastWrapperType) -> $returnType>.thenV(fa: Kap&lt;Either&lt;NonEmptyList&lt;E>, $lastWrapperType>>): Kap&lt;Either&lt;NonEmptyList&lt;E>, $returnType>> =\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("fun &lt;E> $wrapperName&lt;E, ($lastWrapperType) -> $returnType>.withV(fa: Kap&lt;Either&lt;NonEmptyList&lt;E>, $lastWrapperType>>): Kap&lt;Either&lt;NonEmptyList&lt;E>, $returnType>> =\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("infix fun $tagClassName.from(kap: Kap&lt;${param.typeString}>): Kap&lt;$wrapperName> = kap.map(::$wrapperName)\n\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("infix fun $tagClassName.from(value: ${param.typeString}): $wrapperName = $wrapperName(value)\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("infix fun &lt;E> $tagClassName.from(value: Either&lt;NonEmptyList&lt;E>, ${param.typeString}>): Either&lt;NonEmptyList&lt;E>, $wrapperName> =\n")</ID>
+    <ID>MaxLineLength:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$writer.write("suspend fun &lt;E, A> $wrapperName&lt;E, A>.evalGraph(): Either&lt;NonEmptyList&lt;E>, A> = _kap.evalGraph()\n\n")</ID>
+    <ID>TooManyFunctions:KapTypeSafeProcessor.kt$KapTypeSafeProcessor : SymbolProcessor</ID>
+    <ID>UnusedParameter:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$constructorCall: String</ID>
+    <ID>UnusedParameter:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$functionCall: String</ID>
+    <ID>UnusedParameter:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$markerObjectName: String</ID>
+    <ID>UnusedParameter:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$params: List&lt;ParamInfo></ID>
+    <ID>UnusedParameter:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$resolver: Resolver</ID>
+    <ID>WildcardImport:KapTypeSafeProcessor.kt$import com.google.devtools.ksp.processing.*</ID>
+    <ID>WildcardImport:KapTypeSafeProcessor.kt$import com.google.devtools.ksp.symbol.*</ID>
+    <ID>WildcardImport:KapTypeSafeProcessorProvider.kt$import com.google.devtools.ksp.processing.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

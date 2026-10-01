@@ -9,20 +9,9 @@ public final class kap/CircuitBreaker {
 	public synthetic fun <init> (IJLkotlin/jvm/functions/Function2;Lkotlin/time/TimeSource;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public synthetic fun <init> (IJLkotlin/jvm/functions/Function2;Lkotlin/time/TimeSource;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getCurrentState ()Lkap/CircuitBreaker$State;
-	public final fun getFailureCount ()I
 	public final fun getMaxFailures ()I
-	public final fun getMutex ()Lkotlinx/coroutines/sync/Mutex;
 	public final fun getOnStateChange ()Lkotlin/jvm/functions/Function2;
-	public final fun getOpenedAt ()Lkotlin/time/TimeMark;
 	public final fun getResetTimeout-UwyO8pc ()J
-	public final fun getState ()Lkap/CircuitBreaker$State;
-	public final fun recordFailure ()V
-	public final fun recordSuccess ()V
-	public final fun setFailureCount (I)V
-	public final fun setOpenedAt (Lkotlin/time/TimeMark;)V
-	public final fun setState (Lkap/CircuitBreaker$State;)V
-	public final fun shouldAttempt ()Z
-	public final fun transitionTo (Lkap/CircuitBreaker$State;)V
 }
 
 public final class kap/CircuitBreaker$State : java/lang/Enum {

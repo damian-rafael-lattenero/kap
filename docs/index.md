@@ -471,7 +471,7 @@ kap(::User)
 
 ## Zero overhead
 
-All claims backed by **119 JMH benchmarks** and deterministic virtual-time proofs.
+All claims backed by **122 JMH benchmarks** and deterministic virtual-time proofs.
 
 | Dimension | Raw Coroutines | Arrow | KAP |
 |---|---|---|---|

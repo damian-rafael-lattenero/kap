@@ -84,9 +84,10 @@ fun interface Kap<out A> {
  * barrier's signal fires.
  *
  * This is an internal implementation detail — users interact through
- * [then] which creates barriers, and [with] which respects them.
+ * [then] which creates barriers, [with] which respects them, and the
+ * generic phase primitives [withPair], [thenPair] and [asPhaseBarrier].
  */
-class PhaseBarrier<out A>(
+internal class PhaseBarrier<out A>(
     val inner: Kap<A>,
     val signal: CompletableDeferred<Unit>,
 ) : Kap<A> {
@@ -105,6 +106,67 @@ class PhaseBarrier<out A>(
         }
     }
 }
+
+// ── Generic phase primitives — the public seam over barrier gating ──────
+
+/**
+ * Runs this computation and [fa] in parallel and pairs their results.
+ *
+ * Barrier-aware: when this computation is a phase barrier (created by [then],
+ * [thenPair] or [asPhaseBarrier]), [fa]'s launch is gated until the barrier
+ * completes, and the pairing computation becomes a barrier gated by the same
+ * signal — preserving the phase semantics of the surrounding chain.
+ *
+ * This is the generic form of [with]: `with(fa) == withPair(fa).map { (f, a) -> f(a) }`.
+ * Prefer [with] on curried-function spines; use [withPair] when you want the
+ * raw pair without a curried function.
+ */
+fun <A, B> Kap<A>.withPair(fa: Kap<B>): Kap<Pair<A, B>> {
+    val self = this
+    return if (self is PhaseBarrier) {
+        val signal = self.signal
+        PhaseBarrier(Kap {
+            val deferredB = async {
+                signal.await()          // gate: wait for barrier to complete
+                with(fa) { execute() }
+            }
+            val a = with(self) { execute() }  // runs barrier, completes signal
+            a to deferredB.await()
+        }, signal)
+    } else {
+        Kap {
+            val deferredB = async { with(fa) { execute() } }
+            val a = with(self) { execute() }
+            a to deferredB.await()
+        }
+    }
+}
+
+/**
+ * Awaits this computation, then runs [fa] sequentially, and pairs the results —
+ * creating a phase barrier that gates all subsequent parallel launches.
+ *
+ * This is the generic form of [then]: both sides always execute, in order,
+ * unlike the short-circuiting variants built on top of it in downstream modules.
+ */
+fun <A, B> Kap<A>.thenPair(fa: Kap<B>): Kap<Pair<A, B>> {
+    val self = this
+    val signal = CompletableDeferred<Unit>()
+    return PhaseBarrier(Kap {
+        val a = with(self) { execute() }
+        val b = with(fa) { execute() }
+        a to b
+    }, signal)
+}
+
+/**
+ * Wraps this computation in a phase barrier without adding a right-hand side.
+ *
+ * Subsequent [with]/[withPair] calls will not launch until this computation
+ * completes. The result is unchanged.
+ */
+fun <A> Kap<A>.asPhaseBarrier(): Kap<A> =
+    PhaseBarrier(this, CompletableDeferred())
 
 // ── Kap.of: wrap a value ────────────────────────────────────────
 

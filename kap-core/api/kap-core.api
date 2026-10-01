@@ -85,6 +85,7 @@ public final class kap/Kap$Companion {
 
 public final class kap/KapKt {
 	public static final fun andThen (Lkap/Kap;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
+	public static final fun asPhaseBarrier (Lkap/Kap;)Lkap/Kap;
 	public static final fun discard (Lkap/Kap;)Lkap/Kap;
 	public static final fun evalGraph (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static final fun evalGraphTimed (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -103,12 +104,14 @@ public final class kap/KapKt {
 	public static final fun settled (Lkap/Kap;)Lkap/Kap;
 	public static final fun then (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
 	public static final fun then (Lkap/Kap;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
+	public static final fun thenPair (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
 	public static final fun thenValue (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
 	public static final fun thenValue (Lkap/Kap;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
 	public static final fun timed (Lkap/Kap;)Lkap/Kap;
 	public static final fun with (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
 	public static final fun with (Lkap/Kap;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
 	public static final fun withOrNull (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
+	public static final fun withPair (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
 }
 
 public abstract interface class kap/KapLike {
@@ -141,13 +144,6 @@ public final class kap/KapScopeKt {
 
 public abstract interface class kap/KapTracer {
 	public abstract fun onEvent (Lkap/TraceEvent;)V
-}
-
-public final class kap/PhaseBarrier : kap/Kap {
-	public fun <init> (Lkap/Kap;Lkotlinx/coroutines/CompletableDeferred;)V
-	public fun execute (Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun getInner ()Lkap/Kap;
-	public final fun getSignal ()Lkotlinx/coroutines/CompletableDeferred;
 }
 
 public final class kap/RaceKt {

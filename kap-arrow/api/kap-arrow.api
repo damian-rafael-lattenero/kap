@@ -82,17 +82,9 @@ public final class kap/ValidatedOverloadsKt {
 }
 
 public final class kap/ValidatedScope {
-	public fun <init> (Lkotlinx/coroutines/CoroutineScope;)V
 	public final fun bind (Larrow/core/Either;)Ljava/lang/Object;
 	public final fun bindV (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun call (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun getScope ()Lkotlinx/coroutines/CoroutineScope;
-	public final fun getShortCircuitErrors-UVlziKc ()Ljava/util/List;
-	public final fun setShortCircuitErrors-97PweJY (Ljava/util/List;)V
-}
-
-public final class kap/ValidatedShortCircuit : kap/ControlFlowException {
-	public fun <init> ()V
 }
 
 public final class kap/ValidationException : java/lang/RuntimeException {

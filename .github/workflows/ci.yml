@@ -66,6 +66,33 @@ jobs:
           path: ${{ matrix.report-path }}
           retention-days: 14
 
+  # ── Claim verification (README/LAWS/docs numbers vs repo reality) ─────────
+  claims:
+    name: Claims
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify numeric claims
+        run: ./scripts/verify-claims.sh
+
+  # ── Static analysis (detekt; new violations fail, baselined ones tolerated) ──
+  detekt:
+    name: Detekt
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: corretto
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+      - name: Run detekt
+        run: ./gradlew detekt
+
   # ── Multiplatform compilation checks ─────────────────────────────────────
   compile-platforms:
     name: Compile · ${{ matrix.target }}
@@ -243,7 +270,7 @@ jobs:
   ci-gate:
     name: CI Gate
     if: always()
-    needs: [test, compile-platforms, codegen-check, examples]
+    needs: [test, compile-platforms, codegen-check, examples, detekt, claims]
     runs-on: ubuntu-latest
     steps:
       - name: Check required jobs
@@ -252,10 +279,14 @@ jobs:
           echo "compile-platforms: ${{ needs.compile-platforms.result }}"
           echo "codegen-check:     ${{ needs.codegen-check.result }}"
           echo "examples:          ${{ needs.examples.result }}"
+          echo "detekt:            ${{ needs.detekt.result }}"
+          echo "claims:            ${{ needs.claims.result }}"
           if [ "${{ needs.test.result }}" != "success" ] || \
              [ "${{ needs.compile-platforms.result }}" != "success" ] || \
              [ "${{ needs.codegen-check.result }}" != "success" ] || \
-             [ "${{ needs.examples.result }}" != "success" ]; then
+             [ "${{ needs.examples.result }}" != "success" ] || \
+             [ "${{ needs.detekt.result }}" != "success" ] || \
+             [ "${{ needs.claims.result }}" != "success" ]; then
             echo ""
             echo "One or more required jobs failed."
             exit 1

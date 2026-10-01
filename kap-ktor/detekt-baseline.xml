@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MatchingDeclarationName:KapPlugin.kt$KapConfig</ID>
+    <ID>MaxLineLength:KtorTracer.kt$log.error("KAP [{}] failed after {}ms: {}", event.name, event.duration.inWholeMilliseconds, event.error.message)</ID>
+    <ID>MaxLineLength:KtorTracer.kt$log.error("kap.event=failed kap.name={} kap.duration_ms={} kap.error={}", event.name, event.duration.inWholeMilliseconds, event.error.message)</ID>
+    <ID>MaxLineLength:KtorTracer.kt$log.info("kap.event=succeeded kap.name={} kap.duration_ms={}", event.name, event.duration.inWholeMilliseconds)</ID>
+    <ID>WildcardImport:KapPlugin.kt$import io.ktor.server.application.*</ID>
+    <ID>WildcardImport:KapPlugin.kt$import io.ktor.util.*</ID>
+    <ID>WildcardImport:KtorTracer.kt$import io.ktor.server.application.*</ID>
+    <ID>WildcardImport:RespondAsync.kt$import io.ktor.http.*</ID>
+    <ID>WildcardImport:RespondAsync.kt$import io.ktor.server.response.*</ID>
+    <ID>WildcardImport:RespondAsync.kt$import io.ktor.server.routing.*</ID>
+    <ID>WildcardImport:StatusPages.kt$import io.ktor.http.*</ID>
+    <ID>WildcardImport:StatusPages.kt$import io.ktor.server.plugins.statuspages.*</ID>
+    <ID>WildcardImport:StatusPages.kt$import io.ktor.server.response.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

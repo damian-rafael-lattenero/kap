@@ -11,6 +11,8 @@ jmh-plugin = "0.7.3"
 jmh = "1.37"
 binary-compat = "0.18.1"
 ksp = "2.3.6"
+detekt = "1.23.7"
+versions-plugin = "0.52.0"
 
 [libraries]
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -37,3 +39,5 @@ maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publ
 jmh = { id = "me.champeau.jmh", version.ref = "jmh-plugin" }
 binary-compat = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "binary-compat" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+versions-plugin = { id = "com.github.ben-manes.versions", version.ref = "versions-plugin" }

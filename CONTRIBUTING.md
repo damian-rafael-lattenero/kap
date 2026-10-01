@@ -25,6 +25,12 @@ cd kap
 
 # Run benchmarks
 ./gradlew :benchmarks:jmh
+
+# Run a smoke subset (fast — useful before pushing)
+./gradlew :benchmarks:jmh -Pjmh.warmup=1 -Pjmh.iterations=1 -Pjmh.fork=1 \
+    -Pjmh.includes='.*CoreBenchmark.*'
+
+# Alias: ./gradlew benchmarks
 ```
 
 ### Project Structure

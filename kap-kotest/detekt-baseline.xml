@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MatchingDeclarationName:LifecycleMatchers.kt$LifecycleTracker</ID>
+    <ID>WildcardImport:KapMatchers.kt$import kap.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

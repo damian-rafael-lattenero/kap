@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.sync.Semaphore
@@ -26,31 +25,13 @@ fun <E, A> invalidAll(errors: NonEmptyList<E>): Kap<Either<NonEmptyList<E>, A>> 
 /**
  * Validated parallel apply — runs both sides in parallel,
  * **accumulating** errors from both if both fail.
+ *
+ * Barrier-aware via [withPair]: gated correctly after a [thenV] phase.
  */
 infix fun <E, A, B> Kap<Either<NonEmptyList<E>, (A) -> B>>.withV(
     fa: Kap<Either<NonEmptyList<E>, A>>,
-): Kap<Either<NonEmptyList<E>, B>> {
-    val self = this
-    return if (self is PhaseBarrier) {
-        val signal = self.signal
-        PhaseBarrier(Kap {
-            val deferredA = async {
-                signal.await()
-                with(fa) { execute() }
-            }
-            val ef = with(self) { execute() }
-            val ea = deferredA.await()
-            combineValidated(ef, ea)
-        }, signal)
-    } else {
-        Kap {
-            val deferredA = async { with(fa) { execute() } }
-            val ef = with(self) { execute() }
-            val ea = deferredA.await()
-            combineValidated(ef, ea)
-        }
-    }
-}
+): Kap<Either<NonEmptyList<E>, B>> =
+    withPair(fa).map { (ef, ea) -> combineValidated(ef, ea) }
 
 private fun <E, A, B> combineValidated(
     ef: Either<NonEmptyList<E>, (A) -> B>,
@@ -84,8 +65,7 @@ infix fun <E, A, B> Kap<Either<NonEmptyList<E>, (A) -> B>>.thenV(
     fa: Kap<Either<NonEmptyList<E>, A>>,
 ): Kap<Either<NonEmptyList<E>, B>> {
     val self = this
-    val signal = CompletableDeferred<Unit>()
-    return PhaseBarrier(Kap {
+    return Kap {
         when (val ef = with(self) { execute() }) {
             is Either.Left -> ef
             is Either.Right -> when (val ea = with(fa) { execute() }) {
@@ -93,7 +73,7 @@ infix fun <E, A, B> Kap<Either<NonEmptyList<E>, (A) -> B>>.thenV(
                 is Either.Right -> Either.Right(ef.value(ea.value))
             }
         }
-    }, signal)
+    }.asPhaseBarrier()
 }
 
 /** Convenience overload that wraps a suspend lambda returning [Either]. */
@@ -306,18 +286,17 @@ fun <E, F, A> Kap<Either<NonEmptyList<E>, A>>.mapError(f: (E) -> F): Kap<Either<
 
 // ── validated { } builder: short-circuit DSL ────────────────────────────
 
-@PublishedApi
 internal class ValidatedShortCircuit : ControlFlowException()
 
 /**
  * Scope for the [validated] builder, providing [bind] for short-circuit
  * sequential validation using Arrow types.
  */
-class ValidatedScope<E> @PublishedApi internal constructor(
-    @PublishedApi internal val scope: kotlinx.coroutines.CoroutineScope,
+class ValidatedScope<E> internal constructor(
+    internal val scope: kotlinx.coroutines.CoroutineScope,
 ) {
     /** Errors captured on short-circuit — typed via the scope's E parameter. */
-    @PublishedApi internal var shortCircuitErrors: NonEmptyList<E>? = null
+    internal var shortCircuitErrors: NonEmptyList<E>? = null
 
     /**
      * Unwraps an [Either] — returns the [Right][Either.Right] value or

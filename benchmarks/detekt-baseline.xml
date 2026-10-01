@@ -1,0 +1,188 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_overhead_arity15(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun arrow_attempt_success(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun arrow_either_builder(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun arrow_phased_validation(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun arrow_raceEither(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun arrow_validation_all_fail(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun arrow_validation_all_pass(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_andThenV_phased(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_attempt_failure(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_attempt_success(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_catching_failure(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_catching_success(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_ensureV_fail(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_ensureV_pass(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_raceEither_heterogeneous_overhead(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_raceEither_latency(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_race_homogeneous_overhead(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_traverseV_10_all_pass(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_traverseV_10_half_fail(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_traverseV_bounded_20_c5_half_fail(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_traverseV_bounded_20_c5_pass(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_validated_builder(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_withV_latency_all_fail(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_withV_latency_all_pass(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun kap_zipV_mixed(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun raw_attempt_failure(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun raw_attempt_success(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun raw_raceEither(): String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt$ArrowBenchmark$@Benchmark fun sequential_validation_all_pass(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun arrow_combine3_overhead(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun arrow_latency_arity5(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun arrow_latency_multiPhase(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun arrow_overhead_arity3(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun arrow_overhead_arity9(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun arrow_race_two(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_andThen_chain_latency(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_andThen_chain_overhead(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_combine3_overhead(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_combine5_latency(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_combine5_overhead(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_computation_latency(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_computation_overhead(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_firstSuccessOf_latency(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_firstSuccessOf_overhead(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_flow_filterKap_10(): List&lt;Int></ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_flow_mapKapOrdered_c5_10(): List&lt;String></ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_flow_mapKap_c5_10(): List&lt;String></ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_flow_mapKap_overhead_10(): List&lt;String></ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_flow_mapKap_seq_10(): List&lt;String></ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_latency_arity5(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_latency_multiPhase(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_memoizeOnSuccess_cold(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_memoizeOnSuccess_failure_retry(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_memoizeOnSuccess_warm(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_memoize_cold(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_memoize_warm(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_orElse_chain_latency(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_orElse_chain_overhead(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_overhead_arity15(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_overhead_arity3(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_overhead_arity9(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_race_two(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_settled_failure_no_cancel(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_settled_success(bh: Blackhole)</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_timeout_with_default(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_traverseSettled_10_half_fail(): List&lt;Result&lt;String>></ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_traverseSettled_10_pass(): List&lt;Result&lt;String>></ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_traverseSettled_bounded_20_c5(): List&lt;Result&lt;String>></ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_traverse_bounded_20_c5(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun kap_traverse_unbounded_20(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_combine3_overhead(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_firstSuccessOf_5(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_flow_flatMapMerge_10(): List&lt;String></ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_flow_map_overhead_10(): List&lt;String></ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_latency_arity5(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_latency_multiPhase(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_memoize_cold(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_orElse_chain_3(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_overhead_arity15(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_overhead_arity3(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_overhead_arity9(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_race_two(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_sequential_3(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_sequential_latency_3(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_timeout_with_default(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_traverseSettled_10(): List&lt;Result&lt;String>></ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_traverse_bounded_20_c5(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun raw_traverse_unbounded_20(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun sequential_latency_arity5(): String</ID>
+    <ID>FunctionNaming:CoreBenchmark.kt$CoreBenchmark$@Benchmark fun sequential_latency_multiPhase(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_bracketCase_latency(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_bracketCase_overhead(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_bracket_latency(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_bracket_overhead(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_circuitBreaker_closed_latency(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_circuitBreaker_closed_overhead(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_circuitBreaker_halfOpen_probe(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_guaranteeCase_overhead(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_guarantee_overhead(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_raceQuorum_2of3_overhead(): List&lt;String></ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_raceQuorum_2of5(): List&lt;String></ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_raceQuorum_3of5(): List&lt;String></ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_resource_zip_latency(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_resource_zip_overhead(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_retry_schedule_exponential(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_retry_schedule_times(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_schedule_fold(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_timeoutRace_fallback_wins(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_timeoutRace_primary_wins(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun kap_timeoutRace_vs_timeout(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun raw_bracketCase_overhead(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun raw_bracket_latency(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun raw_bracket_overhead(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun raw_circuitBreaker_closed(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun raw_guarantee_overhead(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun raw_raceQuorum_2of5(): List&lt;String></ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun raw_resource_zip_overhead(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun raw_retry_manual_3(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun raw_timeoutRace_fallback_wins(): String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt$ResilienceBenchmark$@Benchmark fun raw_timeoutRace_primary_wins(): String</ID>
+    <ID>MagicNumber:ArrowBenchmark.kt$ArrowBenchmark$10</ID>
+    <ID>MagicNumber:ArrowBenchmark.kt$ArrowBenchmark$100</ID>
+    <ID>MagicNumber:ArrowBenchmark.kt$ArrowBenchmark$15</ID>
+    <ID>MagicNumber:ArrowBenchmark.kt$ArrowBenchmark$18</ID>
+    <ID>MagicNumber:ArrowBenchmark.kt$ArrowBenchmark$20</ID>
+    <ID>MagicNumber:ArrowBenchmark.kt$ArrowBenchmark$25</ID>
+    <ID>MagicNumber:ArrowBenchmark.kt$ArrowBenchmark$3</ID>
+    <ID>MagicNumber:ArrowBenchmark.kt$ArrowBenchmark$30</ID>
+    <ID>MagicNumber:ArrowBenchmark.kt$ArrowBenchmark$40</ID>
+    <ID>MagicNumber:ArrowBenchmark.kt$ArrowBenchmark$42</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$10</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$100</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$11</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$12</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$13</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$14</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$15</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$20</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$200</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$3</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$30</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$4</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$40</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$5</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$50</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$6</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$60</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$7</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$8</ID>
+    <ID>MagicNumber:CoreBenchmark.kt$CoreBenchmark$9</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$10</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$100</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$100L</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$10L</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$200</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$3</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$30</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$30L</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$4</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$40</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$40L</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$5</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$50</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$50L</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$80</ID>
+    <ID>MagicNumber:ResilienceBenchmark.kt$ResilienceBenchmark$80L</ID>
+    <ID>MaxLineLength:CoreBenchmark.kt$CoreBenchmark$Kap</ID>
+    <ID>MaxLineLength:CoreBenchmark.kt$CoreBenchmark$Kap.of { a: String -> { b: String -> { c: String -> { d: String -> { e: String -> "$a|$b|$c|$d|$e" } } } } }</ID>
+    <ID>TooGenericExceptionCaught:ArrowBenchmark.kt$ArrowBenchmark$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ResilienceBenchmark.kt$ResilienceBenchmark$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ResilienceBenchmark.kt$ResilienceBenchmark$e: Throwable</ID>
+    <ID>TooGenericExceptionThrown:CoreBenchmark.kt$CoreBenchmark$throw RuntimeException("down")</ID>
+    <ID>TooGenericExceptionThrown:CoreBenchmark.kt$CoreBenchmark$throw RuntimeException("fail-$i")</ID>
+    <ID>TooManyFunctions:ArrowBenchmark.kt$ArrowBenchmark</ID>
+    <ID>TooManyFunctions:CoreBenchmark.kt$CoreBenchmark</ID>
+    <ID>TooManyFunctions:ResilienceBenchmark.kt$ResilienceBenchmark</ID>
+    <ID>WildcardImport:ArrowBenchmark.kt$import kap.*</ID>
+    <ID>WildcardImport:ArrowBenchmark.kt$import org.openjdk.jmh.annotations.*</ID>
+    <ID>WildcardImport:CoreBenchmark.kt$import kap.*</ID>
+    <ID>WildcardImport:CoreBenchmark.kt$import org.openjdk.jmh.annotations.*</ID>
+    <ID>WildcardImport:ResilienceBenchmark.kt$import kap.*</ID>
+    <ID>WildcardImport:ResilienceBenchmark.kt$import org.openjdk.jmh.annotations.*</ID>
+  </CurrentIssues>
+</SmellBaseline>
