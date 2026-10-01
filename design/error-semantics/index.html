@@ -12,27 +12,31 @@
         <meta name="author" content="Damian Rafael Lattenero">
       
       
-        <link rel="canonical" href="https://damian-rafael-lattenero.github.io/kap/blog/category/coroutines/">
+        <link rel="canonical" href="https://damian-rafael-lattenero.github.io/kap/design/error-semantics/">
       
       
+        <link rel="prev" href="../../comparison/">
+      
+      
+        <link rel="next" href="../../playground/">
       
       
         
       
       
-      <link rel="icon" href="../../../assets/logo.svg">
+      <link rel="icon" href="../../assets/logo.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Coroutines - KAP — Kotlin Async Parallelism</title>
+        <title>Error semantics (norm) - KAP — Kotlin Async Parallelism</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,7 +55,7 @@
       
     
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#coroutines" class="md-skip">
+        <a href="#kap-error-semantics-norm" class="md-skip">
           Skip to content
         </a>
       
@@ -96,9 +100,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="KAP — Kotlin Async Parallelism" class="md-header__button md-logo" aria-label="KAP — Kotlin Async Parallelism" data-md-component="logo">
+    <a href="../.." title="KAP — Kotlin Async Parallelism" class="md-header__button md-logo" aria-label="KAP — Kotlin Async Parallelism" data-md-component="logo">
       
-  <img src="../../../assets/logo.svg" alt="logo">
+  <img src="../../assets/logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -115,7 +119,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Coroutines
+              Error semantics (norm)
             
           </span>
         </div>
@@ -222,7 +226,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../.." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -241,7 +245,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../../guide/quickstart/" class="md-tabs__link">
+      <a href="../../guide/quickstart/" class="md-tabs__link">
         
   
   
@@ -262,7 +266,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../modules/kap-core/" class="md-tabs__link">
+        <a href="../../modules/kap-core/" class="md-tabs__link">
           
   
   
@@ -280,7 +284,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../../comparison/" class="md-tabs__link">
+      <a href="../../comparison/" class="md-tabs__link">
         
   
   
@@ -297,11 +301,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../../design/error-semantics/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
           
   
   
@@ -319,7 +325,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../../playground/" class="md-tabs__link">
+      <a href="../../playground/" class="md-tabs__link">
         
   
   
@@ -338,7 +344,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../" class="md-tabs__link">
+      <a href="../../blog/" class="md-tabs__link">
         
   
   
@@ -359,7 +365,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../guide/migration-arrow/" class="md-tabs__link">
+        <a href="../../guide/migration-arrow/" class="md-tabs__link">
           
   
   
@@ -399,9 +405,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="KAP — Kotlin Async Parallelism" class="md-nav__button md-logo" aria-label="KAP — Kotlin Async Parallelism" data-md-component="logo">
+    <a href="../.." title="KAP — Kotlin Async Parallelism" class="md-nav__button md-logo" aria-label="KAP — Kotlin Async Parallelism" data-md-component="logo">
       
-  <img src="../../../assets/logo.svg" alt="logo">
+  <img src="../../assets/logo.svg" alt="logo">
 
     </a>
     KAP — Kotlin Async Parallelism
@@ -428,7 +434,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -455,7 +461,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../guide/quickstart/" class="md-nav__link">
+      <a href="../../guide/quickstart/" class="md-nav__link">
         
   
   
@@ -536,7 +542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../modules/kap-core/" class="md-nav__link">
+      <a href="../../modules/kap-core/" class="md-nav__link">
         
   
   
@@ -564,7 +570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../modules/kap-resilience/" class="md-nav__link">
+      <a href="../../modules/kap-resilience/" class="md-nav__link">
         
   
   
@@ -592,7 +598,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../modules/kap-arrow/" class="md-nav__link">
+      <a href="../../modules/kap-arrow/" class="md-nav__link">
         
   
   
@@ -620,7 +626,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../modules/kap-ktor/" class="md-nav__link">
+      <a href="../../modules/kap-ktor/" class="md-nav__link">
         
   
   
@@ -648,7 +654,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../modules/kap-kotest/" class="md-nav__link">
+      <a href="../../modules/kap-kotest/" class="md-nav__link">
         
   
   
@@ -676,7 +682,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../modules/kap-ksp/" class="md-nav__link">
+      <a href="../../modules/kap-ksp/" class="md-nav__link">
         
   
   
@@ -711,7 +717,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../comparison/" class="md-nav__link">
+      <a href="../../comparison/" class="md-nav__link">
         
   
   
@@ -735,28 +741,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -774,7 +783,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -789,10 +798,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../../design/error-semantics/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error semantics (norm)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -808,6 +844,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-three-disciplines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The three disciplines
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#laws-already-enforced-by-property-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Laws (already enforced by property tests)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#naming-conventions-normative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming conventions (normative)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#future-directions-not-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Future directions (not implemented)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -827,7 +938,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../playground/" class="md-nav__link">
+      <a href="../../playground/" class="md-nav__link">
         
   
   
@@ -856,7 +967,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../" class="md-nav__link">
+      <a href="../../blog/" class="md-nav__link">
         
   
   
@@ -937,7 +1048,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../guide/migration-arrow/" class="md-nav__link">
+      <a href="../../guide/migration-arrow/" class="md-nav__link">
         
   
   
@@ -965,7 +1076,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../guide/migration-coroutines/" class="md-nav__link">
+      <a href="../../guide/migration-coroutines/" class="md-nav__link">
         
   
   
@@ -1013,6 +1124,69 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-three-disciplines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The three disciplines
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#laws-already-enforced-by-property-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Laws (already enforced by property tests)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#naming-conventions-normative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming conventions (normative)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#future-directions-not-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Future directions (not implemented)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1020,77 +1194,152 @@
             
           
           
-  <div class="md-content" data-md-component="content">
-    <div class="md-content__inner">
-      <header class="md-typeset">
-        <h1 id="coroutines">Coroutines<a class="headerlink" href="#coroutines" title="Permanent link">&para;</a></h1>
-      </header>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-      <nav class="md-post__authors md-typeset">
-        
-          <span class="md-author">
-            <img src="https://github.com/damian-rafael-lattenero.png" alt="Damian Rafael Lattenero">
-          </span>
-        
-      </nav>
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-04-04 00:00:00+00:00">April 4, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../kotlin/" class="md-meta__link">Kotlin</a>, 
-              <a href="./" class="md-meta__link">Coroutines</a>, 
-              <a href="../open-source/" class="md-meta__link">Open Source</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="i-replaced-90-lines-of-coroutine-spaghetti-with-35-heres-how"><a class="toclink" href="../../2026/04/04/from-30-lines-of-async-await-to-12/">I Replaced 90 Lines of Coroutine Spaghetti with 35. Here's How.</a></h2>
-<p><em>Our checkout endpoint had 7 service calls, a retry loop, a circuit breaker, and a timeout. The async/await code worked, but nobody could read it anymore. So I built something better.</em></p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../2026/04/04/from-30-lines-of-async-await-to-12/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-      
-        
-          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
 
 
-
-<nav class="md-pagination">
   
-</nav>
-        
-      
-    </div>
-  </div>
+  
 
+
+<h1 id="kap-error-semantics-norm">KAP Error Semantics — Norm<a class="headerlink" href="#kap-error-semantics-norm" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Status: <strong>normative</strong> for the current API. The "future directions" section
+sketches a type-level encoding that is NOT implemented yet — treat it as
+design intent, not behavior.</p>
+</blockquote>
+<p>KAP has exactly <strong>three</strong> failure disciplines. Every operator in the public
+API belongs to one of them; adding an operator that doesn't is an API design
+error. This document is the reference the tests (<code>FailurePathLawsTest</code>,
+<code>ValidatedLawsTest</code>, <code>CancellationPropertyTest</code>) enforce.</p>
+<h2 id="the-three-disciplines">The three disciplines<a class="headerlink" href="#the-three-disciplines" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Discipline</th>
+<th>Meaning</th>
+<th>Exception-world operators</th>
+<th>Validated-world operators</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Accumulate</strong></td>
+<td>Run everything; collect all failures into one value</td>
+<td>—</td>
+<td><code>withV</code>, <code>zipV</code>, <code>traverseV</code>, <code>sequenceV</code></td>
+</tr>
+<tr>
+<td><strong>Short-circuit</strong></td>
+<td>First failure wins; later work is skipped</td>
+<td><code>andThen</code> (bind), <code>then</code>*</td>
+<td><code>thenV</code>, <code>thenValueV</code>, <code>andThenV</code>, <code>validated { bind() }</code></td>
+</tr>
+<tr>
+<td><strong>Convert</strong></td>
+<td>Capture the failure as a value; siblings unaffected</td>
+<td><code>settled</code>, <code>recover</code>, <code>recoverWith</code>, <code>orElse</code>†, <code>settled { }</code></td>
+<td><code>catching</code>, <code>recoverV</code>, <code>orThrow</code></td>
+</tr>
+</tbody>
+</table>
+<p>* <code>then</code> is <em>sequential</em> (a phase barrier) but does <strong>not</strong> inspect values —
+it always runs its right side. Its "short-circuit" is structural (ordering),
+not error-driven. In the validated world, <code>thenV</code> short-circuits on <code>Left</code>.</p>
+<p>† <code>orElse</code> converts the <em>primary's</em> failure into "use the fallback" — the
+fallback itself may still fail, so it is conversion with a retry flavor.</p>
+<h2 id="decision-table">Decision table<a class="headerlink" href="#decision-table" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>You want…</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Every failure reported together (form validation)</td>
+<td><code>withV</code> / <code>zipV</code> / <code>traverseV</code></td>
+</tr>
+<tr>
+<td>Stop at the first failure, no further effects</td>
+<td><code>andThenV</code> / <code>validated { bind() }</code> / <code>andThen</code></td>
+</tr>
+<tr>
+<td>A branch that may fail without cancelling siblings</td>
+<td><code>settled</code> (<code>Result&lt;A&gt;</code> slot)</td>
+</tr>
+<tr>
+<td>A default value/graph when something fails</td>
+<td><code>recover</code> / <code>orElse</code> / <code>timeout(d, default)</code></td>
+</tr>
+<tr>
+<td>Failures from an exception-throwing bridge folded into validation</td>
+<td><code>catching</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="laws-already-enforced-by-property-tests">Laws (already enforced by property tests)<a class="headerlink" href="#laws-already-enforced-by-property-tests" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Cancellation is sacred.</strong> <code>CancellationException</code> is never caught,
+   converted, accumulated or short-circuited by ANY operator
+   (<code>CancellationPropertyTest</code>).</li>
+<li><strong>Accumulation is associative and order-preserving.</strong> NEL append keeps
+   left-to-right order across arbitrary groupings (<code>ValidatedLawsTest</code>).</li>
+<li><strong>Short-circuit never executes the skipped side</strong> — asserted by
+   side-effect flags, not just result equality.</li>
+<li><strong>Conversion preserves the failure token.</strong> <code>settled</code>/<code>recover</code> capture the
+   original exception (type+message; JVM identity may differ due to
+   kotlinx-coroutines stack-trace recovery across suspension points).</li>
+<li><strong>Failure path of <code>with</code> cancels siblings</strong> — structured concurrency: one
+   failing branch fails the phase.</li>
+</ol>
+<h2 id="naming-conventions-normative">Naming conventions (normative)<a class="headerlink" href="#naming-conventions-normative" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>V</code> suffix = the validated world (<code>F&lt;A&gt; = Kap&lt;Either&lt;NonEmptyList&lt;E&gt;, A&gt;&gt;&gt;</code>).
+  Within it, the discipline is expressed by the verb (<code>withV</code> accumulate /
+  <code>thenV</code> short-circuit / <code>andThenV</code> bind), per the table above.</li>
+<li>No <code>V</code> suffix = the exception world. There, <code>with</code>/<code>then</code> never skip, and
+  conversion is explicit via <code>settled</code>/<code>recover*</code>.</li>
+<li>New operators MUST choose a discipline from the table and document it in
+  their KDoc with a line of the form: <code>Error semantics: ACCUMULATE</code>.</li>
+</ul>
+<h2 id="future-directions-not-implemented">Future directions (not implemented)<a class="headerlink" href="#future-directions-not-implemented" title="Permanent link">&para;</a></h2>
+<p>The disciplines are currently tracked by naming convention. A type-level
+encoding would make the compiler reject mixing them unintentionally —
+sketches, in increasing ambition:</p>
+<ol>
+<li><strong>Phantom tag on <code>Kap</code></strong>: <code>Kap&lt;A, phase: ErrorMode&gt;</code> with <code>Accumulate</code> /
+   <code>ShortCircuit</code> / <code>Convert</code> as sealed sub-kinds; operators only accept the
+   kind they belong to. Cheap, but infects every signature.</li>
+<li><strong>Two type constructors</strong>: keep <code>Kap&lt;A&gt;</code> for the exception world, promote
+   the validated world to its own <code>ValidatedKap&lt;E, A&gt;</code> (it already has its
+   own builder class). Discipline mixing becomes a type error at the boundary
+   (<code>catching</code>/<code>orThrow</code> become the only bridges).</li>
+<li><strong>Effect rows / capability-style</strong> encoding — researched, deliberately
+   deferred; Kotlin's type system makes the ergonomics poor today.</li>
+</ol>
+<p>Option 2 is the leading candidate for 5.x; it would not change the call-site
+DSL (<code>.withV</code> stays), only the internal carrier types.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
           
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
@@ -1146,10 +1395,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "content.code.copy", "content.code.annotate", "search.suggest", "search.highlight", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "content.code.copy", "content.code.annotate", "search.suggest", "search.highlight", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

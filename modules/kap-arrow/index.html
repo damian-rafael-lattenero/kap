@@ -304,6 +304,26 @@
   
   
   
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../design/error-semantics/" class="md-tabs__link">
+          
+  
+  
+  Design docs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
     <li class="md-tabs__item">
       <a href="../../playground/" class="md-tabs__link">
         
@@ -1084,6 +1104,95 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design docs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design docs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/error-semantics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error semantics (norm)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../playground/" class="md-nav__link">
         
@@ -1156,10 +1265,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
             
   
   
@@ -1177,8 +1286,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1829,6 +1938,9 @@
 <hr />
 <h2 id="phased-validation-thenv-andthenv">Phased Validation — <code>thenV</code> / <code>andThenV</code><a class="headerlink" href="#phased-validation-thenv-andthenv" title="Permanent link">&para;</a></h2>
 <h3 id="error-semantics-at-a-glance">Error semantics at a glance<a class="headerlink" href="#error-semantics-at-a-glance" title="Permanent link">&para;</a></h3>
+<p>The full norm — including the exception-world mapping and the laws the test
+suite enforces — lives in <a href="../../design/error-semantics/">the design doc</a>.
+The short version:</p>
 <p>The <code>V</code> family looks uniform but has three distinct failure policies — pick the operator by what you want to happen on error:</p>
 <table>
 <thead>
