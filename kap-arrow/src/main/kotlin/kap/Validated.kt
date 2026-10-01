@@ -11,6 +11,20 @@ import kotlinx.coroutines.sync.withPermit
 
 // ── entry points ─────────────────────────────────────────────────────────
 
+/**
+ * # The validated world — error semantics at a glance
+ *
+ * | Operator   | Runs right side? | On failure of either side                  |
+ * |------------|------------------|---------------------------------------------|
+ * | [withV]    | always (parallel)| **accumulates** both NELs into one Left     |
+ * | [thenV]    | only if left is Right | **short-circuits**: Left wins, right skipped |
+ * | [thenValueV] | only if left is Right (no barrier) | short-circuits, like [thenV] |
+ * | [andThenV] | only if left is Right | monadic bind, short-circuits          |
+ *
+ * The same shape applies in the exception world: `with` never skips, `then`
+ * always runs, `settled` converts instead of propagating.
+ */
+
 /** Wraps a success value into a validated computation. */
 fun <E, A> valid(a: A): Kap<Either<NonEmptyList<E>, A>> = Kap.of(Either.Right(a))
 
@@ -216,7 +230,7 @@ fun <E, A> Iterable<Kap<Either<NonEmptyList<E>, A>>>.sequenceV(
 /**
  * Monadic bind for validated computations — sequential, short-circuits on error.
  */
-inline fun <E, A, B> Kap<Either<NonEmptyList<E>, A>>.andThenV(
+inline infix fun <E, A, B> Kap<Either<NonEmptyList<E>, A>>.andThenV(
     crossinline f: (A) -> Kap<Either<NonEmptyList<E>, B>>,
 ): Kap<Either<NonEmptyList<E>, B>> = Kap {
     when (val ea = with(this@andThenV) { execute() }) {

@@ -22,7 +22,7 @@ suspend fun <F> KapLike<F>.evalGraph(): F = asKap.evalGraph()
 
 fun <F, A> KapLike<F>.map(f: (F) -> A): Kap<A> = asKap.map(f)
 
-fun <F, A> KapLike<F>.andThen(f: (F) -> Kap<A>): Kap<A> = asKap.andThen(f)
+infix fun <F, A> KapLike<F>.andThen(f: (F) -> Kap<A>): Kap<A> = asKap.andThen(f)
 
 fun <F> KapLike<F>.recover(f: suspend (Throwable) -> F): Kap<F> = asKap.recover(f)
 

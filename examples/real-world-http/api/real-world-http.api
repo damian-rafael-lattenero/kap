@@ -89,6 +89,11 @@ public final class DeveloperProfileKapBuilderKt {
 	public static final fun kap (Lkotlin/jvm/functions/Function3;)LDeveloperProfileKap;
 	public static final fun then (LDeveloperProfileKap;Lkap/Kap;)LDeveloperProfileKap;
 	public static final fun then (LDeveloperProfileKap;Lkap/Kap;)Lkap/Kap;
+	public static final fun thenValue (LDeveloperProfileKap;Lkap/Kap;)LDeveloperProfileKap;
+	public static final fun thenValue (LDeveloperProfileKap;Lkap/Kap;)Lkap/Kap;
+	public static final fun thenValue_funFact (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
+	public static final fun thenValue_topRepos (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;
+	public static final fun thenValue_user (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;
 	public static final fun then_funFact (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
 	public static final fun then_topRepos (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;
 	public static final fun then_user (LDeveloperProfileKap;Lkotlin/jvm/functions/Function2;)LDeveloperProfileKap;

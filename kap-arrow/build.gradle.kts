@@ -20,6 +20,7 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(libs.coroutines.test)
+    testImplementation(libs.kotest.property)
 }
 
 tasks.test {

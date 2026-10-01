@@ -9,13 +9,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Verifies that [Kap] satisfies the applicative functor laws
+ * Verifies that [Kap] satisfies the functor, applicative and monad laws
  * using property-based testing.
  *
- * These are the algebraic laws that any lawful applicative must obey.
- * Failing any of these means the abstraction is broken at a fundamental level.
- *
- * Properties are verified with random inputs via Kotest's [checkAll].
+ * All functions involved in the laws are themselves derived from arbitrary
+ * constants (e.g. `f(x) = x + k` with random `k`), so the laws are checked
+ * across a space of functions, not just two fixed examples.
  */
 class ApplicativeLawsTest {
 
@@ -32,14 +31,14 @@ class ApplicativeLawsTest {
     }
 
     @Test
-    fun `functor composition - map (g compose f) == map g compose map f`() = runTest {
-        val f: (Int) -> Int = { it + 1 }
-        val g: (Int) -> String = { "v=$it" }
+    fun `functor composition - map (g compose f) == map g compose map f, arbitrary f and g`() = runTest {
+        checkAll(Arb.int(), Arb.int(-1000..1000), Arb.int(-1000..1000)) { x, k, m ->
+            val f: (Int) -> Int = { it + k }
+            val g: (Int) -> String = { "v=${it * m}" }
 
-        checkAll(Arb.int()) { x ->
             val composed = Kap.of(x).map { g(f(it)) }.evalGraph()
             val chained = Kap.of(x).map(f).map(g).evalGraph()
-            assertEquals(composed, chained)
+            assertEquals(composed, chained, "f(x)=x+$k, g(x)=v=x*$m")
         }
     }
 
@@ -58,40 +57,40 @@ class ApplicativeLawsTest {
     }
 
     @Test
-    fun `applicative homomorphism - pure f with pure x == pure (f x)`() = runTest {
-        val f: (Int) -> String = { "v=$it" }
+    fun `applicative homomorphism - pure f with pure x == pure (f x), arbitrary f`() = runTest {
+        checkAll(Arb.int(), Arb.int(-1000..1000)) { x, k ->
+            val f: (Int) -> String = { "v=${it + k}" }
 
-        checkAll(Arb.int()) { x ->
             val left = (Kap.of(f) with Kap.of(x)).evalGraph()
             val right = Kap.of(f(x)).evalGraph()
-            assertEquals(left, right)
+            assertEquals(left, right, "f(x)=v=x+$k")
         }
     }
 
     @Test
-    fun `applicative interchange - u with pure y == pure (apply y) with u`() = runTest {
-        val u: Kap<(Int) -> String> = Kap.of { n: Int -> "v=$n" }
+    fun `applicative interchange - u with pure y == pure (apply y) with u, arbitrary u`() = runTest {
+        checkAll(Arb.int(), Arb.int(-1000..1000), Arb.int(-1000..1000)) { y, k, m ->
+            val u: Kap<(Int) -> String> = Kap.of { n: Int -> "v=${n * m + k}" }
 
-        checkAll(Arb.int()) { y ->
             val left = (u with Kap.of(y)).evalGraph()
             val applyY: ((Int) -> String) -> String = { fn -> fn(y) }
             val right = (Kap.of(applyY) with u).evalGraph()
-            assertEquals(left, right)
+            assertEquals(left, right, "u(n)=v=n*$m+$k, y=$y")
         }
     }
 
     @Test
-    fun `applicative composition - pure compose with u with v with w == u with (v with w)`() = runTest {
-        val u: Kap<(String) -> String> = Kap.of { s: String -> "[$s]" }
-        val v: Kap<(Int) -> String> = Kap.of { n: Int -> "v=$n" }
+    fun `applicative composition - pure compose with u with v with w == u with (v with w), arbitrary v`() = runTest {
+        checkAll(Arb.int(), Arb.int(-1000..1000)) { x, k2 ->
+            val u: Kap<(String) -> String> = Kap.of { s: String -> "[$s]" }
+            val v: Kap<(Int) -> String> = Kap.of { n: Int -> "v=${n + k2}" }
 
-        val compose: ((String) -> String) -> ((Int) -> String) -> (Int) -> String =
-            { f -> { g -> { a -> f(g(a)) } } }
+            val compose: ((String) -> String) -> ((Int) -> String) -> (Int) -> String =
+                { f -> { g -> { a -> f(g(a)) } } }
 
-        checkAll(Arb.int()) { x ->
             val left = (Kap.of(compose) with u with v with Kap.of(x)).evalGraph()
             val right = (u with (v with Kap.of(x))).evalGraph()
-            assertEquals(left, right)
+            assertEquals(left, right, "v(n)=v=n+$k2")
         }
     }
 
@@ -100,13 +99,13 @@ class ApplicativeLawsTest {
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `monad left identity - pure a andThen f == f a`() = runTest {
-        val f: (Int) -> Kap<String> = { n -> Kap.of("v=$n") }
+    fun `monad left identity - pure a andThen f == f a, arbitrary f`() = runTest {
+        checkAll(Arb.int(), Arb.int(-1000..1000)) { a, k ->
+            val f: (Int) -> Kap<String> = { n -> Kap.of("v=${n + k}") }
 
-        checkAll(Arb.int()) { a ->
             val left = Kap.of(a).andThen(f).evalGraph()
             val right = f(a).evalGraph()
-            assertEquals(left, right)
+            assertEquals(left, right, "f(n)=v=n+$k")
         }
     }
 
@@ -120,14 +119,14 @@ class ApplicativeLawsTest {
     }
 
     @Test
-    fun `monad associativity - (m andThen f) andThen g == m andThen (a - f(a) andThen g)`() = runTest {
-        val f: (Int) -> Kap<Int> = { n -> Kap.of(n + 1) }
-        val g: (Int) -> Kap<String> = { n -> Kap.of("v=$n") }
+    fun `monad associativity - (m andThen f) andThen g == m andThen (a - f(a) andThen g), arbitrary f and g`() = runTest {
+        checkAll(Arb.int(), Arb.int(-1000..1000), Arb.int(-1000..1000)) { x, k1, k2 ->
+            val f: (Int) -> Kap<Int> = { n -> Kap.of(n + k1) }
+            val g: (Int) -> Kap<String> = { n -> Kap.of("v=${n * k2}") }
 
-        checkAll(Arb.int()) { x ->
             val left = Kap.of(x).andThen(f).andThen(g).evalGraph()
             val right = Kap.of(x).andThen { a -> f(a).andThen(g) }.evalGraph()
-            assertEquals(left, right)
+            assertEquals(left, right, "f(n)=n+$k1, g(n)=v=n*$k2")
         }
     }
 
@@ -218,4 +217,14 @@ class ApplicativeLawsTest {
         }
     }
 
+    @Test
+    fun `with with commutes for symmetric constructors - result independent of argument order`() = runTest {
+        checkAll(Arb.int(), Arb.string()) { n, s ->
+            val viaIntFirst = Kap.of { x: Int -> { y: String -> x to y } }
+                .with(Kap.of(n)).with(Kap.of(s)).evalGraph()
+            val viaStringFirst = Kap.of { y: String -> { x: Int -> x to y } }
+                .with(Kap.of(s)).with(Kap.of(n)).evalGraph()
+            assertEquals(viaIntFirst, viaStringFirst, "with-chain result must not depend on argument order")
+        }
+    }
 }

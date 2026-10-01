@@ -251,6 +251,21 @@ The last `.withV` returns `Kap<Either<NonEmptyList<E>, R>>` directly — kap-cor
 
 ## Phased Validation — `thenV` / `andThenV`
 
+### Error semantics at a glance
+
+The `V` family looks uniform but has three distinct failure policies — pick the operator by what you want to happen on error:
+
+| Operator     | Runs right side?          | On failure of either side            |
+|--------------|---------------------------|--------------------------------------|
+| `withV`      | always (parallel)         | **accumulates** both `Nel`s into one `Left` |
+| `thenV`      | only if left is `Right`   | **short-circuits** — `Left` wins, right side is skipped |
+| `thenValueV` | only if left is `Right` (no phase barrier) | short-circuits, like `thenV` |
+| `andThenV`   | only if left is `Right`   | monadic bind, short-circuits         |
+
+Same shape in the exception world: `with` never skips a branch, `then` always runs, `settled` converts the failure instead of propagating it.
+
+All operators are `infix` — both on raw `Kap` chains and on `@KapTypeSafe` wrappers.
+
 Some validations depend on earlier results. Phase 1 collects all basic errors. Only if all pass does phase 2 run:
 
 === "KAP"

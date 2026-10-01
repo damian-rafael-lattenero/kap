@@ -414,6 +414,7 @@ class KapTypeSafeProcessor(
         writer.write("import kap.of\n")
         writer.write("import kap.with\n")
         writer.write("import kap.then\n")
+        writer.write("import kap.thenValue\n")
         writer.write("import kap.map\n")
         writer.write("import kap.andThen\n")
         writer.write("import kap.evalGraph\n")
@@ -436,6 +437,7 @@ class KapTypeSafeProcessor(
         writer.write("import kap.of\n")
         writer.write("import kap.withV\n")
         writer.write("import kap.thenV\n")
+        writer.write("import kap.thenValueV\n")
         writer.write("import kap.evalGraph\n")
         writer.write("\n")
     }
@@ -481,7 +483,7 @@ class KapTypeSafeProcessor(
         writer.write("    }\n")
         writer.write("}\n\n")
 
-        writer.write("// ── Per-slot .withV / .thenV operators ──\n\n")
+        writer.write("// ── Per-slot .withV / .thenV / .thenValueV operators ──\n\n")
         for ((index, param) in params.withIndex()) {
             val isLast = index == params.size - 1
             val cap = param.name.replaceFirstChar { it.uppercase() }
@@ -490,7 +492,7 @@ class KapTypeSafeProcessor(
 
             if (isLast) {
                 writer.write("@kotlin.jvm.JvmName(\"withV_${param.name}\")\n")
-                writer.write("inline fun <E> $wrapperName<E, ($wrapperType) -> $returnType>.withV(\n")
+                writer.write("inline infix fun <E> $wrapperName<E, ($wrapperType) -> $returnType>.withV(\n")
                 writer.write("    crossinline fa: suspend $slotType.() -> Either<NonEmptyList<E>, $wrapperType>,\n")
                 writer.write("): Kap<Either<NonEmptyList<E>, $returnType>> {\n")
                 writer.write("    val self = this\n")
@@ -498,15 +500,23 @@ class KapTypeSafeProcessor(
                 writer.write("}\n\n")
 
                 writer.write("@kotlin.jvm.JvmName(\"thenV_${param.name}\")\n")
-                writer.write("inline fun <E> $wrapperName<E, ($wrapperType) -> $returnType>.thenV(\n")
+                writer.write("inline infix fun <E> $wrapperName<E, ($wrapperType) -> $returnType>.thenV(\n")
                 writer.write("    crossinline fa: suspend $slotType.() -> Either<NonEmptyList<E>, $wrapperType>,\n")
                 writer.write("): Kap<Either<NonEmptyList<E>, $returnType>> {\n")
                 writer.write("    val self = this\n")
                 writer.write("    return self._kap.thenV(Kap { self.fa() })\n")
                 writer.write("}\n\n")
+
+                writer.write("@kotlin.jvm.JvmName(\"thenValueV_${param.name}\")\n")
+                writer.write("inline infix fun <E> $wrapperName<E, ($wrapperType) -> $returnType>.thenValueV(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> Either<NonEmptyList<E>, $wrapperType>,\n")
+                writer.write("): Kap<Either<NonEmptyList<E>, $returnType>> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return self._kap.thenValueV(Kap { self.fa() })\n")
+                writer.write("}\n\n")
             } else {
                 writer.write("@kotlin.jvm.JvmName(\"withV_${param.name}\")\n")
-                writer.write("inline fun <E, Rest> $wrapperName<E, ($wrapperType) -> Rest>.withV(\n")
+                writer.write("inline infix fun <E, Rest> $wrapperName<E, ($wrapperType) -> Rest>.withV(\n")
                 writer.write("    crossinline fa: suspend $slotType.() -> Either<NonEmptyList<E>, $wrapperType>,\n")
                 writer.write("): $wrapperName<E, Rest> {\n")
                 writer.write("    val self = this\n")
@@ -514,34 +524,68 @@ class KapTypeSafeProcessor(
                 writer.write("}\n\n")
 
                 writer.write("@kotlin.jvm.JvmName(\"thenV_${param.name}\")\n")
-                writer.write("inline fun <E, Rest> $wrapperName<E, ($wrapperType) -> Rest>.thenV(\n")
+                writer.write("inline infix fun <E, Rest> $wrapperName<E, ($wrapperType) -> Rest>.thenV(\n")
                 writer.write("    crossinline fa: suspend $slotType.() -> Either<NonEmptyList<E>, $wrapperType>,\n")
                 writer.write("): $wrapperName<E, Rest> {\n")
                 writer.write("    val self = this\n")
                 writer.write("    return $wrapperName(self._kap.thenV(Kap { self.fa() }))\n")
                 writer.write("}\n\n")
+
+                writer.write("@kotlin.jvm.JvmName(\"thenValueV_${param.name}\")\n")
+                writer.write("inline infix fun <E, Rest> $wrapperName<E, ($wrapperType) -> Rest>.thenValueV(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> Either<NonEmptyList<E>, $wrapperType>,\n")
+                writer.write("): $wrapperName<E, Rest> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return $wrapperName(self._kap.thenValueV(Kap { self.fa() }))\n")
+                writer.write("}\n\n")
             }
         }
 
         // Generic Kap<Either<Nel<E>, A>> overloads (parens form)
-        writer.write("fun <E, A, B> $wrapperName<E, (A) -> B>.withV(fa: Kap<Either<NonEmptyList<E>, A>>): $wrapperName<E, B> =\n")
+        val validatedKapType = "Kap<Either<NonEmptyList<E>, A>>"
+        val genericValidatedReceiver = "$wrapperName<E, (A) -> B>"
+        writer.write(
+            "infix fun <E, A, B> $genericValidatedReceiver.withV(fa: $validatedKapType): $wrapperName<E, B> =\n",
+        )
         writer.write("    $wrapperName(_kap.withV(fa))\n\n")
 
-        writer.write("fun <E, A, B> $wrapperName<E, (A) -> B>.thenV(fa: Kap<Either<NonEmptyList<E>, A>>): $wrapperName<E, B> =\n")
+        writer.write(
+            "infix fun <E, A, B> $genericValidatedReceiver.thenV(fa: $validatedKapType): $wrapperName<E, B> =\n",
+        )
         writer.write("    $wrapperName(_kap.thenV(fa))\n\n")
+
+        writer.write(
+            "infix fun <E, A, B> $genericValidatedReceiver.thenValueV(fa: $validatedKapType): $wrapperName<E, B> =\n",
+        )
+        writer.write("    $wrapperName(_kap.thenValueV(fa))\n\n")
 
         // Last-slot parens form
         if (params.isNotEmpty()) {
             val lastCap = params.last().name.replaceFirstChar { it.uppercase() }
             val lastWrapperType = "$baseName$lastCap"
-            writer.write("fun <E> $wrapperName<E, ($lastWrapperType) -> $returnType>.withV(fa: Kap<Either<NonEmptyList<E>, $lastWrapperType>>): Kap<Either<NonEmptyList<E>, $returnType>> =\n")
+            val lastValidatedReceiver = "$wrapperName<E, ($lastWrapperType) -> $returnType>"
+            val lastValidatedKapType = "Kap<Either<NonEmptyList<E>, $lastWrapperType>>"
+            val lastValidatedReturn = "Kap<Either<NonEmptyList<E>, $returnType>>"
+
+            writer.write(
+                "infix fun <E> $lastValidatedReceiver.withV(fa: $lastValidatedKapType): $lastValidatedReturn =\n",
+            )
             writer.write("    _kap.withV(fa)\n\n")
 
-            writer.write("fun <E> $wrapperName<E, ($lastWrapperType) -> $returnType>.thenV(fa: Kap<Either<NonEmptyList<E>, $lastWrapperType>>): Kap<Either<NonEmptyList<E>, $returnType>> =\n")
+            writer.write(
+                "infix fun <E> $lastValidatedReceiver.thenV(fa: $lastValidatedKapType): $lastValidatedReturn =\n",
+            )
             writer.write("    _kap.thenV(fa)\n\n")
+
+            writer.write(
+                "infix fun <E> $lastValidatedReceiver.thenValueV(fa: $lastValidatedKapType): $lastValidatedReturn =\n",
+            )
+            writer.write("    _kap.thenValueV(fa)\n\n")
         }
 
-        writer.write("suspend fun <E, A> $wrapperName<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()\n\n")
+        writer.write(
+            "suspend fun <E, A> $wrapperName<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()\n\n",
+        )
     }
 
     private fun writeValidatedScopedEntry(
@@ -694,7 +738,7 @@ class KapTypeSafeProcessor(
             if (isLast) {
                 // Last slot: curry is fully applied → return Kap<ReturnType> directly.
                 writer.write("@kotlin.jvm.JvmName(\"with_${param.name}\")\n")
-                writer.write("inline fun $wrapperName<($wrapperType) -> $returnType>.with(\n")
+                writer.write("inline infix fun $wrapperName<($wrapperType) -> $returnType>.with(\n")
                 writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
                 writer.write("): Kap<$returnType> {\n")
                 writer.write("    val self = this\n")
@@ -702,16 +746,24 @@ class KapTypeSafeProcessor(
                 writer.write("}\n\n")
 
                 writer.write("@kotlin.jvm.JvmName(\"then_${param.name}\")\n")
-                writer.write("inline fun $wrapperName<($wrapperType) -> $returnType>.then(\n")
+                writer.write("inline infix fun $wrapperName<($wrapperType) -> $returnType>.then(\n")
                 writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
                 writer.write("): Kap<$returnType> {\n")
                 writer.write("    val self = this\n")
                 writer.write("    return self._kap.then(suspend { self.fa() })\n")
                 writer.write("}\n\n")
+
+                writer.write("@kotlin.jvm.JvmName(\"thenValue_${param.name}\")\n")
+                writer.write("inline infix fun $wrapperName<($wrapperType) -> $returnType>.thenValue(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
+                writer.write("): Kap<$returnType> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return self._kap.thenValue(suspend { self.fa() })\n")
+                writer.write("}\n\n")
             } else {
                 // Non-last slot: returns wrapper so the chain continues.
                 writer.write("@kotlin.jvm.JvmName(\"with_${param.name}\")\n")
-                writer.write("inline fun <Rest> $wrapperName<($wrapperType) -> Rest>.with(\n")
+                writer.write("inline infix fun <Rest> $wrapperName<($wrapperType) -> Rest>.with(\n")
                 writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
                 writer.write("): $wrapperName<Rest> {\n")
                 writer.write("    val self = this\n")
@@ -719,11 +771,19 @@ class KapTypeSafeProcessor(
                 writer.write("}\n\n")
 
                 writer.write("@kotlin.jvm.JvmName(\"then_${param.name}\")\n")
-                writer.write("inline fun <Rest> $wrapperName<($wrapperType) -> Rest>.then(\n")
+                writer.write("inline infix fun <Rest> $wrapperName<($wrapperType) -> Rest>.then(\n")
                 writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
                 writer.write("): $wrapperName<Rest> {\n")
                 writer.write("    val self = this\n")
                 writer.write("    return $wrapperName(self._kap.then(suspend { self.fa() }))\n")
+                writer.write("}\n\n")
+
+                writer.write("@kotlin.jvm.JvmName(\"thenValue_${param.name}\")\n")
+                writer.write("inline infix fun <Rest> $wrapperName<($wrapperType) -> Rest>.thenValue(\n")
+                writer.write("    crossinline fa: suspend $slotType.() -> $wrapperType,\n")
+                writer.write("): $wrapperName<Rest> {\n")
+                writer.write("    val self = this\n")
+                writer.write("    return $wrapperName(self._kap.thenValue(suspend { self.fa() }))\n")
                 writer.write("}\n\n")
             }
         }
@@ -732,24 +792,34 @@ class KapTypeSafeProcessor(
         // Used when the value is already a Kap<A> built outside the lambda.
         // The last-slot specific overloads below take precedence when the
         // wrapper is at the final curry position.
-        writer.write("fun <A, B> $wrapperName<(A) -> B>.with(fa: Kap<A>): $wrapperName<B> =\n")
+        writer.write("infix fun <A, B> $wrapperName<(A) -> B>.with(fa: Kap<A>): $wrapperName<B> =\n")
         writer.write("    $wrapperName(_kap.with(fa))\n\n")
 
-        writer.write("fun <A, B> $wrapperName<(A) -> B>.then(fa: Kap<A>): $wrapperName<B> =\n")
+        writer.write("infix fun <A, B> $wrapperName<(A) -> B>.then(fa: Kap<A>): $wrapperName<B> =\n")
         writer.write("    $wrapperName(_kap.then(fa))\n\n")
+
+        writer.write("infix fun <A, B> $wrapperName<(A) -> B>.thenValue(fa: Kap<A>): $wrapperName<B> =\n")
+        writer.write("    $wrapperName(_kap.thenValue(fa))\n\n")
 
         // ── Last-slot parens form — more specific, returns Kap<ReturnType>. ──
         if (params.isNotEmpty()) {
             val lastCap = params.last().name.replaceFirstChar { it.uppercase() }
             val lastWrapperType = "$baseName$lastCap"
-            writer.write("fun $wrapperName<($lastWrapperType) -> $returnType>.with(fa: Kap<$lastWrapperType>): Kap<$returnType> =\n")
+            val lastReceiver = "$wrapperName<($lastWrapperType) -> $returnType>"
+            val lastKapType = "Kap<$lastWrapperType>"
+            val lastReturn = "Kap<$returnType>"
+
+            writer.write("infix fun $lastReceiver.with(fa: $lastKapType): $lastReturn =\n")
             writer.write("    _kap.with(fa)\n\n")
 
-            writer.write("fun $wrapperName<($lastWrapperType) -> $returnType>.then(fa: Kap<$lastWrapperType>): Kap<$returnType> =\n")
+            writer.write("infix fun $lastReceiver.then(fa: $lastKapType): $lastReturn =\n")
             writer.write("    _kap.then(fa)\n\n")
+
+            writer.write("infix fun $lastReceiver.thenValue(fa: $lastKapType): $lastReturn =\n")
+            writer.write("    _kap.thenValue(fa)\n\n")
         }
 
-        writer.write("inline fun <A, B> $wrapperName<A>.andThen(\n")
+        writer.write("inline infix fun <A, B> $wrapperName<A>.andThen(\n")
         writer.write("    crossinline f: (A) -> Kap<B>,\n")
         writer.write("): Kap<B> = _kap.andThen(f)\n\n")
 

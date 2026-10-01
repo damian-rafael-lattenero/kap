@@ -384,7 +384,7 @@ infix fun <A, B> Kap<(A) -> B>.thenValue(fa: suspend () -> A): Kap<B> =
  * }
  * ```
  */
-inline fun <A, B> Kap<A>.andThen(crossinline f: (A) -> Kap<B>): Kap<B> = Kap {
+inline infix fun <A, B> Kap<A>.andThen(crossinline f: (A) -> Kap<B>): Kap<B> = Kap {
     val a = with(this@andThen) { execute() }
     with(f(a)) { execute() }
 }
