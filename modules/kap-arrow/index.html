@@ -721,6 +721,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Phased Validation — thenV / andThenV">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#error-semantics-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error semantics at a glance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1341,6 +1358,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Phased Validation — thenV / andThenV">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#error-semantics-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error semantics at a glance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1794,6 +1828,41 @@
 </div>
 <hr />
 <h2 id="phased-validation-thenv-andthenv">Phased Validation — <code>thenV</code> / <code>andThenV</code><a class="headerlink" href="#phased-validation-thenv-andthenv" title="Permanent link">&para;</a></h2>
+<h3 id="error-semantics-at-a-glance">Error semantics at a glance<a class="headerlink" href="#error-semantics-at-a-glance" title="Permanent link">&para;</a></h3>
+<p>The <code>V</code> family looks uniform but has three distinct failure policies — pick the operator by what you want to happen on error:</p>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Runs right side?</th>
+<th>On failure of either side</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>withV</code></td>
+<td>always (parallel)</td>
+<td><strong>accumulates</strong> both <code>Nel</code>s into one <code>Left</code></td>
+</tr>
+<tr>
+<td><code>thenV</code></td>
+<td>only if left is <code>Right</code></td>
+<td><strong>short-circuits</strong> — <code>Left</code> wins, right side is skipped</td>
+</tr>
+<tr>
+<td><code>thenValueV</code></td>
+<td>only if left is <code>Right</code> (no phase barrier)</td>
+<td>short-circuits, like <code>thenV</code></td>
+</tr>
+<tr>
+<td><code>andThenV</code></td>
+<td>only if left is <code>Right</code></td>
+<td>monadic bind, short-circuits</td>
+</tr>
+</tbody>
+</table>
+<p>Same shape in the exception world: <code>with</code> never skips a branch, <code>then</code> always runs, <code>settled</code> converts the failure instead of propagating it.</p>
+<p>All operators are <code>infix</code> — both on raw <code>Kap</code> chains and on <code>@KapTypeSafe</code> wrappers.</p>
 <p>Some validations depend on earlier results. Phase 1 collects all basic errors. Only if all pass does phase 2 run:</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">KAP</label><label for="__tabbed_5_2">Raw Coroutines</label></div>
 <div class="tabbed-content">
