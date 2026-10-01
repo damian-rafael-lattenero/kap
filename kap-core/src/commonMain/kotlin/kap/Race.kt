@@ -42,7 +42,8 @@ fun <A> race(fa: Kap<A>, fb: Kap<A>): Kap<A> = Kap {
             first.getOrNull()?.let { return@supervisorScope it }
             val second = other.await()
             second.getOrElse { secondError ->
-                val firstError = first.exceptionOrNull()!!
+                val firstError = first.exceptionOrNull()
+                    ?: IllegalStateException("race: failed branch reported no exception")
                 firstError.addSuppressed(secondError)
                 throw firstError
             }
@@ -82,7 +83,8 @@ fun <A> raceN(vararg computations: Kap<A>): Kap<A> {
                         pending.forEach { d -> d.onAwait { it to d } }
                     }
                     result.getOrNull()?.let { return@supervisorScope it }
-                    val error = result.exceptionOrNull()!!
+                    val error = result.exceptionOrNull()
+                        ?: IllegalStateException("raceN: failed racer reported no exception")
                     if (error is CancellationException) throw error
                     errors.add(error)
                     pending.remove(winner)

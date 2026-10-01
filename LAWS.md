@@ -34,4 +34,4 @@ Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplement
 
 All laws are verified in [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/ApplicativeLawsTest.kt) using Kotest property-based testing with random inputs.
 
-**1062 tests across 76 suites in 6 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.sh`.)*
+**1071 tests across 77 suites in 6 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.sh`.)*

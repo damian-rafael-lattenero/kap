@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.0.0] - 2026-10-01
+
+### Breaking (ABI)
+- **`CircuitBreaker` internals removed from the ABI** — `mutex`, `state`, `failureCount`, `openedAt`, `setFailureCount`, `setOpenedAt`, `setState`, `transitionTo` are now `internal`. Public surface: `currentState`, `shouldAttempt`, `recordSuccess`, `recordFailure`, `maxFailures`, `resetTimeout`, `onStateChange`.
+- **`PhaseBarrier` is now `internal`.** The public phase seam is `withPair` / `thenPair` / `asPhaseBarrier` — barrier-aware primitives that `with`/`then`/`withV`/`thenV` are built on.
+- **`ValidatedScope` state removed from the ABI** — `shortCircuitErrors` and the constructor are internal; the scope exposes only `bind` / `bindV` / `call`.
+
+### Deprecated (removal planned for 5.x)
+- **Suspend-lambda `combine` (arity 2-9), `pair`, `triple`** — replaced by the Kap-based `zip`/`combine` family (arity up to 22) and the `kap(::T).with { }` DSL. Same semantics, one API.
+- **Generic `@KapTypeSafe` entries**: use `kap<Double>(::Checkout2)` (canonical, mirrors `kap(::C)`) or the zero-arg `kapCheckout2<Double>()` fallback for shape-colliding declarations.
+
+### Added
+- **Generic `@KapTypeSafe`** — type-parameterized classes and functions generate lawful builders: free-variable generalization (each generated declaration quantifies exactly the type variables it spans), α-conversion of generated binders (`E`, `Rest` never collide with your names), bounds preserved, `kap<T>(::C)` canonical entry + `kapC<T>()` zero-arg fallback.
+- **`thenValue` / `thenValueV` per-slot operators** in generated builders — sequential-without-barrier semantics now expressible in `@KapTypeSafe` chains; all generated operators are `infix`.
+- **`withPair` / `thenPair` / `asPhaseBarrier`** — public phase primitives (the seam behind barrier gating).
+- **Golden-file tests for the KSP processor** (self-processing via `kspTest`) — generator changes must now be intentional.
+- **Real property-based laws**: arbitrary-function functor/applicative/monad laws, failure-path laws, phase-semantics properties, and the full validated-applicative law suite (`ValidatedLawsTest`).
+- **detekt with type resolution** (commonMain via JVM classpath + per-target TR) — new violations fail CI; `!!`-free main sources.
+
+### Fixed
+- Build no longer depends on a private npm mirror (`kotlin-js-store/yarn.lock` regenerated against the public registry; `.npmrc` pins it).
+- Class-vs-function entry collision in generated `kap(f)` (star-projection mismatch) — identical signatures now fall back to class-named entries.
+- `ksp-demo`'s generic demo compiles against the final generic entry API.
+
+### Infrastructure
+- Claim verification (`scripts/verify-claims.sh` + CI job): every numeric claim in README/LAWS/docs is checked against the repo on every push. **1062 tests · 76 suites · 122 benchmarks.**
+- Benchmark smoke-run flags (`-Pjmh.includes`), root `benchmarks` alias, `detektAll` CI gate, apiCheck CI job.
+
 ## [3.0.0] - 2026-05-14
 
 ### Breaking

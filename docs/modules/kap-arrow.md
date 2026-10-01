@@ -253,6 +253,10 @@ The last `.withV` returns `Kap<Either<NonEmptyList<E>, R>>` directly — kap-cor
 
 ### Error semantics at a glance
 
+The full norm — including the exception-world mapping and the laws the test
+suite enforces — lives in [the design doc](../design/error-semantics.md).
+The short version:
+
 The `V` family looks uniform but has three distinct failure policies — pick the operator by what you want to happen on error:
 
 | Operator     | Runs right side?          | On failure of either side            |

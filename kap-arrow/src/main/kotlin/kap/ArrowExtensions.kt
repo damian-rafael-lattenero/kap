@@ -74,8 +74,12 @@ fun <A, B> raceEither(fa: Kap<A>, fb: Kap<B>): Kap<Either<A, B>> = Kap {
                     val resultB = db.await()
                     resultB.getOrNull()?.let { return@onAwait Either.Right(it) }
                     // Both failed
-                    val errA = resultA.exceptionOrNull()!!
-                    errA.addSuppressed(resultB.exceptionOrNull()!!)
+                    val errA = resultA.exceptionOrNull()
+                        ?: IllegalStateException("raceEither: failed branch reported no exception")
+                    errA.addSuppressed(
+                        resultB.exceptionOrNull()
+                            ?: IllegalStateException("raceEither: failed branch reported no exception"),
+                    )
                     throw errA
                 }
                 db.onAwait { resultB ->
@@ -84,8 +88,12 @@ fun <A, B> raceEither(fa: Kap<A>, fb: Kap<B>): Kap<Either<A, B>> = Kap {
                     val resultA = da.await()
                     resultA.getOrNull()?.let { return@onAwait Either.Left(it) }
                     // Both failed
-                    val errB = resultB.exceptionOrNull()!!
-                    errB.addSuppressed(resultA.exceptionOrNull()!!)
+                    val errB = resultB.exceptionOrNull()
+                        ?: IllegalStateException("raceEither: failed branch reported no exception")
+                    errB.addSuppressed(
+                        resultA.exceptionOrNull()
+                            ?: IllegalStateException("raceEither: failed branch reported no exception"),
+                    )
                     throw errB
                 }
             }

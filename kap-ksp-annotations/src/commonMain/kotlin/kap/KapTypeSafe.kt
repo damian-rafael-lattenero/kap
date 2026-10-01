@@ -67,6 +67,13 @@ package kap
  *    names — a type parameter named `E` or `Rest` is fine;
  *  - `reified` type parameters are not supported.
  *
+ * ## Inspecting what gets generated
+ *
+ * The processor has a dry-run mode: it logs the generated builders instead of
+ * writing them, so you can audit the output before compiling —
+ * `./gradlew :app:kspKotlin -PkapDump` with the standard wiring
+ * (`ksp { if (project.hasProperty("kapDump")) arg("kap.dump", "true") }`).
+ *
  * Use [prefix] to disambiguate generated **file names and tag class names** when
  * multiple `@KapTypeSafe` functions share parameter names. The call-site tag
  * names are always the original parameter names — the prefix only affects the

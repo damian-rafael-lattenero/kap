@@ -66,7 +66,8 @@ fun <A> raceQuorum(required: Int, vararg computations: Kap<A>): Kap<List<A>> {
 
                     result.getOrNull()?.let { successes.add(it) }
                         ?: run {
-                            val error = result.exceptionOrNull()!!
+                            val error = result.exceptionOrNull()
+                                ?: IllegalStateException("raceQuorum: failed racer reported no exception")
                             if (error is CancellationException) throw error
                             errors.add(error)
                             if (errors.size > maxFailuresAllowed) {

@@ -5,6 +5,7 @@ import kap.*
 /**
  * Assert that a Kap computation succeeds with the expected value.
  */
+@Suppress("RedundantSuspendModifier") // detekt TR cannot see through inline lambdas; suspend is required
 suspend inline fun <reified A> Kap<A>.shouldSucceedWith(expected: A) {
     val result = runCatching { this@shouldSucceedWith.evalGraph() }
     assert(result.isSuccess) {
@@ -18,6 +19,7 @@ suspend inline fun <reified A> Kap<A>.shouldSucceedWith(expected: A) {
 /**
  * Assert that a Kap computation succeeds and return the value for further assertions.
  */
+@Suppress("RedundantSuspendModifier") // detekt TR cannot see through inline lambdas; suspend is required
 suspend inline fun <reified A> Kap<A>.shouldSucceed(): A {
     val result = runCatching { this@shouldSucceed.evalGraph() }
     assert(result.isSuccess) {
@@ -29,12 +31,13 @@ suspend inline fun <reified A> Kap<A>.shouldSucceed(): A {
 /**
  * Assert that a Kap computation fails with a specific exception type.
  */
+@Suppress("RedundantSuspendModifier") // detekt TR cannot see through inline lambdas; suspend is required
 suspend inline fun <reified E : Throwable> Kap<*>.shouldFailWith(): E {
     val result = runCatching { this@shouldFailWith.evalGraph() }
     assert(result.isFailure) {
         "Expected failure with ${E::class.simpleName} but got success: ${result.getOrNull()}"
     }
-    val exception = result.exceptionOrNull()!!
+    val exception = checkNotNull(result.exceptionOrNull()) { "Expected failure but no exception present" }
     assert(exception is E) {
         "Expected ${E::class.simpleName} but got ${exception::class.simpleName}: ${exception.message}"
     }
@@ -44,6 +47,7 @@ suspend inline fun <reified E : Throwable> Kap<*>.shouldFailWith(): E {
 /**
  * Assert that a Kap computation fails with a message matching the given string.
  */
+@Suppress("RedundantSuspendModifier") // detekt TR cannot see through inline lambdas; suspend is required
 suspend fun Kap<*>.shouldFailWithMessage(expected: String) {
     val result = runCatching { this@shouldFailWithMessage.evalGraph() }
     assert(result.isFailure) {

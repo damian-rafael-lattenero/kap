@@ -191,6 +191,18 @@ For each `@KapTypeSafe` annotated class or function:
 
 The slot-specific `.with` overload only matches when the chain's curried function head is that slot's wrapper type — so at each position only ONE field is in scope, and the IDE narrows accordingly.
 
+### Inspecting the generated code (dry run)
+
+The processor supports a dump mode that logs every generated builder instead of writing it — inspect what a declaration produces **before** compiling the consumer:
+
+```bash
+./gradlew :app:kspKotlin -PkapDump
+```
+
+(the `-PkapDump` property is standard wiring: `ksp { if (project.hasProperty("kapDump")) arg("kap.dump", "true") }`)
+
+The generator itself is split in two halves, both tested: the **processor** (symbolic resolution — decides names, entry policy, clash handling) and the **emission engine** (`KapBuilderEmitter` — pure functions from a spec to the file text, unit-tested without a compiler, plus golden-file tests pinning the full pipeline).
+
 ---
 
 ## Comparison

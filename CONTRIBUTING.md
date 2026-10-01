@@ -33,6 +33,10 @@ cd kap
 # Alias: ./gradlew benchmarks
 ```
 
+CI compares every push against the tracked baseline (`gh-pages/benchmarks`):
+a regression above **20%** fails the check — "zero overhead" is an enforced
+invariant, not a marketing claim.
+
 ### Project Structure
 
 ```

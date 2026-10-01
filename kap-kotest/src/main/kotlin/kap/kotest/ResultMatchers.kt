@@ -29,7 +29,7 @@ inline fun <reified E : Throwable> Result<*>.shouldBeFailure(): E {
     assert(isFailure) {
         "Expected failure with ${E::class.simpleName} but got success: ${getOrNull()}"
     }
-    val exception = exceptionOrNull()!!
+    val exception = checkNotNull(exceptionOrNull()) { "Expected failure but no exception present" }
     assert(exception is E) {
         "Expected ${E::class.simpleName} but got ${exception::class.simpleName}: ${exception.message}"
     }

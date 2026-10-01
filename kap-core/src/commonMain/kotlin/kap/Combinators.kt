@@ -125,7 +125,9 @@ fun <A> Kap<A>.retry(
                 }
             }
         }
-        throw lastException!!
+        throw checkNotNull(lastException) {
+            "retry: attempts exhausted without capturing an exception"
+        }
     }
 }
 

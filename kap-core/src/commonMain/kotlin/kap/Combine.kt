@@ -8,12 +8,12 @@ import kotlinx.coroutines.async
 //
 // Choose your style:
 //   kap+with:  kap(::Dashboard).with { fetchUser() }.with { fetchCart() }.with { fetchPromos() }
-//   combine:   combine({ fetchUser() }, { fetchCart() }, { fetchPromos() }) { u, c, p -> Dashboard(u, c, p) }
 //   combine(Kap): combine(Kap { fetchUser() }, Kap { fetchCart() }) { u, c -> ... }
 //
 // kap+with gives compile-time parameter order safety via curried types.
-// combine (suspend lambdas) gives parZip-like ergonomics.
 // combine (Kaps) takes pre-built Kaps (useful when computations are reused).
+// The suspend-lambda `combine`/`pair`/`triple` overloads below are deprecated:
+// the Kap-based zip/combine family covers the same ground with one API.
 
 /**
  * Runs two suspend lambdas in parallel and combines their results.
@@ -26,6 +26,12 @@ import kotlinx.coroutines.async
  *     .evalGraph()
  * ```
  */
+@Deprecated(
+    message = "The suspend-lambda combine family is consolidated away in favor of the Kap-based " +
+        "zip/combine (identical semantics, arity up to 22) or the kap(::T).with { } DSL. " +
+        "This overload will be removed in a future release.",
+    level = DeprecationLevel.WARNING,
+)
 fun <A, B, R> combine(
     fa: suspend () -> A,
     fb: suspend () -> B,
@@ -48,6 +54,12 @@ fun <A, B, R> combine(
  *     .evalGraph()
  * ```
  */
+@Deprecated(
+    message = "The suspend-lambda combine family is consolidated away in favor of the Kap-based " +
+        "zip/combine (identical semantics, arity up to 22) or the kap(::T).with { } DSL. " +
+        "This overload will be removed in a future release.",
+    level = DeprecationLevel.WARNING,
+)
 fun <A, B, C, R> combine(
     fa: suspend () -> A,
     fb: suspend () -> B,
@@ -63,6 +75,12 @@ fun <A, B, C, R> combine(
 /**
  * Runs four suspend lambdas in parallel and combines their results.
  */
+@Deprecated(
+    message = "The suspend-lambda combine family is consolidated away in favor of the Kap-based " +
+        "zip/combine (identical semantics, arity up to 22) or the kap(::T).with { } DSL. " +
+        "This overload will be removed in a future release.",
+    level = DeprecationLevel.WARNING,
+)
 fun <A, B, C, D, R> combine(
     fa: suspend () -> A,
     fb: suspend () -> B,
@@ -80,6 +98,12 @@ fun <A, B, C, D, R> combine(
 /**
  * Runs five suspend lambdas in parallel and combines their results.
  */
+@Deprecated(
+    message = "The suspend-lambda combine family is consolidated away in favor of the Kap-based " +
+        "zip/combine (identical semantics, arity up to 22) or the kap(::T).with { } DSL. " +
+        "This overload will be removed in a future release.",
+    level = DeprecationLevel.WARNING,
+)
 fun <A, B, C, D, E, R> combine(
     fa: suspend () -> A,
     fb: suspend () -> B,
@@ -106,10 +130,16 @@ fun <A, B, C, D, E, R> combine(
  *     .evalGraph()
  * ```
  */
+@Deprecated(
+    message = "The suspend-lambda combine family is consolidated away in favor of the Kap-based " +
+        "zip/combine (identical semantics, arity up to 22) or the kap(::T).with { } DSL. " +
+        "This overload will be removed in a future release.",
+    level = DeprecationLevel.WARNING,
+)
 fun <A, B> pair(
     fa: suspend () -> A,
     fb: suspend () -> B,
-): Kap<Pair<A, B>> = combine(fa, fb, ::Pair)
+): Kap<Pair<A, B>> = @Suppress("DEPRECATION") combine(fa, fb, ::Pair)
 
 /**
  * Runs three suspend lambdas in parallel and returns their results as a [Triple].
@@ -119,15 +149,27 @@ fun <A, B> pair(
  *     .evalGraph()
  * ```
  */
+@Deprecated(
+    message = "The suspend-lambda combine family is consolidated away in favor of the Kap-based " +
+        "zip/combine (identical semantics, arity up to 22) or the kap(::T).with { } DSL. " +
+        "This overload will be removed in a future release.",
+    level = DeprecationLevel.WARNING,
+)
 fun <A, B, C> triple(
     fa: suspend () -> A,
     fb: suspend () -> B,
     fc: suspend () -> C,
-): Kap<Triple<A, B, C>> = combine(fa, fb, fc, ::Triple)
+): Kap<Triple<A, B, C>> = @Suppress("DEPRECATION") combine(fa, fb, fc, ::Triple)
 
 /**
  * Runs six suspend lambdas in parallel and combines their results.
  */
+@Deprecated(
+    message = "The suspend-lambda combine family is consolidated away in favor of the Kap-based " +
+        "zip/combine (identical semantics, arity up to 22) or the kap(::T).with { } DSL. " +
+        "This overload will be removed in a future release.",
+    level = DeprecationLevel.WARNING,
+)
 fun <A, B, C, D, E, F, R> combine(
     fa: suspend () -> A,
     fb: suspend () -> B,
@@ -149,6 +191,12 @@ fun <A, B, C, D, E, F, R> combine(
 /**
  * Runs seven suspend lambdas in parallel and combines their results.
  */
+@Deprecated(
+    message = "The suspend-lambda combine family is consolidated away in favor of the Kap-based " +
+        "zip/combine (identical semantics, arity up to 22) or the kap(::T).with { } DSL. " +
+        "This overload will be removed in a future release.",
+    level = DeprecationLevel.WARNING,
+)
 fun <A, B, C, D, E, F, G, R> combine(
     fa: suspend () -> A,
     fb: suspend () -> B,
@@ -172,6 +220,12 @@ fun <A, B, C, D, E, F, G, R> combine(
 /**
  * Runs eight suspend lambdas in parallel and combines their results.
  */
+@Deprecated(
+    message = "The suspend-lambda combine family is consolidated away in favor of the Kap-based " +
+        "zip/combine (identical semantics, arity up to 22) or the kap(::T).with { } DSL. " +
+        "This overload will be removed in a future release.",
+    level = DeprecationLevel.WARNING,
+)
 fun <A, B, C, D, E, F, G, H, R> combine(
     fa: suspend () -> A,
     fb: suspend () -> B,
@@ -200,6 +254,12 @@ fun <A, B, C, D, E, F, G, H, R> combine(
  * This is the maximum arity for the suspend-lambda variant of `combine`.
  * For higher arities, use `kap`+`with` (up to 22) or `traverse` for dynamic collections.
  */
+@Deprecated(
+    message = "The suspend-lambda combine family is consolidated away in favor of the Kap-based " +
+        "zip/combine (identical semantics, arity up to 22) or the kap(::T).with { } DSL. " +
+        "This overload will be removed in a future release.",
+    level = DeprecationLevel.WARNING,
+)
 fun <A, B, C, D, E, F, G, H, I, R> combine(
     fa: suspend () -> A,
     fb: suspend () -> B,

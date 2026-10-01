@@ -18,3 +18,9 @@ dependencies {
 application {
     mainClass.set("MainKt")
 }
+
+// Dry-run: `./gradlew :examples:ksp-demo:kspKotlin -PkapDump` logs the
+// generated builders instead of writing them — inspect before compiling.
+ksp {
+    if (project.hasProperty("kapDump")) arg("kap.dump", "true")
+}

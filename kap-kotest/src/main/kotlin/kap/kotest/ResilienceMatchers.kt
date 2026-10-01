@@ -5,7 +5,7 @@ import kap.CircuitBreaker
 /**
  * Assert that a CircuitBreaker is in Closed state.
  */
-suspend fun CircuitBreaker.shouldBeClosed() {
+fun CircuitBreaker.shouldBeClosed() {
     val state = currentState
     assert(state == CircuitBreaker.State.Closed) {
         "Expected CircuitBreaker to be Closed but was $state"
@@ -15,7 +15,7 @@ suspend fun CircuitBreaker.shouldBeClosed() {
 /**
  * Assert that a CircuitBreaker is in Open state.
  */
-suspend fun CircuitBreaker.shouldBeOpen() {
+fun CircuitBreaker.shouldBeOpen() {
     val state = currentState
     assert(state == CircuitBreaker.State.Open) {
         "Expected CircuitBreaker to be Open but was $state"
@@ -25,7 +25,7 @@ suspend fun CircuitBreaker.shouldBeOpen() {
 /**
  * Assert that a CircuitBreaker is in HalfOpen state.
  */
-suspend fun CircuitBreaker.shouldBeHalfOpen() {
+fun CircuitBreaker.shouldBeHalfOpen() {
     val state = currentState
     assert(state == CircuitBreaker.State.HalfOpen) {
         "Expected CircuitBreaker to be HalfOpen but was $state"

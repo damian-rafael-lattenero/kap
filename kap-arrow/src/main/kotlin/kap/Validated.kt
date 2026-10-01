@@ -349,7 +349,11 @@ fun <E, A> validated(block: suspend ValidatedScope<E>.() -> A): Kap<Either<NonEm
         try {
             Either.Right(validatedScope.block())
         } catch (_: ValidatedShortCircuit) {
-            Either.Left(validatedScope.shortCircuitErrors!!)
+            Either.Left(
+                checkNotNull(validatedScope.shortCircuitErrors) {
+                    "validated: short-circuited without capturing errors"
+                },
+            )
         }
     }
 

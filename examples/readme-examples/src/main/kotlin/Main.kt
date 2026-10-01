@@ -495,14 +495,15 @@ suspend fun chooseYourStyle() {
         .evalGraph()
     println("  kap+with:  $s1")
 
-    // Style 2: combine with suspend lambdas
+    // Style 2: combine with suspend lambdas — deprecated in favor of the Kap form
+    @Suppress("DEPRECATION")
     val s2 = combine(
             { fetchDashUser() },
             { fetchDashCart() },
             { fetchDashPromos() },
         ) { user: String, cart: String, promos: String -> Dashboard(user, cart, promos) }
             .evalGraph()
-    println("  combine:   $s2")
+    println("  combine:   $s2 (deprecated — see Style 3)")
 
     // Style 3: combine with pre-built Kaps
     val s3 = combine(
@@ -513,9 +514,9 @@ suspend fun chooseYourStyle() {
             .evalGraph()
     println("  zip:       $s3")
 
-    // Bonus: pair
-    val (user, cart) = pair({ fetchDashUser() }, { fetchDashCart() }).evalGraph()
-    println("  pair:      ($user, $cart)\n")
+    // Bonus: zip into a Pair (replaces the deprecated `pair` helper)
+    val (user, cart) = Kap { fetchDashUser() }.zip(Kap { fetchDashCart() }).evalGraph()
+    println("  zip->Pair: ($user, $cart)\n")
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -943,8 +944,8 @@ suspend fun reorderedWithoutBarrier() {
     println("=== Reordered: No barrier (all parallel, assemble freely) ===\n")
 
     val result = combine(
-            pair({ fetchParamC() }, { fetchParamD() }),
-            pair({ fetchParamA() }, { fetchParamB() }),
+            Kap { fetchParamC() }.zip(Kap { fetchParamD() }),
+            Kap { fetchParamA() }.zip(Kap { fetchParamB() }),
         ) { (c, d), (a, b) -> Page(a, b, c, d) }
             .evalGraph()
     println("  result: $result\n")

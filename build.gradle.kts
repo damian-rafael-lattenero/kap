@@ -1,3 +1,4 @@
+import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 
 plugins {
@@ -12,7 +13,7 @@ plugins {
 }
 
 group = "io.github.damian-rafael-lattenero"
-version = "3.0.0"
+version = "4.0.0"
 
 subprojects {
     group = rootProject.group
@@ -66,6 +67,48 @@ subprojects {
             ).filter { file(it).exists() }
             source.setFrom(kotlinDirs)
             // Tests are out of scope for now (Fase 1 decides).
+        }
+
+        // ── Type resolution for commonMain ─────────────────────────────────
+        // detektJvmMain covers the jvm target's own sources; common code (where
+        // most of the library lives) gets its own TR pass using the JVM
+        // compile classpath, as recommended by detekt for MPP projects.
+        if (file("src/commonMain/kotlin").exists()) {
+            val commonTr = tasks.register<Detekt>("detektCommonMainTR") {
+                description = "detekt commonMain with type resolution (jvm compile classpath)"
+                buildUponDefaultConfig = true
+                source("src/commonMain/kotlin")
+                include("**/*.kt")
+                classpath.setFrom(
+                    configurations.named("jvmMainCompileClasspath"),
+                    files("src/jvmMain/kotlin"),
+                )
+                reports {
+                    txt.required.set(true)
+                    xml.required.set(true)
+                }
+                // Reuse the module baseline (when present) so already-tolerated
+                // non-TR findings in commonMain do not double-fire here.
+                val baselineFile = file("detekt-baseline.xml")
+                if (baselineFile.exists()) baseline.set(baselineFile)
+            }
+            pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+                tasks.matching { it.name == "check" }.configureEach { dependsOn(commonTr) }
+            }
+        }
+    }
+}
+
+// Aggregates every detekt flavour: plain (all sources), type-resolved
+// jvmMain/main and the commonMain TR pass. CI gate entry point.
+val detektAll = tasks.register("detektAll") {
+    group = "verification"
+    description = "All detekt checks: plain, type-resolved jvmMain/main and commonMain."
+    val detektTaskNames = listOf("detekt", "detektMain", "detektJvmMain", "detektCommonMainTR")
+    detektModules.forEach { moduleName ->
+        val sp = subprojects.find { it.name == moduleName } ?: return@forEach
+        detektTaskNames.forEach { taskName ->
+            if (taskName in sp.tasks.names) dependsOn("${sp.path}:$taskName")
         }
     }
 }

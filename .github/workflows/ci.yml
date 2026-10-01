@@ -69,6 +69,23 @@ jobs:
           path: ${{ matrix.report-path }}
           retention-days: 14
 
+  # ── Binary compatibility (validated modules: kap-core, kap-arrow, kap-resilience) ──
+  api-compat:
+    name: API Compatibility
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: corretto
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+      - name: Check public API against committed .api dumps
+        run: ./gradlew apiCheck
+
   # ── Claim verification (README/LAWS/docs numbers vs repo reality) ─────────
   claims:
     name: Claims
@@ -93,8 +110,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: true
-      - name: Run detekt
-        run: ./gradlew detekt
+      - name: Run detekt (plain + type resolution)
+        run: ./gradlew detektAll
 
   # ── Multiplatform compilation checks ─────────────────────────────────────
   compile-platforms:
@@ -212,9 +229,11 @@ jobs:
           benchmark-data-dir-path: benchmarks
           auto-push: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          alert-threshold: "150%"
+          # Regression gate: >20% slower than the tracked baseline fails the
+          # push — "zero overhead" is an enforced invariant, not a claim.
+          alert-threshold: "120%"
           comment-on-alert: true
-          fail-on-alert: false
+          fail-on-alert: true
           alert-comment-cc-users: "@damian-rafael-lattenero"
 
       - name: Upload raw results
@@ -273,7 +292,7 @@ jobs:
   ci-gate:
     name: CI Gate
     if: always()
-    needs: [test, compile-platforms, codegen-check, examples, detekt, claims]
+    needs: [test, compile-platforms, codegen-check, examples, detekt, claims, api-compat]
     runs-on: ubuntu-latest
     steps:
       - name: Check required jobs
@@ -284,12 +303,14 @@ jobs:
           echo "examples:          ${{ needs.examples.result }}"
           echo "detekt:            ${{ needs.detekt.result }}"
           echo "claims:            ${{ needs.claims.result }}"
+          echo "api-compat:        ${{ needs.api-compat.result }}"
           if [ "${{ needs.test.result }}" != "success" ] || \
              [ "${{ needs.compile-platforms.result }}" != "success" ] || \
              [ "${{ needs.codegen-check.result }}" != "success" ] || \
              [ "${{ needs.examples.result }}" != "success" ] || \
              [ "${{ needs.detekt.result }}" != "success" ] || \
-             [ "${{ needs.claims.result }}" != "success" ]; then
+             [ "${{ needs.claims.result }}" != "success" ] || \
+             [ "${{ needs.api-compat.result }}" != "success" ]; then
             echo ""
             echo "One or more required jobs failed."
             exit 1
