@@ -45,6 +45,14 @@ data class Checkout(
     val total: Double,
 )
 
+@KapTypeSafe
+data class Checkout2<T>(
+    val user: String,
+    val cart: String,
+    val validated: Boolean,
+    val total: T,
+)
+
 suspend fun fetchUser(): String { delay(30); return "Alice" }
 suspend fun fetchCart(): String { delay(20); return "3 items" }
 suspend fun validateOrder(): Boolean { delay(10); return true }
@@ -98,6 +106,14 @@ suspend fun main() {
         .with { total from calculateTotal() }
         .evalGraph()
     println("  Checkout: $checkout")
+
+    val checkout2 = kapCheckout2<Double>()
+        .with { user from fetchUser() }
+        .with { cart from fetchCart() }
+        .then { validated from validateOrder() }
+        .with { total from calculateTotal() }
+        .evalGraph()
+    println("  Checkout2: $checkout2")
 
     println("\nAll demos passed!")
 }

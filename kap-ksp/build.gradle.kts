@@ -23,6 +23,7 @@ dependencies {
     testImplementation(project(":kap-arrow"))
     testImplementation(libs.arrow.core)
     testImplementation(libs.coroutines.core)
+    testImplementation(libs.coroutines.test)
     testImplementation(kotlin("test"))
 }
 

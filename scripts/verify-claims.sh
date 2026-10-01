@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LIB_MODULES=(kap-core kap-arrow kap-resilience kap-ktor kap-kotest benchmarks)
+LIB_MODULES=(kap-core kap-arrow kap-resilience kap-ktor kap-kotest kap-ksp benchmarks)
 
 test_count=$(grep -rc "@Test" --include="*.kt" "${LIB_MODULES[@]}" | awk -F: '{s+=$2} END {print s}')
 suite_count=$(find "${LIB_MODULES[@]}" -name "*Test.kt" | wc -l)

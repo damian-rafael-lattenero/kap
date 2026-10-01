@@ -31,6 +31,41 @@ package kap
  *     com.thirdparty.buildDashboard(userName, cartSummary)
  * ```
  *
+ * ## Generic declarations
+ *
+ * Generic classes and functions are supported. The entry is `pure(curry C)`
+ * at the caller's chosen instantiation, so it takes no argument — the type
+ * variables are pinned right there:
+ *
+ * ```kotlin
+ * @KapTypeSafe
+ * data class Checkout2<T>(
+ *     val user: String,
+ *     val cart: String,
+ *     val validated: Boolean,
+ *     val total: T,
+ * )
+ *
+ * val checkout = kapCheckout2<Double>()
+ *     .with { user from fetchUser() }
+ *     .with { cart from fetchCart() }
+ *     .then { validated from validateOrder() }
+ *     .with { total from 2.0 }
+ *     .evalGraph()
+ * ```
+ *
+ * Notes:
+ *  - the entry is named `kap${ClassName}` (not `kap`) for generic declarations —
+ *    `kap<T>(...)` overloads from different generic types would collide;
+ *  - type parameter bounds are preserved;
+ *  - type parameters are generalized by free-variable analysis: each generated
+ *    declaration quantifies exactly the variables free in the positions it
+ *    spans (its slot, plus the return type for last-slot operators);
+ *  - internal generated binders (`E` for the error channel, `Rest` for the
+ *    curried remainder) are α-converted on collision with your parameter
+ *    names — a type parameter named `E` or `Rest` is fine;
+ *  - `reified` type parameters are not supported.
+ *
  * Use [prefix] to disambiguate generated **file names and tag class names** when
  * multiple `@KapTypeSafe` functions share parameter names. The call-site tag
  * names are always the original parameter names — the prefix only affects the

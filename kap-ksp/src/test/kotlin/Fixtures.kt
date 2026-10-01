@@ -16,13 +16,30 @@ data class FixtSimple(val only: String)
 @KapTypeSafe
 data class FixtWithNullable(val id: Long, val name: String?, val count: Int?)
 
-// NOTE: type-parameterized classes (data class Foo<T>) are NOT yet supported
-// by the processor — it emits unresolvable `T` references in top-level
-// generated declarations. This fixture uses parameterized FIELD types, which
-// are supported. Generic-class support is a known gap (golden-test finding).
-
 @KapTypeSafe
 data class FixtWithGeneric(val items: List<String>, val counts: Map<String, Int>, val count: Int)
+
+// ── Generic declarations — T/A/B are inferred from the `from` value at the
+// call site (kap(::FixtGeneric).with { label from "x" }.then { amount from 2.0 })
+
+@KapTypeSafe
+data class FixtGeneric<T>(val label: String, val amount: T)
+
+@KapTypeSafe
+data class FixtMultiGeneric<A, B>(val first: A, val second: B, val note: String)
+
+/** Generic function — same treatment: `kapFixtGenericFn<Double>().with { seed from 3.5 }...` */
+@KapTypeSafe
+fun <T> fixtGenericFn(seed: T, n: Int): kotlin.Pair<T, Int> = seed to n
+
+// ── Collision fixtures — generated binders (E, Rest) are α-converted on
+// collision with user type parameters instead of rejecting the declaration.
+
+@KapTypeSafe
+data class FixtParamE<E>(val payload: E, val note: String)
+
+@KapTypeSafe
+data class FixtParamRest<Rest>(val body: Rest, val count: Int)
 
 @KapTypeSafe
 data class FixtAllSameType(val a: String, val b: String, val c: String)
