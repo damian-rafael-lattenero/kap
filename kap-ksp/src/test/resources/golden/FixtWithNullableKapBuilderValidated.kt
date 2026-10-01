@@ -132,9 +132,10 @@ infix fun <E> FixtWithNullableValidatedKap<E, (FixtWithNullableCount) -> FixtWit
 suspend fun <E, A> FixtWithNullableValidatedKap<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtWithNullableValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
 fun <E> kapV(f: (kotlin.Long, kotlin.String?, kotlin.Int?) -> FixtWithNullable): FixtWithNullableValidatedKap<E, (FixtWithNullableId) -> (FixtWithNullableName) -> (FixtWithNullableCount) -> FixtWithNullable> {
     val fn: (FixtWithNullableId) -> (FixtWithNullableName) -> (FixtWithNullableCount) -> FixtWithNullable = { p0: FixtWithNullableId -> { p1: FixtWithNullableName -> { p2: FixtWithNullableCount -> f(p0.value, p1.value, p2.value) } } }
     val kap: Kap<Either<NonEmptyList<E>, (FixtWithNullableId) -> (FixtWithNullableName) -> (FixtWithNullableCount) -> FixtWithNullable>> = Kap.of(Either.Right(fn))
     return FixtWithNullableValidatedKap(kap)
 }
+

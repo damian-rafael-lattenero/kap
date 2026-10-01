@@ -102,9 +102,10 @@ inline infix fun <A, B> FixtPfxTwoKap<A>.andThen(
 suspend fun <A> FixtPfxTwoKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtPfxTwoKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
 fun kap(f: (kotlin.String) -> kotlin.Int): FixtPfxTwoKap<(FixtPfxTwoA) -> kotlin.Int> =
     FixtPfxTwoKap(Kap.of({ p0: FixtPfxTwoA -> f(p0.value) }))
+
 
 /** Extension property — enables `(::myFn).kap` and `kap((::myFn)::kap)` forms. */
 val ((kotlin.String) -> kotlin.Int).kap: FixtPfxTwoKap<(FixtPfxTwoA) -> kotlin.Int>

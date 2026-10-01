@@ -33,9 +33,8 @@ package kap
  *
  * ## Generic declarations
  *
- * Generic classes and functions are supported. The entry is `pure(curry C)`
- * at the caller's chosen instantiation, so it takes no argument — the type
- * variables are pinned right there:
+ * Generic classes and functions are supported and mirror the non-generic
+ * shape — the type argument pins the type variables at the entry:
  *
  * ```kotlin
  * @KapTypeSafe
@@ -46,7 +45,7 @@ package kap
  *     val total: T,
  * )
  *
- * val checkout = kapCheckout2<Double>()
+ * val checkout = kap<Double>(::Checkout2)
  *     .with { user from fetchUser() }
  *     .with { cart from fetchCart() }
  *     .then { validated from validateOrder() }
@@ -55,8 +54,10 @@ package kap
  * ```
  *
  * Notes:
- *  - the entry is named `kap${ClassName}` (not `kap`) for generic declarations —
- *    `kap<T>(...)` overloads from different generic types would collide;
+ *  - `kap<T>(::C)` is emitted whenever the declaration's parameter shape is
+ *    unique across all `@KapTypeSafe`/`@KapBridge` declarations (JVM erasure
+ *    ignores return types, so identical shapes collide). Colliding shapes
+ *    fall back to a zero-arg, class-named entry: `kapCheckout2<Double>()`.
  *  - type parameter bounds are preserved;
  *  - type parameters are generalized by free-variable analysis: each generated
  *    declaration quantifies exactly the variables free in the positions it

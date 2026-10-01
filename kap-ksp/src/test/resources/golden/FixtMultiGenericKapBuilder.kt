@@ -168,6 +168,11 @@ inline infix fun <A, B> FixtMultiGenericKap<A>.andThen(
 suspend fun <A> FixtMultiGenericKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtMultiGenericKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
+fun <A, B> kap(f: (A, B, kotlin.String) -> FixtMultiGeneric<A, B>): FixtMultiGenericKap<(FixtMultiGenericFirst<A>) -> (FixtMultiGenericSecond<B>) -> (FixtMultiGenericNote) -> FixtMultiGeneric<A, B>> =
+    FixtMultiGenericKap(Kap.of({ p0: FixtMultiGenericFirst<A> -> { p1: FixtMultiGenericSecond<B> -> { p2: FixtMultiGenericNote -> f(p0.value, p1.value, p2.value) } } }))
+
+/** Generic zero-arg alternative — `kapFixtMultiGeneric<Double>()`. */
 fun <A, B> kapFixtMultiGeneric(): FixtMultiGenericKap<(FixtMultiGenericFirst<A>) -> (FixtMultiGenericSecond<B>) -> (FixtMultiGenericNote) -> FixtMultiGeneric<A, B>> =
     FixtMultiGenericKap(Kap.of({ p0: FixtMultiGenericFirst<A> -> { p1: FixtMultiGenericSecond<B> -> { p2: FixtMultiGenericNote -> FixtMultiGeneric(p0.value, p1.value, p2.value) } } }))
+

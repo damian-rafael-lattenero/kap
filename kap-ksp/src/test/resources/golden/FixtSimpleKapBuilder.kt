@@ -102,6 +102,7 @@ inline infix fun <A, B> FixtSimpleKap<A>.andThen(
 suspend fun <A> FixtSimpleKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtSimpleKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
 fun kap(f: (kotlin.String) -> FixtSimple): FixtSimpleKap<(FixtSimpleOnly) -> FixtSimple> =
     FixtSimpleKap(Kap.of({ p0: FixtSimpleOnly -> f(p0.value) }))
+

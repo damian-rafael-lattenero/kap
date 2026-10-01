@@ -135,6 +135,11 @@ inline infix fun <A, B> FixtParamEKap<A>.andThen(
 suspend fun <A> FixtParamEKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtParamEKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
+fun <E> kap(f: (E, kotlin.String) -> FixtParamE<E>): FixtParamEKap<(FixtParamEPayload<E>) -> (FixtParamENote) -> FixtParamE<E>> =
+    FixtParamEKap(Kap.of({ p0: FixtParamEPayload<E> -> { p1: FixtParamENote -> f(p0.value, p1.value) } }))
+
+/** Generic zero-arg alternative — `kapFixtParamE<Double>()`. */
 fun <E> kapFixtParamE(): FixtParamEKap<(FixtParamEPayload<E>) -> (FixtParamENote) -> FixtParamE<E>> =
     FixtParamEKap(Kap.of({ p0: FixtParamEPayload<E> -> { p1: FixtParamENote -> FixtParamE(p0.value, p1.value) } }))
+

@@ -234,6 +234,7 @@ inline infix fun <A, B> FixtFiveKap<A>.andThen(
 suspend fun <A> FixtFiveKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtFiveKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
 fun kap(f: (kotlin.String, kotlin.String, kotlin.Boolean, kotlin.Double, kotlin.Double) -> FixtFive): FixtFiveKap<(FixtFiveUser) -> (FixtFiveCart) -> (FixtFiveStock) -> (FixtFiveShipping) -> (FixtFiveTax) -> FixtFive> =
     FixtFiveKap(Kap.of({ p0: FixtFiveUser -> { p1: FixtFiveCart -> { p2: FixtFiveStock -> { p3: FixtFiveShipping -> { p4: FixtFiveTax -> f(p0.value, p1.value, p2.value, p3.value, p4.value) } } } } }))
+

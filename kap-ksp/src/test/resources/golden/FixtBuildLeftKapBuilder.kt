@@ -102,6 +102,7 @@ inline infix fun <A, B> FixtBuildLeftKap<A>.andThen(
 suspend fun <A> FixtBuildLeftKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtBuildLeftKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
 fun kapFixtBuildLeft(f: (kotlin.String) -> kotlin.String): FixtBuildLeftKap<(FixtBuildLeftValue) -> kotlin.String> =
     FixtBuildLeftKap(Kap.of({ p0: FixtBuildLeftValue -> f(p0.value) }))
+

@@ -132,9 +132,10 @@ infix fun <E> FixtWithGenericValidatedKap<E, (FixtWithGenericCount) -> FixtWithG
 suspend fun <E, A> FixtWithGenericValidatedKap<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtWithGenericValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
 fun <E> kapV(f: (kotlin.collections.List<kotlin.String>, kotlin.collections.Map<kotlin.String, kotlin.Int>, kotlin.Int) -> FixtWithGeneric): FixtWithGenericValidatedKap<E, (FixtWithGenericItems) -> (FixtWithGenericCounts) -> (FixtWithGenericCount) -> FixtWithGeneric> {
     val fn: (FixtWithGenericItems) -> (FixtWithGenericCounts) -> (FixtWithGenericCount) -> FixtWithGeneric = { p0: FixtWithGenericItems -> { p1: FixtWithGenericCounts -> { p2: FixtWithGenericCount -> f(p0.value, p1.value, p2.value) } } }
     val kap: Kap<Either<NonEmptyList<E>, (FixtWithGenericItems) -> (FixtWithGenericCounts) -> (FixtWithGenericCount) -> FixtWithGeneric>> = Kap.of(Either.Right(fn))
     return FixtWithGenericValidatedKap(kap)
 }
+

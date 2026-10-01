@@ -168,6 +168,7 @@ inline infix fun <A, B> FixtWithGenericKap<A>.andThen(
 suspend fun <A> FixtWithGenericKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtWithGenericKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
 fun kap(f: (kotlin.collections.List<kotlin.String>, kotlin.collections.Map<kotlin.String, kotlin.Int>, kotlin.Int) -> FixtWithGeneric): FixtWithGenericKap<(FixtWithGenericItems) -> (FixtWithGenericCounts) -> (FixtWithGenericCount) -> FixtWithGeneric> =
     FixtWithGenericKap(Kap.of({ p0: FixtWithGenericItems -> { p1: FixtWithGenericCounts -> { p2: FixtWithGenericCount -> f(p0.value, p1.value, p2.value) } } }))
+

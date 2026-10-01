@@ -74,9 +74,10 @@ infix fun <E> FixtBuildLeftValidatedKap<E, (FixtBuildLeftValue) -> kotlin.String
 suspend fun <E, A> FixtBuildLeftValidatedKap<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtBuildLeftValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
 fun <E> kapVFixtBuildLeft(f: (kotlin.String) -> kotlin.String): FixtBuildLeftValidatedKap<E, (FixtBuildLeftValue) -> kotlin.String> {
     val fn: (FixtBuildLeftValue) -> kotlin.String = { p0: FixtBuildLeftValue -> f(p0.value) }
     val kap: Kap<Either<NonEmptyList<E>, (FixtBuildLeftValue) -> kotlin.String>> = Kap.of(Either.Right(fn))
     return FixtBuildLeftValidatedKap(kap)
 }
+

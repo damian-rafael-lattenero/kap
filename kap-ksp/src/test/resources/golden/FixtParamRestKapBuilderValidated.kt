@@ -103,9 +103,17 @@ infix fun <E, Rest> FixtParamRestValidatedKap<E, (FixtParamRestCount) -> FixtPar
 suspend fun <E, A> FixtParamRestValidatedKap<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtParamRestValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
+fun <E, Rest> kapV(f: (Rest, kotlin.Int) -> FixtParamRest<Rest>): FixtParamRestValidatedKap<E, (FixtParamRestBody<Rest>) -> (FixtParamRestCount) -> FixtParamRest<Rest>> {
+    val fn: (FixtParamRestBody<Rest>) -> (FixtParamRestCount) -> FixtParamRest<Rest> = { p0: FixtParamRestBody<Rest> -> { p1: FixtParamRestCount -> f(p0.value, p1.value) } }
+    val kap: Kap<Either<NonEmptyList<E>, (FixtParamRestBody<Rest>) -> (FixtParamRestCount) -> FixtParamRest<Rest>>> = Kap.of(Either.Right(fn))
+    return FixtParamRestValidatedKap(kap)
+}
+
+/** Generic zero-arg alternative — `kapVFixtParamRest<Double>()`. */
 fun <E, Rest> kapVFixtParamRest(): FixtParamRestValidatedKap<E, (FixtParamRestBody<Rest>) -> (FixtParamRestCount) -> FixtParamRest<Rest>> {
     val fn: (FixtParamRestBody<Rest>) -> (FixtParamRestCount) -> FixtParamRest<Rest> = { p0: FixtParamRestBody<Rest> -> { p1: FixtParamRestCount -> FixtParamRest(p0.value, p1.value) } }
     val kap: Kap<Either<NonEmptyList<E>, (FixtParamRestBody<Rest>) -> (FixtParamRestCount) -> FixtParamRest<Rest>>> = Kap.of(Either.Right(fn))
     return FixtParamRestValidatedKap(kap)
 }
+

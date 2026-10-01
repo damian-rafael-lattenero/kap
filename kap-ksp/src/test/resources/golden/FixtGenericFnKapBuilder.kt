@@ -135,9 +135,14 @@ inline infix fun <A, B> FixtGenericFnKap<A>.andThen(
 suspend fun <A> FixtGenericFnKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtGenericFnKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
+fun <T> kap(f: (T, kotlin.Int) -> kotlin.Pair<T, kotlin.Int>): FixtGenericFnKap<(FixtGenericFnSeed<T>) -> (FixtGenericFnN) -> kotlin.Pair<T, kotlin.Int>> =
+    FixtGenericFnKap(Kap.of({ p0: FixtGenericFnSeed<T> -> { p1: FixtGenericFnN -> f(p0.value, p1.value) } }))
+
+/** Generic zero-arg alternative — `kapFixtGenericFn<Double>()`. */
 fun <T> kapFixtGenericFn(): FixtGenericFnKap<(FixtGenericFnSeed<T>) -> (FixtGenericFnN) -> kotlin.Pair<T, kotlin.Int>> =
     FixtGenericFnKap(Kap.of({ p0: FixtGenericFnSeed<T> -> { p1: FixtGenericFnN -> fixtGenericFn(p0.value, p1.value) } }))
+
 
 /** Extension property — enables `(::myFn).kap` and `kap((::myFn)::kap)` forms. */
 val <T> ((T, kotlin.Int) -> kotlin.Pair<T, kotlin.Int>).kap: FixtGenericFnKap<(FixtGenericFnSeed<T>) -> (FixtGenericFnN) -> kotlin.Pair<T, kotlin.Int>>

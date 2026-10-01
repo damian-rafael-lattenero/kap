@@ -102,6 +102,7 @@ inline infix fun <A, B> FixtPfxOneKap<A>.andThen(
 suspend fun <A> FixtPfxOneKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtPfxOneKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
 fun kapFixtPfxOne(f: (kotlin.String) -> kotlin.String): FixtPfxOneKap<(FixtPfxOneA) -> kotlin.String> =
     FixtPfxOneKap(Kap.of({ p0: FixtPfxOneA -> f(p0.value) }))
+

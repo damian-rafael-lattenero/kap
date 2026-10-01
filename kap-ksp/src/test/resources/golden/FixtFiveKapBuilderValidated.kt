@@ -190,9 +190,10 @@ infix fun <E> FixtFiveValidatedKap<E, (FixtFiveTax) -> FixtFive>.thenValueV(fa: 
 suspend fun <E, A> FixtFiveValidatedKap<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtFiveValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
 fun <E> kapV(f: (kotlin.String, kotlin.String, kotlin.Boolean, kotlin.Double, kotlin.Double) -> FixtFive): FixtFiveValidatedKap<E, (FixtFiveUser) -> (FixtFiveCart) -> (FixtFiveStock) -> (FixtFiveShipping) -> (FixtFiveTax) -> FixtFive> {
     val fn: (FixtFiveUser) -> (FixtFiveCart) -> (FixtFiveStock) -> (FixtFiveShipping) -> (FixtFiveTax) -> FixtFive = { p0: FixtFiveUser -> { p1: FixtFiveCart -> { p2: FixtFiveStock -> { p3: FixtFiveShipping -> { p4: FixtFiveTax -> f(p0.value, p1.value, p2.value, p3.value, p4.value) } } } } }
     val kap: Kap<Either<NonEmptyList<E>, (FixtFiveUser) -> (FixtFiveCart) -> (FixtFiveStock) -> (FixtFiveShipping) -> (FixtFiveTax) -> FixtFive>> = Kap.of(Either.Right(fn))
     return FixtFiveValidatedKap(kap)
 }
+

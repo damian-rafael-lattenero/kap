@@ -103,9 +103,17 @@ infix fun <E_, E> FixtParamEValidatedKap<E_, (FixtParamENote) -> FixtParamE<E>>.
 suspend fun <E_, A> FixtParamEValidatedKap<E_, A>.evalGraph(): Either<NonEmptyList<E_>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtParamEValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
+fun <E_, E> kapV(f: (E, kotlin.String) -> FixtParamE<E>): FixtParamEValidatedKap<E_, (FixtParamEPayload<E>) -> (FixtParamENote) -> FixtParamE<E>> {
+    val fn: (FixtParamEPayload<E>) -> (FixtParamENote) -> FixtParamE<E> = { p0: FixtParamEPayload<E> -> { p1: FixtParamENote -> f(p0.value, p1.value) } }
+    val kap: Kap<Either<NonEmptyList<E_>, (FixtParamEPayload<E>) -> (FixtParamENote) -> FixtParamE<E>>> = Kap.of(Either.Right(fn))
+    return FixtParamEValidatedKap(kap)
+}
+
+/** Generic zero-arg alternative — `kapVFixtParamE<Double>()`. */
 fun <E_, E> kapVFixtParamE(): FixtParamEValidatedKap<E_, (FixtParamEPayload<E>) -> (FixtParamENote) -> FixtParamE<E>> {
     val fn: (FixtParamEPayload<E>) -> (FixtParamENote) -> FixtParamE<E> = { p0: FixtParamEPayload<E> -> { p1: FixtParamENote -> FixtParamE(p0.value, p1.value) } }
     val kap: Kap<Either<NonEmptyList<E_>, (FixtParamEPayload<E>) -> (FixtParamENote) -> FixtParamE<E>>> = Kap.of(Either.Right(fn))
     return FixtParamEValidatedKap(kap)
 }
+

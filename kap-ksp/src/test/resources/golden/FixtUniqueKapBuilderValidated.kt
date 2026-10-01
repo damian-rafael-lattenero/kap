@@ -103,9 +103,10 @@ infix fun <E> FixtUniqueValidatedKap<E, (FixtUniqueB) -> kotlin.String>.thenValu
 suspend fun <E, A> FixtUniqueValidatedKap<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtUniqueValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
 fun <E> kapV(f: (kotlin.Int, kotlin.Boolean) -> kotlin.String): FixtUniqueValidatedKap<E, (FixtUniqueA) -> (FixtUniqueB) -> kotlin.String> {
     val fn: (FixtUniqueA) -> (FixtUniqueB) -> kotlin.String = { p0: FixtUniqueA -> { p1: FixtUniqueB -> f(p0.value, p1.value) } }
     val kap: Kap<Either<NonEmptyList<E>, (FixtUniqueA) -> (FixtUniqueB) -> kotlin.String>> = Kap.of(Either.Right(fn))
     return FixtUniqueValidatedKap(kap)
 }
+

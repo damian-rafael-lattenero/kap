@@ -168,6 +168,7 @@ inline infix fun <A, B> FixtAllSameTypeKap<A>.andThen(
 suspend fun <A> FixtAllSameTypeKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtAllSameTypeKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
 fun kap(f: (kotlin.String, kotlin.String, kotlin.String) -> FixtAllSameType): FixtAllSameTypeKap<(FixtAllSameTypeA) -> (FixtAllSameTypeB) -> (FixtAllSameTypeC) -> FixtAllSameType> =
     FixtAllSameTypeKap(Kap.of({ p0: FixtAllSameTypeA -> { p1: FixtAllSameTypeB -> { p2: FixtAllSameTypeC -> f(p0.value, p1.value, p2.value) } } }))
+

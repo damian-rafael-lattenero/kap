@@ -132,9 +132,10 @@ infix fun <E> FixtAllSameTypeValidatedKap<E, (FixtAllSameTypeC) -> FixtAllSameTy
 suspend fun <E, A> FixtAllSameTypeValidatedKap<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtAllSameTypeValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
 fun <E> kapV(f: (kotlin.String, kotlin.String, kotlin.String) -> FixtAllSameType): FixtAllSameTypeValidatedKap<E, (FixtAllSameTypeA) -> (FixtAllSameTypeB) -> (FixtAllSameTypeC) -> FixtAllSameType> {
     val fn: (FixtAllSameTypeA) -> (FixtAllSameTypeB) -> (FixtAllSameTypeC) -> FixtAllSameType = { p0: FixtAllSameTypeA -> { p1: FixtAllSameTypeB -> { p2: FixtAllSameTypeC -> f(p0.value, p1.value, p2.value) } } }
     val kap: Kap<Either<NonEmptyList<E>, (FixtAllSameTypeA) -> (FixtAllSameTypeB) -> (FixtAllSameTypeC) -> FixtAllSameType>> = Kap.of(Either.Right(fn))
     return FixtAllSameTypeValidatedKap(kap)
 }
+

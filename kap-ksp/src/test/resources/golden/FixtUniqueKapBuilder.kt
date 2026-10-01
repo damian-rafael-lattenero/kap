@@ -135,9 +135,10 @@ inline infix fun <A, B> FixtUniqueKap<A>.andThen(
 suspend fun <A> FixtUniqueKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtUniqueKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
 fun kap(f: (kotlin.Int, kotlin.Boolean) -> kotlin.String): FixtUniqueKap<(FixtUniqueA) -> (FixtUniqueB) -> kotlin.String> =
     FixtUniqueKap(Kap.of({ p0: FixtUniqueA -> { p1: FixtUniqueB -> f(p0.value, p1.value) } }))
+
 
 /** Extension property — enables `(::myFn).kap` and `kap((::myFn)::kap)` forms. */
 val ((kotlin.Int, kotlin.Boolean) -> kotlin.String).kap: FixtUniqueKap<(FixtUniqueA) -> (FixtUniqueB) -> kotlin.String>

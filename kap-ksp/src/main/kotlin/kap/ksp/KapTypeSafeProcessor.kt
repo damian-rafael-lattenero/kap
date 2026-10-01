@@ -19,9 +19,6 @@ class KapTypeSafeProcessor(
      */
     private val signatureCounts = mutableMapOf<String, Int>()
 
-    private fun signatureKey(params: List<String>, returnType: String): String =
-        "(${params.joinToString(",")})->$returnType"
-
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val unprocessed = mutableListOf<KSAnnotated>()
         signatureCounts.clear()
@@ -81,13 +78,18 @@ class KapTypeSafeProcessor(
                 if (symbol.classKind != ClassKind.CLASS) return
                 val ctor = symbol.primaryConstructor ?: return
                 val paramTypes = ctor.parameters.map { renderType(it.type.resolve()) }
-                val returnType = renderType(symbol.asStarProjectedType())
-                signatureCounts.merge(signatureKey(paramTypes, returnType), 1, Int::plus)
+                // Return renders with the class's OWN type parameters (not star
+                // projections) so class/function keys compare canonically.
+                val tpNames = collectTypeParams(symbol).map { it.name }
+                val base = symbol.simpleName.asString()
+                val returnType = if (tpNames.isEmpty()) base else "$base<${tpNames.joinToString(", ")}>"
+                signatureCounts.merge(clashKey(paramTypes, tpNames, returnType), 1, Int::plus)
             }
             is KSFunctionDeclaration -> {
                 val paramTypes = symbol.parameters.map { renderType(it.type.resolve()) }
                 val returnType = symbol.returnType?.resolve()?.let { renderType(it) } ?: "kotlin.Unit"
-                signatureCounts.merge(signatureKey(paramTypes, returnType), 1, Int::plus)
+                val tpNames = collectTypeParams(symbol).map { it.name }
+                signatureCounts.merge(clashKey(paramTypes, tpNames, returnType), 1, Int::plus)
             }
         }
     }
@@ -100,8 +102,30 @@ class KapTypeSafeProcessor(
             val ctor = classDecl.primaryConstructor ?: return@forEach
             val paramTypes = ctor.parameters.map { renderType(it.type.resolve()) }
             val returnType = renderType(classDecl.asStarProjectedType())
-            signatureCounts.merge(signatureKey(paramTypes, returnType), 1, Int::plus)
+            val tpNames = collectTypeParams(classDecl).map { it.name }
+            signatureCounts.merge(clashKey(paramTypes, tpNames, returnType), 1, Int::plus)
         }
+    }
+
+    /**
+     * Clash key = the full Kotlin signature of the generated `kap(f)` entry,
+     * with the declaration's type parameters α-renamed positionally
+     * (`T` -> `#0`), so `Box<T>(v: T)` collides with `Crate<U>(v: U): Crate<U>`
+     * only when returns also match — different returns coexist fine: top-level
+     * functions in different generated files live in different JVM facades,
+     * and the callable reference's return type disambiguates at the call site.
+     */
+    private fun clashKey(
+        paramTypes: List<String>,
+        typeParamNames: List<String>,
+        returnType: String,
+    ): String {
+        fun canonical(t: String) =
+            typeParamNames.foldIndexed(t) { i, acc, name ->
+                acc.replace("\\b$name\\b".toRegex(), "#$i")
+            }
+        val params = paramTypes.map(::canonical).joinToString(",")
+        return "($params)->${canonical(returnType)}"
     }
 
     // ── @KapBridge processing ──────────────────────────────────────
@@ -145,10 +169,14 @@ class KapTypeSafeProcessor(
                 val genPackage = file.packageName.asString().ifEmpty { packageName }
 
                 // @KapBridge generates kap(f: (...) -> ClassName) — same as own classes
+                val bridgeUnique = signatureCounts[
+                    clashKey(params.map { it.typeString }, emptyList(), returnType),
+                ] == 1
                 generateForConstructor(
                     containingFile = file,
                     packageName = genPackage,
                     spec = BuilderSpec(className, params, returnType),
+                    signatureIsUnique = bridgeUnique,
                 )
             }
     }
@@ -265,11 +293,16 @@ class KapTypeSafeProcessor(
         val classFqn = if (packageName.isEmpty()) className else "$packageName.$className"
         val returnType = classFqn + typeParams.inst()
 
-        // Classes use kap(::ClassName) — function reference, unique by return type
+        // Classes use kap(::ClassName) — plain `kap` only when the ctor shape
+        // is unique across all declarations (JVM erasure ignores return types).
+        val signatureIsUnique = signatureCounts[
+            clashKey(params.map { it.typeString }, typeParams.map { it.name }, returnType),
+        ] == 1
         generateForConstructor(
             containingFile = classDecl.containingFile!!,
             packageName = packageName,
             spec = BuilderSpec(className, params, returnType, typeParams, prefix, classFqn),
+            signatureIsUnique = signatureIsUnique,
             kapArrowPresent = kapArrowPresent,
         )
     }
@@ -305,8 +338,9 @@ class KapTypeSafeProcessor(
 
         val baseName = funcName.replaceFirstChar { it.uppercase() }
         val functionCall = if (packageName.isEmpty()) funcName else "$packageName.$funcName"
-        val paramTypes = params.map { it.typeString }
-        val signatureIsUnique = signatureCounts[signatureKey(paramTypes, returnType)] == 1
+        val signatureIsUnique = signatureCounts[
+            clashKey(params.map { it.typeString }, typeParams.map { it.name }, returnType),
+        ] == 1
 
         generateForMarkerObject(
             containingFile = funcDecl.containingFile!!,
@@ -351,6 +385,7 @@ class KapTypeSafeProcessor(
         containingFile: KSFile,
         packageName: String,
         spec: BuilderSpec,
+        signatureIsUnique: Boolean = true,
         kapArrowPresent: Boolean = false,
     ) {
         val baseName = spec.baseName
@@ -365,9 +400,10 @@ class KapTypeSafeProcessor(
             "${fileBaseName}KapBuilder"
         )
 
-        // Generic entries always use the suffixed name — `kap<T>(...)` overloads
-        // from different generic declarations collide in K2 overload resolution.
-        val entryFnName = if (typeParams.isEmpty()) "kap" else "kap$baseName"
+        // Plain `kap(f)` whenever the ctor shape is unique — for generics the
+        // caller pins the type variables: `kap<Double>(::Checkout2)`. The
+        // zero-arg `kap$baseName()` fallback is emitted by writeScopedEntry.
+        val entryFnName = if (signatureIsUnique) "kap" else "kap$baseName"
         OutputStreamWriter(file).use { writer ->
             writeHeader(writer, hasPackage, packageName, params)
             writeOpaqueTypes(writer, spec)
@@ -385,7 +421,7 @@ class KapTypeSafeProcessor(
                 writeValidatedHeader(writer, hasPackage, packageName)
                 writeValidatedFromOverloads(writer, spec)
                 writeValidatedScopedBuilder(writer, spec)
-                val validatedEntryFnName = if (typeParams.isEmpty()) "kapV" else "kapV$baseName"
+                val validatedEntryFnName = if (signatureIsUnique) "kapV" else "kapV$baseName"
                 writeValidatedScopedEntry(writer, spec, validatedEntryFnName, "f")
             }
         }
@@ -424,11 +460,7 @@ class KapTypeSafeProcessor(
             writeOpaqueTypes(writer, spec)
             writeScopedBuilder(writer, spec)
 
-            val entryFnName = when {
-                typeParams.isNotEmpty() -> "kap$baseName"
-                signatureIsUnique -> "kap"
-                else -> "kap$baseName"
-            }
+            val entryFnName = if (signatureIsUnique) "kap" else "kap$baseName"
             writeScopedEntry(writer, spec, entryFnName, "f")
 
             // Extension property: `(::myFn).kap` and `kap((::myFn)::kap)` — also returns the wrapper.
@@ -461,11 +493,7 @@ class KapTypeSafeProcessor(
                 writeValidatedHeader(writer, hasPackage, packageName)
                 writeValidatedFromOverloads(writer, spec)
                 writeValidatedScopedBuilder(writer, spec)
-                val validatedEntryFnName = when {
-                    typeParams.isNotEmpty() -> "kapV$baseName"
-                    signatureIsUnique -> "kapV"
-                    else -> "kapV$baseName"
-                }
+                val validatedEntryFnName = if (signatureIsUnique) "kapV" else "kapV$baseName"
                 writeValidatedScopedEntry(writer, spec, validatedEntryFnName, "f")
             }
         }
@@ -740,22 +768,32 @@ class KapTypeSafeProcessor(
             .distinctBy { it.name }
         val tpDecl = if (entryRefs.isEmpty()) "<$e> " else "<$e, ${entryRefs.decl()}> "
 
-        writer.write("\n/** Validated entry — returns $wrapperName so `.withV { field from validate() }` works without imports. */\n")
-        val argList2 = if (typeParams.isEmpty()) "(f: $inputType)" else "()"
-        writer.write("fun $tpDecl$entryFnName$argList2: $wrapperName<$e, $curriedType> {\n")
-        writer.write("    val fn: $curriedType = ")
-        val opaqueParamNames = params.indices.map { "p$it" }
-        opaqueParamNames.zip(opaqueNames).forEach { (name, opaque) ->
-            writer.write("{ $name: $opaque -> ")
+        fun emitValidatedEntry(name: String, takesCallable: Boolean) {
+            val argList = if (takesCallable) "(f: $inputType)" else "()"
+            val callee = if (takesCallable) callableExpression else spec.callable
+            writer.write("fun $tpDecl$name$argList: $wrapperName<$e, $curriedType> {\n")
+            writer.write("    val fn: $curriedType = ")
+            val opaqueParamNames = params.indices.map { "p$it" }
+            opaqueParamNames.zip(opaqueNames).forEach { (pn, opaque) ->
+                writer.write("{ $pn: $opaque -> ")
+            }
+            val opaqueCallArgs = opaqueParamNames.joinToString(", ") { "${it}.value" }
+            writer.write("$callee($opaqueCallArgs)")
+            writer.write(" }".repeat(params.size))
+            writer.write("\n")
+            writer.write(
+                "    val kap: Kap<Either<NonEmptyList<$e>, $curriedType>> = Kap.of(Either.Right(fn))\n",
+            )
+            writer.write("    return $wrapperName(kap)\n")
+            writer.write("}\n\n")
         }
-        val opaqueCallArgs = opaqueParamNames.joinToString(", ") { "$it.value" }
-        val callee2 = if (typeParams.isEmpty()) callableExpression else spec.callable
-        writer.write("$callee2($opaqueCallArgs)")
-        writer.write(" }".repeat(params.size))
-        writer.write("\n")
-        writer.write("    val kap: Kap<Either<NonEmptyList<$e>, $curriedType>> = Kap.of(Either.Right(fn))\n")
-        writer.write("    return $wrapperName(kap)\n")
-        writer.write("}\n")
+
+        writer.write("\n/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */\n")
+        emitValidatedEntry(entryFnName, takesCallable = true)
+        if (typeParams.isNotEmpty()) {
+            writer.write("/** Generic zero-arg alternative — `kapV$baseName<Double>()`. */\n")
+            emitValidatedEntry("kapV$baseName", takesCallable = false)
+        }
     }
 
     private fun writeOpaqueTypes(
@@ -1041,22 +1079,30 @@ class KapTypeSafeProcessor(
             .distinctBy { it.name }
         val tpDecl = if (entryRefs.isEmpty()) "" else "<${entryRefs.decl()}> "
 
-        writer.write("\n/** Official entry point — returns $wrapperName so `.with { field from value }` works without imports. */\n")
-        // Generic declarations: the entry is `pure(curry C)` at the caller's
-        // instantiation of the type variables — the callable is statically
-        // known, so the entry takes no argument: `kapCheckout2<Double>()`.
-        val callee = if (typeParams.isEmpty()) callableExpression else spec.callable
-        val argList = if (typeParams.isEmpty()) "(f: $inputType)" else "()"
-        writer.write("fun $tpDecl$entryFnName$argList: $wrapperName<$curriedType> =\n")
-        writer.write("    $wrapperName(Kap.of(")
-        val opaqueParamNames = params.indices.map { "p$it" }
-        opaqueParamNames.zip(opaqueNames).forEach { (name, opaque) ->
-            writer.write("{ $name: $opaque -> ")
+        fun emitEntry(name: String, takesCallable: Boolean) {
+            val argList = if (takesCallable) "(f: $inputType)" else "()"
+            val callee = if (takesCallable) callableExpression else spec.callable
+            writer.write("fun $tpDecl$name$argList: $wrapperName<$curriedType> =\n")
+            writer.write("    $wrapperName(Kap.of(")
+            val opaqueParamNames = params.indices.map { "p$it" }
+            opaqueParamNames.zip(opaqueNames).forEach { (pn, opaque) ->
+                writer.write("{ $pn: $opaque -> ")
+            }
+            val opaqueCallArgs = opaqueParamNames.joinToString(", ") { "${it}.value" }
+            writer.write("$callee($opaqueCallArgs)")
+            writer.write(" }".repeat(params.size))
+            writer.write("))\n\n")
         }
-        val opaqueCallArgs = opaqueParamNames.joinToString(", ") { "$it.value" }
-        writer.write("$callee($opaqueCallArgs)")
-        writer.write(" }".repeat(params.size))
-        writer.write("))\n")
+
+        writer.write("\n/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */\n")
+        emitEntry(entryFnName, takesCallable = true)
+        if (typeParams.isNotEmpty()) {
+            // Generic fallback: pins the type variables with zero arguments —
+            // guaranteed-unambiguous name for declarations whose `kap(f)` shape
+            // collides with another declaration's.
+            writer.write("/** Generic zero-arg alternative — `kap$baseName<Double>()`. */\n")
+            emitEntry("kap$baseName", takesCallable = false)
+        }
     }
 
 }

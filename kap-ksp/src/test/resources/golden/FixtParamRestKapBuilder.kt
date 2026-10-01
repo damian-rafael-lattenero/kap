@@ -135,6 +135,11 @@ inline infix fun <A, B> FixtParamRestKap<A>.andThen(
 suspend fun <A> FixtParamRestKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtParamRestKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
+fun <Rest> kap(f: (Rest, kotlin.Int) -> FixtParamRest<Rest>): FixtParamRestKap<(FixtParamRestBody<Rest>) -> (FixtParamRestCount) -> FixtParamRest<Rest>> =
+    FixtParamRestKap(Kap.of({ p0: FixtParamRestBody<Rest> -> { p1: FixtParamRestCount -> f(p0.value, p1.value) } }))
+
+/** Generic zero-arg alternative — `kapFixtParamRest<Double>()`. */
 fun <Rest> kapFixtParamRest(): FixtParamRestKap<(FixtParamRestBody<Rest>) -> (FixtParamRestCount) -> FixtParamRest<Rest>> =
     FixtParamRestKap(Kap.of({ p0: FixtParamRestBody<Rest> -> { p1: FixtParamRestCount -> FixtParamRest(p0.value, p1.value) } }))
+

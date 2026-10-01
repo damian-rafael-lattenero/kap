@@ -132,9 +132,17 @@ infix fun <E, A, B> FixtMultiGenericValidatedKap<E, (FixtMultiGenericNote) -> Fi
 suspend fun <E, A> FixtMultiGenericValidatedKap<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtMultiGenericValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
+fun <E, A, B> kapV(f: (A, B, kotlin.String) -> FixtMultiGeneric<A, B>): FixtMultiGenericValidatedKap<E, (FixtMultiGenericFirst<A>) -> (FixtMultiGenericSecond<B>) -> (FixtMultiGenericNote) -> FixtMultiGeneric<A, B>> {
+    val fn: (FixtMultiGenericFirst<A>) -> (FixtMultiGenericSecond<B>) -> (FixtMultiGenericNote) -> FixtMultiGeneric<A, B> = { p0: FixtMultiGenericFirst<A> -> { p1: FixtMultiGenericSecond<B> -> { p2: FixtMultiGenericNote -> f(p0.value, p1.value, p2.value) } } }
+    val kap: Kap<Either<NonEmptyList<E>, (FixtMultiGenericFirst<A>) -> (FixtMultiGenericSecond<B>) -> (FixtMultiGenericNote) -> FixtMultiGeneric<A, B>>> = Kap.of(Either.Right(fn))
+    return FixtMultiGenericValidatedKap(kap)
+}
+
+/** Generic zero-arg alternative — `kapVFixtMultiGeneric<Double>()`. */
 fun <E, A, B> kapVFixtMultiGeneric(): FixtMultiGenericValidatedKap<E, (FixtMultiGenericFirst<A>) -> (FixtMultiGenericSecond<B>) -> (FixtMultiGenericNote) -> FixtMultiGeneric<A, B>> {
     val fn: (FixtMultiGenericFirst<A>) -> (FixtMultiGenericSecond<B>) -> (FixtMultiGenericNote) -> FixtMultiGeneric<A, B> = { p0: FixtMultiGenericFirst<A> -> { p1: FixtMultiGenericSecond<B> -> { p2: FixtMultiGenericNote -> FixtMultiGeneric(p0.value, p1.value, p2.value) } } }
     val kap: Kap<Either<NonEmptyList<E>, (FixtMultiGenericFirst<A>) -> (FixtMultiGenericSecond<B>) -> (FixtMultiGenericNote) -> FixtMultiGeneric<A, B>>> = Kap.of(Either.Right(fn))
     return FixtMultiGenericValidatedKap(kap)
 }
+

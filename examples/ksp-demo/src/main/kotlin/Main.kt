@@ -107,7 +107,7 @@ suspend fun main() {
         .evalGraph()
     println("  Checkout: $checkout")
 
-    val checkout2 = kapCheckout2<Double>()
+    val checkout2 = kap<Double>(::Checkout2)
         .with { user from fetchUser() }
         .with { cart from fetchCart() }
         .then { validated from validateOrder() }

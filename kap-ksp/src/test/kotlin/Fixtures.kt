@@ -41,6 +41,15 @@ data class FixtParamE<E>(val payload: E, val note: String)
 @KapTypeSafe
 data class FixtParamRest<Rest>(val body: Rest, val count: Int)
 
+// ── Full-signature collision between generics: identical canonical
+// `(#0) -> FixtGenWrap<#0>` — both fall back to zero-arg class-named entries.
+
+@KapTypeSafe
+data class FixtGenWrap<T>(val inner: T)
+
+@KapTypeSafe
+fun <T> fixtGenWrapFn(inner: T): FixtGenWrap<T> = FixtGenWrap(inner)
+
 @KapTypeSafe
 data class FixtAllSameType(val a: String, val b: String, val c: String)
 

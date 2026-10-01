@@ -103,9 +103,17 @@ infix fun <E, T> FixtGenericValidatedKap<E, (FixtGenericAmount<T>) -> FixtGeneri
 suspend fun <E, A> FixtGenericValidatedKap<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtGenericValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
+fun <E, T> kapV(f: (kotlin.String, T) -> FixtGeneric<T>): FixtGenericValidatedKap<E, (FixtGenericLabel) -> (FixtGenericAmount<T>) -> FixtGeneric<T>> {
+    val fn: (FixtGenericLabel) -> (FixtGenericAmount<T>) -> FixtGeneric<T> = { p0: FixtGenericLabel -> { p1: FixtGenericAmount<T> -> f(p0.value, p1.value) } }
+    val kap: Kap<Either<NonEmptyList<E>, (FixtGenericLabel) -> (FixtGenericAmount<T>) -> FixtGeneric<T>>> = Kap.of(Either.Right(fn))
+    return FixtGenericValidatedKap(kap)
+}
+
+/** Generic zero-arg alternative — `kapVFixtGeneric<Double>()`. */
 fun <E, T> kapVFixtGeneric(): FixtGenericValidatedKap<E, (FixtGenericLabel) -> (FixtGenericAmount<T>) -> FixtGeneric<T>> {
     val fn: (FixtGenericLabel) -> (FixtGenericAmount<T>) -> FixtGeneric<T> = { p0: FixtGenericLabel -> { p1: FixtGenericAmount<T> -> FixtGeneric(p0.value, p1.value) } }
     val kap: Kap<Either<NonEmptyList<E>, (FixtGenericLabel) -> (FixtGenericAmount<T>) -> FixtGeneric<T>>> = Kap.of(Either.Right(fn))
     return FixtGenericValidatedKap(kap)
 }
+

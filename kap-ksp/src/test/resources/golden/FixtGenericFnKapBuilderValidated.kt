@@ -103,9 +103,17 @@ infix fun <E, T> FixtGenericFnValidatedKap<E, (FixtGenericFnN) -> kotlin.Pair<T,
 suspend fun <E, A> FixtGenericFnValidatedKap<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtGenericFnValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
+fun <E, T> kapV(f: (T, kotlin.Int) -> kotlin.Pair<T, kotlin.Int>): FixtGenericFnValidatedKap<E, (FixtGenericFnSeed<T>) -> (FixtGenericFnN) -> kotlin.Pair<T, kotlin.Int>> {
+    val fn: (FixtGenericFnSeed<T>) -> (FixtGenericFnN) -> kotlin.Pair<T, kotlin.Int> = { p0: FixtGenericFnSeed<T> -> { p1: FixtGenericFnN -> f(p0.value, p1.value) } }
+    val kap: Kap<Either<NonEmptyList<E>, (FixtGenericFnSeed<T>) -> (FixtGenericFnN) -> kotlin.Pair<T, kotlin.Int>>> = Kap.of(Either.Right(fn))
+    return FixtGenericFnValidatedKap(kap)
+}
+
+/** Generic zero-arg alternative — `kapVFixtGenericFn<Double>()`. */
 fun <E, T> kapVFixtGenericFn(): FixtGenericFnValidatedKap<E, (FixtGenericFnSeed<T>) -> (FixtGenericFnN) -> kotlin.Pair<T, kotlin.Int>> {
     val fn: (FixtGenericFnSeed<T>) -> (FixtGenericFnN) -> kotlin.Pair<T, kotlin.Int> = { p0: FixtGenericFnSeed<T> -> { p1: FixtGenericFnN -> fixtGenericFn(p0.value, p1.value) } }
     val kap: Kap<Either<NonEmptyList<E>, (FixtGenericFnSeed<T>) -> (FixtGenericFnN) -> kotlin.Pair<T, kotlin.Int>>> = Kap.of(Either.Right(fn))
     return FixtGenericFnValidatedKap(kap)
 }
+

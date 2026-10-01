@@ -74,9 +74,10 @@ infix fun <E> FixtPfxOneValidatedKap<E, (FixtPfxOneA) -> kotlin.String>.thenValu
 suspend fun <E, A> FixtPfxOneValidatedKap<E, A>.evalGraph(): Either<NonEmptyList<E>, A> = _kap.evalGraph()
 
 
-/** Validated entry — returns FixtPfxOneValidatedKap so `.withV { field from validate() }` works without imports. */
+/** Validated entry — `kapV(::C)` / `kapV<Double>(::C)` for generics. */
 fun <E> kapVFixtPfxOne(f: (kotlin.String) -> kotlin.String): FixtPfxOneValidatedKap<E, (FixtPfxOneA) -> kotlin.String> {
     val fn: (FixtPfxOneA) -> kotlin.String = { p0: FixtPfxOneA -> f(p0.value) }
     val kap: Kap<Either<NonEmptyList<E>, (FixtPfxOneA) -> kotlin.String>> = Kap.of(Either.Right(fn))
     return FixtPfxOneValidatedKap(kap)
 }
+

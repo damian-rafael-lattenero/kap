@@ -168,6 +168,7 @@ inline infix fun <A, B> FixtWithNullableKap<A>.andThen(
 suspend fun <A> FixtWithNullableKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtWithNullableKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
 fun kap(f: (kotlin.Long, kotlin.String?, kotlin.Int?) -> FixtWithNullable): FixtWithNullableKap<(FixtWithNullableId) -> (FixtWithNullableName) -> (FixtWithNullableCount) -> FixtWithNullable> =
     FixtWithNullableKap(Kap.of({ p0: FixtWithNullableId -> { p1: FixtWithNullableName -> { p2: FixtWithNullableCount -> f(p0.value, p1.value, p2.value) } } }))
+

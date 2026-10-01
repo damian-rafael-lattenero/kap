@@ -135,6 +135,11 @@ inline infix fun <A, B> FixtGenericKap<A>.andThen(
 suspend fun <A> FixtGenericKap<A>.evalGraph(): A = _kap.evalGraph()
 
 
-/** Official entry point — returns FixtGenericKap so `.with { field from value }` works without imports. */
+/** Official entry — `kap(::C)` plain, `kap<Double>(::C)` for generics. */
+fun <T> kap(f: (kotlin.String, T) -> FixtGeneric<T>): FixtGenericKap<(FixtGenericLabel) -> (FixtGenericAmount<T>) -> FixtGeneric<T>> =
+    FixtGenericKap(Kap.of({ p0: FixtGenericLabel -> { p1: FixtGenericAmount<T> -> f(p0.value, p1.value) } }))
+
+/** Generic zero-arg alternative — `kapFixtGeneric<Double>()`. */
 fun <T> kapFixtGeneric(): FixtGenericKap<(FixtGenericLabel) -> (FixtGenericAmount<T>) -> FixtGeneric<T>> =
     FixtGenericKap(Kap.of({ p0: FixtGenericLabel -> { p1: FixtGenericAmount<T> -> FixtGeneric(p0.value, p1.value) } }))
+
