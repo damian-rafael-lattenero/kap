@@ -4,19 +4,19 @@ KSP processor that makes same-type parameter swaps a **compile error**.
 
 ```kotlin
 plugins {
-    id("com.google.devtools.ksp") version "2.3.6"
+    id("com.google.devtools.ksp") version "2.3.12"
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:3.0.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:4.1.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:4.1.0")
 }
 ```
 
-!!! warning "Unreleased"
-    This module is available in source but **not yet published to Maven Central**. To use it now, build from source. Maven Central publication is planned for the next release.
+!!! info "Published"
+    Available on Maven Central since 4.0.0 (see CHANGELOG). The annotations live in package `kap` — `import kap.KapTypeSafe` / `import kap.KapBridge` (not `kap.ksp.*`).
 
-**Depends on:** KSP2 2.3.6 (compatible with Kotlin 2.3.20).
+**Depends on:** KSP 2.3.12 (built with Kotlin 2.4.21).
 
 ---
 
@@ -84,7 +84,11 @@ kap(::buildDashboard)
     .evalGraph()
 ```
 
-Generated entry point: `kap(::callable)` for both classes and functions. If multiple `@KapTypeSafe` functions share the same `(params) -> return` signature, the processor emits suffixed fallbacks like `kapBuildDashboard(::buildDashboard)` to avoid identical-signature overloads.
+Generated entry point: `kap(::callable)` for both classes and functions — including classes in other packages via `@KapBridge` (packaged classes get the plain `kap(f)` entry too since 4.1.0). The naming rule:
+
+- `kap(f)` when the constructor/function signature is unique across all annotated declarations;
+- otherwise a class-named fallback `kapBuildDashboard(::buildDashboard)` (built as `kap` + the declaration's capitalized name);
+- generic declarations additionally get a zero-arg `kapBuildDashboard<T>()` fallback that pins the type variables without a callable reference.
 
 ---
 
@@ -157,7 +161,7 @@ val user: User = kap(::User)
     .evalGraph()
 ```
 
-**2. `KapLike<F>` on the wrapper.** Partial wrappers (mid-chain) implement `KapLike<F>`, which ships delegate extensions for all kap-core operators. If you need to apply operators before the chain is complete, they are available directly — no `.asKap` required for kap-core operators.
+**2. `KapLike<F>` on the wrapper.** Partial wrappers (mid-chain) implement `KapLike<F>`, which ships delegate extensions for the kap-core operators (`map`, `andThen`, `recover`, `recoverWith`, `timeout(d)` / `timeout(d, default)` / `timeout(d, fallback)`, `timeoutAsFailure(d)`, `settled`, `memoize`, `timed`, `orElse`, `isolated`, `traced`, `named`, `on(context)`, `evalGraph`) and — with `kap-resilience` on the classpath — `retry(schedule)` / `retry(scheduleFactory)`, `retryOrElse`, `retryWithResult`, `withCircuitBreaker` and `timeoutRace`. A `@KapTypeSafe` chain can therefore apply any of these mid-way, before the chain is complete — no `.asKap` required.
 
 For Kap-decorated **per-slot** values (timeout/retry on a single field), use the parens form — `from` has a `Kap<T>` overload:
 

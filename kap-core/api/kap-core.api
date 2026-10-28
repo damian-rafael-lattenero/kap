@@ -33,6 +33,7 @@ public final class kap/CombinatorsKt {
 	public static final fun timeout-8Mi8wO0 (Lkap/Kap;JLjava/lang/Object;)Lkap/Kap;
 	public static final fun timeout-8Mi8wO0 (Lkap/Kap;JLkap/Kap;)Lkap/Kap;
 	public static final fun timeout-HG0u8IE (Lkap/Kap;J)Lkap/Kap;
+	public static final fun timeoutAsFailure-HG0u8IE (Lkap/Kap;J)Lkap/Kap;
 }
 
 public final class kap/CombineKt {
@@ -73,6 +74,11 @@ public final class kap/InteropKt {
 	public static final fun toKap (Lkotlinx/coroutines/Deferred;)Lkap/Kap;
 }
 
+public final class kap/IsolationKt {
+	public static final fun executeIsolated (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun isolated (Lkap/Kap;)Lkap/Kap;
+}
+
 public abstract interface class kap/Kap {
 	public static final field Companion Lkap/Kap$Companion;
 	public abstract fun execute (Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -81,6 +87,8 @@ public abstract interface class kap/Kap {
 public final class kap/Kap$Companion {
 	public final fun defer (Lkotlin/jvm/functions/Function0;)Lkap/Kap;
 	public final fun failed (Ljava/lang/Throwable;)Lkap/Kap;
+	public final fun getEmpty ()Lkap/Kap;
+	public final fun of (Ljava/lang/Object;)Lkap/Kap;
 }
 
 public final class kap/KapKt {
@@ -90,7 +98,7 @@ public final class kap/KapKt {
 	public static final fun evalGraph (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static final fun evalGraphTimed (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static final fun getContext ()Lkap/Kap;
-	public static final fun getEmpty (Lkap/Kap$Companion;)Lkap/Kap;
+	public static final synthetic fun getEmpty (Lkap/Kap$Companion;)Lkap/Kap;
 	public static final fun kap (Lkotlin/jvm/functions/Function0;)Lkap/Kap;
 	public static final fun keepFirst (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
 	public static final fun keepSecond (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
@@ -98,7 +106,7 @@ public final class kap/KapKt {
 	public static final fun memoize (Lkap/Kap;)Lkap/Kap;
 	public static final fun memoizeOnSuccess (Lkap/Kap;)Lkap/Kap;
 	public static final fun named (Lkap/Kap;Ljava/lang/String;)Lkap/Kap;
-	public static final fun of (Lkap/Kap$Companion;Ljava/lang/Object;)Lkap/Kap;
+	public static final synthetic fun of (Lkap/Kap$Companion;Ljava/lang/Object;)Lkap/Kap;
 	public static final fun on (Lkap/Kap;Lkotlin/coroutines/CoroutineContext;)Lkap/Kap;
 	public static final fun peek (Lkap/Kap;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
 	public static final fun settled (Lkap/Kap;)Lkap/Kap;
@@ -131,6 +139,16 @@ public final class kap/KapLikeKt {
 	public static final fun timeout-HG0u8IE (Lkap/KapLike;J)Lkap/Kap;
 }
 
+public final class kap/KapLikeOperatorsKt {
+	public static final fun isolated (Lkap/KapLike;)Lkap/Kap;
+	public static final fun named (Lkap/KapLike;Ljava/lang/String;)Lkap/Kap;
+	public static final fun on (Lkap/KapLike;Lkotlin/coroutines/CoroutineContext;)Lkap/Kap;
+	public static final fun orElse (Lkap/KapLike;Lkap/Kap;)Lkap/Kap;
+	public static final fun timeout-8Mi8wO0 (Lkap/KapLike;JLkap/Kap;)Lkap/Kap;
+	public static final fun timeoutAsFailure-HG0u8IE (Lkap/KapLike;J)Lkap/Kap;
+	public static final fun traced (Lkap/KapLike;Ljava/lang/String;Lkap/KapTracer;)Lkap/Kap;
+}
+
 public final class kap/KapScope {
 	public fun <init> (Lkotlinx/coroutines/CoroutineScope;)V
 	public final fun bind (Lkap/Kap;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -142,6 +160,11 @@ public final class kap/KapScopeKt {
 	public static final fun computation (Lkotlin/jvm/functions/Function2;)Lkap/Kap;
 }
 
+public final class kap/KapTimeoutException : java/lang/RuntimeException {
+	public synthetic fun <init> (JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getDuration-UwyO8pc ()J
+}
+
 public abstract interface class kap/KapTracer {
 	public abstract fun onEvent (Lkap/TraceEvent;)V
 }
@@ -151,6 +174,10 @@ public final class kap/RaceKt {
 	public static final fun raceAgainst (Lkap/Kap;Lkap/Kap;)Lkap/Kap;
 	public static final fun raceAll (Ljava/lang/Iterable;)Lkap/Kap;
 	public static final fun raceN ([Lkap/Kap;)Lkap/Kap;
+}
+
+public final class kap/RepeatKt {
+	public static final fun awaiting (Lkap/Kap$Companion;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
 }
 
 public final class kap/TimedResult {

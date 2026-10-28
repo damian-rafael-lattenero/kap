@@ -66,14 +66,14 @@ coroutineScope {
     val dTax      = async { calcTax() }
 
     // circuit breaker — interleaved with business logic
-    val payment = if (!breaker.shouldAttempt()) {
+    val payment = if (!breaker.tryAcquire()) {
         throw CircuitBreakerOpenException()
     } else {
         try {
             val p = withTimeout(5.seconds) { reservePayment() }
-            breaker.recordSuccess(); p
+            breaker.onSuccess(); p
         } catch (e: CancellationException) { throw e }
-        catch (e: Exception) { breaker.recordFailure(); throw e }
+        catch (e: Exception) { breaker.onFailure(); throw e }
     }
 
     CheckoutResult(user, cart, promos, stock, dShipping.await(), dTax.await(), payment)
@@ -378,7 +378,7 @@ val paymentBreaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> {
 
     // ── Phase 1: validate (parallel, accumulate ALL errors) ──────────
-    val validated = kapV<OrderError, ValidAddress, ValidCard, ValidItems, ValidOrder>(::ValidOrder)
+    val validated = kapV<OrderError>(::ValidOrder)
         .withV { validateAddress(input.address) }       // ┐ all three run in parallel
         .withV { validatePaymentInfo(input.card) }      // ├─ errors accumulate
         .withV { validateItems(input.items) }           // ┘
@@ -392,7 +392,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
         use = { tx ->
             kap(::OrderResult)
                 .with(OrderResultKap.finalPrice from raceN(             // phase 2: race 3 providers
-                    Kap { pricingServiceA(order) },                     //   fastest wins
+                    Kap { pricingServiceA(order) },                     //   first success wins
                     Kap { pricingServiceB(order) },
                     Kap { pricingServiceC(order) },
                 ))
@@ -431,9 +431,9 @@ Every one of these is a method call — no boilerplate, no manual state:
 
 | Pattern | KAP | What it does |
 |---|---|---|
-| **Race** | `raceN(a, b, c)` | Fastest wins, losers cancelled |
+| **Race** | `raceN(a, b, c)` | First success wins, losers cancelled |
 | **Bounded concurrency** | `ids.traverse(concurrency = 5) { Kap { fetch(it) } }` | Process N items, max M at a time |
-| **Timeout with fallback** | `kap.timeoutRace(2.seconds, fallback)` | Both start at t=0, fastest wins |
+| **Timeout with fallback** | `kap.timeoutRace(2.seconds, fallback)` | Both start at t=0, primary wins if it beats the deadline |
 | **Composable retry** | `kap.retry(Schedule.exponential().jittered().and(times(3)))` | Define once, reuse everywhere |
 | **Timed** | `timed { fetchSlowService() }` | Returns `TimedResult(value, duration)` |
 | **Memoize** | `Kap { loadConfig() }.memoizeOnSuccess()` | Compute once, cache thread-safely |
@@ -502,6 +502,8 @@ KAP is modular. Start with core, add as you grow:
 | [`kap-ktor`](modules/kap-ktor.md) | Ktor plugin, circuit breaker registry, tracers, `respondAsync` | `kap-core` + Ktor |
 | [`kap-kotest`](modules/kap-kotest.md) | `shouldSucceedWith`, `shouldFailWith`, timing & lifecycle matchers | `kap-core` (test) |
 
+All artifacts are on Maven Central (group `io.github.damian-rafael-lattenero`), built with Kotlin 2.4.21 and kotlinx-coroutines 1.11.0.
+
 [API Reference (KDocs)](api/index.html){ .md-button }
 
 ---
@@ -514,17 +516,17 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
 
     // KSP — named builder generation (@KapTypeSafe)
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:3.0.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:4.1.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:4.1.0")
 
     // Optional
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:3.0.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:3.0.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ktor:3.0.0")
-    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:4.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:4.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ktor:4.1.0")
+    testImplementation("io.github.damian-rafael-lattenero:kap-kotest:4.1.0")
 }
 ```
 

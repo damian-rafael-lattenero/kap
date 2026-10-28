@@ -86,3 +86,6 @@ fun ApplicationCall.circuitBreaker(name: String): CircuitBreaker =
         ?: throw IllegalArgumentException(
             "CircuitBreaker '$name' not registered. Available: ${kapConfig.circuitBreakers.keys}"
         )
+
+/** The same plugin under a name that does not collide with [kap.Kap] when both packages are star-imported (4.1.0). */
+val KapPlugin get() = Kap

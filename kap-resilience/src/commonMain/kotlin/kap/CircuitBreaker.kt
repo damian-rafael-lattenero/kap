@@ -57,6 +57,39 @@ class CircuitBreaker(
     /** Current state of the circuit breaker (snapshot — may change immediately after reading). */
     val currentState: State get() = state
 
+    // ── Public, mutex-taking API (4.1.0): guard code that is not a Kap ──
+
+    // Mutex.withLock is inline-suspend: detekt's RedundantSuspendModifier cannot see the suspension.
+    /** True when a call may proceed (Closed, or HalfOpen probing). */
+    @Suppress("RedundantSuspendModifier")
+    suspend fun tryAcquire(): Boolean = mutex.withLock { shouldAttempt() }
+
+    /** Records a success: closes the breaker from HalfOpen, resets the failure count. */
+    @Suppress("RedundantSuspendModifier")
+    suspend fun onSuccess() = mutex.withLock { recordSuccess() }
+
+    /** Records a failure: counts towards [maxFailures], reopens from HalfOpen. */
+    @Suppress("RedundantSuspendModifier")
+    suspend fun onFailure() = mutex.withLock { recordFailure() }
+
+    /**
+     * Runs [block] under the breaker: throws [CircuitBreakerOpenException]
+     * when open, records the outcome otherwise. Cancellation is never counted.
+     */
+    // The breaker must count EVERY failure, exactly like withCircuitBreaker does.
+    @Suppress("TooGenericExceptionCaught", "ThrowsCount")
+    suspend fun <A> protect(block: suspend () -> A): A {
+        if (!tryAcquire()) throw CircuitBreakerOpenException()
+        return try {
+            block().also { onSuccess() }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            onFailure()
+            throw e
+        }
+    }
+
     internal fun transitionTo(newState: State) {
         val old = state
         if (old != newState) {
@@ -131,7 +164,7 @@ fun <A> Kap<A>.withCircuitBreaker(breaker: CircuitBreaker): Kap<A> {
             }
         }
         try {
-            val result = with(self) { execute() }
+            val result = with(self.isolated()) { execute() }
             breaker.mutex.withLock { breaker.recordSuccess() }
             result
         } catch (e: kotlinx.coroutines.CancellationException) {

@@ -11,6 +11,11 @@ import kotlin.time.Duration
 /**
  * Fails with [kotlinx.coroutines.TimeoutCancellationException] if this
  * computation does not complete within [duration].
+ *
+ * **Not retryable.** The failure is a [CancellationException], which every
+ * `retry` rethrows by law, so `timeout(d).retry(policy)` never retries a slow
+ * call. To retry on timeout use [timeoutAsFailure] (an ordinary
+ * [KapTimeoutException]) or the fallback overload.
  */
 fun <A> Kap<A>.timeout(duration: Duration): Kap<A> = Kap {
     withTimeout(duration) { with(this@timeout) { execute() } }
@@ -39,6 +44,20 @@ fun <A> Kap<A>.timeout(duration: Duration, default: A): Kap<A> = Kap {
  * computations that return `null` as a valid value — a `null` result is never
  * confused with a timeout.
  */
+/** An ordinary failure (not a cancellation) raised by [timeoutAsFailure]. */
+class KapTimeoutException(val duration: Duration) : RuntimeException("timed out after $duration")
+
+/**
+ * Like [timeout], but the expiry is an ordinary [KapTimeoutException], so
+ * `retry`, `recover` and `settled` see it as a failure they may handle:
+ *
+ * ```
+ * Kap { fetch() }.timeoutAsFailure(2.seconds).retry(Schedule.times(3))
+ * ```
+ */
+fun <A> Kap<A>.timeoutAsFailure(duration: Duration): Kap<A> =
+    timeout(duration, Kap.failed(KapTimeoutException(duration)))
+
 fun <A> Kap<A>.timeout(duration: Duration, fallback: Kap<A>): Kap<A> = Kap {
     var holder: ValueHolder<A>? = null
     withTimeoutOrNull(duration) {
@@ -58,7 +77,7 @@ fun <A> Kap<A>.timeout(duration: Duration, fallback: Kap<A>): Kap<A> = Kap {
  */
 inline fun <A> Kap<A>.recover(crossinline f: suspend (Throwable) -> A): Kap<A> = Kap {
     try {
-        with(this@recover) { execute() }
+        this@recover.executeIsolated()
     } catch (e: Throwable) {
         if (e is CancellationException) throw e
         f(e)
@@ -70,7 +89,7 @@ inline fun <A> Kap<A>.recover(crossinline f: suspend (Throwable) -> A): Kap<A> =
  */
 inline fun <A> Kap<A>.recoverWith(crossinline f: suspend (Throwable) -> Kap<A>): Kap<A> = Kap {
     try {
-        with(this@recoverWith) { execute() }
+        this@recoverWith.executeIsolated()
     } catch (e: Throwable) {
         if (e is CancellationException) throw e
         with(f(e)) { execute() }
@@ -113,7 +132,7 @@ fun <A> Kap<A>.retry(
         var lastException: Throwable? = null
         repeat(maxAttempts) { attempt ->
             try {
-                return@Kap with(this@retry) { execute() }
+                return@Kap this@retry.executeIsolated()
             } catch (e: Throwable) {
                 if (e is CancellationException) throw e
                 if (!shouldRetry(e)) throw e
@@ -193,7 +212,7 @@ fun <A, B : Any> Kap<A>.ensureNotNull(
  */
 infix fun <A> Kap<A>.orElse(other: Kap<A>): Kap<A> = Kap {
     try {
-        with(this@orElse) { execute() }
+        this@orElse.executeIsolated()
     } catch (e: Throwable) {
         if (e is CancellationException) throw e
         with(other) { execute() }
@@ -224,7 +243,7 @@ fun <A> firstSuccessOf(vararg computations: Kap<A>): Kap<A> {
         val errors = mutableListOf<Throwable>()
         for (c in computations) {
             try {
-                return@Kap with(c) { execute() }
+                return@Kap c.executeIsolated()
             } catch (e: Throwable) {
                 if (e is CancellationException) throw e
                 errors.add(e)

@@ -5,10 +5,14 @@ import kotlin.time.Duration
 /**
  * Marker interface implemented by generated KSP wrappers (`${T}Kap<F>`).
  *
- * Exposes kap-core operators (.map, .recover, .timeout, .settled, .memoize,
- * .timed, .andThen, .evalGraph) directly on partial wrappers — without forcing
- * the wrapper to extend `Kap<F>` (which would trigger K2 overload-resolution
- * issues against the imported `Kap.with` extension).
+ * Exposes kap-core operators (.map, .andThen, .recover, .recoverWith,
+ * .timeout(d) / .timeout(d, default) / .timeout(d, fallback), .timeoutAsFailure,
+ * .settled, .memoize, .timed, .orElse, .isolated, .traced, .named, .on(context),
+ * .evalGraph) directly on partial wrappers — without forcing the wrapper to
+ * extend `Kap<F>` (which would trigger K2 overload-resolution issues against
+ * the imported `Kap.with` extension). With kap-resilience on the classpath,
+ * KapLikeResilience adds .retry(schedule / scheduleFactory), .retryOrElse,
+ * .retryWithResult, .withCircuitBreaker and .timeoutRace.
  *
  * **Note**: `Kap<F>` deliberately does NOT implement `KapLike<F>` to avoid
  * double-resolution conflicts with the existing Kap extension operators.

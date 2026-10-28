@@ -21,7 +21,11 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: corretto
-          java-version: 21
+          java-version: 25   # compilation toolchain (jvmToolchain(25))
+      - uses: actions/setup-java@v5
+        with:
+          distribution: corretto
+          java-version: 21   # Gradle daemon (detekt 1.23 cannot run on JDK >= 24)
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Generate Dokka API docs

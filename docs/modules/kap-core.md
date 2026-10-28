@@ -3,11 +3,11 @@
 The foundation module. Type-safe parallel orchestration with visible phases.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
+implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
 ```
 
 **Depends on:** `kotlinx-coroutines-core` only.
-**Platforms:** JVM, JS (IR), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
+**Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
 **Tests:** 438 tests across 33 test classes, including property-based algebraic law verification.
 
 ---
@@ -211,9 +211,11 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         .evalGraph()
     ```
 
-=== "combine (suspend lambdas)"
+=== "combine (suspend lambdas — deprecated)"
 
     ```kotlin
+    // WARNING: the suspend-lambda combine family is deprecated (WARNING level)
+    // and will be removed in a future release — prefer zip/combine over Kaps.
     val result = combine(
         { fetchUser() },
         { fetchCart() },
@@ -233,9 +235,10 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
         .evalGraph()
     ```
 
-=== "pair / triple"
+=== "pair / triple (deprecated)"
 
     ```kotlin
+    // Also deprecated suspend-lambda helpers — use zip with ::Pair / ::Triple.
     val (user, cart) = pair({ fetchUser() }, { fetchCart() }).evalGraph()
     val (a, b, c) = triple({ fetchA() }, { fetchB() }, { fetchC() }).evalGraph()
     ```
@@ -294,6 +297,8 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
     // Use the result with a fallback:
     val userName = dashboard.user.getOrDefault("anonymous")  // "anonymous"
     ```
+
+Since 4.1.0 `settled` (and every other CONVERT/RETRY operator) runs its operand inside its own `coroutineScope`, so a failure inside a **nested** parallel graph (`traverse`/`with`/`zip` children) is converted to `Result.failure` too instead of cancelling the surrounding chain — the Isolation law (see [error semantics](../design/error-semantics.md)). The escape hatch `Kap<A>.isolated()` applies the same scope boundary to any graph you hand to a third party.
 
 #### `timed { }` — Measure any call without manual instrumentation
 
@@ -467,9 +472,22 @@ Like `settled { }`, `timed { }` is a top-level shorthand for `Kap { block() }.ti
 
     ```kotlin
     val result = Kap { fetchSlowService() }
-        .timeout(500.milliseconds) { "fallback-value" }
+        .timeout(500.milliseconds, "fallback-value")
         .evalGraph()
     ```
+
+#### `.timeoutAsFailure(duration)` — a timeout that retry/recover can handle
+
+`timeout(duration)` fails with `TimeoutCancellationException`, which is a `CancellationException` — and by law every `retry` rethrows cancellations, so `timeout(d).retry(...)` **never retries a slow call**. Use `timeoutAsFailure(d)` when the timeout should be an ordinary failure (`KapTimeoutException`) that `retry`, `recover` and `settled` can handle:
+
+```kotlin
+val result = Kap { fetchSlowService() }
+    .timeoutAsFailure(2.seconds)   // KapTimeoutException, not a cancellation
+    .retry(Schedule.times<Throwable>(3))  // retries slow calls too (kap-resilience)
+    .evalGraph()
+```
+
+There is also a `timeout(duration, fallback: Kap<A>)` overload that runs a fallback graph on expiry.
 
 #### `.recover { }` / `.recoverWith { }`
 
@@ -636,7 +654,7 @@ Simple retry (for composable Schedule-based retry, see [kap-resilience](kap-resi
 
 ### Racing
 
-**Use this when:** you want the fastest result from multiple sources.
+**Use this when:** you want the first *success* from multiple sources (an early failure does not win — it only surfaces when every racer fails, accumulated as suppressed exceptions).
 
 #### `raceN(c1, c2, ..., cN)` — First to succeed wins, rest cancelled
 
@@ -782,15 +800,17 @@ val g2 = Kap.of { name: String -> { age: Int -> greet(name, age) } }
 // Function — annotate with @KapTypeSafe for named builders
 @KapTypeSafe
 fun buildSummary(name: String, items: Int): String = "$name has $items items"
-val g3 = kap(BuildSummary).with { name from fetchName() }.with { items from 5 }.evalGraph()
+val g3 = kap(::buildSummary).with { name from fetchName() }.with { items from 5 }.evalGraph()
 ```
 
-#### `Kap.of(value)` / `Kap.empty()` / `Kap.failed(error)` / `Kap.defer { }`
+#### `Kap.of(value)` / `Kap.empty` / `Kap.failed(error)` / `Kap.defer { }`
+
+`of`, `empty`, `failed` and `defer` are companion members (since 4.1.0) — no `import kap.of` needed:
 
 ```kotlin
 val pure: Kap<Int> = Kap.of(42)                              // pure value
-val unit: Kap<Unit> = Kap.empty()                             // Unit computation
-val failed: Kap<String> = Kap.failed(RuntimeException("boom")) // wrapped failure
+val unit: Kap<Unit> = Kap.empty                              // Unit computation
+val failed: Kap<Nothing> = Kap.failed(RuntimeException("boom")) // wrapped failure
 val lazy: Kap<String> = Kap.defer { Kap { expensiveSetup() } } // lazy construction
 ```
 
@@ -818,9 +838,9 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
     data class Page(val content: Content, val sidebar: Sidebar, val timestamp: Timestamp)
 
     val result = kap(::Page)
-        .with { content from fetchContent() }           // parallel
-        .with { sidebar from fetchSidebar() }           // parallel
-        .then { value from computeTimestamp() }  // sequential fill, no barrier
+        .with { content from fetchContent() }                    // parallel
+        .with { sidebar from fetchSidebar() }                    // parallel
+        .thenValue { timestamp from computeTimestamp() }  // sequential fill, no barrier
         .evalGraph()
     ```
 
@@ -842,11 +862,11 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
     ```kotlin
     // Parallel Flow processing
     userIdFlow
-        .mapEffect(concurrency = 5) { id -> Kap { fetchUser(id) } }
+        .mapKap(concurrency = 5) { id -> Kap { fetchUser(id) } }
         .collect { user -> process(user) }
     ```
 
-#### `Flow.mapEffectOrdered` — Preserve upstream order
+#### `Flow.mapKapOrdered` — Preserve upstream order
 
 === "Raw Coroutines"
 
@@ -872,7 +892,7 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
 
     ```kotlin
     val results: Flow<String> = userIdFlow
-        .mapEffectOrdered(concurrency = 5) { id -> Kap { fetchUser(id) } }
+        .mapKapOrdered(concurrency = 5) { id -> Kap { fetchUser(id) } }
     // Results arrive in the same order as the input Flow
     ```
 
@@ -1066,12 +1086,17 @@ suspend fun myFunction(): String {
 }
 ```
 
-#### `delayed(duration, value)` / `withOrNull`
+#### `delayed(duration, value)` / `.withOrNull(fa)`
 
 ```kotlin
 val result = delayed(100.milliseconds, "delayed-value").evalGraph()
 
-val maybeResult: String? = withOrNull { Kap { riskyOperation() } }
+// withOrNull fills a NULLABLE slot of a curried function — passes null when the Kap is null
+val insurance: Kap<String>? = null
+val booking = kap(::Booking)                       // Booking(flight: String, insurance: String?)
+    .with { flight from fetchFlight() }
+    .withOrNull(insurance)                          // insurance slot gets null, no launch
+    .evalGraph()
 ```
 
 ### Execution model
@@ -1097,7 +1122,7 @@ val result: Dashboard = plan.evalGraph()  // NOW it runs
 
 - **Structured concurrency**: All parallel branches run inside `coroutineScope`. One fails → siblings cancel.
 - **Cancellation safety**: `CancellationException` is never caught. All combinators re-throw it.
-- **Context propagation**: `.evalGraph(MDCContext())` propagates context to all branches.
+- **Context propagation**: `withContext(MDCContext()) { graph.evalGraph() }` propagates context to all branches (`evalGraph()` takes no arguments); the `context` Kap captures the caller's context inside a graph.
 - **No reflection**: All type safety is compile-time. Zero runtime overhead.
 - **Algebraic laws**: Functor, Applicative, Monad — property-tested via Kotest. See [LAWS.md](https://github.com/damian-rafael-lattenero/kap/blob/master/LAWS.md).
 
@@ -1113,8 +1138,9 @@ val result: Dashboard = plan.evalGraph()  // NOW it runs
 | Use previous result in next phase | `.andThen { ctx -> }` |
 | Handle one failure without cancelling rest | `settled { }` |
 | Process a list with bounded concurrency | `traverse(concurrency) { }` |
-| Retry on failure | `.retry(schedule)` |
-| Timeout with fallback | `.timeout(duration) { default }` |
+| Retry on failure | `.retry(maxAttempts, delay = …)` (core) / `.retry(schedule)` (kap-resilience) |
+| Timeout with fallback | `.timeout(duration, default)` |
+| Timeout that retry can handle | `.timeoutAsFailure(duration)` |
 | Recover from errors | `.recover { }` |
 | Race multiple sources | `raceN(c1, c2, c3)` |
 | Cache computation result | `.memoizeOnSuccess()` |

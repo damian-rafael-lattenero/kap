@@ -8,12 +8,12 @@ KAP's `kap-arrow` module **uses** Arrow's `Either` and `NonEmptyList`. You don't
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:3.0.0") // uses Arrow Core
+    implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:4.1.0") // uses Arrow Core
 }
 ```
 
-## Simple parallel: `parZip` → `combine`
+## Simple parallel: `parZip` → `zip`
 
 === "Arrow"
 
@@ -28,15 +28,15 @@ dependencies {
 === "KAP"
 
     ```kotlin
-    val result = combine(
-        { fetchUser() },
-        { fetchCart() },
-        { fetchPromos() },
+    val result = zip(
+        Kap { fetchUser() },
+        Kap { fetchCart() },
+        Kap { fetchPromos() },
     ) { user, cart, promos -> Dashboard(user, cart, promos) }
         .evalGraph()
     ```
 
-Almost identical. KAP's `combine` is Arrow's `parZip` equivalent.
+Almost identical. KAP's `zip`/`combine` over Kaps is Arrow's `parZip` equivalent (the old suspend-lambda `combine` family is deprecated — wrap the lambdas in `Kap { }` instead).
 
 ## Type-safe ordering: `parZip` → `kap` + `.with`
 

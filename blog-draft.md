@@ -1,5 +1,7 @@
 # From 30 Lines of async/await to 12: Type-Safe Parallel Orchestration in Kotlin
 
+> **DRAFT — NOT PUBLISHED.** Unpublished working draft; the published version of this story lives at `docs/blog/posts/from-30-lines-to-12.md`. API names and coordinates below are checked against KAP 4.1.0.
+
 *How I built KAP to solve the multi-phase parallel execution problem that raw coroutines and Arrow don't address.*
 
 ---
@@ -123,7 +125,7 @@ No reflection. No runtime code generation. Pure Kotlin type system.
 
 ## Performance
 
-We run 119 JMH benchmarks on every push. KAP overhead is indistinguishable from raw coroutines:
+We run 122 JMH benchmarks on every push. KAP overhead is indistinguishable from raw coroutines:
 
 | Dimension | Raw Coroutines | Arrow | KAP |
 |---|---|---|---|
@@ -140,14 +142,14 @@ Once you have a composable `Kap<A>` type, you can chain everything:
 
 ```kotlin
 val result = Kap { fetchUser() }
-    .timeout(500.milliseconds)
+    .timeoutAsFailure(500.milliseconds)  // ordinary KapTimeoutException — retry can handle it
     .withCircuitBreaker(breaker)
     .retry(Schedule.times<Throwable>(3) and Schedule.exponential(50.milliseconds))
     .recover { "cached-user" }
     .evalGraph()
 ```
 
-Timeout → circuit breaker → retry with exponential backoff → fallback. One flat chain.
+Timeout → circuit breaker → retry with exponential backoff → fallback. One flat chain. (`timeoutAsFailure` rather than `timeout` matters here: a plain `timeout(d)` fails with a `CancellationException`, which retry rethrows by law — slow calls would never be retried.)
 
 For validation, `zipV` runs all validators in parallel and collects every error:
 
@@ -164,9 +166,9 @@ val result = zipV(
 
 ## Production ready
 
-- 900+ tests including property-based algebraic law verification
-- 119 JMH benchmarks with regression tracking
-- Multiplatform: JVM, JS, iOS, macOS, Linux
+- 1000+ tests including property-based algebraic law verification
+- 122 JMH benchmarks with regression tracking
+- Multiplatform: JVM, JS, WASM, iOS, macOS, Linux
 - Published on Maven Central
 - Binary compatibility validator (no accidental API breaks)
 - Apache 2.0
@@ -175,7 +177,7 @@ val result = zipV(
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:2.6.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
 }
 ```
 

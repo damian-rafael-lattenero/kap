@@ -16,9 +16,9 @@ Or add the dependency manually:
     }
 
     dependencies {
-        implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
-        implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:3.0.0")
-        ksp("io.github.damian-rafael-lattenero:kap-ksp:3.0.0")
+        implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
+        implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:4.1.0")
+        ksp("io.github.damian-rafael-lattenero:kap-ksp:4.1.0")
     }
     ```
 
@@ -30,9 +30,9 @@ Or add the dependency manually:
     }
 
     dependencies {
-        implementation 'io.github.damian-rafael-lattenero:kap-core:3.0.0'
-        implementation 'io.github.damian-rafael-lattenero:kap-ksp-annotations:3.0.0'
-        ksp 'io.github.damian-rafael-lattenero:kap-ksp:3.0.0'
+        implementation 'io.github.damian-rafael-lattenero:kap-core:4.1.0'
+        implementation 'io.github.damian-rafael-lattenero:kap-ksp-annotations:4.1.0'
+        ksp 'io.github.damian-rafael-lattenero:kap-ksp:4.1.0'
     }
     ```
 
@@ -42,13 +42,13 @@ Or add the dependency manually:
     <dependency>
         <groupId>io.github.damian-rafael-lattenero</groupId>
         <artifactId>kap-core-jvm</artifactId>
-        <version>3.0.0</version>
+        <version>4.1.0</version>
     </dependency>
     <!-- See kap-ksp docs for Maven KSP setup -->
     ```
 
 !!! info "KSP enables `@KapTypeSafe`"
-    The KSP plugin and `kap-ksp` processor generate a scoped wrapper with per-slot tag interfaces from your `@KapTypeSafe`-annotated data classes. Inside `.with { field from value }` the lambda's implicit receiver narrows the IDE autocomplete to the field expected at the current curry position — swapping fields is a compile error. The core `.with {}` / `.then {}` operators are reused internally. For advanced composition, you can also use `Kap.of { }` with manual currying.
+    The KSP plugin and `kap-ksp` processor generate a scoped wrapper with per-slot tag interfaces from your `@KapTypeSafe`-annotated data classes. Inside `.with { field from value }` the lambda's implicit receiver narrows the IDE autocomplete to the field expected at the current curry position — swapping fields is a compile error. The core `.with {}` / `.then {}` operators are reused internally. For advanced composition without KSP, wrap a curried function in `Kap.of(f)` (a companion member since 4.1.0 — no `import kap.of` needed) or a suspend block in `Kap { ... }`.
 
 ## 2. Write your first parallel call
 
@@ -80,11 +80,11 @@ suspend fun main() {
 That's it. `@KapTypeSafe` generates `.with { user from  }`, `.with { cart from  }`, `.with { promos from  }` from your data class properties. Three calls run in parallel, results are type-checked into your data class, and each step is self-documenting.
 
 !!! note "Advanced composition"
-    The core `.with {}` / `.then {}` operators are used internally by the named builders. For advanced composition, you can also use `Kap.of { }` with manual currying.
+    The core `.with {}` / `.then {}` operators are used internally by the named builders. For advanced composition without KSP, wrap a curried function in `Kap.of(f)` or a suspend block in `Kap { ... }`.
 
 ## 3. Works on functions too
 
-`@KapTypeSafe` works on functions, not just classes. KSP generates a marker object from the function name:
+`@KapTypeSafe` works on functions, not just classes. The generated entry point takes the function reference:
 
 ```kotlin
 import kap.*
@@ -94,8 +94,7 @@ fun createUser(name: String, email: String, age: Int): String =
     "User($name, $email, $age)"
 
 suspend fun main() {
-    // CreateUser is a generated marker object
-    val result = kap(CreateUser)
+    val result = kap(::createUser)
         .with { name from "Alice" }
         .with { email from "alice@example.com" }
         .with { age from 30 }
@@ -105,7 +104,7 @@ suspend fun main() {
 }
 ```
 
-Classes use `kap(::ClassName)`. Functions use `kap(GeneratedObject)`.
+Classes and functions both use `kap(::name)`. If several annotated declarations share the same `(params) -> return` signature, the processor emits class-named fallbacks (`kapCreateUser(::createUser)`) instead of a colliding `kap` overload; generics additionally get a zero-arg `kapCreateUser<T>()` form.
 
 ## 4. Add phases
 
@@ -228,30 +227,24 @@ val order = graph.evalGraph()
 
 This is what raw coroutines can't do: `async {}` starts immediately. In KAP, the graph is lazy — you build it, shape it, then execute it.
 
-## 8. Extra type safety with `kapTyped`
+## 8. Same-type fields are already swap-proof
 
-`kap(::User)` step classes enforce parameter **order** — but if `firstName` and `lastName` are both `String`, you could return the wrong one inside the lambda. `kapTyped` adds opaque wrapper types so the compiler catches that too:
+`@KapTypeSafe` builders enforce parameter **order** through per-slot tag interfaces — and each slot's `from` wraps the value in an opaque per-field type, so even two `String` fields cannot be swapped:
 
 ```kotlin
 @KapTypeSafe
 data class User(val firstName: String, val lastName: String, val age: Int)
 
-// Named builders — enforces order, raw types
 kap(::User)
-    .with { firstName from fetchFirstName() }
-    .with { lastName from fetchLastName() }
-    .with { age from fetchAge() }
+    .with { firstName from fetchFirstName() }   // only `firstName` resolves here
+    .with { lastName  from fetchLastName()  }   // only `lastName`  resolves here
+    .with { age       from fetchAge()       }   // only `age`       resolves here
     .evalGraph()
-
-// Opaque types — enforces order AND type identity
-kapTyped(::User)
-    .with { fetchFirstName().firstNameUser }   // String → UserFirstName
-    .with { fetchLastName().lastNameUser }     // String → UserLastName
-    .with { fetchAge().ageUser }               // Int → UserAge
-    .evalGraph()
+// Typing `lastName from …` in the first slot is a compile error: the lambda's
+// receiver only exposes the slot for the field expected at that position.
 ```
 
-Extension properties (`.firstNameUser`, `.lastNameUser`) are generated by KSP — the IDE autocompletes them. Use `kap()` for most cases, `kapTyped()` when same-typed fields need extra safety.
+The opaque wrapper types are generated by KSP — the IDE autocompletes the expected field at each position.
 
 ## What's next?
 

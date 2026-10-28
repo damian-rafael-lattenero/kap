@@ -3,11 +3,11 @@
 Retry, resource safety, and protection patterns. All composable in the KAP chain.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-resilience:3.0.0")
+implementation("io.github.damian-rafael-lattenero:kap-resilience:4.1.0")
 ```
 
 **Depends on:** `kap-core`.
-**Platforms:** JVM, JS (IR), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
+**Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
 **Tests:** 164 tests across 16 test classes, including Schedule laws and CircuitBreaker concurrency tests.
 
 ---
@@ -68,13 +68,15 @@ implementation("io.github.damian-rafael-lattenero:kap-resilience:3.0.0")
     // "success on attempt 3"
     ```
 
+Like every RETRY/CONVERT operator, `retry` runs its operand inside its own `coroutineScope` (Isolation law): a failing child of a nested `traverse`/`with`/`zip` graph is observed as an ordinary failure and retried, instead of cancelling the retry itself — enforced by `IsolationResilienceTest`.
+
 ### Building Blocks
 
 | Schedule | Behavior | Example |
 |---|---|---|
 | `times(n)` | Retry up to N times | `Schedule.times<Throwable>(5)` |
 | `spaced(d)` | Fixed delay between retries | `Schedule.spaced(1.seconds)` |
-| `exponential(base, max)` | Exponential backoff | `Schedule.exponential(10.milliseconds, maxDelay = 5.seconds)` |
+| `exponential(base, max)` | Exponential backoff | `Schedule.exponential(10.milliseconds, max = 5.seconds)` |
 | `fibonacci(base)` | Fibonacci-sequence delays | `Schedule.fibonacci(10.milliseconds)` |
 | `linear(base)` | Linearly increasing delays | `Schedule.linear(100.milliseconds)` |
 | `forever()` | Retry indefinitely | `Schedule.forever()` |
@@ -92,12 +94,15 @@ val policy = Schedule.times<Throwable>(5) and
 
 #### `.withMaxDuration(d)` — Total time cap
 
+`withMaxDuration` is a schedule **member** (it wraps the schedule it is called on, tracking elapsed time internally):
+
 ```kotlin
 // Retry for at most 30 seconds total, regardless of attempt count
 val policy = Schedule.forever<Throwable>() and
-    Schedule.exponential(100.milliseconds) and
-    Schedule.withMaxDuration(30.seconds)
+    Schedule.exponential(100.milliseconds).withMaxDuration(30.seconds)
 ```
+
+**Statefulness warning:** a `withMaxDuration` schedule carries its start time. Reuse the same instance across retries and the timer leaks — prefer the `retry(scheduleFactory)` overload for a fresh schedule per invocation.
 
 #### `.doWhile { }` / `.doUntil { }` — Conditional retry
 
@@ -285,11 +290,35 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
     // If it succeeds: back to Closed
     ```
 
+### Guarding code that is not a `Kap`
+
+The breaker also exposes a small public suspend API (4.1.0) for protecting plain suspend calls — `tryAcquire()`, `onSuccess()`, `onFailure()`, and the `protect { }` wrapper that does all three:
+
+```kotlin
+val user = breaker.protect { fetchUser() }   // throws CircuitBreakerOpenException when open,
+                                             // records success/failure, never counts cancellation
+
+// Manual form (what protect does internally):
+if (breaker.tryAcquire()) {
+    try {
+        val u = fetchUser()
+        breaker.onSuccess()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        breaker.onFailure()
+        throw e
+    }
+}
+```
+
+The state-transition bookkeeping (`shouldAttempt`/`recordSuccess`/`recordFailure`) is internal — `withCircuitBreaker`, `protect`, and the tryAcquire/onSuccess/onFailure triad are the supported surface. `breaker.currentState` snapshots the state for observation.
+
 ### Full composition
 
 ```kotlin
 val result = Kap { fetchUser() }
-    .timeout(500.milliseconds)                    // hard timeout
+    .timeoutAsFailure(500.milliseconds)           // hard timeout, as an ORDINARY failure
     .withCircuitBreaker(breaker)                  // circuit breaker
     .retry(Schedule.times<Throwable>(3)           // retry with backoff
         and Schedule.exponential(10.milliseconds))
@@ -297,6 +326,9 @@ val result = Kap { fetchUser() }
     .evalGraph()
 // timeout -> circuit breaker -> retry -> recover. All composable.
 ```
+
+!!! warning "timeout(d) is not retryable"
+    `timeout(d)` fails with `TimeoutCancellationException` — a `CancellationException`, which every `retry` rethrows by law. Chain `timeout(d)` into `retry(...)` and slow calls are never retried. Use `timeoutAsFailure(d)` (kap-core) whenever a timeout feeds a RETRY operator — it raises an ordinary `KapTimeoutException` instead.
 
 ---
 
@@ -391,7 +423,7 @@ t=30ms   ─── fallback wins ───       ← 3x faster
     // [replica-B, replica-A] — the 2 fastest. C cancelled.
     ```
 
-Supports arities 2-22.
+Takes any number of computations via vararg, or a collection with `list.raceQuorum(required = 2)`.
 
 ---
 
@@ -611,22 +643,20 @@ Supports arities 2-22.
 
     ```kotlin
     // guarantee: finalizer always runs, regardless of success or failure
-    val result = guarantee(
-        fa = { riskyOperation() },
-        finalizer = { cleanup() },
-    ).evalGraph()
+    val result = Kap { riskyOperation() }
+        .guarantee { cleanup() }
+        .evalGraph()
 
     // guaranteeCase: finalizer receives the exit case
-    val result2 = guaranteeCase(
-        fa = { riskyOperation() },
-        finalizer = { case ->
+    val result2 = Kap { riskyOperation() }
+        .guaranteeCase { case ->
             when (case) {
                 is ExitCase.Completed<*> -> println("success cleanup")
                 is ExitCase.Failed -> println("failure cleanup: ${case.error}")
                 is ExitCase.Cancelled -> println("cancellation cleanup")
             }
-        },
-    ).evalGraph()
+        }
+        .evalGraph()
     ```
 
 ---
@@ -716,12 +746,12 @@ All features composed in one chain:
     val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
     val result = Kap { fetchData() }
-        .timeout(2.seconds)                              // hard timeout
+        .timeoutAsFailure(2.seconds)                     // hard timeout (retryable failure)
         .withCircuitBreaker(breaker)                     // circuit breaker
         .retry(Schedule.times<Throwable>(3)              // retry with backoff + jitter
             and Schedule.exponential(50.milliseconds)
-            .jittered()
-            .withMaxDuration(10.seconds))
+                .jittered()
+                .withMaxDuration(10.seconds))
         .recover { cachedData() }                        // fallback on exhaustion
         .evalGraph()
     ```

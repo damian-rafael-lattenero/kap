@@ -9,7 +9,7 @@ repositories {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 dependencies {
@@ -20,7 +20,7 @@ dependencies {
 
     api(libs.ktor.server.core)
     implementation(libs.coroutines.core)
-    compileOnly(libs.ktor.server.status.pages)
+    implementation(libs.ktor.server.status.pages)  // 4.1.0: kapExceptionHandlers() works out of the box
 
     testImplementation(kotlin("test"))
     testImplementation(libs.coroutines.test)

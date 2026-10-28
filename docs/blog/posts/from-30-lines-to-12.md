@@ -49,14 +49,14 @@ coroutineScope {
     val dTax      = async { calcTax() }
 
     // circuit breaker — interleaved with business logic
-    val payment = if (!breaker.shouldAttempt()) {
+    val payment = if (!breaker.tryAcquire()) {
         throw CircuitBreakerOpenException()
     } else {
         try {
             val p = withTimeout(5.seconds) { reservePayment() }
-            breaker.recordSuccess(); p
+            breaker.onSuccess(); p
         } catch (e: CancellationException) { throw e }
-        catch (e: Exception) { breaker.recordFailure(); throw e }
+        catch (e: Exception) { breaker.onFailure(); throw e }
     }
 
     CheckoutResult(user, cart, promos, stock, dShipping.await(), dTax.await(), payment)
@@ -150,7 +150,7 @@ This is compile-time enforced. Not a runtime check. Not a lint rule. The wrong c
 
 ## Performance: zero overhead
 
-We run 119 JMH benchmarks on every push:
+We run 122 JMH benchmarks on every push:
 
 | Dimension | Raw Coroutines | KAP |
 |---|---|---|
@@ -176,10 +176,10 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
     // ── PHASE 1: Validate everything in parallel ─────────────────
     // All three validators run concurrently.
     // If address AND card fail, you get BOTH errors — not just the first.
-    val validated = kapV<OrderError, ValidAddress, ValidCard, ValidItems, ValidOrder>(::ValidOrder)
-        .with { v from validateAddress(input.address) }       // ┐ all three run at the same time
-        .with { v from validatePaymentInfo(input.card) }      // ├─ errors don't short-circuit
-        .with { v from validateItems(input.items) }           // ┘ they accumulate
+    val validated = kapV<OrderError>(::ValidOrder)
+        .withV { address from validateAddress(input.address) }    // ┐ all three run at the same time
+        .withV { card from validatePaymentInfo(input.card) }      // ├─ errors don't short-circuit
+        .withV { items from validateItems(input.items) }          // ┘ they accumulate
         .evalGraph()
 
     // If any validation failed, return all errors immediately
@@ -194,7 +194,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
             kap(::OrderResult)
 
                 // PHASE 2: Get the best price — race 3 providers
-                // All three start at t=0. First to respond wins. Losers are cancelled.
+                // All three start at t=0. First success wins. Losers are cancelled.
                 .with(OrderResultKap.finalPrice from raceN(
                     Kap { pricingServiceA(order) },
                     Kap { pricingServiceB(order) },
@@ -249,15 +249,15 @@ The raw coroutines version of this is [~90 lines](https://github.com/damian-rafa
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:3.0.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:4.1.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:4.1.0")
 }
 ```
 
 Or clone the [starter project](https://github.com/damian-rafael-lattenero/kap-starter) and run `./gradlew run`.
 
-- [GitHub](https://github.com/damian-rafael-lattenero/kap) — 900+ tests, Apache 2.0
+- [GitHub](https://github.com/damian-rafael-lattenero/kap) — 1000+ tests, Apache 2.0
 - [Documentation](https://damian-rafael-lattenero.github.io/kap/)
 - [Cookbook with 12 runnable examples](https://damian-rafael-lattenero.github.io/kap/playground/)
 

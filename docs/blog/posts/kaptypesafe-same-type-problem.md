@@ -88,9 +88,9 @@ Not just constructors:
 fun buildDashboard(userName: String, cartSummary: String, promoCode: String): Dashboard =
     Dashboard(userName, cartSummary, promoCode)
 
-// KSP generates a BuildDashboard marker object and named step builders
+// KSP generates the scoped wrapper and a kap(::buildDashboard) entry point
 
-kap(BuildDashboard)
+kap(::buildDashboard)
     .with { userName from fetchUserName() }
     .with { cartSummary from fetchCartSummary() }
     .with { promoCode from fetchPromoCode() }
@@ -109,7 +109,7 @@ fun buildDashboard(userName: String, cartSummary: String, promoCode: String): Da
 fun buildReport(userName: String, dateRange: String, format: String): Report
 ```
 
-Dashboard generates `.with { dashboardUserName from  }`. Report generates `.with { reportUserName from  }`. No collision. Default is no prefix — clean and short for the common case.
+The prefix namespaces the generated file names and tag classes so they don't collide. The call sites read the same as without a prefix — the slot tags are always the original parameter names (`.with { userName from … }` in both). Default is no prefix — clean and short for the common case.
 
 ## Why nobody else does this
 
@@ -139,13 +139,13 @@ Each step was driven by one question: "what would make the developer's life easi
 
 ```kotlin
 plugins {
-    id("com.google.devtools.ksp") version "2.3.6"
+    id("com.google.devtools.ksp") version "2.3.12"
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:3.0.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:4.1.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:4.1.0")
 }
 ```
 

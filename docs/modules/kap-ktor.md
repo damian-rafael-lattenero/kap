@@ -2,18 +2,20 @@
 
 Ktor server integration plugin for KAP. Shared configuration, circuit breakers, tracing, and response helpers.
 
-!!! warning "Unreleased"
-    This module is available in source but **not yet published to Maven Central**. To use it now, build from source or use a JitPack dependency. Maven Central publication is planned for the next release.
+!!! info "Published"
+    Available on Maven Central since 4.0.0 (see CHANGELOG).
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-ktor:3.0.0") // coming soon
+implementation("io.github.damian-rafael-lattenero:kap-ktor:4.1.0")
 ```
 
-**Depends on:** `kap-core`, `kap-resilience`, `ktor-server-core`.
+**Depends on:** `kap-core`, `kap-resilience`, `ktor-server-core`, `ktor-server-status-pages` (runtime — `kapExceptionHandlers()` works out of the box).
 
 ---
 
 ## Plugin Installation
+
+The plugin is published as `Kap`; since 4.1.0 the alias `KapPlugin` is also available for `install(...)` when `kap.Kap` (the computation type) is star-imported in the same file and the names collide:
 
 ```kotlin
 install(Kap) {
@@ -121,7 +123,7 @@ Handles:
 | `IllegalArgumentException` | 400 Bad Request |
 
 !!! note
-    Requires `ktor-server-status-pages` on your classpath.
+    `ktor-server-status-pages` ships as a runtime dependency of `kap-ktor` (since 4.1.0) — `kapExceptionHandlers()` works without adding anything else to your classpath.
 
 ## Full Example
 
@@ -129,7 +131,7 @@ Handles:
 fun Application.module() {
     install(ContentNegotiation) { json() }
     install(Kap) {
-        tracer = ktorTracer()
+        tracer = application.ktorTracer()
         circuitBreaker("user-api", maxFailures = 5, resetTimeout = 30.seconds)
     }
     install(StatusPages) {

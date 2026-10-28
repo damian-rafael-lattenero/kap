@@ -1,5 +1,7 @@
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform) apply false
@@ -13,7 +15,7 @@ plugins {
 }
 
 group = "io.github.damian-rafael-lattenero"
-version = "4.0.0"
+version = "4.1.0"
 
 subprojects {
     group = rootProject.group
@@ -46,9 +48,32 @@ tasks.register("benchmarks") {
     dependsOn(":benchmarks:jmh")
 }
 
+// ── Built with the newest LTS, runs on 21+ ──────────────────────────────────
+// Every module declares jvmToolchain(25) (the compiler JDK). The BYTECODE target
+// stays 21 so the published artifacts keep working for JDK 21 consumers, the
+// examples (daemon JDK) resolve the library variants, and the ABI validator and
+// detekt (which cannot read class files newer than 21) keep working.
+val bytecodeTarget = 21
+subprojects {
+    tasks.withType<KotlinJvmCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.fromTarget(bytecodeTarget.toString()))
+            freeCompilerArgs.add("-Xjdk-release=$bytecodeTarget")
+        }
+    }
+    tasks.withType<JavaCompile>().configureEach { options.release.set(bytecodeTarget) }
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        extensions.configure<JavaPluginExtension> {
+            sourceCompatibility = JavaVersion.toVersion(bytecodeTarget)
+            targetCompatibility = JavaVersion.toVersion(bytecodeTarget)
+        }
+    }
+}
+
 // ── Static analysis: detekt on library modules ─────────────────────────────
 // Existing findings live in each module's detekt-baseline.xml (tolerated until
 // Fase 1 cleanup); any NEW violation fails the build.
+val DETEKT_MAX_DAEMON_JDK = 23
 val detektModules = listOf(
     "kap-core", "kap-resilience", "kap-arrow", "kap-ktor", "kap-kotest",
     "kap-ksp", "kap-ksp-annotations", "benchmarks",
@@ -57,6 +82,23 @@ val detektModules = listOf(
 subprojects {
     if (name in detektModules) {
         apply(plugin = "io.gitlab.arturbosch.detekt")
+        // detekt 1.23 derives jvmTarget from the daemon's JVM when unset and its
+        // embedded compiler rejects anything above the targets it knows: a Gradle
+        // daemon on JDK 25 failed with "IllegalArgumentException: 25.0.5". Pin it
+        // to the library's toolchain.
+        // detekt 1.23 embeds a Kotlin compiler whose bundled IntelliJ cannot parse a
+        // daemon JDK >= 24 ("IllegalArgumentException: 25.0.5"), and its targets stop
+        // at 21. CI runs the Gradle daemon on JDK 21 with JDK 25 as a detected
+        // toolchain, so the gate is enforced there; a local daemon on a newer JDK
+        // skips detekt loudly instead of crashing the build.
+        val daemonMajor = JavaVersion.current().majorVersion.toInt()
+        tasks.withType<Detekt>().configureEach {
+            jvmTarget = "21"
+            if (daemonMajor >= DETEKT_MAX_DAEMON_JDK + 1) {
+                enabled = false
+                doFirst { logger.warn("detekt skipped: daemon JDK $daemonMajor is newer than detekt 1.23 supports; CI runs it on JDK 21") }
+            }
+        }
         configure<DetektExtension> {
             buildUponDefaultConfig = true
             // KMP: analyze common + platform main sources; JVM-only: src/main (+jmh for benchmarks).

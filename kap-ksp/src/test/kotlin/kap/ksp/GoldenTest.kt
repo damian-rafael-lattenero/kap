@@ -26,12 +26,14 @@ class GoldenTest {
 
     @Test
     fun `generated builders match committed golden snapshots`() {
-        val goldens = goldenDir.listFiles { f -> f.isFile && f.extension == "kt" }
-            ?.map { it.name }?.sorted()
-            ?: error("No golden files found in $goldenDir")
-        val generated = generatedDir.listFiles { f -> f.isFile && f.extension == "kt" }
-            ?.map { it.name }?.sorted()
-            ?: error("No generated files found in $generatedDir — did kspTest run?")
+        // Relative paths, recursively: packaged fixtures generate into
+        // sub-directories (SPEC-4.1.0 F-09 regression coverage).
+        fun File.ktFiles(): List<String> = walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .map { it.relativeTo(this).path }
+            .sorted().toList()
+        val goldens = goldenDir.ktFiles().ifEmpty { error("No golden files found in $goldenDir") }
+        val generated = generatedDir.ktFiles().ifEmpty { error("No generated files found in $generatedDir — did kspTest run?") }
 
         assertEquals(goldens, generated, """
             Golden file set drifted from generated output.

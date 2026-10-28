@@ -53,6 +53,15 @@ fun interface Kap<out A> {
         fun failed(error: Throwable): Kap<Nothing> = Kap { throw error }
 
         /**
+         * Wraps a value into a [Kap] that immediately returns it. A member
+         * since 4.1.0 so that `Kap.of(x)` needs no extra import.
+         */
+        fun <A> of(a: A): Kap<A> = Kap { a }
+
+        /** The unit computation: does nothing, returns [Unit]. */
+        val empty: Kap<Unit> get() = Kap { }
+
+        /**
          * Lazily constructs a [Kap] by deferring [block] evaluation
          * until execution time.
          *
@@ -177,6 +186,7 @@ fun <A> Kap<A>.asPhaseBarrier(): Kap<A> =
  * val answer: Kap<Int> = Kap.of(42)
  * ```
  */
+@Deprecated("Member since 4.1.0: Kap.of needs no import.", level = DeprecationLevel.HIDDEN)
 fun <A> Kap.Companion.of(a: A): Kap<A> = Kap { a }
 
 // ── map: transform the result ───────────────────────────────────────────
@@ -426,6 +436,7 @@ val context: Kap<CoroutineContext> = Kap { coroutineContext }
 // ── Kap.empty: convenience for Kap.of(Unit) ─────────────
 
 /** A [Kap] that immediately returns [Unit]. */
+@Deprecated("Member since 4.1.0: Kap.empty needs no import.", level = DeprecationLevel.HIDDEN)
 val Kap.Companion.empty: Kap<Unit> get() = Kap { }
 
 // ── named: CoroutineName for debugger/logging ───────────────────────────
@@ -650,6 +661,7 @@ private class MemoizedOnSuccess<A>(private val original: Kap<A>) : Kap<A> {
  *     .with { fetchCart() }
  * ```
  */
+@Suppress("RedundantSuspendModifier") // coroutineScope is inline-suspend: detekt cannot see the suspension
 suspend fun <A> Kap<A>.evalGraph(): A =
     coroutineScope { with(this@evalGraph) { execute() } }
 
@@ -730,10 +742,14 @@ suspend fun <A> Kap<A>.evalGraphTimed(): TimedResult<A> =
  *
  * [CancellationException] is never caught — structured concurrency cancellation
  * always propagates.
+ *
+ * The operand runs inside its own `coroutineScope` (isolation): a failure of a
+ * nested parallel graph (`traverse`/`with`/`zip` children) is converted to
+ * `Result.failure` here instead of cancelling the surrounding chain.
  */
 fun <A> Kap<A>.settled(): Kap<Result<A>> = Kap {
     try {
-        Result.success(with(this@settled) { execute() })
+        Result.success(this@settled.executeIsolated())
     } catch (e: Throwable) {
         if (e is CancellationException) throw e
         Result.failure(e)

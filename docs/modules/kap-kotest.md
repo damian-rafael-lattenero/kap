@@ -2,11 +2,11 @@
 
 Test matchers and utilities for testing KAP computations.
 
-!!! warning "Unreleased"
-    This module is available in source but **not yet published to Maven Central**. To use it now, build from source or use a JitPack dependency. Maven Central publication is planned for the next release.
+!!! info "Published"
+    Available on Maven Central since 4.0.0 (see CHANGELOG).
 
 ```kotlin
-testImplementation("io.github.damian-rafael-lattenero:kap-kotest:3.0.0") // coming soon
+testImplementation("io.github.damian-rafael-lattenero:kap-kotest:4.1.0")
 ```
 
 **Depends on:** `kap-core`, `kap-resilience`, `kotlinx-coroutines-test`, `kotlin-test`.
@@ -70,7 +70,7 @@ fun `completes within timeout`() = runTest {
 
 @Test
 fun `proves parallelism`() = runTest {
-    kap { a: Unit, b: Unit, c: Unit -> Triple(a, b, c) }
+    Kap.of { a: Unit -> { b: Unit -> { c: Unit -> Triple(a, b, c) } } }
         .with(Kap { delay(50) })
         .with(Kap { delay(50) })
         .with(Kap { delay(50) })

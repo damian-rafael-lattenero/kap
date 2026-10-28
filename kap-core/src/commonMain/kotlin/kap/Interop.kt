@@ -2,6 +2,7 @@ package kap
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
@@ -86,7 +87,7 @@ fun <A> delayed(duration: Duration, block: suspend () -> A): Kap<A> = Kap {
  */
 fun <A> catching(block: suspend CoroutineScope.() -> A): Kap<Result<A>> = Kap {
     try {
-        Result.success(block())
+        Result.success(coroutineScope { block() })
     } catch (e: CancellationException) {
         throw e
     } catch (e: Throwable) {

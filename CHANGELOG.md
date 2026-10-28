@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.1.0] - 2026-10-28
+
+Findings from the first external integration (agent-brain); the full analysis
+with reproductions is `SPEC-4.1.0-agent-brain-findings.md`.
+
+### Fixed
+- **Isolation law (CONVERT/RETRY operators).** `settled`, `traverseSettled` (both overloads), `recover`, `recoverWith`, `orElse`, `firstSuccessOf`/`firstSuccess`, `catching`, core `retry`, resilience `retry`/`retryOrElse`/`retryWithResult` and `withCircuitBreaker` now run their operand inside its own `coroutineScope`. Before, a failing child of a nested parallel graph (`traverse`, `with`, `zip`) cancelled the operator's coroutine through structured concurrency and the exception escaped the operator unconverted. New law in `docs/design/error-semantics.md`; `IsolationLawsTest` and `IsolationResilienceTest` enforce it.
+- **KSP: the plain `kap(::T)` entry was never generated for classes inside a package.** The signature pre-pass keyed classes by simple name while the lookup used the qualified name; only root-package fixtures matched, so every real project got `kap$BaseName`. Keys now agree; a packaged golden fixture guards it.
+- **KSP: nested `@KapTypeSafe` classes generated code that did not compile** (the outer class was dropped from the reference). Classes are now referenced by their qualified name and generated declarations are named by the enclosing chain (`OuterInnerKap`); nested golden fixture added.
+- `kap-ktor`: `ktor-server-status-pages` is a runtime dependency, so `kapExceptionHandlers()` works without the user adding it.
+- `kap-kotest`: unused import.
+
+### Added
+- **Loops as policies (SPEC-5.0, milestone 4.2 first cut).** `Kap<A>.repeat(schedule)`, `repeatWhile`, `repeatUntil` (kap-resilience): run again while the `Schedule` says so, returning the last value; `retry` composes per iteration. `Kap.awaitUntil(every, upTo) { condition }`: poll until true or time runs out, as schedule algebra. `Kap.awaiting { resume, cancel -> }` (kap-core): lift a callback into a cancellable `Kap`. All proven under virtual time (`RepeatTest`).
+- `Kap.isolated()` — the scope boundary as a public operator.
+- `timeoutAsFailure(duration)` and `KapTimeoutException` — a timeout that `retry`/`recover`/`settled` can handle. `timeout(duration)` is documented as **not retryable** (it is a `CancellationException`).
+- `Kap.of` and `Kap.empty` are companion **members** (no import needed); the old extensions are hidden but binary-compatible.
+- `CircuitBreaker` public, mutex-taking API: `tryAcquire()`, `onSuccess()`, `onFailure()`, `protect { }` — guard code that is not a `Kap`.
+- `KapLike` delegates so `@KapTypeSafe` chains can apply operators mid-way: `timeout(d, fallback)`, `timeoutAsFailure`, `orElse`, `isolated`, `traced`, `named`, `on` (core) and `retry` ×2, `retryOrElse`, `retryWithResult`, `withCircuitBreaker`, `timeoutRace` (resilience).
+- `kap-ktor`: `KapPlugin`, an alias of the `Kap` plugin that does not collide with `kap.Kap`.
+
+### Docs
+- Module pages and quickstart point at 4.1.0; "Unreleased" warnings removed (everything is on Central since 4.0.0).
+- `Flow.mapEffect`/`mapEffectOrdered` → the real names `mapKap`/`mapKapOrdered`; `evalGraph(MDCContext())` → `withContext(MDCContext()) { evalGraph() }`.
+- README: imports note (`kap.KapTypeSafe`, not `kap.ksp.*`), race semantics ("first success wins"), retrying timeouts.
+- CHANGELOG 4.0.0 claimed `shouldAttempt/recordSuccess/recordFailure` were public; they were internal. 4.1.0 ships the public API above instead.
+
 ## [4.0.0] - 2026-10-01
 
 ### Breaking (ABI)

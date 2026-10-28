@@ -42,17 +42,17 @@ class KapTypeSafeProcessor(
         // Pre-pass: count signatures across classes + functions + bridges so
         // the generators can decide whether `kap(f: ...)` would collide.
         resolver.getSymbolsWithAnnotation("kap.KapTypeSafe").forEach { symbol ->
-            if (!symbol.validate()) return@forEach
+            if (!symbol.validate(enableNewFeatures = true)) return@forEach
             recordSignature(symbol)
         }
         resolver.getSymbolsWithAnnotation("kap.KapBridge").forEach { symbol ->
-            if (!symbol.validate()) return@forEach
+            if (!symbol.validate(enableNewFeatures = true)) return@forEach
             if (symbol is KSFile) recordBridgeSignatures(symbol)
         }
 
         // Process @KapTypeSafe
         resolver.getSymbolsWithAnnotation("kap.KapTypeSafe").forEach { symbol ->
-            if (!symbol.validate()) {
+            if (!symbol.validate(enableNewFeatures = true)) {
                 unprocessed.add(symbol)
                 return@forEach
             }
@@ -71,7 +71,7 @@ class KapTypeSafeProcessor(
 
         // Process @KapBridge
         resolver.getSymbolsWithAnnotation("kap.KapBridge").forEach { symbol ->
-            if (!symbol.validate()) {
+            if (!symbol.validate(enableNewFeatures = true)) {
                 unprocessed.add(symbol)
                 return@forEach
             }
@@ -116,7 +116,11 @@ class KapTypeSafeProcessor(
                 // Return renders with the class's OWN type parameters (not star
                 // projections) so class/function keys compare canonically.
                 val tpNames = collectTypeParams(symbol).map { it.name }
-                val base = symbol.simpleName.asString()
+                // Same rendering as generateForClass (package-qualified): the
+                // two keys must agree or the plain `kap(f)` entry is never
+                // emitted for a packaged class (4.0.0 defect, SPEC-4.1.0 F-09).
+                // Qualified name: nested classes keep their outer chain (SPEC-4.1.0 F-11).
+                val base = symbol.qualifiedName?.asString() ?: symbol.simpleName.asString()
                 val returnType = if (tpNames.isEmpty()) base else "$base<${tpNames.joinToString(", ")}>"
                 signatureCounts.merge(clashKey(paramTypes, tpNames, returnType), 1, Int::plus)
             }
@@ -233,8 +237,23 @@ class KapTypeSafeProcessor(
         }
     }
 
+    /**
+     * Base name for generated declarations: the chain of enclosing classes
+     * plus the class itself (`BusPipeline.Probe` -> `BusPipelineProbe`), so two
+     * nested classes with the same simple name in one package cannot collide.
+     */
+    private fun nestedChainName(decl: KSClassDeclaration): String {
+        val names = ArrayDeque<String>()
+        var current: KSDeclaration? = decl
+        while (current is KSClassDeclaration) {
+            names.addFirst(current.simpleName.asString())
+            current = current.parentDeclaration
+        }
+        return names.joinToString("")
+    }
+
     private fun generateForClass(classDecl: KSClassDeclaration, kapArrowPresent: Boolean = false) {
-        val className = classDecl.simpleName.asString()
+        val className = nestedChainName(classDecl)
         val packageName = classDecl.packageName.asString()
         val prefix = extractPrefix(classDecl)
         val constructor = classDecl.primaryConstructor
@@ -266,7 +285,9 @@ class KapTypeSafeProcessor(
 
         // Generic classes render their own type parameters in the return type:
         // `Checkout2<T>` — this flows into every generated receiver/entry.
-        val classFqn = if (packageName.isEmpty()) className else "$packageName.$className"
+        // The real qualified name: a nested class is `pkg.Outer.Inner`, never `pkg.Inner` (F-11).
+        val fallbackFqn = if (packageName.isEmpty()) className else "$packageName.$className"
+        val classFqn = classDecl.qualifiedName?.asString() ?: fallbackFqn
         val returnType = classFqn + typeParams.inst()
 
         // Classes use kap(::ClassName) — plain `kap` only when the ctor shape

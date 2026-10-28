@@ -43,7 +43,7 @@ suspend fun main() {
 
 ## Functions — `@KapTypeSafe` on `fun`
 
-`@KapTypeSafe` works on functions too. KSP generates a marker object from the function name:
+`@KapTypeSafe` works on functions too. The generated entry point takes the function reference:
 
 ```kotlin
 import kap.*
@@ -58,8 +58,7 @@ suspend fun fetchEmail(): String { delay(20); return "alice@example.com" }
 suspend fun fetchAge(): Int { delay(10); return 30 }
 
 suspend fun main() {
-    // CreateUser is a generated marker object — classes use ::ClassName, functions use ObjectName
-    val result = kap(CreateUser)
+    val result = kap(::createUser)
         .with { name from fetchName() }
         .with { email from fetchEmail() }
         .with { age from fetchAge() }
@@ -211,7 +210,7 @@ suspend fun main() {
 
 ---
 
-## Racing — Fastest region wins
+## Racing — First success wins
 
 ```kotlin
 import kap.*
@@ -224,11 +223,12 @@ suspend fun fetchFromRegionAP(): String { delay(60); return "AP-data" }
 suspend fun main() {
     val fastest = raceN(
         Kap { fetchFromRegionUS() },   // 100ms
-        Kap { fetchFromRegionEU() },   // 30ms — wins
+        Kap { fetchFromRegionEU() },   // 30ms — first SUCCESS wins
         Kap { fetchFromRegionAP() },   // 60ms
     ).evalGraph()
     println(fastest)
     // EU-data  (at ~30ms, US and AP cancelled automatically)
+    // An early failure never wins the race — it only surfaces if every racer fails.
 }
 ```
 

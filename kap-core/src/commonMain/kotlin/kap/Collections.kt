@@ -131,7 +131,7 @@ fun Iterable<Kap<Unit>>.sequenceDiscard(concurrency: Int): Kap<Unit> =
  */
 fun <A, B> Iterable<A>.traverseSettled(f: (A) -> Kap<B>): Kap<List<Result<B>>> = Kap {
     kotlinx.coroutines.supervisorScope {
-        map { a -> async { runCatching { with(f(a)) { execute() } } } }.awaitAll()
+        map { a -> async { runCatching { f(a).executeIsolated() } } }.awaitAll()
     }
 }
 
@@ -143,7 +143,7 @@ fun <A, B> Iterable<A>.traverseSettled(f: (A) -> Kap<B>): Kap<List<Result<B>>> =
 fun <A, B> Iterable<A>.traverseSettled(concurrency: Int, f: (A) -> Kap<B>): Kap<List<Result<B>>> = Kap {
     val semaphore = Semaphore(concurrency)
     kotlinx.coroutines.supervisorScope {
-        map { a -> async { semaphore.withPermit { runCatching { with(f(a)) { execute() } } } } }.awaitAll()
+        map { a -> async { semaphore.withPermit { runCatching { f(a).executeIsolated() } } } }.awaitAll()
     }
 }
 

@@ -100,7 +100,8 @@ fun <A> raceN(vararg computations: Kap<A>): Kap<A> {
 }
 
 /**
- * Races all computations in this collection; the first to complete wins.
+ * Races all computations in this collection; the first to **succeed** wins,
+ * the losers are cancelled (see [raceN] for the failure semantics).
  */
 fun <A> Iterable<Kap<A>>.raceAll(): Kap<A> =
     raceN(*toList().toTypedArray())

@@ -13,7 +13,7 @@
   <a href="https://github.com/damian-rafael-lattenero/kap/stargazers"><img src="https://img.shields.io/github/stars/damian-rafael-lattenero/kap?style=flat&color=yellow" alt="GitHub Stars"></a>
   <a href="https://github.com/damian-rafael-lattenero/kap/actions/workflows/ci.yml"><img src="https://github.com/damian-rafael-lattenero/kap/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://central.sonatype.com/artifact/io.github.damian-rafael-lattenero/kap-core"><img src="https://img.shields.io/maven-central/v/io.github.damian-rafael-lattenero/kap-core?label=Maven%20Central&color=blue" alt="Maven Central"></a>
-  <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-2.3.20-7F52FF.svg?logo=kotlin&logoColor=white" alt="Kotlin"></a>
+  <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-2.4.21-7F52FF.svg?logo=kotlin&logoColor=white" alt="Kotlin"></a>
   <a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-green.svg" alt="License"></a>
 </p>
 
@@ -22,6 +22,8 @@
 </p>
 
 ---
+
+> **Imports.** Everything lives in package `kap`: `import kap.*` brings the DSL and `Kap.of`/`Kap.failed`/`Kap.empty` (companion members since 4.1.0). The KSP annotations are `kap.KapTypeSafe` and `kap.KapBridge` (not `kap.ksp.*`). A timeout you want to **retry** must be `timeoutAsFailure(d)`: a plain `timeout(d)` is a `CancellationException`, which `retry` rethrows by law.
 
 # What is KAP?
 KAP is a type-safe coroutine orchestration library for Kotlin Multiplatform that lets you write complex asynchronous flows—parallel phases, retries, and resilience policies—declaratively, so the code reads like a diagram and the compiler prevents wiring errors. It solves the problem of mixing business logic with infrastructure concerns (timeouts, retries, circuit breakers) when orchestrating calls to multiple services by keeping those concerns separate and the flow readable.
@@ -76,16 +78,16 @@ coroutineScope {
     val tax       = dTax.await()
 
     // --- phase 4: payment (with circuit breaker) ---
-    val payment = if (!breaker.shouldAttempt()) {
+    val payment = if (!breaker.tryAcquire()) {
         throw CircuitBreakerOpenException()
     } else {
         try {
             val p = withTimeout(5.seconds) { reservePayment() }
-            breaker.recordSuccess()
+            breaker.onSuccess()
             p
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) {
-            breaker.recordFailure()
+            breaker.onFailure()
             throw e
         }
     }
@@ -308,14 +310,14 @@ val results = listOf("svc-a", "svc-b", "svc-c").traverseSettled { svc ->
 
 Each one is a method call. No boilerplate, no manual state.
 
-**Race** — fastest wins, losers cancelled:
+**Race** — first SUCCESS wins, losers cancelled (an early failure does not win; failures accumulate as suppressed):
 
 ```kotlin
 val price = raceN(
     Kap { pricingFromUS(item) },
     Kap { pricingFromEU(item) },
     Kap { pricingFromAsia(item) },
-).evalGraph()  // fastest response wins, other two cancelled
+).evalGraph()  // first success wins, other two cancelled
 ```
 
 **Bounded concurrency** — process N items, max M at a time:
@@ -408,7 +410,7 @@ val paymentBreaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> {
 
     // ── PHASE 1: Validate in parallel, collect ALL errors ────────
-    val validated = kapV<OrderError, ValidAddress, ValidCard, ValidItems, ValidOrder>(::ValidOrder)
+    val validated = kapV<OrderError>(::ValidOrder)
         .withV { validateAddress(input.address) }       // ┐ all three run at the same time
         .withV { validatePaymentInfo(input.card) }      // ├─ if address AND card fail,
         .withV { validateItems(input.items) }           // ┘ you get BOTH errors
@@ -422,7 +424,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
         use = { tx ->
             kap(::OrderResult)
 
-                // PHASE 2: race 3 pricing providers — fastest wins, losers cancelled
+                // PHASE 2: race 3 pricing providers — first success wins, losers cancelled
                 .with(finalPrice from raceN(
                     Kap { pricingServiceA(order) },
                     Kap { pricingServiceB(order) },
@@ -526,16 +528,16 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
         }
 
         // Phase 4: charge payment (manual circuit breaker + timeout)
-        val paymentId = if (!paymentBreaker.shouldAttempt()) {
+        val paymentId = if (!paymentBreaker.tryAcquire()) {
             throw CircuitBreakerOpenException()
         } else {
             try {
                 val p = withTimeout(5.seconds) { chargePayment(tx, order) }
-                paymentBreaker.recordSuccess()
+                paymentBreaker.onSuccess()
                 p
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
-                paymentBreaker.recordFailure()
+                paymentBreaker.onFailure()
                 throw e
             }
         }
@@ -571,7 +573,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
 | **kap-resilience** | `retry`, `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `raceQuorum`, `timeoutRace` | When you call external services |
 | **kap-arrow** | `.withV`, `kapV`, error accumulation with `Either<NonEmptyList<E>, A>` | When you need parallel validation |
 | **kap-ktor** | `respondAsync`, `KapTracer`, circuit breaker plugin | When you use Ktor |
-| **kap-kotest** | `shouldSucceedWith`, `shouldFailWith`, `shouldCompleteWithin` | When you test Kap graphs |
+| **kap-kotest** | `shouldSucceedWith`, `shouldFailWith`, timing & lifecycle matchers | When you test Kap graphs |
 
 ---
 
@@ -587,7 +589,7 @@ KAP's `kap-arrow` module builds on Arrow's `Either` and `NonEmptyList` for paral
 ```kotlin
 // Arrow types + KAP orchestration
 val result: Either<Nel<OrderError>, OrderResult> =
-    kapV<OrderError, ValidEmail, ValidAge, User>(::User)
+    kapV<OrderError>(::User)
         .withV { validateEmail(input) }    // returns Either<Nel<OrderError>, ValidEmail>
         .withV { validateAge(input) }      // returns Either<Nel<OrderError>, ValidAge>
         .evalGraph()
@@ -703,15 +705,17 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:4.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
 
     // optional — add any combination
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:4.0.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:4.0.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:4.0.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:4.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:4.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:4.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:4.1.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:4.1.0")
 }
 ```
+
+Everything is on Maven Central. Built with Kotlin 2.4.21 and kotlinx-coroutines 1.11.0; KSP processor 2.3.12.
 
 > **[Starter project](https://github.com/damian-rafael-lattenero/kap-starter)** — clone and run in 30 seconds.
 

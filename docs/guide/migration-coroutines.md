@@ -107,7 +107,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.evalGraph(
 
     ```kotlin
     val result = Kap { fetchSlowService() }
-        .timeout(500.milliseconds) { "fallback" }
+        .timeout(500.milliseconds, "fallback")
         .evalGraph()
     ```
 
@@ -245,7 +245,7 @@ KAP doesn't replace `kotlinx.coroutines` — it uses it internally. `.evalGraph(
 | suspend call between phases | `.then { }` |
 | nested `coroutineScope` | `.andThen { ctx -> }` |
 | `Semaphore` + `async` | `traverse(concurrency)` |
-| `withTimeoutOrNull` | `.timeout(d) { default }` |
+| `withTimeoutOrNull` | `.timeout(d, default)` |
 | `try/catch` | `.recover { }` |
 | `try/finally` | `bracket(acquire, use, release)` |
 | `supervisorScope` | `.settled()` |

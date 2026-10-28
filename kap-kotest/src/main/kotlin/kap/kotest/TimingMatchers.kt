@@ -1,6 +1,5 @@
 package kap.kotest
 
-import kotlinx.coroutines.test.TestScope
 
 /**
  * Assert that the current virtual time matches the expected milliseconds.
@@ -26,7 +25,10 @@ fun Long.shouldBeMillis(expected: Long, description: String? = null) {
  *
  * ```kotlin
  * runTest {
- *     kap(::Pair).with { delay(50); "a" }.with { delay(60); "b" }.evalGraph()
+ *     Kap.of { a: String -> { b: String -> a to b } }
+ *         .with(Kap { delay(50); "a" })
+ *         .with(Kap { delay(60); "b" })
+ *         .evalGraph()
  *     currentTime.shouldBeAtMostMillis(60, "two parallel calls should be max(50,60)=60ms")
  * }
  * ```

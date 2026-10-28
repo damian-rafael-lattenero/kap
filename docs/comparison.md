@@ -193,13 +193,14 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
     val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
 
     val result = Kap { fetchUser() }
-        .timeout(500.milliseconds)
+        .timeoutAsFailure(500.milliseconds)   // ordinary failure — retry can handle it
         .withCircuitBreaker(breaker)
         .retry(Schedule.times<Throwable>(3)
             and Schedule.exponential(50.milliseconds).jittered())
         .recover { "cached-user" }
         .evalGraph()
     // 8 lines. Composable. timeout → breaker → retry → fallback.
+    // (plain timeout(d) is a CancellationException — retry would rethrow it, never retrying)
     ```
 
 ---
@@ -309,8 +310,8 @@ KAP doesn't compete with Arrow — the `kap-arrow` module **uses** Arrow's types
 
 ```kotlin
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:3.0.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:3.0.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:4.1.0")
 }
 ```
 

@@ -7,7 +7,7 @@
 KAP has exactly **three** failure disciplines. Every operator in the public
 API belongs to one of them; adding an operator that doesn't is an API design
 error. This document is the reference the tests (`FailurePathLawsTest`,
-`ValidatedLawsTest`, `CancellationPropertyTest`) enforce.
+`ValidatedLawsTest`, `CancellationPropertyTest`, `IsolationLawsTest`) enforce.
 
 ## The three disciplines
 
@@ -32,6 +32,7 @@ fallback itself may still fail, so it is conversion with a retry flavor.
 | Stop at the first failure, no further effects | `andThenV` / `validated { bind() }` / `andThen` |
 | A branch that may fail without cancelling siblings | `settled` (`Result<A>` slot) |
 | A default value/graph when something fails | `recover` / `orElse` / `timeout(d, default)` |
+| A timeout treated as an ordinary (retryable) failure | `timeoutAsFailure(d)` — plain `timeout(d)` throws `TimeoutCancellationException`, a `CancellationException`, which every retry rethrows |
 | Failures from an exception-throwing bridge folded into validation | `catching` |
 
 ## Laws (already enforced by property tests)
@@ -48,6 +49,16 @@ fallback itself may still fail, so it is conversion with a retry flavor.
    kotlinx-coroutines stack-trace recovery across suspension points).
 5. **Failure path of `with` cancels siblings** — structured concurrency: one
    failing branch fails the phase.
+6. **Isolation.** A CONVERT or RETRY operator applied to a graph with parallel
+   children observes the first child failure as an ordinary failure; the
+   operator's own coroutine is not cancelled; siblings outside the operator
+   are unaffected. Every CONVERT/RETRY operator (`settled`, `traverseSettled`,
+   `recover`, `recoverWith`, `orElse`, `firstSuccessOf`/`firstSuccess`,
+   `catching`, the `retry` family, `withCircuitBreaker`) runs its operand
+   inside its own `coroutineScope` (`Kap.isolated()` / `executeIsolated`),
+   so a failing grandchild of a `traverse`/`with`/`zip` graph is converted
+   instead of cancelling the operator (`IsolationLawsTest`,
+   `IsolationResilienceTest`).
 
 ## Naming conventions (normative)
 

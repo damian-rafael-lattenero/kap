@@ -1,8 +1,10 @@
 package kap
-
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlin.time.Duration
+import kotlin.time.TimeSource
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.CancellationException
 
 // ── timeoutRace: parallel timeout with eager fallback ───────────────────
 
@@ -47,7 +49,7 @@ fun <A> Kap<A>.retry(
     lateinit var lastError: Throwable
     while (true) {
         try {
-            return@Kap with(this@retry) { execute() }
+            return@Kap with(this@retry.isolated()) { execute() }
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
             lastError = e
@@ -107,7 +109,7 @@ fun <A> Kap<A>.retryOrElse(
     lateinit var lastError: Throwable
     while (true) {
         try {
-            return@Kap with(this@retryOrElse) { execute() }
+            return@Kap with(this@retryOrElse.isolated()) { execute() }
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
             lastError = e
@@ -159,7 +161,7 @@ fun <A> Kap<A>.retryWithResult(
     lateinit var lastError: Throwable
     while (true) {
         try {
-            val value = with(this@retryWithResult) { execute() }
+            val value = with(this@retryWithResult.isolated()) { execute() }
             return@Kap RetryResult(value, attempt, totalDelay)
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
@@ -176,3 +178,67 @@ fun <A> Kap<A>.retryWithResult(
     }
     throw lastError
 }
+
+/**
+ * Repeats this computation according to [schedule], returning the value of
+ * the LAST completed run. The schedule decides, from the attempt number and
+ * the last value, whether to continue (and after what delay) or to stop:
+ * cadence, jitter, backoff, `withMaxDuration` and the stop condition are all
+ * policy, not code.
+ *
+ * `retry` composes per iteration: `.retry(policy).repeat(schedule)` retries
+ * each run; `.repeat(schedule).retry(policy)` retries the whole loop's final
+ * failure. Cancellation between iterations is respected by law.
+ *
+ * ```
+ * Kap { poll() }
+ *     .retry(Schedule.times(2))
+ *     .repeat(Schedule.spaced(500.milliseconds))   // forever, every 500 ms
+ * ```
+ */
+fun <A> Kap<A>.repeat(schedule: Schedule<A>): Kap<A> = Kap {
+    var attempt = 0
+    var value = with(this@repeat.isolated()) { execute() }
+    while (currentCoroutineContext().isActive) {
+        val decision = schedule.decide(attempt, value)
+        when (decision) {
+            is Schedule.Decision.Continue -> {
+                if (decision.delay > Duration.ZERO) delay(decision.delay)
+                attempt += 1
+                value = with(this@repeat.isolated()) { execute() }
+            }
+            is Schedule.Decision.Done -> return@Kap value
+        }
+    }
+    throw CancellationException("repeat cancelled between iterations")
+}
+
+/** Repeats while the last value satisfies [predicate], with no delay between runs. */
+fun <A> Kap<A>.repeatWhile(predicate: (A) -> Boolean): Kap<A> =
+    repeat(Schedule.doWhile(predicate))
+
+/** Repeats until the last value satisfies [predicate], with no delay between runs. */
+fun <A> Kap<A>.repeatUntil(predicate: (A) -> Boolean): Kap<A> =
+    repeat(Schedule.doUntil(predicate))
+
+/**
+ * Polls [condition] every [every] until it holds or [upTo] elapses; the
+ * result is the LAST observation, so `true` means "it happened" and `false`
+ * means "time ran out". Nothing but schedule algebra: `doUntil { it } and
+ * spaced(every) and withMaxDuration(upTo)`. The test-suite idiom
+ * ("await until the counter reaches N") as a denotation.
+ *
+ * ```
+ * val landed = Kap.awaitUntil(every = 250.milliseconds, upTo = 30.seconds) { status().dbEvents >= 6 }
+ *     .evalGraph()
+ * check(landed) { "events never landed" }
+ * ```
+ */
+fun Kap.Companion.awaitUntil(
+    every: Duration,
+    upTo: Duration,
+    timeSource: TimeSource = TimeSource.Monotonic,
+    condition: suspend () -> Boolean,
+): Kap<Boolean> = Kap { condition() }.repeat(
+    Schedule.doUntil<Boolean> { it } and Schedule.spaced<Boolean>(every).withMaxDuration(upTo, timeSource),
+)

@@ -12,6 +12,10 @@ public final class kap/CircuitBreaker {
 	public final fun getMaxFailures ()I
 	public final fun getOnStateChange ()Lkotlin/jvm/functions/Function2;
 	public final fun getResetTimeout-UwyO8pc ()J
+	public final fun onFailure (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun onSuccess (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun protect (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun tryAcquire (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class kap/CircuitBreaker$State : java/lang/Enum {
@@ -65,12 +69,28 @@ public final class kap/ExitCase$Failed : kap/ExitCase {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class kap/KapLikeResilienceKt {
+	public static final fun retry (Lkap/KapLike;Lkap/Schedule;Lkotlin/jvm/functions/Function4;)Lkap/Kap;
+	public static final fun retry (Lkap/KapLike;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function4;)Lkap/Kap;
+	public static synthetic fun retry$default (Lkap/KapLike;Lkap/Schedule;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)Lkap/Kap;
+	public static synthetic fun retry$default (Lkap/KapLike;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)Lkap/Kap;
+	public static final fun retryOrElse (Lkap/KapLike;Lkap/Schedule;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
+	public static final fun retryWithResult (Lkap/KapLike;Lkap/Schedule;)Lkap/Kap;
+	public static final fun timeoutRace-8Mi8wO0 (Lkap/KapLike;JLkap/Kap;)Lkap/Kap;
+	public static final fun withCircuitBreaker (Lkap/KapLike;Lkap/CircuitBreaker;)Lkap/Kap;
+}
+
 public final class kap/RaceQuorumKt {
 	public static final fun raceQuorum (I[Lkap/Kap;)Lkap/Kap;
 	public static final fun raceQuorum (Ljava/lang/Iterable;I)Lkap/Kap;
 }
 
 public final class kap/ResilienceCombinatorsKt {
+	public static final fun awaitUntil-jKevqZI (Lkap/Kap$Companion;JJLkotlin/time/TimeSource;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
+	public static synthetic fun awaitUntil-jKevqZI$default (Lkap/Kap$Companion;JJLkotlin/time/TimeSource;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkap/Kap;
+	public static final fun repeat (Lkap/Kap;Lkap/Schedule;)Lkap/Kap;
+	public static final fun repeatUntil (Lkap/Kap;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
+	public static final fun repeatWhile (Lkap/Kap;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
 	public static final fun retry (Lkap/Kap;Lkap/Schedule;Lkotlin/jvm/functions/Function4;)Lkap/Kap;
 	public static final fun retry (Lkap/Kap;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function4;)Lkap/Kap;
 	public static synthetic fun retry$default (Lkap/Kap;Lkap/Schedule;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)Lkap/Kap;

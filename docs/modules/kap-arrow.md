@@ -3,7 +3,7 @@
 Arrow integration for parallel validation with error accumulation.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-arrow:3.0.0")
+implementation("io.github.damian-rafael-lattenero:kap-arrow:4.1.0")
 ```
 
 **Depends on:** `kap-core` + Arrow Core.
@@ -245,7 +245,7 @@ The last `.withV` returns `Kap<Either<NonEmptyList<E>, R>>` directly — kap-cor
     ```
 
 !!! note "Without `@KapTypeSafe`"
-    If the target class is not annotated, the generic `kapV<E, P1, …, Pn, R>(::T).withV { fn() }` form from kap-arrow's `ValidatedOverloads` is still available.
+    If the target class is not annotated, use the `zipV(...)` suspend-lambda overloads from kap-arrow's `ValidatedOverloads` — same parallel error accumulation, positional rather than slot-narrowed.
 
 ---
 
@@ -324,12 +324,15 @@ val multiError: Validated<RegError, ValidName> = invalidAll(
 )
 ```
 
-### `catching(toError) { }` — Exception to error bridge
+### `catching(toError)` — Exception to error bridge
+
+`Kap.catching(toError)` converts a non-cancellation exception thrown by the graph into a validation error:
 
 ```kotlin
-val result = catching<RegError, String>({ e -> RegError.InvalidName(e.message ?: "unknown") }) {
-    riskyOperation()
-}.evalGraph()
+val result = Kap { riskyOperation() }
+    .catching<RegError> { e -> RegError.InvalidName(e.message ?: "unknown") }
+    .evalGraph()
+// Right(value) or Left(NonEmptyList(InvalidName(...)))
 ```
 
 ---
@@ -362,20 +365,23 @@ val result = catching<RegError, String>({ e -> RegError.InvalidName(e.message ?:
 
     ```kotlin
     val result = valid(ValidAge(15))
-        .ensureV(RegError.InvalidAge("Must be 18+")) { it.value >= 18 }
+        .ensureV({ RegError.InvalidAge("Must be 18+") }) { it.value >= 18 }
         .evalGraph()
     // Left(NonEmptyList(InvalidAge("Must be 18+")))
 
+    fun weakPoints(p: ValidPassword): List<RegError> = buildList {
+        if (p.value.length < 8) add(RegError.WeakPassword("Too short"))
+        if (!p.value.any { it.isUpperCase() }) add(RegError.WeakPassword("No uppercase"))
+        if (!p.value.any { it.isDigit() }) add(RegError.WeakPassword("No digit"))
+    }
+
     val result2 = valid(ValidPassword("123"))
-        .ensureVAll { password ->
-            buildList {
-                if (password.value.length < 8) add(RegError.WeakPassword("Too short"))
-                if (!password.value.any { it.isUpperCase() }) add(RegError.WeakPassword("No uppercase"))
-                if (!password.value.any { it.isDigit() }) add(RegError.WeakPassword("No digit"))
-            }.let { if (it.isEmpty()) null else nonEmptyListOf(it.first(), *it.drop(1).toTypedArray()) }
-        }
+        .ensureVAll(
+            errors = { p -> nonEmptyListOf(weakPoints(p).first(), *weakPoints(p).drop(1).toTypedArray()) },
+            predicate = { weakPoints(it).isEmpty() },
+        )
         .evalGraph()
-    // Left(NonEmptyList(WeakPassword("Too short"), WeakPassword("No uppercase")))
+    // Left(NonEmptyList(WeakPassword("Too short"), WeakPassword("No uppercase"), ...))
     ```
 
 ---
@@ -431,7 +437,7 @@ val user: User = zipV(
 
     ```kotlin
     val emails = listOf("alice@example.com", "bad", "bob@example.com", "also-bad")
-    val result = emails.traverseV { email -> validateEmail(email) }
+    val result = emails.traverseV { email -> Kap { validateEmail(email) } }
         .evalGraph()
     // Left(NonEmptyList(InvalidEmail("bad"), InvalidEmail("also-bad")))
     // ALL invalid emails reported, not just the first
