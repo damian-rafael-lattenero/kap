@@ -1214,7 +1214,7 @@ design intent, not behavior.</p>
 <p>KAP has exactly <strong>three</strong> failure disciplines. Every operator in the public
 API belongs to one of them; adding an operator that doesn't is an API design
 error. This document is the reference the tests (<code>FailurePathLawsTest</code>,
-<code>ValidatedLawsTest</code>, <code>CancellationPropertyTest</code>) enforce.</p>
+<code>ValidatedLawsTest</code>, <code>CancellationPropertyTest</code>, <code>IsolationLawsTest</code>) enforce.</p>
 <h2 id="the-three-disciplines">The three disciplines<a class="headerlink" href="#the-three-disciplines" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1277,6 +1277,10 @@ fallback itself may still fail, so it is conversion with a retry flavor.</p>
 <td><code>recover</code> / <code>orElse</code> / <code>timeout(d, default)</code></td>
 </tr>
 <tr>
+<td>A timeout treated as an ordinary (retryable) failure</td>
+<td><code>timeoutAsFailure(d)</code> — plain <code>timeout(d)</code> throws <code>TimeoutCancellationException</code>, a <code>CancellationException</code>, which every retry rethrows</td>
+</tr>
+<tr>
 <td>Failures from an exception-throwing bridge folded into validation</td>
 <td><code>catching</code></td>
 </tr>
@@ -1296,6 +1300,16 @@ fallback itself may still fail, so it is conversion with a retry flavor.</p>
    kotlinx-coroutines stack-trace recovery across suspension points).</li>
 <li><strong>Failure path of <code>with</code> cancels siblings</strong> — structured concurrency: one
    failing branch fails the phase.</li>
+<li><strong>Isolation.</strong> A CONVERT or RETRY operator applied to a graph with parallel
+   children observes the first child failure as an ordinary failure; the
+   operator's own coroutine is not cancelled; siblings outside the operator
+   are unaffected. Every CONVERT/RETRY operator (<code>settled</code>, <code>traverseSettled</code>,
+   <code>recover</code>, <code>recoverWith</code>, <code>orElse</code>, <code>firstSuccessOf</code>/<code>firstSuccess</code>,
+   <code>catching</code>, the <code>retry</code> family, <code>withCircuitBreaker</code>) runs its operand
+   inside its own <code>coroutineScope</code> (<code>Kap.isolated()</code> / <code>executeIsolated</code>),
+   so a failing grandchild of a <code>traverse</code>/<code>with</code>/<code>zip</code> graph is converted
+   instead of cancelling the operator (<code>IsolationLawsTest</code>,
+   <code>IsolationResilienceTest</code>).</li>
 </ol>
 <h2 id="naming-conventions-normative">Naming conventions (normative)<a class="headerlink" href="#naming-conventions-normative" title="Permanent link">&para;</a></h2>
 <ul>

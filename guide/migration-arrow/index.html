@@ -1017,10 +1017,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#simple-parallel-parzip-combine" class="md-nav__link">
+  <a href="#simple-parallel-parzip-zip" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Simple parallel: parZip → combine
+        Simple parallel: parZip → zip
       
     </span>
   </a>
@@ -1164,10 +1164,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#simple-parallel-parzip-combine" class="md-nav__link">
+  <a href="#simple-parallel-parzip-zip" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Simple parallel: parZip → combine
+        Simple parallel: parZip → zip
       
     </span>
   </a>
@@ -1254,11 +1254,11 @@
 <h2 id="kap-arrow-complementary-not-competing">KAP + Arrow: complementary, not competing<a class="headerlink" href="#kap-arrow-complementary-not-competing" title="Permanent link">&para;</a></h2>
 <p>KAP's <code>kap-arrow</code> module <strong>uses</strong> Arrow's <code>Either</code> and <code>NonEmptyList</code>. You don't have to choose one or the other:</p>
 <div class="language-kotlin highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;io.github.damian-rafael-lattenero:kap-core:3.0.0&quot;</span><span class="p">)</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;io.github.damian-rafael-lattenero:kap-arrow:3.0.0&quot;</span><span class="p">)</span><span class="w"> </span><span class="c1">// uses Arrow Core</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;io.github.damian-rafael-lattenero:kap-core:4.1.0&quot;</span><span class="p">)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;io.github.damian-rafael-lattenero:kap-arrow:4.1.0&quot;</span><span class="p">)</span><span class="w"> </span><span class="c1">// uses Arrow Core</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">}</span>
 </span></code></pre></div>
-<h2 id="simple-parallel-parzip-combine">Simple parallel: <code>parZip</code> → <code>combine</code><a class="headerlink" href="#simple-parallel-parzip-combine" title="Permanent link">&para;</a></h2>
+<h2 id="simple-parallel-parzip-zip">Simple parallel: <code>parZip</code> → <code>zip</code><a class="headerlink" href="#simple-parallel-parzip-zip" title="Permanent link">&para;</a></h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Arrow</label><label for="__tabbed_1_2">KAP</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -1270,17 +1270,17 @@
 </span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">combine</span><span class="p">(</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">fetchCart</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">fetchPromos</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">zip</span><span class="p">(</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchCart</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchPromos</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">user</span><span class="p">,</span><span class="w"> </span><span class="n">cart</span><span class="p">,</span><span class="w"> </span><span class="n">promos</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Dashboard</span><span class="p">(</span><span class="n">user</span><span class="p">,</span><span class="w"> </span><span class="n">cart</span><span class="p">,</span><span class="w"> </span><span class="n">promos</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span></code></pre></div>
 </div>
 </div>
 </div>
-<p>Almost identical. KAP's <code>combine</code> is Arrow's <code>parZip</code> equivalent.</p>
+<p>Almost identical. KAP's <code>zip</code>/<code>combine</code> over Kaps is Arrow's <code>parZip</code> equivalent (the old suspend-lambda <code>combine</code> family is deprecated — wrap the lambdas in <code>Kap { }</code> instead).</p>
 <h2 id="type-safe-ordering-parzip-kap-with">Type-safe ordering: <code>parZip</code> → <code>kap</code> + <code>.with</code><a class="headerlink" href="#type-safe-ordering-parzip-kap-with" title="Permanent link">&para;</a></h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Arrow</label><label for="__tabbed_2_2">KAP</label></div>
 <div class="tabbed-content">
