@@ -1,3 +1,13 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        // Plugin-classpath transitive deps live on Central (e.g. detekt 2.0's
+        // io.github.detekt.sarif4k:sarif4k) — the portal only mirrors it, and its
+        // redirect/CDN has flaked on CI. Central removes the single point of failure.
+        mavenCentral()
+    }
+}
+
 rootProject.name = "kap"
 include(":kap-core")
 include(":kap-resilience")
