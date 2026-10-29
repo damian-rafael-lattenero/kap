@@ -84,10 +84,17 @@ jobs:
     runs-on: macOS-latest
     steps:
       - uses: actions/checkout@v6
+      # Daemon JVM criteria (gradle/gradle-daemon-jvm.properties) pin Corretto 21 and
+      # download no URLs by design — it must be installed locally. JDK 25 (the compile
+      # toolchain every module declares) rides along and ends up as JAVA_HOME.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: corretto
+          java-version: 21
       - uses: actions/setup-java@v5
         with:
           distribution: zulu
-          java-version: 21
+          java-version: 25
       - uses: gradle/actions/setup-gradle@v6
       - name: Publish to Maven Central
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
