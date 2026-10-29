@@ -38,7 +38,7 @@
             </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
-        <div class="library-version" id="library-version">4.1.0
+        <div class="library-version" id="library-version">4.2.0
         </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
@@ -144,6 +144,66 @@
               </div>
             </div>
           </div>
+<a data-name="1392283735%2FClasslikes%2F-865208273" anchor-label="Process" id="1392283735%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-process/index.html"><span><span>Process</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1392283735%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-process/index.html">Process</a><span class="token operator">&lt;</span><a href="-process/index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">A long-lived supervised computation: the body runs; <strong>normal completion finishes the process</strong>, a failure restarts it according to a <a href="-restart-policy/index.html">RestartPolicy</a>, and exhausting the policy fails <a href="-process-handle/await.html">ProcessHandle.await</a> with <a href="-process-exhausted-exception/index.html">ProcessExhaustedException</a>. While the process is alive a heartbeat beats at its own cadence, independent of the body's progress — a body that is stuck mid-cycle still has a live heartbeat, so the beat answers "is the process there", never "did the cycle finish" (the supervisor that killed a healthy-but-slow poller taught exactly this lesson).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-791561615%2FClasslikes%2F-865208273" anchor-label="ProcessExhaustedException" id="-791561615%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-process-exhausted-exception/index.html"><span>Process</span><wbr><span>Exhausted</span><wbr><span><span>Exception</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-791561615%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-process-exhausted-exception/index.html">ProcessExhaustedException</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>restarts<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">cause<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a></span></span><span class="token punctuation">)</span> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-runtime-exception/index.html">RuntimeException</a></div><div class="brief "><p class="paragraph">Thrown by <a href="-process-handle/await.html">ProcessHandle.await</a> when the body failed and the <a href="-restart-policy/index.html">RestartPolicy</a> allowed no further restart. <span data-unresolved-link="kap/ProcessExhaustedException//#kotlin.String#kotlin.Int#kotlin.Throwable/PointingToCallableParameters(2)/">cause</span> is the last failure.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1629019505%2FClasslikes%2F-865208273" anchor-label="ProcessHandle" id="-1629019505%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-process-handle/index.html"><span>Process</span><wbr><span><span>Handle</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1629019505%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-process-handle/index.html">ProcessHandle</a><span class="token operator">&lt;</span><span class="token keyword">out </span><a href="-process-handle/index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">The live handle of a started <a href="-process/index.html">Process</a>. Obtained from <a href="-process/start-in.html">Process.startIn</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1530309259%2FClasslikes%2F-865208273" anchor-label="ProcessStoppedException" id="-1530309259%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-process-stopped-exception/index.html"><span>Process</span><wbr><span>Stopped</span><wbr><span><span>Exception</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1530309259%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-process-stopped-exception/index.html">ProcessStoppedException</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-runtime-exception/index.html">RuntimeException</a></div><div class="brief "><p class="paragraph">Thrown by <a href="-process-handle/await.html">ProcessHandle.await</a> after <a href="-process-handle/stop.html">ProcessHandle.stop</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="1777387214%2FClasslikes%2F-865208273" anchor-label="Resource" id="1777387214%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
             <div class="main-subrow keyValue ">
@@ -155,6 +215,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-resource/index.html">Resource</a><span class="token operator">&lt;</span><span class="token keyword">out </span><a href="-resource/index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">A composable resource with guaranteed cleanup.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1351587621%2FClasslikes%2F-865208273" anchor-label="RestartPolicy" id="1351587621%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-restart-policy/index.html"><span>Restart</span><wbr><span><span>Policy</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1351587621%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-restart-policy/index.html">RestartPolicy</a></div><div class="brief "><p class="paragraph">The restart half of a <a href="-process/index.html">Process</a>: the delay schedule between restarts plus the hard cap on restart count.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -264,6 +339,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="guarantee-case.html">A</a><span class="token operator">&gt; </span><a href="../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="guarantee-case.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="guarantee-case.html"><span class="token function">guaranteeCase</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">finalizer<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><a href="-exit-case/index.html">ExitCase</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="guarantee-case.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Like <a href="guarantee.html">guarantee</a> but the finalizer receives the <a href="-exit-case/index.html">ExitCase</a> so it can react differently to success, failure, or cancellation.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-457920060%2FFunctions%2F-865208273" anchor-label="process" id="-457920060%2FFunctions%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="process.html"><span><span>process</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-457920060%2FFunctions%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="process.html">A</a><span class="token operator">&gt; </span><a href="../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="process.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="process.html"><span class="token function">process</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">restart<span class="token operator">: </span><a href="-restart-policy/index.html">RestartPolicy</a><span class="token operator"> = </span>RestartPolicy.exponential()<span class="token punctuation">, </span></span><span class="parameter ">heartbeatEvery<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>1.seconds<span class="token punctuation">, </span></span><span class="parameter ">onRestart<span class="token operator">: </span><span class="token punctuation">(</span>attempt<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>error<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a><span class="token punctuation">, </span>nextDelay<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{ _, _, _ -&gt; }<span class="token punctuation">, </span></span><span class="parameter ">onHeartbeat<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{}<span class="token punctuation">, </span></span><span class="parameter ">timeSource<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-time-source/index.html">TimeSource</a><span class="token operator"> = </span>TimeSource.Monotonic</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-process/index.html">Process</a><span class="token operator">&lt;</span><a href="process.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Lifts this computation into a supervised, named <a href="-process/index.html">Process</a> — the SPEC-5.0 milestone 4.2 first cut: a repeated <code class="lang-kotlin">Kap</code> with a restart policy, health, and a handle with <code class="lang-kotlin">stop()</code>. Nothing runs until <a href="-process/start-in.html">Process.startIn</a>.</p></div></div></div>
                 </div>
               </div>
             </div>
