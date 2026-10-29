@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>AbstractClassCanBeInterface:Bracket.kt:ExitCase$ExitCase</ID>
+    <ID>AbstractClassCanBeInterface:Schedule.kt:Schedule.Decision$Decision</ID>
+    <ID>CyclomaticComplexMethod:RaceQuorum.kt:@OptIn(ExperimentalCoroutinesApi::class) fun &lt;A> raceQuorum: Kap&lt;List&lt;A>></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, I, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, H, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, G, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, F, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>LongParameterList:ResourceZip.kt:fun &lt;A, B, C, D, E, R> Resource.Companion.zip: Resource&lt;R></ID>
+    <ID>MaxLineLength:ResourceZip.kt:r1</ID>
+    <ID>MaxLineLength:ResourceZip.kt:use(combine(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22))</ID>
+    <ID>RedundantHigherOrderMapUsage:RaceQuorum.kt:map</ID>
+    <ID>SpreadOperator:RaceQuorum.kt:(required, *toList().toTypedArray())</ID>
+    <ID>ThrowsCount:CircuitBreaker.kt:fun &lt;A> Kap&lt;A>.withCircuitBreaker: Kap&lt;A></ID>
+    <ID>TooGenericExceptionCaught:Bracket.kt:e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:CircuitBreaker.kt:e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ResilienceCombinators.kt:e: Throwable</ID>
+    <ID>TooManyFunctions:ResourceZip.kt:kap.ResourceZip.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>

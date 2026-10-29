@@ -1,5 +1,4 @@
-import io.gitlab.arturbosch.detekt.Detekt
-import io.gitlab.arturbosch.detekt.extensions.DetektExtension
+import dev.detekt.gradle.extensions.DetektExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
@@ -49,10 +48,11 @@ tasks.register("benchmarks") {
 }
 
 // ── Built with the newest LTS, runs on 21+ ──────────────────────────────────
-// Every module declares jvmToolchain(25) (the compiler JDK). The BYTECODE target
-// stays 21 so the published artifacts keep working for JDK 21 consumers, the
-// examples (daemon JDK) resolve the library variants, and the ABI validator and
-// detekt (which cannot read class files newer than 21) keep working.
+// Every module declares jvmToolchain(25) (the compiler JDK — and, since the
+// detekt 2.0 upgrade, the Gradle daemon's JDK too: there is a single JVM in
+// the build now). The BYTECODE target stays 21 so the published artifacts keep
+// working for JDK 21 consumers, the examples resolve the library variants, and
+// the ABI validator keeps reading the class files.
 val bytecodeTarget = 21
 subprojects {
     tasks.withType<KotlinJvmCompile>().configureEach {
@@ -72,8 +72,10 @@ subprojects {
 
 // ── Static analysis: detekt on library modules ─────────────────────────────
 // Existing findings live in each module's detekt-baseline.xml (tolerated until
-// Fase 1 cleanup); any NEW violation fails the build.
-val DETEKT_MAX_DAEMON_JDK = 23
+// Fase 1 cleanup); any NEW violation fails the build. detekt 2.0 runs its
+// analysis in isolated workers on any JDK >= 17 — no daemon-version dance —
+// and creates type-resolved tasks per compilation by default, so the old
+// custom commonMain TR task is gone.
 val detektModules = listOf(
     "kap-core", "kap-resilience", "kap-arrow", "kap-ktor", "kap-kotest",
     "kap-ksp", "kap-ksp-annotations", "benchmarks",
@@ -81,26 +83,11 @@ val detektModules = listOf(
 
 subprojects {
     if (name in detektModules) {
-        apply(plugin = "io.gitlab.arturbosch.detekt")
-        // detekt 1.23 derives jvmTarget from the daemon's JVM when unset and its
-        // embedded compiler rejects anything above the targets it knows: a Gradle
-        // daemon on JDK 25 failed with "IllegalArgumentException: 25.0.5". Pin it
-        // to the library's toolchain.
-        // detekt 1.23 embeds a Kotlin compiler whose bundled IntelliJ cannot parse a
-        // daemon JDK >= 24 ("IllegalArgumentException: 25.0.5"), and its targets stop
-        // at 21. CI runs the Gradle daemon on JDK 21 with JDK 25 as a detected
-        // toolchain, so the gate is enforced there; a local daemon on a newer JDK
-        // skips detekt loudly instead of crashing the build.
-        val daemonMajor = JavaVersion.current().majorVersion.toInt()
-        tasks.withType<Detekt>().configureEach {
-            jvmTarget = "21"
-            if (daemonMajor >= DETEKT_MAX_DAEMON_JDK + 1) {
-                enabled = false
-                doFirst { logger.warn("detekt skipped: daemon JDK $daemonMajor is newer than detekt 1.23 supports; CI runs it on JDK 21") }
-            }
-        }
+        apply(plugin = "dev.detekt")
         configure<DetektExtension> {
             buildUponDefaultConfig = true
+            val baselineFile = file("detekt-baseline.xml")
+            if (baselineFile.exists()) baseline.set(baselineFile)
             // KMP: analyze common + platform main sources; JVM-only: src/main (+jmh for benchmarks).
             val kotlinDirs = listOf(
                 "src/commonMain/kotlin", "src/jsMain/kotlin", "src/wasmJsMain/kotlin",
@@ -110,43 +97,18 @@ subprojects {
             source.setFrom(kotlinDirs)
             // Tests are out of scope for now (Fase 1 decides).
         }
-
-        // ── Type resolution for commonMain ─────────────────────────────────
-        // detektJvmMain covers the jvm target's own sources; common code (where
-        // most of the library lives) gets its own TR pass using the JVM
-        // compile classpath, as recommended by detekt for MPP projects.
-        if (file("src/commonMain/kotlin").exists()) {
-            val commonTr = tasks.register<Detekt>("detektCommonMainTR") {
-                description = "detekt commonMain with type resolution (jvm compile classpath)"
-                buildUponDefaultConfig = true
-                source("src/commonMain/kotlin")
-                include("**/*.kt")
-                classpath.setFrom(
-                    configurations.named("jvmMainCompileClasspath"),
-                    files("src/jvmMain/kotlin"),
-                )
-                reports {
-                    txt.required.set(true)
-                    xml.required.set(true)
-                }
-                // Reuse the module baseline (when present) so already-tolerated
-                // non-TR findings in commonMain do not double-fire here.
-                val baselineFile = file("detekt-baseline.xml")
-                if (baselineFile.exists()) baseline.set(baselineFile)
-            }
-            pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
-                tasks.matching { it.name == "check" }.configureEach { dependsOn(commonTr) }
-            }
-        }
     }
 }
 
-// Aggregates every detekt flavour: plain (all sources), type-resolved
-// jvmMain/main and the commonMain TR pass. CI gate entry point.
+// Aggregates every detekt flavour: the plain `detekt` pass (extension sources)
+// plus the type-resolved per-compilation tasks detekt 2.0 generates —
+// detektMain for JVM modules, detektMainJvm for KMP ones (the jvm compilation
+// includes the common sources, superseding the old custom commonMain TR task).
+// CI gate entry point.
 val detektAll = tasks.register("detektAll") {
     group = "verification"
-    description = "All detekt checks: plain, type-resolved jvmMain/main and commonMain."
-    val detektTaskNames = listOf("detekt", "detektMain", "detektJvmMain", "detektCommonMainTR")
+    description = "All detekt checks: plain + per-compilation type-resolved."
+    val detektTaskNames = listOf("detekt", "detektMain", "detektMainJvm")
     detektModules.forEach { moduleName ->
         val sp = subprojects.find { it.name == moduleName } ?: return@forEach
         detektTaskNames.forEach { taskName ->

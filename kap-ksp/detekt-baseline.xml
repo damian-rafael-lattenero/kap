@@ -2,13 +2,11 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>CyclomaticComplexMethod:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$override fun process(resolver: Resolver): List&lt;KSAnnotated></ID>
-    <ID>LargeClass:KapTypeSafeProcessor.kt$KapTypeSafeProcessor : SymbolProcessor</ID>
-    <ID>TooManyFunctions:KapTypeSafeProcessor.kt$KapTypeSafeProcessor : SymbolProcessor</ID>
-    <ID>UnusedParameter:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$params: List&lt;ParamInfo></ID>
-    <ID>UnusedParameter:KapTypeSafeProcessor.kt$KapTypeSafeProcessor$resolver: Resolver</ID>
-    <ID>WildcardImport:KapTypeSafeProcessor.kt$import com.google.devtools.ksp.processing.*</ID>
-    <ID>WildcardImport:KapTypeSafeProcessor.kt$import com.google.devtools.ksp.symbol.*</ID>
-    <ID>WildcardImport:KapTypeSafeProcessorProvider.kt$import com.google.devtools.ksp.processing.*</ID>
+    <ID>CyclomaticComplexMethod:KapTypeSafeProcessor.kt:KapTypeSafeProcessor$override fun process: List&lt;KSAnnotated></ID>
+    <ID>TooManyFunctions:KapTypeSafeProcessor.kt:KapTypeSafeProcessor : SymbolProcessor</ID>
+    <ID>UnusedParameter:KapTypeSafeProcessor.kt:KapTypeSafeProcessor$resolver: Resolver</ID>
+    <ID>WildcardImport:KapTypeSafeProcessor.kt:import com.google.devtools.ksp.processing.*</ID>
+    <ID>WildcardImport:KapTypeSafeProcessor.kt:import com.google.devtools.ksp.symbol.*</ID>
+    <ID>WildcardImport:KapTypeSafeProcessorProvider.kt:import com.google.devtools.ksp.processing.*</ID>
   </CurrentIssues>
 </SmellBaseline>

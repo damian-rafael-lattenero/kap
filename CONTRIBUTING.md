@@ -6,8 +6,8 @@ Thank you for considering contributing to KAP! Every contribution matters, wheth
 
 ### Prerequisites
 
-- JDK 21+
-- Kotlin 2.3.20+
+- JDK 25 (single JDK: Gradle daemon and compile toolchain; published artifacts still run on JDK 21+)
+- Kotlin 2.4.20+
 
 ### Building the Project
 
