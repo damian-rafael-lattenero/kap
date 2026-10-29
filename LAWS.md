@@ -34,6 +34,18 @@ CONVERT and RETRY operators (`settled`, `traverseSettled`, `recover`, `recoverWi
 
 Enforced by [`IsolationLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/IsolationLawsTest.kt) (kap-core) and [`IsolationResilienceTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/IsolationResilienceTest.kt) (kap-resilience).
 
+## Process laws
+
+A `Process` (kap-resilience, 4.2.0) is a supervised loop: the body completing normally finishes it, a failure restarts it under a `RestartPolicy`, and a handle exposes `stop()`, `await()` and the heartbeat.
+
+1. **Convergence.** Every restart waits a strictly positive delay and the restart count is bounded by the policy — an instantly-failing body can never hot-loop. The `RestartPolicy` factories enforce it (positive `constant`/`exponential` delays, finite `maxRestarts`); the private constructor means an unlawful policy cannot be expressed.
+2. **Terminal success.** Normal completion finishes the process: no restart, the heartbeat stops, `await` returns the value.
+3. **Stop and cancellation are never failures.** `stop()` (idempotent) and the death of the owning scope end the process without triggering a restart or exhaustion; `await` reports `ProcessStoppedException` / the cancellation respectively.
+4. **Heartbeat independence.** The heartbeat beats at its period while the process is alive — including mid-body and during restart delays — and never waits for body progress; it stops with the process. (The beat answers "is the process there", never "did the cycle finish".)
+5. **Transparent observation.** `onRestart`/`onHeartbeat` cannot change the lifecycle: an exception in an observer is swallowed and the policy proceeds.
+
+Enforced by [`ProcessLawsTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/ProcessLawsTest.kt) (convergence, bounded restarts; property-checked) and [`ProcessTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/ProcessTest.kt) (lifecycle, virtual time).
+
 ## Arrow Integration
 
 Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplementation. All validated operations produce standard `Either<NonEmptyList<E>, A>` values.
@@ -42,4 +54,4 @@ Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplement
 
 All laws are verified in [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/ApplicativeLawsTest.kt) using Kotest property-based testing with random inputs.
 
-**1096 tests across 80 suites in 6 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.sh`.)*
+**1112 tests across 82 suites in 6 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.sh`.)*

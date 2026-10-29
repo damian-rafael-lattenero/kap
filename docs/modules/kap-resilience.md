@@ -3,12 +3,12 @@
 Retry, resource safety, and protection patterns. All composable in the KAP chain.
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-resilience:4.1.0")
+implementation("io.github.damian-rafael-lattenero:kap-resilience:4.2.0")
 ```
 
 **Depends on:** `kap-core`.
 **Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
-**Tests:** 164 tests across 16 test classes, including Schedule laws and CircuitBreaker concurrency tests.
+**Tests:** 244 tests across 20 test classes (JVM + native), including Schedule laws, Process laws and CircuitBreaker concurrency tests.
 
 ---
 
@@ -329,6 +329,42 @@ val result = Kap { fetchUser() }
 
 !!! warning "timeout(d) is not retryable"
     `timeout(d)` fails with `TimeoutCancellationException` — a `CancellationException`, which every `retry` rethrows by law. Chain `timeout(d)` into `retry(...)` and slow calls are never retried. Use `timeoutAsFailure(d)` (kap-core) whenever a timeout feeds a RETRY operator — it raises an ordinary `KapTimeoutException` instead.
+
+---
+
+## `process` — Supervised Loops (4.2.0)
+
+A `Process` is a long-lived supervised computation (SPEC-5.0, milestone 4.2): the body runs; **normal completion finishes the process**, a failure restarts it according to a `RestartPolicy`, and exhausting the policy fails `await()` with `ProcessExhaustedException`. While alive, a heartbeat beats at its own cadence — independent of the body's progress, so the beat answers "is the process there", never "did the cycle finish".
+
+```kotlin
+val poller = Kap { pollOnce() }
+    .repeat(Schedule.spaced(500.milliseconds))
+    .process(
+        name = "tg-poller",
+        restart = RestartPolicy.exponential(base = 1.seconds, maxRestarts = 5),
+        heartbeatEvery = 5.seconds,
+        onHeartbeat = { touchHbFile() },          // external supervisors read the file
+        onRestart = { n, err, delay -> log("restart #$n after $err in $delay") },
+    )
+
+coroutineScope {
+    val handle = poller.startIn(this)   // a child of THIS scope — no daemon escape
+    awaitShutdownSignal()
+    handle.stop()                        // idempotent; not a failure, never restarts
+}
+```
+
+The laws (`LAWS.md` — Process laws):
+
+| Law | Guarantee |
+|---|---|
+| **Convergence** | Every restart waits a strictly positive delay and the count is capped — an instantly-failing body can never hot-loop. The private `RestartPolicy` constructor makes an unlawful policy inexpressible. |
+| **Terminal success** | A body that returns finishes the process; no restart, heartbeat stops. |
+| **Stop/cancel ≠ failure** | `stop()` and scope death never trigger a restart or exhaustion; `await()` reports `ProcessStoppedException` / the cancellation. |
+| **Heartbeat independence** | Beats arrive at the period while the body is mid-cycle or mid-backoff, and stop with the process. |
+| **Transparent observation** | `onRestart`/`onHeartbeat` throwing cannot change the lifecycle. |
+
+`handle.restarts` is a `StateFlow<Int>` (collect it for live supervision surfaces), `handle.isAlive` covers both running and waiting-out-a-restart, and `handle.heartbeatAge()` gives the staleness of the alive signal (`Duration.INFINITE` when the heartbeat is disabled with `heartbeatEvery = Duration.ZERO`).
 
 ---
 

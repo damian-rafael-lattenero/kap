@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.2.0] - 2026-10-29
+
+Milestone 4.2 closes: `Process`, the supervised loop of SPEC-5.0, lands with
+its laws. The design brief came from the bot's heal architecture (three
+supervision layers earned through incidents) — heartbeat independence is the
+codified lesson of the kill-loop incident where a beat that only fired at
+cycle end read a healthy poller as dead.
+
+### Added
+- **`Process` (SPEC-5.0, milestone 4.2 first cut).** `Kap<A>.process(name, restart, heartbeatEvery, onRestart, onHeartbeat, timeSource)` (kap-resilience): a long-lived supervised computation. The body completing normally finishes the process; a failure restarts it after the policy's delay; exhausting the policy fails `await()` with `ProcessExhaustedException` (cause = the last failure). A `Process` is a lazy description; `startIn(scope)` interprets it as a child of the given scope — structured concurrency, no daemon escape — and returns a `ProcessHandle` with `stop()` (idempotent, never a failure), `await()`, `isAlive`, `restarts: StateFlow<Int>` and `heartbeatAge()`. The heartbeat beats at its own period while the process is alive, including mid-body and during restart delays (`Duration.ZERO` disables it). `stop()`/scope death never trigger a restart; observability callbacks are transparent by law.
+- **`RestartPolicy`.** `constant(delay, maxRestarts)` and `exponential(base, factor, max, maxRestarts)` (default: 100 ms base, ×2, cap 8 restarts). The **convergence law** is enforced at construction: delays are strictly positive and the restart count is finite, so an instantly-failing body can never hot-loop. The private constructor means an unlawful policy cannot be expressed.
+- **Process laws** in `LAWS.md` (convergence, terminal success, stop/cancel never failures, heartbeat independence, transparent observation), enforced by `ProcessTest` (virtual time) and `ProcessLawsTest` (property-checked, plus the bounded-restart law: an instantly-failing body runs exactly `maxRestarts + 1` times).
+
+### Docs
+- Module page (`docs/modules/kap-resilience.md`) gains the `process` section; README module table and dependency versions updated; test counts re-verified (1112 tests, 82 suites).
+
 ## [4.1.0] - 2026-10-28
 
 Findings from the first external integration (agent-brain); the full analysis

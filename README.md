@@ -570,7 +570,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
 |---|---|---|
 | **kap-core** | `.with`, `.then`, `.andThen`, `race`, `traverse`, `memoize`, `settled` | Always |
 | **kap-ksp** | `@KapTypeSafe`, `@KapBridge` — compile-time named builders with IDE autocomplete | When you want swap-proof, guided orchestration |
-| **kap-resilience** | `retry`, `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `raceQuorum`, `timeoutRace` | When you call external services |
+| **kap-resilience** | `retry`, `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `raceQuorum`, `timeoutRace`, `process` | When you call external services or run supervised loops |
 | **kap-arrow** | `.withV`, `kapV`, error accumulation with `Either<NonEmptyList<E>, A>` | When you need parallel validation |
 | **kap-ktor** | `respondAsync`, `KapTracer`, circuit breaker plugin | When you use Ktor |
 | **kap-kotest** | `shouldSucceedWith`, `shouldFailWith`, timing & lifecycle matchers | When you test Kap graphs |
@@ -705,13 +705,13 @@ plugins {
 }
 
 dependencies {
-    implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-core:4.2.0")
 
     // optional — add any combination
-    implementation("io.github.damian-rafael-lattenero:kap-resilience:4.1.0")
-    implementation("io.github.damian-rafael-lattenero:kap-arrow:4.1.0")
-    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:4.1.0")
-    ksp("io.github.damian-rafael-lattenero:kap-ksp:4.1.0")
+    implementation("io.github.damian-rafael-lattenero:kap-resilience:4.2.0")
+    implementation("io.github.damian-rafael-lattenero:kap-arrow:4.2.0")
+    implementation("io.github.damian-rafael-lattenero:kap-ksp-annotations:4.2.0")
+    ksp("io.github.damian-rafael-lattenero:kap-ksp:4.2.0")
 }
 ```
 
@@ -748,7 +748,7 @@ KAP adds **zero measurable overhead**. The abstraction compiles away. [Full benc
 
 ---
 
-1000+ tests · [Maven Central](https://central.sonatype.com/artifact/io.github.damian-rafael-lattenero/kap-core) · Kotlin Multiplatform (JVM, JS, WASM, Native) · Apache 2.0
+1100+ tests · [Maven Central](https://central.sonatype.com/artifact/io.github.damian-rafael-lattenero/kap-core) · Kotlin Multiplatform (JVM, JS, WASM, Native) · Apache 2.0
 
 <p align="center">
   <a href="https://damian-rafael-lattenero.github.io/kap/guide/quickstart/"><strong>Get Started</strong></a> · <a href="https://damian-rafael-lattenero.github.io/kap/"><strong>Docs</strong></a> · <a href="https://damian-rafael-lattenero.github.io/kap/playground/"><strong>Cookbook</strong></a>

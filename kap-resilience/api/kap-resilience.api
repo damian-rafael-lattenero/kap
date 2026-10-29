@@ -80,6 +80,34 @@ public final class kap/KapLikeResilienceKt {
 	public static final fun withCircuitBreaker (Lkap/KapLike;Lkap/CircuitBreaker;)Lkap/Kap;
 }
 
+public final class kap/Process {
+	public final fun getName ()Ljava/lang/String;
+	public final fun startIn (Lkotlinx/coroutines/CoroutineScope;)Lkap/ProcessHandle;
+}
+
+public final class kap/ProcessExhaustedException : java/lang/RuntimeException {
+	public fun <init> (Ljava/lang/String;ILjava/lang/Throwable;)V
+	public final fun getRestarts ()I
+}
+
+public abstract interface class kap/ProcessHandle {
+	public abstract fun await (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun getRestarts ()Lkotlinx/coroutines/flow/StateFlow;
+	public abstract fun heartbeatAge-UwyO8pc ()J
+	public abstract fun isAlive ()Z
+	public abstract fun stop ()V
+}
+
+public final class kap/ProcessKt {
+	public static final fun process-45ZY6uE (Lkap/Kap;Ljava/lang/String;Lkap/RestartPolicy;JLkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function0;Lkotlin/time/TimeSource;)Lkap/Process;
+	public static synthetic fun process-45ZY6uE$default (Lkap/Kap;Ljava/lang/String;Lkap/RestartPolicy;JLkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function0;Lkotlin/time/TimeSource;ILjava/lang/Object;)Lkap/Process;
+}
+
+public final class kap/ProcessStoppedException : java/lang/RuntimeException {
+	public fun <init> (Ljava/lang/String;)V
+}
+
 public final class kap/RaceQuorumKt {
 	public static final fun raceQuorum (I[Lkap/Kap;)Lkap/Kap;
 	public static final fun raceQuorum (Ljava/lang/Iterable;I)Lkap/Kap;
@@ -138,6 +166,20 @@ public final class kap/ResourceZipKt {
 	public static final fun zip (Lkap/Resource$Companion;Lkap/Resource;Lkap/Resource;Lkap/Resource;Lkap/Resource;Lkotlin/jvm/functions/Function4;)Lkap/Resource;
 	public static final fun zip (Lkap/Resource$Companion;Lkap/Resource;Lkap/Resource;Lkap/Resource;Lkotlin/jvm/functions/Function3;)Lkap/Resource;
 	public static final fun zip (Lkap/Resource$Companion;Lkap/Resource;Lkap/Resource;Lkotlin/jvm/functions/Function2;)Lkap/Resource;
+}
+
+public final class kap/RestartPolicy {
+	public static final field Companion Lkap/RestartPolicy$Companion;
+	public static final field DEFAULT_MAX_RESTARTS I
+	public synthetic fun <init> (Lkap/Schedule;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getMaxRestarts ()I
+}
+
+public final class kap/RestartPolicy$Companion {
+	public final fun constant-VtjQ1oo (JI)Lkap/RestartPolicy;
+	public static synthetic fun constant-VtjQ1oo$default (Lkap/RestartPolicy$Companion;JIILjava/lang/Object;)Lkap/RestartPolicy;
+	public final fun exponential-t_idYME (JDJI)Lkap/RestartPolicy;
+	public static synthetic fun exponential-t_idYME$default (Lkap/RestartPolicy$Companion;JDJIILjava/lang/Object;)Lkap/RestartPolicy;
 }
 
 public final class kap/RetryResult {

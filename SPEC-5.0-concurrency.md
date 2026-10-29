@@ -12,13 +12,13 @@ and dogfoods in `agent-brain` before release.
 
 One library, five algebras, one law-checked semantic core:
 
-| Algebra | Today (4.1.0) | Target |
+| Algebra | Today (4.2.0) | Target |
 |---|---|---|
 | **Graph** (request-scoped effects) | `Kap`, `with`/`then`/`zip`, Validated, KSP builders | done; grows only at the edges |
-| **Policy** (retry, cadence) | `Schedule` (retry-only), breakers, timeouts | `repeat`/`repeatWhile`/`repeatUntil` over any `Schedule`; policies compose and are values |
+| **Policy** (retry, cadence) | `Schedule` (retry-only), breakers, timeouts, `repeat`/`repeatWhile`/`repeatUntil` (4.1.0) | policies compose and are values |
 | **Stream** (backpressured pipelines) | per-element Flow interop | `KapStream`: stages are `Kap`s, backpressure strategies are named values, cancellation is structured |
-| **Process** (long-lived, supervised) | none | `Process`: a repeated `Kap` with a restart policy, health, and named supervision (`OneForOne`/`AllForOne`) |
-| **Lifecycle** (acquire/await/release) | `bracket`, `Resource`, `guarantee` | + `Kap.awaiting` (callback lift), `Scope` shared across a graph |
+| **Process** (long-lived, supervised) | first cut (4.2.0): `process()`/`RestartPolicy`/heartbeat handle with convergence laws | named supervision (`OneForOne`/`AllForOne`), restart-with-health as the interpretation of a supervisor |
+| **Lifecycle** (acquire/await/release) | `bracket`, `Resource`, `guarantee`, `Kap.awaiting` (4.1.0) | `Scope` shared across a graph |
 
 ## Design principle: algebra first, Haskell as the compass
 
@@ -69,7 +69,7 @@ first, as an API second (author's direction, 2026-10-28).
    (`shouldProveParallel`, `shouldBeMillis`). A concurrency library whose
    tests sleep is a demo.
 
-## Milestone 4.2 — policies and lifecycle (lands with dogfood in agent-brain)
+## Milestone 4.2 — policies and lifecycle (complete: repeat/awaiting in 4.1.0, Process in 4.2.0)
 
 - `Kap<A>.repeat(schedule: Schedule<A>): Kap<A>` — run again while the
   schedule says continue; cadence, jitter, max duration and stop condition
@@ -78,8 +78,7 @@ first, as an API second (author's direction, 2026-10-28).
   `Schedule.whileInput`/`untilInput`.
 - `Kap.awaiting { resume, cancel -> ... }` — lift a callback (the SDK's
   `onClose`, a listener, a shutdown hook) into a cancellable `Kap`.
-- `Process` (first cut): `Kap<A>.process(name, restart = RestartPolicy.exponential(...), maxRestarts = n)`
-  — a supervised loop with a heartbeat; exposed via a handle with `stop()`.
+- `Process` (first cut) — **shipped in 4.2.0**: `Kap<A>.process(name, restart = RestartPolicy.exponential(...), heartbeatEvery = ...)` — a supervised loop with a heartbeat; exposed via a handle with `stop()`. (`maxRestarts` was folded into `RestartPolicy` so the convergence law — positive delays, finite cap, no infinite hot loop — is a property of the policy value, enforced by its private constructor.)
 - Laws: repeat respects the schedule (virtual time), cancellation interrupts
   between iterations, awaiting registers exactly once and unregisters on
   cancel, restart policies converge (no infinite hot loop).
