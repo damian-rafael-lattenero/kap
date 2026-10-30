@@ -18,14 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # Single JDK: the Gradle daemon, the jvmToolchain(25) compilation and
+      # detekt 2.0's isolated workers all run on Corretto 25.
       - uses: actions/setup-java@v5
         with:
           distribution: corretto
-          java-version: 25   # compilation toolchain (jvmToolchain(25))
-      - uses: actions/setup-java@v5
-        with:
-          distribution: corretto
-          java-version: 21   # Gradle daemon (detekt 1.23 cannot run on JDK >= 24)
+          java-version: 25
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Generate Dokka API docs
