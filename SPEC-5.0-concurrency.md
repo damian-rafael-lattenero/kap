@@ -47,7 +47,7 @@ first, as an API second (author's direction, 2026-10-28).
   free monads in the public API.
 - **Laws before features.** A combinator ships with its laws in
   `kap-core/src/jvmTest/.../*LawsTest.kt` (kotest-property) or it does not
-  ship; `scripts/verify-claims.sh` keeps the counts honest.
+  ship; `scripts/verify-claims.nu` keeps the counts honest.
 
 ## Strategic decisions
 

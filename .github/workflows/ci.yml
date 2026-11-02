@@ -93,8 +93,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Install Nushell nightly (typed .nu scripts)
+        run: |
+          curl -fsSL -o nu.tar.gz 'https://github.com/nushell/nightly/releases/download/0.116.2-nightly.28%2Ba34b63a/nu-0.116.2-nightly.28-x86_64-unknown-linux-gnu.tar.gz'
+          tar -xzf nu.tar.gz
+          sudo mv nu-0.116.2-nightly.28-x86_64-unknown-linux-gnu/nu /usr/local/bin/nu
+          nu --version
       - name: Verify numeric claims
-        run: ./scripts/verify-claims.sh
+        run: nu scripts/verify-claims.nu
 
   # ── Static analysis (detekt; new violations fail, baselined ones tolerated) ──
   detekt:
