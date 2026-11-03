@@ -264,6 +264,96 @@
               </div>
             </div>
           </div>
+<a data-name="-1908425360%2FClasslikes%2F-865208273" anchor-label="SupervisionStrategy" id="-1908425360%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-supervision-strategy/index.html"><span>Supervision</span><wbr><span><span>Strategy</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1908425360%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-supervision-strategy/index.html">SupervisionStrategy</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="-supervision-strategy/index.html">SupervisionStrategy</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">The supervision strategy of a <a href="-supervisor/index.html">Supervisor</a>: what happens to the <i>other</i> children when one of them fails.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2085240332%2FClasslikes%2F-865208273" anchor-label="Supervisor" id="-2085240332%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-supervisor/index.html"><span><span>Supervisor</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2085240332%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-supervisor/index.html">Supervisor</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">children<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-supervisor-child/index.html">SupervisorChild</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>strategy<span class="token operator">: </span><a href="-supervision-strategy/index.html">SupervisionStrategy</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>restartPolicy<span class="token operator">: </span><a href="-restart-policy/index.html">RestartPolicy</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">A group of named <a href="../../kap-core/kap/-kap/index.html">Kap</a> bodies supervised together (SPEC-5.0 milestone 5.0): when a child fails, the <span data-unresolved-link="kap/Supervisor//#kotlin.collections.List[kap.SupervisorChild]#kap.SupervisionStrategy#kap.RestartPolicy/PointingToCallableParameters(1)/">strategy</span> decides whether only that child restarts (<a href="-supervision-strategy/-one-for-one/index.html">SupervisionStrategy.OneForOne</a>) or the whole group does (<a href="-supervision-strategy/-all-for-one/index.html">SupervisionStrategy.AllForOne</a>); the <span data-unresolved-link="kap/Supervisor//#kotlin.collections.List[kap.SupervisorChild]#kap.SupervisionStrategy#kap.RestartPolicy/PointingToCallableParameters(2)/">restartPolicy</span> decides the backoff and the restart cap.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-859563310%2FClasslikes%2F-865208273" anchor-label="SupervisorChild" id="-859563310%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-supervisor-child/index.html"><span>Supervisor</span><wbr><span><span>Child</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-859563310%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-supervisor-child/index.html">SupervisorChild</a></div><div class="brief "><p class="paragraph">A named <a href="../../kap-core/kap/-kap/index.html">Kap</a> body supervised by a <a href="-supervisor/index.html">Supervisor</a>. Build it with <a href="-supervisor/-companion/child.html">Supervisor.child</a> — the name is the key of <a href="-supervisor-handle/restarts.html">SupervisorHandle.restarts</a> and appears in terminal exceptions.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1669242574%2FClasslikes%2F-865208273" anchor-label="SupervisorExhaustedException" id="1669242574%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-supervisor-exhausted-exception/index.html"><span>Supervisor</span><wbr><span>Exhausted</span><wbr><span><span>Exception</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1669242574%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-supervisor-exhausted-exception/index.html">SupervisorExhaustedException</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>child<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>restarts<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">cause<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a></span></span><span class="token punctuation">)</span> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-runtime-exception/index.html">RuntimeException</a></div><div class="brief "><p class="paragraph">Thrown by <a href="-supervisor-handle/await.html">SupervisorHandle.await</a> when a child failed and the <a href="-restart-policy/index.html">RestartPolicy</a> allowed no further restart. <span data-unresolved-link="kap/SupervisorExhaustedException//#kotlin.String#kotlin.Int#kotlin.Throwable/PointingToCallableParameters(2)/">cause</span> is that child's last failure.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="594143852%2FClasslikes%2F-865208273" anchor-label="SupervisorHandle" id="594143852%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-supervisor-handle/index.html"><span>Supervisor</span><wbr><span><span>Handle</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="594143852%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-supervisor-handle/index.html">SupervisorHandle</a></div><div class="brief "><p class="paragraph">The live handle of a started <a href="-supervisor/index.html">Supervisor</a>. Obtained from <a href="-supervisor/start-in.html">Supervisor.startIn</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1059958034%2FClasslikes%2F-865208273" anchor-label="SupervisorStoppedException" id="1059958034%2FClasslikes%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-supervisor-stopped-exception/index.html"><span>Supervisor</span><wbr><span>Stopped</span><wbr><span><span>Exception</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1059958034%2FClasslikes%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-supervisor-stopped-exception/index.html">SupervisorStoppedException</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-runtime-exception/index.html">RuntimeException</a></div><div class="brief "><p class="paragraph">Thrown by <a href="-supervisor-handle/await.html">SupervisorHandle.await</a> after <a href="-supervisor-handle/stop.html">SupervisorHandle.stop</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div data-togglable="FUNCTION">

@@ -7,3 +7,5 @@ module:kap-core
 kap
 module:kap-resilience
 kap
+module:kap-stream
+kap

@@ -1,0 +1,340 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>KapStream</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    KAP
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">4.2.0
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":kap-stream/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":kap-stream/commonMain" data-filter=":kap-stream/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    KAP
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="kap-stream::kap/KapStream///PointingToDeclaration//-1339099042">
+  <div class="breadcrumbs"><a href="../../index.html">kap-stream</a><span class="delimiter">/</span><a href="../index.html">kap</a><span class="delimiter">/</span><span class="current">KapStream</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Kap</span><wbr><span><span>Stream</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><span class="token keyword">out </span><a href="index.html">A</a><span class="token operator">&gt;</span></div><p class="paragraph">A backpressured stream of values whose stages are <a href="../../../kap-core/kap/-kap/index.html">Kap</a>s (SPEC-5.0 milestone 5.0). <code class="lang-kotlin">KapStream</code> is a thin, lawful layer over Kotlin flows — it wraps the runtime, never reimplements it — adding the two things flows leave implicit: <strong>the backpressure policy is a named value at every stage</strong>, and every transformation is a <a href="../../../kap-core/kap/-kap/index.html">Kap</a> with the error and cancellation semantics of the rest of KAP.</p><p class="paragraph">The default backpressure at every stage is <a href="../-backpressure/-suspend/index.html">Backpressure.Suspend</a>: exact, nothing is ever dropped. Every other policy is explicit and documented for what it drops (<a href="../-backpressure/index.html">Backpressure</a>).</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">KapStream.emitted(Kap { bus.read() })<br>    .every(Schedule.spaced(500.milliseconds))<br>    .filterKap { event -&gt; Kap { !event.isHeartbeat } }<br>    .mapKap(concurrency = 4, backpressure = Backpressure.Buffer(64)) { event -&gt; Kap { enrich(event) } }<br>    .drainTo(outbox)</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><p class="paragraph">Streams are cold: nothing runs until a sink (<a href="collect-as-kap.html">collectAsKap</a>, <a href="drain-to.html">drainTo</a>) or <a href="as-flow.html">asFlow</a> collects them, and collection lives in the caller's structured scope — cancellation propagates to the source, no stream escapes.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="524791662%2FClasslikes%2F-1339099042" anchor-label="Companion" id="524791662%2FClasslikes%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="524791662%2FClasslikes%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="213584147%2FFunctions%2F-1339099042" anchor-label="asFlow" id="213584147%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="as-flow.html"><span>as</span><wbr><span><span>Flow</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="213584147%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="as-flow.html"><span class="token function">asFlow</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">The escape hatch: this stream as a plain <span data-unresolved-link="kotlinx.coroutines.flow/Flow///PointingToDeclaration/">Flow</span>. Values are produced with whatever backpressure the stream was built with; the caller's collection supplies the downstream demand. Use it to plug into existing Flow code without re-wrapping.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2124673841%2FFunctions%2F-1339099042" anchor-label="buffer" id="2124673841%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="buffer.html"><span><span>buffer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2124673841%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="buffer.html"><span class="token function">buffer</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">capacity<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>Channel.BUFFERED</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Decouples producer and consumer with <a href="buffer.html">capacity</a> slots. <strong>Exact</strong>: nothing is dropped; the producer suspends only when the buffer is full.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="96398741%2FFunctions%2F-1339099042" anchor-label="collectAsKap" id="96398741%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="collect-as-kap.html"><span>collect</span><wbr><span>As</span><wbr><span><span>Kap</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="96398741%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="collect-as-kap.html"><span class="token function">collectAsKap</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Collects the whole stream into a <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a> as a <a href="../../../kap-core/kap/-kap/index.html">Kap</a>. The list is complete by construction: whatever the stream did not drop per its named strategies is in it, in order. Terminal: only use it on finite streams (or bounded ones, e.g. via <code class="lang-kotlin">emitted(...).every(Schedule.times(n))</code>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2108957815%2FFunctions%2F-1339099042" anchor-label="conflate" id="-2108957815%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="conflate.html"><span><span>conflate</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2108957815%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="conflate.html"><span class="token function">conflate</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Keeps only the latest element while the consumer is busy; superseded elements are dropped. Never drops the element buffered at completion. Same as <code class="lang-kotlin">latest(1)</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-153406535%2FFunctions%2F-1339099042" anchor-label="drainTo" id="-153406535%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="drain-to.html"><span>drain</span><wbr><span><span>To</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-153406535%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="drain-to.html"><span class="token function">drainTo</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">channel<span class="token operator">: </span><span data-unresolved-link="kotlinx.coroutines.channels/SendChannel///PointingToDeclaration/">SendChannel</span><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Drains the stream into <a href="drain-to.html">channel</a> as a <a href="../../../kap-core/kap/-kap/index.html">Kap</a>, suspending on the channel's own capacity — a backpressured sink. Completion of the stream completes the <code class="lang-kotlin">Kap</code>; a closed channel fails it. The channel is <strong>not</strong> closed by this sink (the caller owns its lifecycle).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-741840549%2FFunctions%2F-1339099042" anchor-label="dropLatest" id="-741840549%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="drop-latest.html"><span>drop</span><wbr><span><span>Latest</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-741840549%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="drop-latest.html"><span class="token function">dropLatest</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">capacity<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">A <a href="drop-latest.html">capacity</a>-slot buffer that drops the <strong>incoming</strong> element when the buffer is full: the oldest data survives, the producer never waits.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1478307869%2FFunctions%2F-1339099042" anchor-label="dropOldest" id="-1478307869%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="drop-oldest.html"><span>drop</span><wbr><span><span>Oldest</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1478307869%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="drop-oldest.html"><span class="token function">dropOldest</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">capacity<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">A <a href="drop-oldest.html">capacity</a>-slot buffer that drops the <strong>oldest</strong> buffered element when a new one arrives and the buffer is full: the freshest data survives, the producer never waits.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="689377%2FFunctions%2F-1339099042" anchor-label="filterKap" id="689377%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="filter-kap.html"><span>filter</span><wbr><span><span>Kap</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="689377%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="filter-kap.html"><span class="token function">filterKap</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">backpressure<span class="token operator">: </span><a href="../-backpressure/index.html">Backpressure</a><span class="token operator"> = </span>Backpressure.Suspend<span class="token punctuation">, </span></span><span class="parameter ">predicate<span class="token operator">: </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Keeps the elements whose <a href="../../../kap-core/kap/-kap/index.html">Kap</a> predicate returns <code class="lang-kotlin">true</code>. Elements are tested sequentially, so the output order is the upstream order.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1499452930%2FFunctions%2F-1339099042" anchor-label="flatMapKap" id="1499452930%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="flat-map-kap.html"><span>flat</span><wbr><span>Map</span><wbr><span><span>Kap</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1499452930%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="flat-map-kap.html">B</a><span class="token operator">&gt; </span><a href="flat-map-kap.html"><span class="token function">flatMapKap</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">concurrency<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span><span class="token punctuation">, </span></span><span class="parameter ">backpressure<span class="token operator">: </span><a href="../-backpressure/index.html">Backpressure</a><span class="token operator"> = </span>Backpressure.Suspend<span class="token punctuation">, </span></span><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><a href="flat-map-kap.html">B</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><a href="flat-map-kap.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Flat-maps every element into its own inner <a href="index.html">KapStream</a> and merges the inners with at most <a href="flat-map-kap.html">concurrency</a> collected at a time (the stream algebra's <code class="lang-kotlin">flatMap</code>). With <code class="lang-kotlin">concurrency = 1</code> the output is sequential in upstream order; above it, inners interleave in completion order.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-956974454%2FFunctions%2F-1339099042" anchor-label="latest" id="-956974454%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="latest.html"><span><span>latest</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-956974454%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="latest.html"><span class="token function">latest</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">n<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Keeps the last <a href="latest.html">n</a> elements; everything older is dropped. Exact for <code class="lang-kotlin">n</code> slots of slack.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="645381659%2FFunctions%2F-1339099042" anchor-label="mapKap" id="645381659%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="map-kap.html"><span>map</span><wbr><span><span>Kap</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="645381659%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="map-kap.html">B</a><span class="token operator">&gt; </span><a href="map-kap.html"><span class="token function">mapKap</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">concurrency<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span><span class="token punctuation">, </span></span><span class="parameter ">backpressure<span class="token operator">: </span><a href="../-backpressure/index.html">Backpressure</a><span class="token operator"> = </span>Backpressure.Suspend<span class="token punctuation">, </span></span><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="map-kap.html">B</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><a href="map-kap.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Maps every element through a <a href="../../../kap-core/kap/-kap/index.html">Kap</a>, with at most <a href="map-kap.html">concurrency</a> elements in flight. With <code class="lang-kotlin">concurrency &gt; 1</code> results are emitted in <strong>completion order</strong>, not upstream order — use <a href="map-kap-ordered.html">mapKapOrdered</a> when position matters.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="772541886%2FFunctions%2F-1339099042" anchor-label="mapKapOrdered" id="772541886%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="map-kap-ordered.html"><span>map</span><wbr><span>Kap</span><wbr><span><span>Ordered</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="772541886%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="map-kap-ordered.html">B</a><span class="token operator">&gt; </span><a href="map-kap-ordered.html"><span class="token function">mapKapOrdered</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">concurrency<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span><span class="token punctuation">, </span></span><span class="parameter ">backpressure<span class="token operator">: </span><a href="../-backpressure/index.html">Backpressure</a><span class="token operator"> = </span>Backpressure.Suspend<span class="token punctuation">, </span></span><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="map-kap-ordered.html">B</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><a href="map-kap-ordered.html">B</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Like <a href="map-kap.html">mapKap</a> but <strong>preserves the upstream order</strong> even with <code class="lang-kotlin">concurrency &gt; 1</code>: completed results are held until every earlier element has been emitted. Bounded by <a href="map-kap-ordered.html">concurrency</a> in flight; memory is the price of order.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1762005601%2FFunctions%2F-1339099042" anchor-label="withBackpressure" id="1762005601%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-backpressure.html"><span>with</span><wbr><span><span>Backpressure</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1762005601%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-backpressure.html"><span class="token function">withBackpressure</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">strategy<span class="token operator">: </span><a href="../-backpressure/index.html">Backpressure</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">KapStream</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Applies an explicit backpressure policy to everything upstream of this point. Equivalent to the named sugars <a href="buffer.html">buffer</a>, <a href="conflate.html">conflate</a>, <a href="drop-oldest.html">dropOldest</a>, <a href="drop-latest.html">dropLatest</a> and <a href="latest.html">latest</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
