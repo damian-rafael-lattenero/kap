@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **`Schedule.Decision` matchers** (kap-kotest): `shouldContinue(expectedDelay:
+  Duration? = null)` (exact delay check, `null` accepts any) and `shouldStop()`
+  (strict `Done`), with tests covering factories, semiring composition and the
+  `Continue(INFINITE)` observational nuance (issue #14).
+- **Friendly compile errors for `.with` mistakes** (kap-core): two
+  `@Deprecated(level = ERROR)` guards on `Kap.with` — the plain-value slip
+  (`.with(user)` instead of `.with { user }`) and a catch-all for arguments
+  that are neither a `Kap` nor a suspend lambda — replace the cryptic
+  `None of the following candidates is applicable … Kap<uninferred A>` with the
+  fix in the message. Nothing that compiled before changes resolution
+  (issue #19).
+- **Dokka API reference on the site**: the docs deploy generates the aggregated
+  API docs (`dokkaGenerate` → `/api/`), links them from the MkDocs nav and now
+  also triggers on library source changes, so the reference tracks the code;
+  the previous reference is preserved across deploys like the benchmark data
+  (issue #20).
+
+### Changed
+
+- Full KDoc coverage of the kap-resilience public API (`@param`/`@return`/
+  `@throws` where meaningful, `CircuitBreaker.State` documented, the six
+  `KapLikeResilience` mirror extensions documented, the `ResourceZip` generator
+  emits a KDoc per zip overload) — docs only, no signature or behavior change
+  (issue #16).
+- The Cookbook documents why interactive Kotlin Playground embeds are not
+  shipped yet: the public compile server runs only bundled libraries
+  (`kap-core` 4.2.0 from Maven Central does not resolve there, verified against
+  the live API); the CDN embed + `data-server` pattern is documented for when
+  that changes (issue #18).
+- Docs cleanup: the stale root `blog-draft.md` was removed (the published post
+  `docs/blog/posts/from-30-lines-to-12.md` supersedes it), and the `Ref` KDoc
+  example now calls `counter.get().evalGraph()` — `get()` returns a `Kap<A>`,
+  so the old `counter.get() == 2` comment was false.
+
 ## [5.0.0] - 2026-11-03
 
 Milestone 5.0 of SPEC-5.0 ("streams, supervision, semiring, benchmarks") and

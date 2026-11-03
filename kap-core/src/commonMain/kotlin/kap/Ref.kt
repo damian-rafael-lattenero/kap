@@ -20,7 +20,7 @@ import kotlinx.coroutines.sync.withLock
  * val graph = Kap.of { a: Int -> { b: Int -> a + b } }
  *     .with { counter.update { it + 1 } }
  *     .with { counter.update { it + 1 } }
- * // counter.get() == 2
+ * counter.get().evalGraph()   // == 2: get() is a Kap<Int>, run it to read
  * ```
  *
  * Cancellation while waiting for the lock leaves the value untouched; the lock
