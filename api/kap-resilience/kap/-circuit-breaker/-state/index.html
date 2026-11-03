@@ -93,7 +93,7 @@
   <div class="breadcrumbs"><a href="../../../index.html">kap-resilience</a><span class="delimiter">/</span><a href="../../index.html">kap</a><span class="delimiter">/</span><a href="../index.html">CircuitBreaker</a><span class="delimiter">/</span><span class="current">State</span></div>
   <div class="cover ">
     <h1 class="cover"><span><span>State</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">enum </span><a href="index.html">State</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="index.html">CircuitBreaker.State</a><span class="token operator">&gt; </span></div></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">enum </span><a href="index.html">State</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="index.html">CircuitBreaker.State</a><span class="token operator">&gt; </span></div><p class="paragraph">The three states of the circuit lifecycle.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button><button class="section-tab" data-togglable="ENTRY">Entries</button></div>
@@ -110,7 +110,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><div class="block"><a href="-closed/index.html">Closed</a></div></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><div class="block"><a href="-closed/index.html">Closed</a></div></div><div class="brief "><p class="paragraph">Calls proceed normally; consecutive failures count towards <a href="../max-failures.html">CircuitBreaker.maxFailures</a>.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -125,7 +125,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><div class="block"><a href="-open/index.html">Open</a></div></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><div class="block"><a href="-open/index.html">Open</a></div></div><div class="brief "><p class="paragraph">Calls are rejected with <a href="../../-circuit-breaker-open-exception/index.html">CircuitBreakerOpenException</a> until <a href="../retry-after.html">CircuitBreaker.retryAfter</a> elapses.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -140,7 +140,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><div class="block"><a href="-half-open/index.html">HalfOpen</a></div></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><div class="block"><a href="-half-open/index.html">HalfOpen</a></div></div><div class="brief "><p class="paragraph">A single probe call is admitted; its outcome decides between <a href="-closed/index.html">Closed</a> and <a href="-open/index.html">Open</a>.</p></div></div></div>
                 </div>
               </div>
             </div>
