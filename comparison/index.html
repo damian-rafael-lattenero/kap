@@ -18,7 +18,7 @@
         <link rel="prev" href="../modules/kap-ksp/">
       
       
-        <link rel="next" href="../design/error-semantics/">
+        <link rel="next" href="../detekt-rules/">
       
       
         
@@ -293,6 +293,25 @@
     
   
   Comparison
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../detekt-rules/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Detekt rules
 
       </a>
     </li>
@@ -878,6 +897,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../detekt-rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Detekt rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -894,10 +940,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
@@ -915,8 +961,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1039,10 +1085,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -1060,8 +1106,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1572,7 +1618,7 @@
 </span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">breaker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CircuitBreaker</span><span class="p">(</span><span class="n">maxFailures</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span><span class="p">,</span><span class="w"> </span><span class="n">resetTimeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">30.</span><span class="n">seconds</span><span class="p">)</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">breaker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CircuitBreaker</span><span class="p">(</span><span class="n">maxFailures</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span><span class="p">,</span><span class="w"> </span><span class="n">retryAfter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">30.</span><span class="n">seconds</span><span class="p">)</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="p">.</span><span class="na">timeoutAsFailure</span><span class="p">(</span><span class="m">500.</span><span class="n">milliseconds</span><span class="p">)</span><span class="w">   </span><span class="c1">// ordinary failure — retry can handle it</span>
