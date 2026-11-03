@@ -40,7 +40,7 @@ class IsolationResilienceTest {
 
     @Test
     fun `withCircuitBreaker records a nested parallel failure and opens`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 1, resetTimeout = 1.minutes)
+        val breaker = CircuitBreaker(maxFailures = 1, retryAfter = 1.minutes)
         assertFailsWith<ChildFailed> { nested().withCircuitBreaker(breaker).evalGraph() }
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
         assertFailsWith<CircuitBreakerOpenException> { Kap.of(1).withCircuitBreaker(breaker).evalGraph() }
@@ -48,7 +48,7 @@ class IsolationResilienceTest {
 
     @Test
     fun `the public breaker API guards plain suspend code`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 1.minutes)
+        val breaker = CircuitBreaker(maxFailures = 2, retryAfter = 1.minutes)
         assertTrue(breaker.tryAcquire())
         assertEquals("ok", breaker.protect { "ok" })
         repeat(2) { assertFailsWith<IllegalStateException> { breaker.protect { error("boom") } } }
@@ -65,7 +65,7 @@ class IsolationResilienceTest {
             override val asKap: Kap<Int> = Kap { 21 }
         }
         assertEquals(21, wrapper.retry(Schedule.times(1)).evalGraph())
-        assertEquals(21, wrapper.withCircuitBreaker(CircuitBreaker(1, 1.seconds)).evalGraph())
+        assertEquals(21, wrapper.withCircuitBreaker(CircuitBreaker(maxFailures = 1, retryAfter = 1.seconds)).evalGraph())
         assertEquals(21, wrapper.timeoutRace(100.milliseconds, Kap.of(0)).evalGraph())
         assertEquals(21, wrapper.timeoutAsFailure(1.seconds).evalGraph())
         assertEquals(21, (wrapper orElse Kap.of(0)).evalGraph())

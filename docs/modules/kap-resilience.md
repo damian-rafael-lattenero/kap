@@ -278,7 +278,7 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
     ```kotlin
     val breaker = CircuitBreaker(
         maxFailures = 5,
-        resetTimeout = 30.seconds,
+        retryAfter = 30.seconds,
         onStateChange = { old, new -> println("CircuitBreaker: $old -> $new") }
     )
 
@@ -286,7 +286,7 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
         .withCircuitBreaker(breaker)
         .evalGraph()
     // While Open: fails immediately with CircuitBreakerOpenException
-    // After resetTimeout: tries one request (HalfOpen)
+    // After retryAfter: tries one request (HalfOpen)
     // If it succeeds: back to Closed
     ```
 
@@ -779,7 +779,7 @@ All features composed in one chain:
 === "KAP"
 
     ```kotlin
-    val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+    val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
     val result = Kap { fetchData() }
         .timeoutAsFailure(2.seconds)                     // hard timeout (retryable failure)

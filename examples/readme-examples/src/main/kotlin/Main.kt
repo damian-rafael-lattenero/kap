@@ -397,7 +397,7 @@ suspend fun fetchFromCache(): String { delay(20); return "cached-result" }
 suspend fun quickStartResilience() {
     println("=== Quick Start: Resilience ===\n")
 
-    val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+    val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
     val retryPolicy = Schedule.times<Throwable>(3) and Schedule.exponential(10.milliseconds)
 
     val result = kap(::Dashboard)
@@ -756,7 +756,7 @@ suspend fun featureRaceQuorum() {
 suspend fun featureCircuitBreaker() {
     println("=== Feature: Circuit Breaker ===\n")
 
-    val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+    val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
     val result = Kap { fetchDashUser() }
             .timeout(500.milliseconds)
@@ -1779,7 +1779,7 @@ data class ResilientCheckout(
 suspend fun readmeRawProblem() {
     println("=== README: Raw problem (retry + CB) ===\n")
 
-    val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+    val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
     val result = coroutineScope {
         val dUser  = async { fetchUser() }
@@ -1842,7 +1842,7 @@ suspend fun readmeKapSolution() {
     println("=== README: KAP solution (typed-applicative + from) ===\n")
 
     val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds) and Schedule.times(3)
-    val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+    val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
     val result = with(ResilientCheckoutKap) {
         kap(::ResilientCheckout)
@@ -2089,7 +2089,7 @@ suspend fun readmeFullPicture() {
     val input = OrderInput("123 Main St", "visa-4242", listOf("item-a", "item-b"))
 
     val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds).jittered() and Schedule.times(3)
-    val paymentBreaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+    val paymentBreaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
     // Phase 1: validate
     val validated = kapV<OrderError, ValidAddress, ValidCard, ValidItems, ValidOrder>(::ValidOrder)

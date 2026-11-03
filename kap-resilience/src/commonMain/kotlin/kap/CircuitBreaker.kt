@@ -11,16 +11,17 @@ import kotlin.time.TimeSource
  *
  * Tracks failures and opens the circuit when [maxFailures] consecutive failures
  * occur. While open, calls fail immediately with [CircuitBreakerOpenException]
- * without executing the underlying computation. After [resetTimeout], the circuit
- * transitions to half-open and allows a single probe call. If the probe succeeds,
- * the circuit closes; if it fails, the circuit reopens.
+ * without executing the underlying computation. After [retryAfter], the circuit
+ * transitions to half-open and allows a probe call. When [successThreshold]
+ * consecutive probes succeed, the circuit closes; a failed probe reopens it.
  *
  * Thread-safe — all state transitions are protected by a [Mutex].
  *
  * ```
  * val breaker = CircuitBreaker(
  *     maxFailures = 5,
- *     resetTimeout = 30.seconds,
+ *     retryAfter = 30.seconds,
+ *     successThreshold = 2,   // two consecutive HalfOpen probes to close
  * )
  *
  * Kap { callExternalService() }
@@ -29,19 +30,54 @@ import kotlin.time.TimeSource
  * ```
  *
  * @param maxFailures consecutive failures before opening the circuit.
- * @param resetTimeout time to wait in open state before allowing a probe.
+ * @param retryAfter time to wait in open state before allowing a probe.
+ * @param successThreshold number of consecutive successful HalfOpen probes
+ *   required to close the circuit. With a threshold greater than one, the
+ *   first success keeps the circuit HalfOpen and leaves the failure count
+ *   untouched; a failure in between resets the probe count.
  * @param onStateChange optional callback for observability (logging, metrics).
  * @param timeSource injectable time source for testing.
  */
 class CircuitBreaker(
     val maxFailures: Int,
-    val resetTimeout: Duration,
+    val retryAfter: Duration,
+    val successThreshold: Int = 1,
     val onStateChange: (State, State) -> Unit = { _, _ -> },
     private val timeSource: TimeSource = TimeSource.Monotonic,
 ) {
+    /**
+     * Source-compatible constructor kept for the pre-4.3 name `resetTimeout`.
+     *
+     * The new name for the open-state cooldown is [retryAfter]; this overload
+     * exists so call sites written against the old name keep compiling.
+     */
+    @Deprecated(
+        message = "resetTimeout was renamed to retryAfter",
+        replaceWith = ReplaceWith(
+            "CircuitBreaker(maxFailures, retryAfter, successThreshold, onStateChange, timeSource)",
+        ),
+    )
+    constructor(
+        maxFailures: Int,
+        resetTimeout: Duration,
+        onStateChange: (State, State) -> Unit = { _, _ -> },
+        timeSource: TimeSource = TimeSource.Monotonic,
+    ) : this(
+        maxFailures = maxFailures,
+        retryAfter = resetTimeout,
+        successThreshold = 1,
+        onStateChange = onStateChange,
+        timeSource = timeSource,
+    )
+
+    /** Deprecated alias for [retryAfter]. */
+    @Deprecated("resetTimeout was renamed to retryAfter", ReplaceWith("retryAfter"))
+    val resetTimeout: Duration get() = retryAfter
+
     init {
         require(maxFailures >= 1) { "maxFailures must be >= 1, was $maxFailures" }
-        require(resetTimeout > Duration.ZERO) { "resetTimeout must be positive" }
+        require(retryAfter > Duration.ZERO) { "retryAfter must be positive" }
+        require(successThreshold >= 1) { "successThreshold must be >= 1, was $successThreshold" }
     }
 
     enum class State { Closed, Open, HalfOpen }
@@ -51,6 +87,12 @@ class CircuitBreaker(
     internal var state: State = State.Closed
 
     internal var failureCount: Int = 0
+
+    /** Consecutive successful HalfOpen probes towards [successThreshold]. */
+    internal var successCount: Int = 0
+
+    /** True while a HalfOpen probe has been admitted and has not reported back. */
+    internal var probeInFlight: Boolean = false
 
     internal var openedAt: TimeMark? = null
 
@@ -64,7 +106,11 @@ class CircuitBreaker(
     @Suppress("RedundantSuspendModifier")
     suspend fun tryAcquire(): Boolean = mutex.withLock { shouldAttempt() }
 
-    /** Records a success: closes the breaker from HalfOpen, resets the failure count. */
+    /**
+     * Records a success. In HalfOpen it counts towards [successThreshold] and
+     * closes the circuit when the threshold is reached; in any other state it
+     * closes the circuit and resets the failure count immediately.
+     */
     @Suppress("RedundantSuspendModifier")
     suspend fun onSuccess() = mutex.withLock { recordSuccess() }
 
@@ -99,12 +145,21 @@ class CircuitBreaker(
     }
 
     internal fun recordSuccess() {
+        if (state == State.HalfOpen && successThreshold > 1) {
+            successCount++
+            probeInFlight = false
+            if (successCount < successThreshold) return
+        }
         failureCount = 0
+        successCount = 0
+        probeInFlight = false
         transitionTo(State.Closed)
     }
 
     internal fun recordFailure() {
         failureCount++
+        successCount = 0
+        probeInFlight = false
         if (failureCount >= maxFailures) {
             transitionTo(State.Open)
             openedAt = timeSource.markNow()
@@ -114,11 +169,19 @@ class CircuitBreaker(
     internal fun shouldAttempt(): Boolean {
         return when (state) {
             State.Closed -> true
-            State.HalfOpen -> false // another probe is already in flight
+            State.HalfOpen ->
+                if (probeInFlight) {
+                    false // another probe is already in flight
+                } else {
+                    probeInFlight = true
+                    true
+                }
             State.Open -> {
                 val mark = openedAt ?: return true
-                if (mark.elapsedNow() >= resetTimeout) {
+                if (mark.elapsedNow() >= retryAfter) {
                     transitionTo(State.HalfOpen)
+                    successCount = 0
+                    probeInFlight = true
                     true
                 } else {
                     false
@@ -140,13 +203,14 @@ class CircuitBreakerOpenException(
  *
  * - **Closed:** calls execute normally. Consecutive failures increment the counter.
  * - **Open:** calls fail immediately with [CircuitBreakerOpenException].
- * - **Half-Open:** one probe call is allowed. Success closes, failure reopens.
+ * - **Half-Open:** one probe call at a time. When [CircuitBreaker.successThreshold]
+ *   consecutive probes succeed, the circuit closes; a failure reopens it.
  *
  * [kotlinx.coroutines.CancellationException] is **never** counted as a failure —
  * structured concurrency cancellation always propagates without affecting the circuit.
  *
  * ```
- * val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 10.seconds)
+ * val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 10.seconds)
  *
  * val result = kap(::Dashboard)
  *     .with { fetchUser().withCircuitBreaker(breaker) }

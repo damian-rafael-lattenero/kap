@@ -208,7 +208,7 @@ class ResilienceCompositionTest {
 
     @Test
     fun `retry + timeout + circuit breaker + recover composition`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 100.milliseconds)
+        val breaker = CircuitBreaker(maxFailures = 2, retryAfter = 100.milliseconds)
         var attempts = 0
 
         val result = Kap {

@@ -4,7 +4,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TestTimeSource
@@ -13,7 +15,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `stays closed on success`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 1.seconds)
         repeat(10) {
             assertEquals("ok", Kap { "ok" }.withCircuitBreaker(breaker).evalGraph())
         }
@@ -22,7 +24,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `opens after maxFailures consecutive failures`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 1.seconds)
         val comp = Kap<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
 
         repeat(3) { assertTrue(runCatching { comp.evalGraph() }.isFailure) }
@@ -35,7 +37,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `success resets failure count`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 1.seconds)
         var callCount = 0
         val comp = Kap {
             callCount++
@@ -53,9 +55,9 @@ class CircuitBreakerTest {
     }
 
     @Test
-    fun `transitions Open to HalfOpen after resetTimeout`() = runTest {
+    fun `transitions Open to HalfOpen after retryAfter`() = runTest {
         val timeSource = TestTimeSource()
-        val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 500.milliseconds, timeSource = timeSource)
+        val breaker = CircuitBreaker(maxFailures = 2, retryAfter = 500.milliseconds, timeSource = timeSource)
         val comp = Kap<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
 
         repeat(2) { runCatching { comp.evalGraph() } }
@@ -75,7 +77,7 @@ class CircuitBreakerTest {
     fun `HalfOpen probe success closes the circuit`() = runTest {
         val timeSource = TestTimeSource()
         var shouldFail = true
-        val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 500.milliseconds, timeSource = timeSource)
+        val breaker = CircuitBreaker(maxFailures = 2, retryAfter = 500.milliseconds, timeSource = timeSource)
         val comp = Kap {
             if (shouldFail) throw RuntimeException("fail"); "recovered"
         }.withCircuitBreaker(breaker)
@@ -94,7 +96,7 @@ class CircuitBreakerTest {
         val transitions = mutableListOf<Pair<CircuitBreaker.State, CircuitBreaker.State>>()
         val timeSource = TestTimeSource()
         val breaker = CircuitBreaker(
-            maxFailures = 2, resetTimeout = 100.milliseconds, timeSource = timeSource,
+            maxFailures = 2, retryAfter = 100.milliseconds, timeSource = timeSource,
             onStateChange = { from, to -> transitions.add(from to to) },
         )
         var shouldFail = true
@@ -115,7 +117,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `parallel with branches — latch barrier proof`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 1.seconds)
         val latch1 = CompletableDeferred<Unit>()
         val latch2 = CompletableDeferred<Unit>()
 
@@ -133,7 +135,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `full resilience stack — retry + recover + circuit breaker`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 1.seconds)
         var callCount = 0
         val graph = Kap {
             callCount++
@@ -147,7 +149,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `shared breaker fast-fails when open`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 10.seconds)
+        val breaker = CircuitBreaker(maxFailures = 2, retryAfter = 10.seconds)
         val fail = Kap<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
         repeat(2) { runCatching { fail.evalGraph() } }
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
@@ -160,7 +162,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `composes with timeout`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 1.seconds)
         val graph = Kap { "fast" }.timeout(100.milliseconds).withCircuitBreaker(breaker)
         assertEquals("fast", graph.evalGraph())
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
@@ -168,7 +170,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `Schedule retry exhausts then opens circuit`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 1.seconds)
         var callCount = 0
         val graph = Kap<String> {
             callCount++; throw RuntimeException("always fails")
@@ -177,5 +179,132 @@ class CircuitBreakerTest {
         assertTrue(runCatching { graph.evalGraph() }.isFailure)
         assertEquals(5, callCount)
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // successThreshold
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `successThreshold of two requires two consecutive HalfOpen probes`() = runTest {
+        val timeSource = TestTimeSource()
+        val breaker = CircuitBreaker(
+            maxFailures = 2,
+            retryAfter = 100.milliseconds,
+            successThreshold = 2,
+            timeSource = timeSource,
+        )
+        val failing = Kap<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
+
+        repeat(2) { runCatching { failing.evalGraph() } }
+        assertEquals(CircuitBreaker.State.Open, breaker.currentState)
+
+        timeSource += 150.milliseconds
+
+        // First probe succeeds, but the circuit stays HalfOpen and resets nothing.
+        assertEquals("ok", Kap { "ok" }.withCircuitBreaker(breaker).evalGraph())
+        assertEquals(CircuitBreaker.State.HalfOpen, breaker.currentState)
+        assertEquals(2, breaker.failureCount, "first probe success must not reset the failure count")
+        assertEquals(1, breaker.successCount)
+
+        // The second probe needs no new cooldown and closes the circuit.
+        assertEquals("ok", Kap { "ok" }.withCircuitBreaker(breaker).evalGraph())
+        assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
+        assertEquals(0, breaker.failureCount)
+        assertEquals(0, breaker.successCount)
+    }
+
+    @Test
+    fun `failure mid-probe resets the probe count`() = runTest {
+        val timeSource = TestTimeSource()
+        val breaker = CircuitBreaker(
+            maxFailures = 2,
+            retryAfter = 100.milliseconds,
+            successThreshold = 2,
+            timeSource = timeSource,
+        )
+        var shouldFail = true
+        val comp = Kap {
+            if (shouldFail) throw RuntimeException("fail") else "ok"
+        }.withCircuitBreaker(breaker)
+
+        repeat(2) { runCatching { comp.evalGraph() } }
+        timeSource += 150.milliseconds
+
+        shouldFail = false
+        assertEquals("ok", comp.evalGraph()) // probe 1 succeeds
+        assertEquals(CircuitBreaker.State.HalfOpen, breaker.currentState)
+        assertEquals(1, breaker.successCount)
+
+        shouldFail = true
+        runCatching { comp.evalGraph() } // probe 2 fails → reopen, probes reset
+        assertEquals(CircuitBreaker.State.Open, breaker.currentState)
+        assertEquals(0, breaker.successCount)
+
+        timeSource += 150.milliseconds
+        shouldFail = false
+        assertEquals("ok", comp.evalGraph()) // probe 1 of the new cycle
+        assertEquals(CircuitBreaker.State.HalfOpen, breaker.currentState)
+        assertEquals("ok", comp.evalGraph()) // probe 2 closes
+        assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
+    }
+
+    @Test
+    fun `state change callbacks reflect only real transitions with successThreshold`() = runTest {
+        val timeSource = TestTimeSource()
+        val transitions = mutableListOf<Pair<CircuitBreaker.State, CircuitBreaker.State>>()
+        val breaker = CircuitBreaker(
+            maxFailures = 2,
+            retryAfter = 100.milliseconds,
+            successThreshold = 2,
+            timeSource = timeSource,
+            onStateChange = { from, to -> transitions.add(from to to) },
+        )
+        var shouldFail = true
+        val comp = Kap {
+            if (shouldFail) throw RuntimeException("fail") else "ok"
+        }.withCircuitBreaker(breaker)
+
+        repeat(2) { runCatching { comp.evalGraph() } }
+        shouldFail = false
+        timeSource += 150.milliseconds
+
+        comp.evalGraph() // first probe success: still HalfOpen, no transition
+        comp.evalGraph() // threshold reached: HalfOpen → Closed
+
+        assertEquals(
+            listOf(
+                CircuitBreaker.State.Closed to CircuitBreaker.State.Open,
+                CircuitBreaker.State.Open to CircuitBreaker.State.HalfOpen,
+                CircuitBreaker.State.HalfOpen to CircuitBreaker.State.Closed,
+            ),
+            transitions,
+        )
+    }
+
+    @Test
+    fun `invalid configuration is rejected`() {
+        assertFailsWith<IllegalArgumentException> {
+            CircuitBreaker(maxFailures = 0, retryAfter = 1.seconds)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            CircuitBreaker(maxFailures = 1, retryAfter = Duration.ZERO)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            CircuitBreaker(maxFailures = 1, retryAfter = 1.seconds, successThreshold = 0)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            CircuitBreaker(maxFailures = 1, retryAfter = 1.seconds, successThreshold = -3)
+        }
+    }
+
+    @Test
+    @Suppress("DEPRECATION")
+    fun `deprecated resetTimeout constructor and alias preserve old source`() {
+        val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 750.milliseconds)
+
+        assertEquals(750.milliseconds, breaker.retryAfter)
+        assertEquals(750.milliseconds, breaker.resetTimeout)
+        assertEquals(1, breaker.successThreshold)
     }
 }

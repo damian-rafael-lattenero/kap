@@ -245,13 +245,13 @@ class ResilienceComparisonTest {
     }
 
     @Test fun `circuitBreaker - kap - closed state`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 30_000.milliseconds)
+        val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 30_000.milliseconds)
         val result = Kap { "ok" }.withCircuitBreaker(breaker).evalGraph()
         assertEquals("ok", result)
     }
 
     @Test fun `circuitBreaker - kap - trips on failures`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 1000.milliseconds)
+        val breaker = CircuitBreaker(maxFailures = 2, retryAfter = 1000.milliseconds)
         repeat(2) {
             runCatching { Kap<String> { error("fail") }.withCircuitBreaker(breaker).evalGraph() }
         }
@@ -261,7 +261,7 @@ class ResilienceComparisonTest {
     }
 
     @Test fun `circuitBreaker - kap - half-open recovery`() = kotlinx.coroutines.runBlocking {
-        val breaker = CircuitBreaker(maxFailures = 1, resetTimeout = 5.milliseconds)
+        val breaker = CircuitBreaker(maxFailures = 1, retryAfter = 5.milliseconds)
         runCatching { Kap<String> { error("trip") }.withCircuitBreaker(breaker).evalGraph() }
         // Real sleep so monotonic clock advances past resetTimeout
         delay(20.milliseconds)

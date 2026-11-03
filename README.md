@@ -43,7 +43,7 @@ data class CheckoutResult(
     val payment: String,
 )
 
-val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
 coroutineScope {
     val dUser  = async { fetchUser() }
@@ -115,7 +115,7 @@ data class CheckoutResult(
 import CheckoutResultKap.*
 
 val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds) and Schedule.times(3)
-val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
 kap(::CheckoutResult)
     .with { user from fetchUser() }                                  // ┐
@@ -405,7 +405,7 @@ import OrderResultKap.*
 // Retry: exponential backoff (100ms, 200ms, 400ms) + jitter, max 3 attempts
 val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds).jittered() and Schedule.times(3)
 // Circuit breaker: after 5 failures, stop calling payment for 30s
-val paymentBreaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+val paymentBreaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
 suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> {
 
@@ -467,7 +467,7 @@ Eight production concerns in one function: **parallel validation**, **error accu
 <summary><b>Same thing with raw coroutines (~90 lines)</b></summary>
 
 ```kotlin
-val paymentBreaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+val paymentBreaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
 suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> {
 

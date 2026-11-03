@@ -238,7 +238,7 @@ open class ResilienceBenchmark {
 
     private val closedBreaker = CircuitBreaker(
         maxFailures = 5,
-        resetTimeout = kotlin.time.Duration.parse("30s"),
+        retryAfter = kotlin.time.Duration.parse("30s"),
     )
 
     @Benchmark fun raw_circuitBreaker_closed(): String = runBlocking {
@@ -266,7 +266,7 @@ open class ResilienceBenchmark {
     @Benchmark fun kap_circuitBreaker_halfOpen_probe(): String = runBlocking {
         val breaker = CircuitBreaker(
             maxFailures = 1,
-            resetTimeout = kotlin.time.Duration.parse("1ms"),
+            retryAfter = kotlin.time.Duration.parse("1ms"),
         )
         runCatching {
             Kap<String> { error("trip") }.withCircuitBreaker(breaker).evalGraph()

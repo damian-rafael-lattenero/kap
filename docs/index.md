@@ -96,7 +96,7 @@ data class CheckoutResult(
 )
 
 val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds) and Schedule.times(3)
-val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
 kap(::CheckoutResult)
     .with { user from fetchUser() }                                                  // ┐
@@ -301,7 +301,7 @@ This is where it gets interesting. Every team needs retry, circuit breaker, time
 In KAP, resilience is per-call, inline, and composable:
 
 ```kotlin
-val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds)
     .jittered()                          // ±50% random spread (no thundering herd)
     .and(Schedule.times(3))              // max 3 attempts
@@ -373,7 +373,7 @@ data class OrderResult(
 )
 
 val retryPolicy = Schedule.exponential<Throwable>(100.milliseconds).jittered() and Schedule.times(3)
-val paymentBreaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+val paymentBreaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
 suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> {
 

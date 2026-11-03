@@ -13,7 +13,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `stays closed on success`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 1.seconds)
         repeat(10) {
             assertEquals("ok", Kap { "ok" }.withCircuitBreaker(breaker).evalGraph())
         }
@@ -22,7 +22,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `opens after maxFailures consecutive failures`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 1.seconds)
         val comp = Kap<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
 
         repeat(3) { assertTrue(runCatching { comp.evalGraph() }.isFailure) }
@@ -35,7 +35,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `success resets failure count`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 1.seconds)
         var callCount = 0
         val comp = Kap {
             callCount++
@@ -53,9 +53,9 @@ class CircuitBreakerTest {
     }
 
     @Test
-    fun `transitions Open to HalfOpen after resetTimeout`() = runTest {
+    fun `transitions Open to HalfOpen after retryAfter`() = runTest {
         val timeSource = TestTimeSource()
-        val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 500.milliseconds, timeSource = timeSource)
+        val breaker = CircuitBreaker(maxFailures = 2, retryAfter = 500.milliseconds, timeSource = timeSource)
         val comp = Kap<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
 
         repeat(2) { runCatching { comp.evalGraph() } }
@@ -75,7 +75,7 @@ class CircuitBreakerTest {
     fun `HalfOpen probe success closes the circuit`() = runTest {
         val timeSource = TestTimeSource()
         var shouldFail = true
-        val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 500.milliseconds, timeSource = timeSource)
+        val breaker = CircuitBreaker(maxFailures = 2, retryAfter = 500.milliseconds, timeSource = timeSource)
         val comp = Kap {
             if (shouldFail) throw RuntimeException("fail"); "recovered"
         }.withCircuitBreaker(breaker)
@@ -94,7 +94,7 @@ class CircuitBreakerTest {
         val transitions = mutableListOf<Pair<CircuitBreaker.State, CircuitBreaker.State>>()
         val timeSource = TestTimeSource()
         val breaker = CircuitBreaker(
-            maxFailures = 2, resetTimeout = 100.milliseconds, timeSource = timeSource,
+            maxFailures = 2, retryAfter = 100.milliseconds, timeSource = timeSource,
             onStateChange = { from, to -> transitions.add(from to to) },
         )
         var shouldFail = true
@@ -115,7 +115,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `parallel with branches — latch barrier proof`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 1.seconds)
         val latch1 = CompletableDeferred<Unit>()
         val latch2 = CompletableDeferred<Unit>()
 
@@ -133,7 +133,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `full resilience stack — retry + recover + circuit breaker`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 1.seconds)
         var callCount = 0
         val graph = Kap {
             callCount++
@@ -147,7 +147,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `shared breaker fast-fails when open`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 10.seconds)
+        val breaker = CircuitBreaker(maxFailures = 2, retryAfter = 10.seconds)
         val fail = Kap<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
         repeat(2) { runCatching { fail.evalGraph() } }
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
@@ -160,7 +160,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `composes with timeout`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 1.seconds)
         val graph = Kap { "fast" }.timeout(100.milliseconds).withCircuitBreaker(breaker)
         assertEquals("fast", graph.evalGraph())
         assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
@@ -168,7 +168,7 @@ class CircuitBreakerTest {
 
     @Test
     fun `Schedule retry exhausts then opens circuit`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 1.seconds)
         var callCount = 0
         val graph = Kap<String> {
             callCount++; throw RuntimeException("always fails")
@@ -177,5 +177,26 @@ class CircuitBreakerTest {
         assertTrue(runCatching { graph.evalGraph() }.isFailure)
         assertEquals(5, callCount)
         assertEquals(CircuitBreaker.State.Open, breaker.currentState)
+    }
+
+    @Test
+    fun `successThreshold of two requires two consecutive HalfOpen probes`() = runTest {
+        val timeSource = TestTimeSource()
+        val breaker = CircuitBreaker(
+            maxFailures = 2,
+            retryAfter = 100.milliseconds,
+            successThreshold = 2,
+            timeSource = timeSource,
+        )
+        val failing = Kap<String> { throw RuntimeException("fail") }.withCircuitBreaker(breaker)
+
+        repeat(2) { runCatching { failing.evalGraph() } }
+        timeSource += 150.milliseconds
+
+        assertEquals("ok", Kap { "ok" }.withCircuitBreaker(breaker).evalGraph())
+        assertEquals(CircuitBreaker.State.HalfOpen, breaker.currentState)
+
+        assertEquals("ok", Kap { "ok" }.withCircuitBreaker(breaker).evalGraph())
+        assertEquals(CircuitBreaker.State.Closed, breaker.currentState)
     }
 }

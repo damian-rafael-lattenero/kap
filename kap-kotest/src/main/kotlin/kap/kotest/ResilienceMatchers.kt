@@ -37,7 +37,7 @@ fun CircuitBreaker.shouldBeHalfOpen() {
  *
  * ```kotlin
  * val tracker = CircuitBreakerTracker()
- * val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds,
+ * val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 1.seconds,
  *     onStateChange = tracker::record)
  *
  * // ... trigger transitions ...

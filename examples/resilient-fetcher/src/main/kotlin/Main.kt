@@ -202,7 +202,7 @@ suspend fun main() {
 
     val breaker = CircuitBreaker(
         maxFailures = 3,
-        resetTimeout = 1.seconds,
+        retryAfter = 1.seconds,
         onStateChange = { old, new -> println("  Circuit: $old -> $new") },
     )
 

@@ -24,7 +24,7 @@ class CircuitBreakerConcurrencyTest {
 
     @Test
     fun `concurrent failures correctly trip the breaker`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 1.seconds)
         val failingComp = Kap<String> { throw IllegalStateException("fail") }
             .withCircuitBreaker(breaker)
 
@@ -63,7 +63,7 @@ class CircuitBreakerConcurrencyTest {
         }
         val breaker = CircuitBreaker(
             maxFailures = 2,
-            resetTimeout = 100.milliseconds,
+            retryAfter = 100.milliseconds,
             timeSource = testTimeSource,
         )
 
@@ -90,7 +90,7 @@ class CircuitBreakerConcurrencyTest {
 
     @Test
     fun `successful calls reset failure count`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 3, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 3, retryAfter = 1.seconds)
 
         // 2 failures (below threshold)
         val failComp = Kap<String> { throw IllegalStateException("fail") }
@@ -124,7 +124,7 @@ class CircuitBreakerConcurrencyTest {
         }
         val breaker = CircuitBreaker(
             maxFailures = 2,
-            resetTimeout = 100.milliseconds,
+            retryAfter = 100.milliseconds,
             onStateChange = { old, new -> transitions.add(old to new) },
             timeSource = testTimeSource,
         )
@@ -150,7 +150,7 @@ class CircuitBreakerConcurrencyTest {
 
     @Test
     fun `cancellation does not count as failure`() = runTest {
-        val breaker = CircuitBreaker(maxFailures = 2, resetTimeout = 1.seconds)
+        val breaker = CircuitBreaker(maxFailures = 2, retryAfter = 1.seconds)
         val callCount = AtomicInteger(0)
 
         val slowComp = Kap {

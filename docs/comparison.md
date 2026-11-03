@@ -190,7 +190,7 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
 === "KAP"
 
     ```kotlin
-    val breaker = CircuitBreaker(maxFailures = 5, resetTimeout = 30.seconds)
+    val breaker = CircuitBreaker(maxFailures = 5, retryAfter = 30.seconds)
 
     val result = Kap { fetchUser() }
         .timeoutAsFailure(500.milliseconds)   // ordinary failure — retry can handle it

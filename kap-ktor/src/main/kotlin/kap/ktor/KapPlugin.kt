@@ -34,7 +34,7 @@ class KapConfig {
     ) {
         circuitBreakers[name] = CircuitBreaker(
             maxFailures = maxFailures,
-            resetTimeout = resetTimeout,
+            retryAfter = resetTimeout,
             onStateChange = onStateChange
         )
     }

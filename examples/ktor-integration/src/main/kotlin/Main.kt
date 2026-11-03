@@ -295,7 +295,7 @@ object Services {
 
 val userCircuitBreaker = CircuitBreaker(
     maxFailures = 5,
-    resetTimeout = 10.seconds,
+    retryAfter = 10.seconds,
     onStateChange = { old, new -> println("  [CircuitBreaker] User API: $old -> $new") },
 )
 
@@ -689,7 +689,7 @@ fun Routing.combinedRoutes() {
 
         val paymentBreaker = CircuitBreaker(
             maxFailures = 3,
-            resetTimeout = 5.seconds,
+            retryAfter = 5.seconds,
         )
 
         val order = kapV<OrderError, ValidatedItem, ValidatedQuantity, ValidatedAddress, ValidatedOrder>(::ValidatedOrder)

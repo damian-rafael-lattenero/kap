@@ -6,12 +6,16 @@ public final class kap/BracketKt {
 }
 
 public final class kap/CircuitBreaker {
+	public synthetic fun <init> (IJILkotlin/jvm/functions/Function2;Lkotlin/time/TimeSource;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (IJILkotlin/jvm/functions/Function2;Lkotlin/time/TimeSource;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public synthetic fun <init> (IJLkotlin/jvm/functions/Function2;Lkotlin/time/TimeSource;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public synthetic fun <init> (IJLkotlin/jvm/functions/Function2;Lkotlin/time/TimeSource;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getCurrentState ()Lkap/CircuitBreaker$State;
 	public final fun getMaxFailures ()I
 	public final fun getOnStateChange ()Lkotlin/jvm/functions/Function2;
 	public final fun getResetTimeout-UwyO8pc ()J
+	public final fun getRetryAfter-UwyO8pc ()J
+	public final fun getSuccessThreshold ()I
 	public final fun onFailure (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun onSuccess (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun protect (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
