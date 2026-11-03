@@ -41,6 +41,7 @@ users
     .filterKap { user -> Kap { !user.isDeleted } }          // sequential, order preserved
     .mapKap(concurrency = 8) { user -> Kap { enrich(user) } } // completion order
     .mapKapOrdered(concurrency = 8) { user -> Kap { charge(user) } } // upstream order
+    .flatMapKap(concurrency = 4) { id -> loadRelated(id) }   // merges inner streams
     .collectAsKap()
     .evalGraph()
 ```
@@ -50,6 +51,7 @@ users
 | `filterKap { Kap<Boolean> }` | upstream | sequential predicate |
 | `mapKap(concurrency)` | completion | `concurrency = 1` is sequential and exact |
 | `mapKapOrdered(concurrency)` | upstream | buffers completed results until earlier ones finish |
+| `flatMapKap(concurrency) { KapStream }` | completion | merges inner streams, bounded in-flight |
 
 ## Backpressure strategies
 

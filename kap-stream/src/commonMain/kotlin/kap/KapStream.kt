@@ -6,6 +6,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlin.time.Duration.Companion.ZERO
@@ -96,7 +97,16 @@ class KapStream<out A> internal constructor(
         concurrency: Int = 1,
         backpressure: Backpressure = Backpressure.Suspend,
         transform: (A) -> Kap<B>,
-    ): KapStream<B> = KapStream(flow.withBackpressure(backpressure).mapKap(concurrency, transform))
+    ): KapStream<B> {
+        require(concurrency >= 1) { "concurrency must be >= 1, was $concurrency" }
+        val source = flow.withBackpressure(backpressure)
+        return KapStream(
+            // Sequential fast path: one isolation scope per stage, not per element
+            // (elements are strictly sequential, so there is nothing to isolate
+            // them from; a Kap-per-element scope is measurable overhead).
+            if (concurrency == 1) source.mapSequential(transform) else source.mapKap(concurrency, transform),
+        )
+    }
 
     /**
      * Keeps the elements whose [Kap] predicate returns `true`. Elements are
@@ -107,7 +117,7 @@ class KapStream<out A> internal constructor(
     fun filterKap(
         backpressure: Backpressure = Backpressure.Suspend,
         predicate: (A) -> Kap<Boolean>,
-    ): KapStream<A> = KapStream(flow.withBackpressure(backpressure).filterKap(predicate))
+    ): KapStream<A> = KapStream(flow.withBackpressure(backpressure).filterSequential(predicate))
 
     /**
      * Like [mapKap] but **preserves the upstream order** even with
@@ -121,7 +131,30 @@ class KapStream<out A> internal constructor(
         concurrency: Int = 1,
         backpressure: Backpressure = Backpressure.Suspend,
         transform: (A) -> Kap<B>,
-    ): KapStream<B> = KapStream(flow.withBackpressure(backpressure).mapKapOrdered(concurrency, transform))
+    ): KapStream<B> {
+        require(concurrency >= 1) { "concurrency must be >= 1, was $concurrency" }
+        val source = flow.withBackpressure(backpressure)
+        return KapStream(
+            if (concurrency == 1) source.mapSequential(transform) else source.mapKapOrdered(concurrency, transform),
+        )
+    }
+
+    /**
+     * Flat-maps every element into its own inner [KapStream] and merges the
+     * inners with at most [concurrency] collected at a time (the stream
+     * algebra's `flatMap`). With `concurrency = 1` the output is sequential in
+     * upstream order; above it, inners interleave in completion order.
+     *
+     * [backpressure] applies to this stage's input and defaults to exact.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun <B> flatMapKap(
+        concurrency: Int = 1,
+        backpressure: Backpressure = Backpressure.Suspend,
+        transform: (A) -> KapStream<B>,
+    ): KapStream<B> = KapStream(
+        flow.withBackpressure(backpressure).flatMapMerge(concurrency) { value -> transform(value).flow },
+    )
 
     /**
      * Collects the whole stream into a [List] as a [Kap]. The list is complete
@@ -156,6 +189,27 @@ class KapStream<out A> internal constructor(
          * ```
          */
         fun <A> emitted(kap: Kap<A>): EmittedSource<A> = EmittedSource(kap)
+    }
+}
+
+/**
+ * Sequential map stage: every element runs through its [Kap] in the stage's
+ * own isolation scope. One scope per stage (elements are strictly sequential),
+ * which keeps the per-element cost to the `Kap` itself rather than a
+ * `coroutineScope` allocation per element.
+ */
+private fun <A, B> Flow<A>.mapSequential(transform: (A) -> Kap<B>): Flow<B> = flow {
+    coroutineScope {
+        this@mapSequential.collect { value -> emit(with(transform(value)) { execute() }) }
+    }
+}
+
+/** Sequential filter stage: same isolation-scope reasoning as [mapSequential]. */
+private fun <A> Flow<A>.filterSequential(predicate: (A) -> Kap<Boolean>): Flow<A> = flow {
+    coroutineScope {
+        this@filterSequential.collect { value ->
+            if (with(predicate(value)) { execute() }) emit(value)
+        }
     }
 }
 

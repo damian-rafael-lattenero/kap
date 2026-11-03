@@ -11,9 +11,11 @@ dependencies {
     implementation(project(":kap-core"))
     implementation(project(":kap-resilience"))
     implementation(project(":kap-arrow"))
+    implementation(project(":kap-stream"))
     implementation(libs.coroutines.core)
     implementation(libs.arrow.fx)
     implementation(libs.arrow.core)
+    implementation(libs.rxjava)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.coroutines.test)

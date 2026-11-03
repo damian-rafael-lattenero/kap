@@ -1,6 +1,7 @@
 package kap
 
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.coroutineScope
@@ -132,6 +133,25 @@ class KapStreamTest {
     }
 
     @Test
+    fun `a stage Kap with parallel children fails the stream cleanly`() = runTest {
+        val failure = assertFailsWith<IllegalStateException> {
+            KapStream.from((1..3).asFlow())
+                .mapKap { value ->
+                    Kap {
+                        val left = async { value }
+                        val right = async {
+                            if (value == 2) throw IllegalStateException("child-$value") else value
+                        }
+                        left.await() + right.await()
+                    }
+                }
+                .collectAsKap()
+                .evalGraph()
+        }
+        assertEquals("child-2", failure.message)
+    }
+
+    @Test
     fun `stage backpressure defaults to suspend and never drops`() = runTest {
         val values = KapStream.from((0 until 100).asFlow())
             .mapKap(concurrency = 4) { value -> Kap.of(value) }
@@ -139,6 +159,33 @@ class KapStreamTest {
             .evalGraph()
         assertEquals((0 until 100).toList(), values.sorted(), "the suspend default is exact: nothing dropped")
         assertEquals(100, values.size)
+    }
+
+    @Test
+    fun `flatMapKap merges inner streams sequentially and in order at concurrency 1`() = runTest {
+        val values = KapStream.from((1..5).asFlow())
+            .flatMapKap(concurrency = 1) { value -> KapStream.from(flowOf(value, value * 10)) }
+            .collectAsKap()
+            .evalGraph()
+        assertEquals(listOf(1, 10, 2, 20, 3, 30, 4, 40, 5, 50), values)
+    }
+
+    @Test
+    fun `flatMapKap with concurrency preserves the merged multiset`() = runTest {
+        val values = KapStream.from((1..20).asFlow())
+            .flatMapKap(concurrency = 4) { value ->
+                KapStream.from(
+                    flow {
+                        delay((value % 3).milliseconds)
+                        emit(value)
+                        emit(value * 10)
+                    },
+                )
+            }
+            .collectAsKap()
+            .evalGraph()
+        val expected = (1..20).flatMap { listOf(it, it * 10) }
+        assertEquals(expected.sorted(), values.sorted(), "no inner element lost or duplicated")
     }
 
     // ── Sinks ───────────────────────────────────────────────────────────

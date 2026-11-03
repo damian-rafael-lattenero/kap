@@ -85,6 +85,8 @@ public final class kap/KapStream {
 	public static synthetic fun dropOldest$default (Lkap/KapStream;IILjava/lang/Object;)Lkap/KapStream;
 	public final fun filterKap (Lkap/Backpressure;Lkotlin/jvm/functions/Function1;)Lkap/KapStream;
 	public static synthetic fun filterKap$default (Lkap/KapStream;Lkap/Backpressure;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkap/KapStream;
+	public final fun flatMapKap (ILkap/Backpressure;Lkotlin/jvm/functions/Function1;)Lkap/KapStream;
+	public static synthetic fun flatMapKap$default (Lkap/KapStream;ILkap/Backpressure;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkap/KapStream;
 	public final fun latest (I)Lkap/KapStream;
 	public static synthetic fun latest$default (Lkap/KapStream;IILjava/lang/Object;)Lkap/KapStream;
 	public final fun mapKap (ILkap/Backpressure;Lkotlin/jvm/functions/Function1;)Lkap/KapStream;

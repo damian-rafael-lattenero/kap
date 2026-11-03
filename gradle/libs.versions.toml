@@ -9,6 +9,7 @@ dokka = "2.2.0"
 maven-publish = "0.37.0"
 jmh-plugin = "0.7.3"
 jmh = "1.37"
+rxjava = "3.1.12"
 binary-compat = "0.18.2"
 ksp = "2.3.12"
 detekt = "2.0.0-alpha.6"
@@ -31,6 +32,7 @@ serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-jso
 ksp-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
 detekt-api = { module = "dev.detekt:detekt-api", version.ref = "detekt" }
 detekt-test = { module = "dev.detekt:detekt-test", version.ref = "detekt" }
+rxjava = { module = "io.reactivex.rxjava3:rxjava", version.ref = "rxjava" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
