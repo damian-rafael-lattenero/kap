@@ -76,6 +76,32 @@ With `@KapTypeSafe` (via the [kap-ksp](kap-ksp.md) module), you get **named buil
 
 `@KapTypeSafe` generates `.with { user from  }`, `.with { cart from  }`, `.with { promos from  }` from the data class properties. The generic `.with {}` API is equivalent but positional — named builders enforce the correct parameter at each step.
 
+#### Troubleshooting `.with` compiler errors (4.3.0+)
+
+`.with` is a small overload family on a *curried* receiver — `Kap<(A) -> B>.with(Kap<A>)` and `Kap<(A) -> B>.with(suspend () -> A)` — and the slot's argument must be a **producer** of `A`, never the plain value. The two classic mistakes are guarded by deprecations (issue #19), so they still fail to compile but with the fix in the message instead of the old wall of text:
+
+You pass the plain value (`.with(user)` instead of `.with { user }`):
+
+```text
+'fun <A, B> Kap<(A) -> B>.with(value: A): Kap<B>' is deprecated.
+with() needs a producer of the slot's type, not the value itself.
+Write `.with { value }` (lambda) or `.with(Kap { value })`.
+```
+
+Fix: `.with { user }` (lambda) or `.with(Kap { user })` (explicit Kap, runs in parallel).
+
+You pass a `Kap` (or value) of the **wrong type** — e.g. `.with(Kap { 42 })` when the slot expects `User`:
+
+```text
+'fun <A, B> Kap<(A) -> B>.with(wrong: Any?): Kap<B>' is deprecated.
+with() takes a Kap<A> or a suspend lambda producing the slot's argument type A —
+the type the next curried slot expects. The value you passed matches neither.
+```
+
+Fix: read the curried function's next parameter (that is `A`) and provide a producer of exactly that type.
+
+Note the difference: a **lambda** with a wrong body gets a precise error (`Return type mismatch: expected 'User', actual 'String'`) — prefer lambdas and you rarely see either guard. A **non-function receiver** (`Kap.of(1).with { ... }` — the left side is not a curried function) is still reported as `Candidate ... is inapplicable because of a receiver type mismatch`; the fix is to start from a curried function (`Kap.of { a -> { b -> ... } }`, `kap(::Result)` with `@KapTypeSafe`, or `Kap.of(::twoArgFn)`). Long-term option (out of scope here): a compiler plugin emitting custom diagnostics for these cases; the deprecation guards cover the common slips today.
+
 ### `.then` — Phase barrier
 
 === "Raw Coroutines"

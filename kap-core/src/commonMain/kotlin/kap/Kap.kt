@@ -269,6 +269,30 @@ infix fun <A, B> Kap<(A) -> B>.with(fa: suspend () -> A): Kap<B> =
     with(Kap { fa() })
 
 /**
+ * A slot's argument must be a *producer* — a [Kap] or a suspend lambda that
+ * yields the value — not the value itself. Passing the plain value is a
+ * common slip (`.with(user)` instead of `.with { user }`), and without this
+ * overload the compiler reports only
+ * `None of the following candidates is applicable … Kap<uninferred A>`.
+ *
+ * Deprecated at [DeprecationLevel.ERROR] so the mistake keeps failing to
+ * compile — it always did — but now with the fix in the message. If you truly
+ * meant to provide the value directly, write:
+ *
+ * ```
+ * .with { user }        // lambda producing the value
+ * .with(Kap { user })   // explicit Kap (starts in parallel)
+ * ```
+ */
+@Deprecated(
+    message = "with() needs a producer of the slot's type, not the value itself. " +
+        "Write `.with { value }` (lambda) or `.with(Kap { value })`.",
+    replaceWith = ReplaceWith("with(Kap { value })"),
+    level = DeprecationLevel.ERROR,
+)
+infix fun <A, B> Kap<(A) -> B>.with(value: A): Kap<B> = with(Kap { value })
+
+/**
  * Provides a nullable argument in parallel — when the curried function
  * expects a nullable argument (`A?`).
  *
