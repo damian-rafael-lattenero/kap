@@ -15,6 +15,35 @@ git clone https://github.com/damian-rafael-lattenero/kap.git && cd kap
 
 ---
 
+## Run in the playground?
+
+Not yet, and here is the honest status. The [Kotlin Playground](https://jetbrains.github.io/kotlin-playground/) compiles your snippet **on JetBrains' public server**, which only runs code against the libraries bundled into that server's image. We verified this against the live API (November 2026): a control dependency (`org.jetbrains.kotlinx:kotlinx-coroutines-core`) resolves, while the published KAP artifact — `io.github.damian-rafael-lattenero:kap-core:4.2.0`, the latest release on Maven Central — comes back with `Unresolved reference 'kap'`. The embedded widget also has no attribute to declare Maven dependencies (its request body supports them, its HTML does not). Shipping "Run it" buttons that would compile `import kap.*` against a server that cannot see KAP would be broken UX, so there are no embeds — yet.
+
+The embed pattern is ready the day the constraint disappears (KAP bundled into the server image, or a self-hosted compile server). Two things to know when that happens:
+
+- Pin the **published** coordinate, not the repo version: `io.github.damian-rafael-lattenero:kap-core:4.2.0` (4.3 and 5.0 APIs — `Ref`, `Supervisor`, `KapStream` — are not published yet).
+- Point the widget at a server that has KAP on its classpath via `data-server`:
+
+```html
+<script src="https://unpkg.com/kotlin-playground@1"
+        data-selector="code.kap-example"
+        data-server="https://your-kotlin-compiler-server">
+</script>
+
+<code class="kap-example">
+import kap.*
+
+suspend fun main() {
+    val value = Kap { "computed in parallel" }.evalGraph()
+    println(value)
+}
+</code>
+```
+
+Until then, the fastest way to run any example on this page is the clone-and-run block above (JVM, real coroutines — the playground would not exercise virtual time or tracing anyway), or browse the generated [API Reference](https://damian-rafael-lattenero.github.io/kap/api/).
+
+---
+
 ## Parallel Execution — 3 services at once
 
 ```kotlin
