@@ -176,6 +176,19 @@ public final class kap/RaceKt {
 	public static final fun raceN ([Lkap/Kap;)Lkap/Kap;
 }
 
+public final class kap/Ref {
+	public static final field Companion Lkap/Ref$Companion;
+	public synthetic fun <init> (Ljava/lang/Object;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun get ()Lkap/Kap;
+	public final fun modify (Lkotlin/jvm/functions/Function1;)Lkap/Kap;
+	public final fun set (Ljava/lang/Object;)Lkap/Kap;
+	public final fun update (Lkotlin/jvm/functions/Function1;)Lkap/Kap;
+}
+
+public final class kap/Ref$Companion {
+	public final fun of (Ljava/lang/Object;)Lkap/Kap;
+}
+
 public final class kap/RepeatKt {
 	public static final fun awaiting (Lkap/Kap$Companion;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
 }
