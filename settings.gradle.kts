@@ -16,6 +16,7 @@ include(":kap-kotest")
 include(":kap-ktor")
 include(":kap-ksp-annotations")
 include(":kap-ksp")
+include(":kap-detekt-rules")
 include(":benchmarks")
 
 include(":examples:ecommerce-checkout")

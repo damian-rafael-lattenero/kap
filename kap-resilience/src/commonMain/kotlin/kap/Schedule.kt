@@ -29,6 +29,9 @@ class Schedule<A>(
         data object Done : Decision()
     }
 
+    // A policy algebra is a wide factory surface by nature; the 4.3 delays
+    // overloads (array + list) push it past the default object threshold.
+    @Suppress("TooManyFunctions")
     companion object {
         /** Retry up to [n] times (total attempts = n + 1 including the first). */
         fun <A> times(n: Int): Schedule<A> = Schedule { attempt, _ ->
@@ -227,7 +230,7 @@ class Schedule<A>(
      * [IllegalArgumentException] instead of being silently coerced to zero.
      */
     fun delayBy(f: (A) -> Duration): Schedule<A> = Schedule { attempt, a ->
-        when (val d = this@Schedule.decide(attempt, a)) {
+        when (this@Schedule.decide(attempt, a)) {
             is Decision.Continue -> {
                 val delay = f(a)
                 require(delay >= ZERO) { "delayBy produced a negative delay: $delay" }

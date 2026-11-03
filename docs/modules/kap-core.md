@@ -8,7 +8,7 @@ implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
 
 **Depends on:** `kotlinx-coroutines-core` only.
 **Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
-**Tests:** 438 tests across 33 test classes, including property-based algebraic law verification.
+**Tests:** 464 tests across 38 test classes, including property-based algebraic law verification.
 
 ---
 

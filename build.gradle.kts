@@ -120,5 +120,7 @@ val detektAll = tasks.register("detektAll") {
 apiValidation {
     ignoredProjects.addAll(listOf("benchmarks", "ecommerce-checkout", "dashboard-aggregator",
         "validated-registration", "resilient-fetcher", "full-stack-order", "ktor-integration", "readme-examples",
-        "kap-kotest", "kap-ktor", "kap-ksp-annotations", "kap-ksp", "ksp-demo"))
+        "kap-kotest", "kap-ktor", "kap-ksp-annotations", "kap-ksp", "ksp-demo",
+        // JVM-only tooling, not published: its API is the detekt ServiceLoader contract.
+        "kap-detekt-rules"))
 }

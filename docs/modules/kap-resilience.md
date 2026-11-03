@@ -8,7 +8,7 @@ implementation("io.github.damian-rafael-lattenero:kap-resilience:4.2.0")
 
 **Depends on:** `kap-core`.
 **Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
-**Tests:** 244 tests across 20 test classes (JVM + native), including Schedule laws, Process laws and CircuitBreaker concurrency tests.
+**Tests:** 262 tests across 20 test classes (JVM + native), including Schedule laws, Process laws and CircuitBreaker concurrency tests.
 
 ---
 
