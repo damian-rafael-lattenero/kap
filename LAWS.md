@@ -34,6 +34,44 @@ CONVERT and RETRY operators (`settled`, `traverseSettled`, `recover`, `recoverWi
 
 Enforced by [`IsolationLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/IsolationLawsTest.kt) (kap-core) and [`IsolationResilienceTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/IsolationResilienceTest.kt) (kap-resilience).
 
+## `Schedule` is a semiring (`and` = multiplication, `or` = addition)
+
+`Schedule` composition is an algebra over the extended non-negative reals:
+`Decision.Continue(d)` is the delay `d`, `Decision.Done` is `+∞` (an infinite
+wait is a stop). `and` merges delays with `max` (both must continue), `or`
+merges them with `min` (either may continue). `max`/`min` on `[0, +∞]` form a
+distributive lattice, so the laws below hold exactly — distributivity included:
+
+| Law | Property |
+|---|---|
+| `or` associative | `(a or b) or c == a or (b or c)` |
+| `or` commutative | `a or b == b or a` |
+| `and` associative | `(a and b) and c == a and (b and c)` |
+| `and` commutative | `a and b == b and a` |
+| Additive identity | `a or Schedule.never() == a` |
+| Multiplicative identity | `a and Schedule.immediate() == a` |
+| Multiplicative annihilator | `a and Schedule.never() == Schedule.never()` |
+| Distributivity | `a and (b or c) == (a and b) or (a and c)` |
+| Idempotence | `a or a == a`, `a and a == a` |
+
+`Schedule.never()` is always `Done` (delay `+∞`); `Schedule.immediate()` is
+always `Continue(ZERO)` (delay `0`, the same value as `Schedule.forever()`).
+Because both operations are idempotent, the structure is an idempotent
+commutative semiring — a bounded distributive lattice — with `0` = `never`
+and `1` = `immediate`, ordered inversely to the delay (`never` is the
+"smallest" policy: it never retries; `immediate` is the "largest": retry
+now, forever).
+
+**Domain of the law statements.** Decisions are compared value-for-value;
+`Continue(INFINITE)` is observationally `Done` (a retry that waits forever
+stops), so the equalities are stated over schedules whose `Continue` carries
+a finite delay — which is every factory unless an explicit `Duration.INFINITE`
+cap is passed.
+
+Enforced by [`ScheduleLawsTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/ScheduleLawsTest.kt)
+(kotest-property over a generated family of composed schedules; identities and
+distributivity included, no sleeping — decisions are pure).
+
 ## Process laws
 
 A `Process` (kap-resilience, 4.2.0) is a supervised loop: the body completing normally finishes it, a failure restarts it under a `RestartPolicy`, and a handle exposes `stop()`, `await()` and the heartbeat.

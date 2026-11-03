@@ -20,6 +20,31 @@ import kotlin.time.TimeSource
  *
  * Kap { fetchUser() }.retry(policy)
  * ```
+ *
+ * ## The schedule semiring
+ *
+ * [and] is **multiplication** and [or] is **addition**, with delays merged as
+ * `max` and `min` respectively. A [Decision.Done] behaves as the delay `+∞`
+ * (an infinite wait is a stop), which makes the algebra total:
+ *
+ * | Law | Property |
+ * |---|---|
+ * | `or` associative / commutative | `(a or b) or c == a or (b or c)`, `a or b == b or a` |
+ * | `and` associative / commutative | `(a and b) and c == a and (b and c)`, `a and b == b and a` |
+ * | Additive identity | `a or Schedule.never() == a` |
+ * | Multiplicative identity | `a and Schedule.immediate() == a` |
+ * | Multiplicative annihilator | `a and Schedule.never() == Schedule.never()` |
+ * | Distributivity | `a and (b or c) == (a and b) or (a and c)` |
+ *
+ * Because `max`/`min` on the extended non-negative reals form a distributive
+ * lattice, `or`/`and` also satisfy the idempotent laws (`a or a == a`,
+ * `a and a == a`). The laws are property-tested in `ScheduleLawsTest`.
+ *
+ * Two boundary notes: the law statements compare underlying decisions, and a
+ * [Decision.Continue] carrying [Duration.INFINITE] is observationally
+ * [Decision.Done] (a retry that waits forever stops). Schedules produced by
+ * the factories only yield finite delays unless an explicit
+ * `Duration.INFINITE` cap is passed.
  */
 class Schedule<A>(
     @PublishedApi internal val decide: (attempt: Int, value: A) -> Decision,
@@ -112,9 +137,39 @@ class Schedule<A>(
          *     .and(Schedule.exponential(100.milliseconds))
          *     .withMaxDuration(30.seconds)
          * ```
+         *
+         * This is the same value as [immediate]: always
+         * [Decision.Continue] with a zero delay, the multiplicative identity
+         * of the schedule semiring ([and] leaves the other schedule's delays
+         * untouched).
          */
         fun <A> forever(): Schedule<A> = Schedule { _, _ ->
             Decision.Continue(ZERO)
+        }
+
+        /**
+         * Always [Decision.Continue] with a [ZERO] delay — the **multiplicative
+         * identity** of the schedule semiring: `s and Schedule.immediate() == s`
+         * and `Schedule.immediate() and s == s`.
+         *
+         * Same value as [forever], named for its algebraic role so a policy
+         * reads as an equation: `times(5) and (maybeRetry() or immediate())`.
+         */
+        fun <A> immediate(): Schedule<A> = forever()
+
+        /**
+         * Always [Decision.Done] — the **additive identity** of the schedule
+         * semiring: `s or Schedule.never() == s`. Combining with [and] makes
+         * the whole policy [Decision.Done] (multiplicative annihilator), which
+         * expresses "this branch never retries".
+         *
+         * ```
+         * val policy = Schedule.exponential<Throwable>(100.milliseconds)
+         *     .and(Schedule.never<Throwable>())   // never retries at all
+         * ```
+         */
+        fun <A> never(): Schedule<A> = Schedule { _, _ ->
+            Decision.Done
         }
 
         /**
@@ -171,8 +226,21 @@ class Schedule<A>(
     }
 
     /**
-     * Both schedules must agree to continue. Uses the maximum delay.
-     * If either says [Decision.Done], the result is [Decision.Done].
+     * **Multiplication** of the schedule semiring: both schedules must agree
+     * to continue. Delays merge with `max` (the slower schedule sets the pace —
+     * a policy is as patient as its most patient constraint). If either says
+     * [Decision.Done] the result is [Decision.Done] (a [Decision.Done] is the
+     * delay `+∞`, so `max` with it is `+∞`).
+     *
+     * Laws: associative, commutative, identity `Schedule.immediate()`,
+     * annihilator `Schedule.never()`, and distributive over [or]
+     * (`a and (b or c) == (a and b) or (a and c)`). Property-tested in
+     * `ScheduleLawsTest`.
+     *
+     * ```
+     * // At most 5 retries, each waiting at least 100 ms, growing ×2
+     * Schedule.times<Throwable>(5) and Schedule.exponential(100.milliseconds)
+     * ```
      */
     infix fun and(other: Schedule<A>): Schedule<A> = Schedule { attempt, a ->
         val d1 = this@Schedule.decide(attempt, a)
@@ -305,8 +373,20 @@ class Schedule<A>(
     }
 
     /**
-     * Either schedule can continue. Uses the minimum delay.
-     * Only [Decision.Done] when both say done.
+     * **Addition** of the schedule semiring: either schedule can continue,
+     * and that is the point — two independent reasons to retry add up. Delays
+     * merge with `min` (the earliest retry wins; the policies race and the
+     * fastest one sets the cadence). Only [Decision.Done] when both say done
+     * (a [Decision.Done] is the delay `+∞`, so `min` ignores it).
+     *
+     * Laws: associative, commutative, identity `Schedule.never()`, and it is
+     * the addition of the distributive semiring ([and] distributes over it).
+     * Property-tested in `ScheduleLawsTest`.
+     *
+     * ```
+     * // Retry 5 times *or* while the error is an IOException, whichever lasts longer
+     * Schedule.times<Throwable>(5) or Schedule.doWhile { it is IOException }
+     * ```
      */
     infix fun or(other: Schedule<A>): Schedule<A> = Schedule { attempt, a ->
         val d1 = this@Schedule.decide(attempt, a)

@@ -227,8 +227,10 @@ public final class kap/Schedule$Companion {
 	public final fun fibonacci-QTBD994 (JJ)Lkap/Schedule;
 	public static synthetic fun fibonacci-QTBD994$default (Lkap/Schedule$Companion;JJILjava/lang/Object;)Lkap/Schedule;
 	public final fun forever ()Lkap/Schedule;
+	public final fun immediate ()Lkap/Schedule;
 	public final fun linear-QTBD994 (JJ)Lkap/Schedule;
 	public static synthetic fun linear-QTBD994$default (Lkap/Schedule$Companion;JJILjava/lang/Object;)Lkap/Schedule;
+	public final fun never ()Lkap/Schedule;
 	public final fun spaced-LRDsOJo (J)Lkap/Schedule;
 	public final fun times (I)Lkap/Schedule;
 	public final fun untilInput (Lkotlin/jvm/functions/Function1;)Lkap/Schedule;

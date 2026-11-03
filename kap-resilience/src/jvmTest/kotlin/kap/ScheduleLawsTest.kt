@@ -2,10 +2,13 @@ package kap
 
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.int
+import io.kotest.property.arbitrary.list
+import io.kotest.property.arbitrary.map
 import io.kotest.property.checkAll
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.ZERO
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -263,8 +266,179 @@ class ScheduleLawsTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
+    // SEMIRING LAWS — `and` is multiplication, `or` is addition
+    // ════════════════════════════════════════════════════════════════════════
+    //
+    // Delays merge with max (`and`) and min (`or`), and Done behaves as the
+    // delay +∞. max/min on the extended non-negative reals form a distributive
+    // lattice, so both operations are associative, commutative, idempotent,
+    // have the identities below and multiplication distributes over addition.
+    // The properties are checked over a generated family of schedules, not
+    // only over hand-picked shapes: compositions of every factory, including
+    // the identities themselves.
+
+    @Test
+    fun `never is the additive identity — s or never == s and never or s == s`() = runTest {
+        val never = Schedule.never<Int>()
+        checkAll(arbSchedule(), Arb.int(0..12), Arb.int(-50..50)) { s, attempt, value ->
+            assertEquals(
+                s.decide(attempt, value),
+                (s or never).decide(attempt, value),
+                "s or never should equal s at attempt=$attempt",
+            )
+            assertEquals(
+                s.decide(attempt, value),
+                (never or s).decide(attempt, value),
+                "never or s should equal s at attempt=$attempt",
+            )
+        }
+    }
+
+    @Test
+    fun `immediate is the multiplicative identity — s and immediate == s`() = runTest {
+        val immediate = Schedule.immediate<Int>()
+        checkAll(arbSchedule(), Arb.int(0..12), Arb.int(-50..50)) { s, attempt, value ->
+            assertEquals(
+                s.decide(attempt, value),
+                (s and immediate).decide(attempt, value),
+                "s and immediate should equal s at attempt=$attempt",
+            )
+            assertEquals(
+                s.decide(attempt, value),
+                (immediate and s).decide(attempt, value),
+                "immediate and s should equal s at attempt=$attempt",
+            )
+        }
+    }
+
+    @Test
+    fun `never annihilates multiplication — s and never is always Done`() = runTest {
+        val never = Schedule.never<Int>()
+        checkAll(arbSchedule(), Arb.int(0..12), Arb.int(-50..50)) { s, attempt, value ->
+            assertEquals(
+                Schedule.Decision.Done,
+                (s and never).decide(attempt, value),
+                "s and never should be Done at attempt=$attempt",
+            )
+            assertEquals(
+                Schedule.Decision.Done,
+                (never and s).decide(attempt, value),
+                "never and s should be Done at attempt=$attempt",
+            )
+        }
+    }
+
+    @Test
+    fun `or is associative and commutative over composed schedules`() = runTest {
+        checkAll(arbSchedule(), arbSchedule(), arbSchedule(), Arb.int(0..12), Arb.int(-50..50)) { a, b, c, attempt, value ->
+            assertEquals(
+                ((a or b) or c).decide(attempt, value),
+                (a or (b or c)).decide(attempt, value),
+                "or should be associative at attempt=$attempt",
+            )
+            assertEquals(
+                (a or b).decide(attempt, value),
+                (b or a).decide(attempt, value),
+                "or should be commutative at attempt=$attempt",
+            )
+        }
+    }
+
+    @Test
+    fun `and is associative and commutative over composed schedules`() = runTest {
+        checkAll(arbSchedule(), arbSchedule(), arbSchedule(), Arb.int(0..12), Arb.int(-50..50)) { a, b, c, attempt, value ->
+            assertEquals(
+                ((a and b) and c).decide(attempt, value),
+                (a and (b and c)).decide(attempt, value),
+                "and should be associative at attempt=$attempt",
+            )
+            assertEquals(
+                (a and b).decide(attempt, value),
+                (b and a).decide(attempt, value),
+                "and should be commutative at attempt=$attempt",
+            )
+        }
+    }
+
+    @Test
+    fun `and distributes over or — a and (b or c) == (a and b) or (a and c)`() = runTest {
+        checkAll(arbSchedule(), arbSchedule(), arbSchedule(), Arb.int(0..12), Arb.int(-50..50)) { a, b, c, attempt, value ->
+            assertEquals(
+                (a and (b or c)).decide(attempt, value),
+                ((a and b) or (a and c)).decide(attempt, value),
+                "and should distribute over or at attempt=$attempt",
+            )
+        }
+    }
+
+    @Test
+    fun `or and and are idempotent — s or s == s and s and s == s`() = runTest {
+        checkAll(arbSchedule(), Arb.int(0..12), Arb.int(-50..50)) { s, attempt, value ->
+            assertEquals(
+                s.decide(attempt, value),
+                (s or s).decide(attempt, value),
+                "or should be idempotent at attempt=$attempt",
+            )
+            assertEquals(
+                s.decide(attempt, value),
+                (s and s).decide(attempt, value),
+                "and should be idempotent at attempt=$attempt",
+            )
+        }
+    }
+
+    @Test
+    fun `immediate is the same policy as forever — both always Continue with ZERO`() = runTest {
+        checkAll(Arb.int(0..20), Arb.int(-50..50)) { attempt, value ->
+            assertEquals(
+                Schedule.Decision.Continue(ZERO),
+                Schedule.immediate<Int>().decide(attempt, value),
+            )
+            assertEquals(
+                Schedule.forever<Int>().decide(attempt, value),
+                Schedule.immediate<Int>().decide(attempt, value),
+            )
+        }
+    }
+
+    @Test
+    fun `never is always Done — no attempt or input revives it`() = runTest {
+        checkAll(Arb.int(0..20), Arb.int(-50..50)) { attempt, value ->
+            assertEquals(Schedule.Decision.Done, Schedule.never<Int>().decide(attempt, value))
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
     // Helpers
     // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * A generated family of schedules: every base factory, then random
+     * `and`/`or` compositions of them (identities included), so the laws are
+     * checked over a much wider surface than a few hand-picked shapes.
+     */
+    private fun arbSchedule(): Arb<Schedule<Int>> =
+        Arb.list(Arb.int(), 1..6).map { seeds ->
+            seeds.drop(1).fold(baseSchedule(seeds.first())) { acc, seed ->
+                if (seed and 1 == 0) acc and baseSchedule(seed) else acc or baseSchedule(seed)
+            }
+        }
+
+    private fun baseSchedule(seed: Int): Schedule<Int> {
+        val s = seed and Int.MAX_VALUE
+        return when (s % 10) {
+            0 -> Schedule.times(s % 7)
+            1 -> Schedule.spaced((1 + s % 5).milliseconds)
+            2 -> Schedule.delays(List(1 + s % 3) { (1 + (s / 3 + it) % 5).milliseconds })
+            3 -> Schedule.exponential(10.milliseconds, max = 500.milliseconds)
+            4 -> Schedule.linear(10.milliseconds, max = 500.milliseconds)
+            5 -> Schedule.fibonacci(10.milliseconds, max = 500.milliseconds)
+            6 -> Schedule.doWhile { it % 3 != 0 }
+            7 -> Schedule.doUntil { it % 4 == 0 }
+            8 -> Schedule.immediate()
+            else -> Schedule.never()
+        }
+    }
 
     private fun assertIsContinue(decision: Schedule.Decision, message: String = "") {
         assert(decision is Schedule.Decision.Continue) {
