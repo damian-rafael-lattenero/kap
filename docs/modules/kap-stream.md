@@ -8,7 +8,8 @@ implementation("io.github.damian-rafael-lattenero:kap-stream:5.0.0")
 
 **Depends on:** `kap-core`, `kap-resilience` (for `Schedule`).
 **Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
-**Laws:** strategy drops, ordering and cancellation are property-tested in `KapStreamLawsTest` (virtual time, no sleeps).
+**Tests:** 28 tests across 2 test classes, all virtual time (no sleeps).
+**Laws:** strategy drops, ordering and cancellation are property-tested in `KapStreamLawsTest`.
 
 ---
 
@@ -105,3 +106,22 @@ withTimeout(5.seconds) {
 }
 // the timeout cancels the poll loop; the source's finally blocks run
 ```
+
+## Performance
+
+JMH, n = 1,000,000 elements, Apple M1 / Corretto 25 (see
+`benchmarks/src/jmh/kotlin/kap/benchmarks/StreamBenchmark.kt` for the exact
+commands and the annotated table). Average time in ms:
+
+| Pipeline | Raw Flow | KapStream (suspend) | RxJava 3 |
+|---|---|---|---|
+| map | 4.7 | 14.3 | 2.1 |
+| filter | 4.6 | 11.2 | 1.3 |
+| flatMap (concurrency 16) | 236 | 241 | 57 |
+
+The suspend default is **1.02x** raw Flow for flatMap. For trivial `map`/`filter`
+bodies the per-element Kap allocation dominates a ~5 ns baseline: the honest
+comparator is a suspend call per element (10.3 ms for the same map), against
+which the stage is **1.39x**. Lossy strategies trade exactness for throughput;
+the exact `buffer` boundary costs a channel handoff per element (~67 ms), so
+use it only when producer/consumer decoupling is the point.

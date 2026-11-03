@@ -953,6 +953,29 @@ Unlike `.then` which creates a real barrier, `.thenValue` fills a slot sequentia
     // If first call FAILS? Not cached. Next call retries.
     ```
 
+### Shared state — `Ref` (4.3.0)
+
+`Ref<A>` is the typed atomic mutable reference for the shared state that does not need STM: every operation runs under a `Mutex`, so concurrent updates never lose writes, and cancellation while waiting for the lock leaves the value untouched.
+
+```kotlin
+val counter = Ref.of(0).evalGraph()          // a Kap builds the reference
+
+val graph = Kap.of { a: Int -> { b: Int -> a + b } }
+    .with { counter.update { it + 1 } }      // atomic read-modify-write
+    .with { counter.update { it + 1 } }
+graph.evalGraph()
+// counter.get().evalGraph() == 2
+```
+
+| Operation | Effect |
+|---|---|
+| `get(): Kap<A>` | reads the current value |
+| `set(a): Kap<Unit>` | replaces it |
+| `update { a -> a' }: Kap<A>` | atomic transform, returns the new value |
+| `modify { a -> next to result }: Kap<B>` | general read-modify-write with a separate result |
+
+The function passed to `update`/`modify` must be pure, fast and must not call back into the same `Ref` (that would deadlock — the mutex is not reentrant).
+
 ### Interop
 
 #### `Deferred.toKap()` / `Kap.toDeferred(scope)`

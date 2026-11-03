@@ -98,6 +98,22 @@ A `Supervisor` (kap-resilience, 5.0.0) is a group of named [Process]-style child
 
 Enforced by [`SupervisorLawsTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/SupervisorLawsTest.kt) (all seven laws; property-checked under virtual time) and [`SupervisorTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/SupervisorTest.kt) (lifecycle and coalescing, virtual time).
 
+## KapStream laws
+
+A `KapStream` (kap-stream, 5.0.0) is a backpressured pipeline whose stages are `Kap`s and whose backpressure policy is a named value ([`Backpressure`](kap-stream/src/commonMain/kotlin/kap/Backpressure.kt)) at every stage. The default is `Suspend` — exact.
+
+1. **Exact strategies never drop.** `Backpressure.Suspend` (the default at every stage) and `Backpressure.Buffer(n)` deliver every element, in upstream order: the producer suspends instead of discarding.
+2. **Lossy strategies drop only what they say.**
+   - `Conflate` = `Latest(1)`: superseded elements are dropped; the element buffered at completion is never dropped.
+   - `DropOldest(n)` / `Latest(n)`: the oldest elements are the victims; the newest `n` survive.
+   - `DropLatest(n)`: the incoming element is the victim; the already-buffered (oldest) elements survive.
+   Every strategy preserves upstream order among the elements it keeps and never duplicates one.
+3. **Ordering.** `mapKap(concurrency = 1)`, `filterKap` and `flatMapKap(concurrency = 1)` preserve upstream order; `mapKapOrdered(concurrency)` preserves upstream order for every concurrency; concurrent `mapKap`/`flatMapKap` preserve the multiset (completion order).
+4. **Cancellation propagates.** Streams are cold and structured: cancelling the collection cancels the source through every channel boundary (strategy buffers included) — no stream escapes its scope.
+5. **Named, not global.** The strategy is a value at the stage where it applies; a drop upstream never silently changes a stage configured to be exact, and vice versa.
+
+Enforced by [`KapStreamLawsTest.kt`](kap-stream/src/jvmTest/kotlin/kap/KapStreamLawsTest.kt) (strategy drops, ordering, multiset; property-checked under virtual time) and [`KapStreamTest.kt`](kap-stream/src/jvmTest/kotlin/kap/KapStreamTest.kt) (sources, stages, sinks, cancellation; virtual time).
+
 ## Arrow Integration
 
 Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplementation. All validated operations produce standard `Either<NonEmptyList<E>, A>` values.
@@ -106,4 +122,4 @@ Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplement
 
 All laws are verified in [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/ApplicativeLawsTest.kt) using Kotest property-based testing with random inputs.
 
-**1134 tests across 83 suites in 6 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
+**1188 tests across 87 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*

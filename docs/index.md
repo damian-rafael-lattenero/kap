@@ -471,7 +471,7 @@ kap(::User)
 
 ## Zero overhead
 
-All claims backed by **122 JMH benchmarks** and deterministic virtual-time proofs.
+All claims backed by **144 JMH benchmarks** and deterministic virtual-time proofs. Stream-stage overhead is measured separately on the [kap-stream page](modules/kap-stream.md).
 
 | Dimension | Raw Coroutines | Arrow | KAP |
 |---|---|---|---|

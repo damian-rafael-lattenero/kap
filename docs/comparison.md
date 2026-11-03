@@ -288,7 +288,7 @@ The litmus test: 11 microservice calls, 5 phases, dependencies between them.
 
 ## Performance
 
-All numbers from **122 JMH benchmarks** on JDK 21, Ubuntu 24.04. [Live dashboard](https://damian-rafael-lattenero.github.io/kap/benchmarks/).
+All numbers from **144 JMH benchmarks** on JDK 21, Ubuntu 24.04. [Live dashboard](https://damian-rafael-lattenero.github.io/kap/benchmarks/).
 
 | Dimension | Raw Coroutines | Arrow | KAP | Winner |
 |---|---|---|---|---|

@@ -4,6 +4,119 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.0.0] - 2026-11-03
+
+Milestone 5.0 of SPEC-5.0 ("streams, supervision, semiring, benchmarks") and
+the 4.3 unlocks, which were never released on their own: this entry covers
+both. The test count grew to 1188 across 87 suites in 7 modules + benchmarks,
+and the benchmark suite to 144 JMH benchmarks.
+
+### Added — 5.0: streams (`kap-stream`, new module)
+
+- **`KapStream<A>`** (kap-stream): backpressured streams whose stages are
+  `Kap`s. `KapStream.from(flow)` lifts a Flow (`asFlow()` is the escape hatch);
+  `KapStream.emitted(kap).every(schedule)` is a polling source whose cadence —
+  and stop condition, via the schedule's input — is a `Schedule` value.
+- **Stages:** `mapKap(concurrency, backpressure)`, `filterKap(backpressure)`,
+  `mapKapOrdered(concurrency, backpressure)` and `flatMapKap(concurrency,
+  backpressure)` (merges inner streams). Backpressure is a **named value at
+  every stage** and defaults to `Backpressure.Suspend`: exact, nothing is ever
+  dropped.
+- **Strategies:** `buffer(n)` (exact, decoupled), `conflate()`, `dropOldest(n)`,
+  `dropLatest(n)`, `latest(n)` and `withBackpressure(Backpressure)`. The
+  `Backpressure` type documents, per strategy, what it drops and what it
+  **never** drops. Implemented as real channel boundaries, so the semantics
+  are not subject to flow operator fusion.
+- **Sinks:** `collectAsKap()` (finite streams) and `drainTo(channel)`, which
+  suspends on the channel's own capacity and owns no lifecycle.
+- **Laws** (`LAWS.md` — KapStream laws, property-tested under virtual time in
+  `KapStreamLawsTest`): exact strategies never drop; lossy strategies drop
+  only their documented victims; every strategy preserves order and never
+  duplicates; `mapKapOrdered` preserves order for every concurrency;
+  cancellation propagates through every channel boundary.
+
+### Added — 5.0: supervision
+
+- **`Supervisor(children, strategy, restartPolicy)`** (kap-resilience) with
+  `Supervisor.child(name) { block }` named bodies and
+  `SupervisionStrategy.OneForOne` / `AllForOne`. `startIn(scope)` returns a
+  `SupervisorHandle` with `restarts: Map<String, StateFlow<Int>>`, `isAlive`,
+  `stop()` (idempotent, never a failure) and `await()`; exhaustion fails the
+  group with `SupervisorExhaustedException` (child name, restart count, last
+  cause as `cause`). Backoff and the restart cap come from the existing
+  `RestartPolicy`, so the convergence law holds by construction.
+- **Supervisor laws** (`LAWS.md`): OneForOne isolation, AllForOne totality
+  (simultaneous failures coalesce into one group restart), terminal success,
+  stop/cancel never failures, honest exhaustion, honest liveness. Enforced by
+  `SupervisorLawsTest` (property-checked) and `SupervisorTest`, all virtual
+  time.
+
+### Added — 5.0: the `Schedule` semiring
+
+- **`Schedule.never()`** (always `Done`, additive identity / multiplicative
+  annihilator) and **`Schedule.immediate()`** (always `Continue(ZERO)`,
+  multiplicative identity; the same value as `forever()`, named for its
+  algebraic role). `and` is documented as multiplication (delays merge with
+  `max`) and `or` as addition (delays merge with `min`), with `Done` behaving
+  as the delay `+∞` — which makes distributivity hold exactly.
+- **Laws** (`LAWS.md`): associativity and commutativity of both operations,
+  both identities, the annihilator, distributivity and idempotence —
+  property-tested over a generated family of composed schedules in
+  `ScheduleLawsTest`. `Schedule.decideAt(attempt, value)` exposes the decision
+  a driver takes (a schedule is a value).
+
+### Added — 5.0: benchmarks and docs
+
+- **JMH stream suite** (`StreamBenchmark.kt`): map/filter/flatMap at
+  n = 1,000,000 across raw Flow, KapStream with each strategy and RxJava 3
+  (3.1.12, new dependency), plus two explanatory baselines (a suspend call per
+  element; a `coroutineScope` per element). Not wired into CI.
+  Measured 2026-11-03 on Apple M1 / Corretto 25.0.5 (1 fork, 2 warmup + 3
+  measurement iterations x 1 s; exact command in the commit): map 4.7 ms raw
+  vs 14.3 ms KapStream suspend (RxJava 2.1), filter 4.6 vs 11.2 (RxJava 1.3),
+  flatMap 236 vs 241 (RxJava 57). The suspend default is **1.02x** raw Flow
+  for flatMap and **1.39x** the equivalent suspend-call baseline for map; a
+  trivial map/filter is 2.4-3.0x raw Flow because the per-element `Kap`
+  allocation dominates a ~5 ns baseline. The SPEC target ("within 2x raw Flow
+  for suspend stages") is met for flatMap (and its exact buffer, 1.28x) and
+  documented as missed for trivial map/filter, with the honest comparator
+  stated.
+- New module page `docs/modules/kap-stream.md` (mkdocs nav included), a
+  `Supervisor` section in the kap-resilience page, a `Ref` section in the
+  kap-core page, and the new `Schedule` building blocks in the resilience page.
+
+### Added — 4.3 unlocks (never published as 4.3; shipped here)
+
+- **`CircuitBreaker`: `successThreshold` + `retryAfter`.** `retryAfter` is the
+  open-state cooldown (the pre-4.3 `resetTimeout` name is a deprecated
+  source-compatible alias, including a deprecated constructor overload); the
+  circuit closes only after `successThreshold` consecutive successful HalfOpen
+  probes, and a failed probe reopens it.
+- **`Schedule.delays(array/list)`**: an explicit sequence of delays consumed in
+  order, then `Done`; the array form exists because Kotlin forbids `vararg` of
+  value-class types (`Duration`).
+- **`Schedule.delayBy { }`**: Continue delays as a function of the input
+  (longer waits for rate limits than for transient timeouts), with a negative
+  delay failing fast.
+- **`Ref<A>`** (kap-core): a typed atomic mutable reference (mutex-guarded
+  `get`/`set`/`update`/`modify`, created with `Ref.of`) for shared state that
+  does not need STM.
+- **`kap-detekt-rules`: `ManualWaitLoop`**: a Detekt rule that flags
+  hand-rolled wait loops (see `docs/detekt-rules.md`).
+
+### Changed
+
+- Sequential stream stages (`mapKap`/`mapKapOrdered` at concurrency 1,
+  `filterKap`) run in one isolation scope per stage, not a `coroutineScope`
+  per element: elements are strictly sequential, and the per-element scope was
+  the dominant benchmark cost. Observable semantics are unchanged; a stage
+  `Kap` with parallel children still fails the stream cleanly.
+- README module table and stream docs, module pages, mkdocs nav and `LAWS.md`
+  cover the new modules and laws; the numeric claims (1188 tests / 87 suites /
+  144 benchmarks) are the ones `scripts/verify-claims.nu` checks.
+- `kap-stream` joins the CI test matrix (`:kap-stream:jvmTest`) and the claims
+  script's module list; the stream JMH suite is deliberately NOT in CI.
+
 ## [4.2.0] - 2026-10-29
 
 Milestone 4.2 closes: `Process`, the supervised loop of SPEC-5.0, lands with

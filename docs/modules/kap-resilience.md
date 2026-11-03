@@ -8,7 +8,7 @@ implementation("io.github.damian-rafael-lattenero:kap-resilience:4.2.0")
 
 **Depends on:** `kap-core`.
 **Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
-**Tests:** 262 tests across 20 test classes (JVM + native), including Schedule laws, Process laws and CircuitBreaker concurrency tests.
+**Tests:** 288 tests across 22 test classes (JVM + native), including Schedule semiring laws, Process and Supervisor laws and CircuitBreaker concurrency tests.
 
 ---
 
@@ -79,9 +79,21 @@ Like every RETRY/CONVERT operator, `retry` runs its operand inside its own `coro
 | `exponential(base, max)` | Exponential backoff | `Schedule.exponential(10.milliseconds, max = 5.seconds)` |
 | `fibonacci(base)` | Fibonacci-sequence delays | `Schedule.fibonacci(10.milliseconds)` |
 | `linear(base)` | Linearly increasing delays | `Schedule.linear(100.milliseconds)` |
-| `forever()` | Retry indefinitely | `Schedule.forever()` |
+| `delays(array/list)` | An explicit sequence of delays, then done (4.3) | `Schedule.delays(arrayOf(100.milliseconds, 2.seconds))` |
+| `forever()` | Retry indefinitely (no delay) | `Schedule.forever()` |
+| `immediate()` | Same value as `forever()`, named as the semiring identity (5.0) | `Schedule.immediate()` |
+| `never()` | Never retry — the additive identity (5.0) | `Schedule.never()` |
 
 ### Modifiers
+
+#### `.delayBy { }` — Delay as a function of the input (4.3)
+
+```kotlin
+// Longer waits for rate limits than for transient timeouts; stop condition untouched
+val policy = Schedule.forever<Throwable>()
+    .delayBy { error -> if (error is RateLimited) 30.seconds else 500.milliseconds }
+```
+`delayBy` is only called when the schedule says Continue; a negative delay fails fast with `IllegalArgumentException`.
 
 #### `.jittered()` — Prevent thundering herd
 
@@ -125,6 +137,8 @@ val strict = Schedule.times<Throwable>(3) and Schedule.exponential(100.milliseco
 // Either can continue (union):
 val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
 ```
+
+**The schedule semiring (5.0).** `and` is multiplication (both must continue, delays merge with `max`), `or` is addition (either may continue, delays merge with `min`), and `Done` behaves as the delay `+∞`. The laws — associativity and commutativity of both, `never()` as the additive identity, `immediate()` as the multiplicative identity, `never()` as the multiplicative annihilator, distributivity and idempotence — are property-tested in `ScheduleLawsTest` and documented in `LAWS.md`. `Schedule.decideAt(attempt, value)` exposes the decision a driver would take (a schedule is a value, so inspecting it is lawful).
 
 ### Retry Variants
 
@@ -278,7 +292,8 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
     ```kotlin
     val breaker = CircuitBreaker(
         maxFailures = 5,
-        retryAfter = 30.seconds,
+        retryAfter = 30.seconds,          // open-state cooldown (4.3 name; resetTimeout is the deprecated alias)
+        successThreshold = 2,             // two consecutive HalfOpen probes to close (4.3)
         onStateChange = { old, new -> println("CircuitBreaker: $old -> $new") }
     )
 
@@ -286,8 +301,8 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
         .withCircuitBreaker(breaker)
         .evalGraph()
     // While Open: fails immediately with CircuitBreakerOpenException
-    // After retryAfter: tries one request (HalfOpen)
-    // If it succeeds: back to Closed
+    // After retryAfter: tries one probe (HalfOpen); a failed probe reopens the circuit
+    // After successThreshold consecutive probe successes: back to Closed
     ```
 
 ### Guarding code that is not a `Kap`
@@ -365,6 +380,44 @@ The laws (`LAWS.md` — Process laws):
 | **Transparent observation** | `onRestart`/`onHeartbeat` throwing cannot change the lifecycle. |
 
 `handle.restarts` is a `StateFlow<Int>` (collect it for live supervision surfaces), `handle.isAlive` covers both running and waiting-out-a-restart, and `handle.heartbeatAge()` gives the staleness of the alive signal (`Duration.INFINITE` when the heartbeat is disabled with `heartbeatEvery = Duration.ZERO`).
+
+---
+
+## `Supervisor` — Named Supervision (5.0.0)
+
+A `Supervisor` groups named `Kap` bodies and supervises them together. A failure is handled by the **strategy**: `OneForOne` restarts only the failed child (siblings keep running untouched), `AllForOne` restarts every child still in the group. Backoff and the restart cap come from the same `RestartPolicy` as `process`, so the convergence law holds by construction.
+
+```kotlin
+val group = Supervisor(
+    children = listOf(
+        Supervisor.child("bus-tailer") { bus.tail() },
+        Supervisor.child("memory-worker") { memory.work() },
+        Supervisor.child("bridge") { bridge.relay() },
+    ),
+    strategy = SupervisionStrategy.OneForOne,
+    restartPolicy = RestartPolicy.exponential(base = 1.seconds, maxRestarts = 5),
+)
+
+coroutineScope {
+    val handle = group.startIn(this)       // children of THIS scope
+    handle.restarts.getValue("bridge").collect { println("bridge restarts: $it") }
+    awaitShutdownSignal()
+    handle.stop()                          // idempotent; never a failure
+}
+```
+
+The laws (`LAWS.md` — Supervisor laws):
+
+| Law | Guarantee |
+|---|---|
+| **OneForOne isolation** | Siblings are never cancelled, never restarted, never re-run; their counters stay at zero. |
+| **AllForOne totality** | Every non-completed child restarts together; simultaneous failures coalesce into one group restart. |
+| **Terminal success** | A child completing normally is finished for good (never resurrected); the group completes when every child has. |
+| **Stop/cancel ≠ failure** | Neither restarts anything nor fires exhaustion, whatever the strategy or budget. |
+| **Honest exhaustion** | Exactly `maxRestarts` restarts, then `SupervisorExhaustedException` with the child name, the count and the last cause. |
+| **Honest liveness** | `isAlive` is true exactly while the group exists (including backoff); counters advance when a restart runs. |
+
+`handle.restarts` is a `Map<String, StateFlow<Int>>` keyed by child name — the honest, live record of what the supervisor did.
 
 ---
 

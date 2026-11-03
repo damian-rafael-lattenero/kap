@@ -35,6 +35,9 @@ jobs:
           - module: kap-resilience
             task: ":kap-resilience:jvmTest"
             report-path: "kap-resilience/build/reports/tests/jvmTest"
+          - module: kap-stream
+            task: ":kap-stream:jvmTest"
+            report-path: "kap-stream/build/reports/tests/jvmTest"
           - module: kap-arrow
             task: ":kap-arrow:test"
             report-path: "kap-arrow/build/reports/tests/test"

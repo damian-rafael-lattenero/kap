@@ -570,7 +570,8 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
 |---|---|---|
 | **kap-core** | `.with`, `.then`, `.andThen`, `race`, `traverse`, `memoize`, `settled` | Always |
 | **kap-ksp** | `@KapTypeSafe`, `@KapBridge` — compile-time named builders with IDE autocomplete | When you want swap-proof, guided orchestration |
-| **kap-resilience** | `retry`, `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `raceQuorum`, `timeoutRace`, `process` | When you call external services or run supervised loops |
+| **kap-resilience** | `retry`, `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `raceQuorum`, `timeoutRace`, `process`, `Supervisor` | When you call external services or run supervised loops |
+| **kap-stream** | `KapStream`, named backpressure (`buffer`/`conflate`/`dropOldest`/`dropLatest`/`latest`), `mapKap`/`filterKap`/`flatMapKap` | When you need backpressured pipelines whose stages are Kaps |
 | **kap-arrow** | `.withV`, `kapV`, error accumulation with `Either<NonEmptyList<E>, A>` | When you need parallel validation |
 | **kap-ktor** | `respondAsync`, `KapTracer`, circuit breaker plugin | When you use Ktor |
 | **kap-kotest** | `shouldSucceedWith`, `shouldFailWith`, timing & lifecycle matchers | When you test Kap graphs |
@@ -732,7 +733,7 @@ Everything is on Maven Central. Built with Kotlin 2.4.21 and kotlinx-coroutines 
 **Skip it when:**
 - You have 1-2 independent async calls — `coroutineScope { async {} }` is fine
 - You don't need structured phases or resilience composition
-- You're building streams/flows, not request-scoped graphs
+- You're building streams/flows and plain Flow already says what you mean — `kap-stream` is for when the backpressure policy must be a named value and the stages are Kaps
 
 ---
 
@@ -744,7 +745,7 @@ Everything is on Maven Central. Built with Kotlin 2.4.21 and kotlinx-coroutines 
 | Multi-phase (9 calls, 4 phases) | 180.85ms | 180.98ms |
 | 5 parallel calls @ 50ms each | 50.27ms | 50.31ms |
 
-KAP adds **zero measurable overhead**. The abstraction compiles away. [Full benchmark suite (122 JMH benchmarks)](https://damian-rafael-lattenero.github.io/kap/benchmarks/).
+KAP's graph combinators add **zero measurable overhead** — the abstraction compiles away. Stream stages cost one `Kap` per element; the [kap-stream page](https://damian-rafael-lattenero.github.io/kap/modules/kap-stream/) pins those numbers. [Full benchmark suite (144 JMH benchmarks)](https://damian-rafael-lattenero.github.io/kap/benchmarks/).
 
 ---
 
