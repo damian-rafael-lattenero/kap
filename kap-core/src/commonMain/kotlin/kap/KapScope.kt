@@ -3,7 +3,7 @@ package kap
 import kotlinx.coroutines.CoroutineScope
 
 /**
- * Scope for the [computation] builder, providing [bind] for sequential
+ * Scope for the [computation] builder, providing `bind` for sequential
  * monadic composition inside a [Kap].
  *
  * This is the sequential counterpart to `kap+with` — use it when later
@@ -44,7 +44,7 @@ class KapScope @PublishedApi internal constructor(
 /**
  * Builds a [Kap] using imperative syntax with [KapScope.bind].
  *
- * Each [bind] call executes its computation sequentially — use `kap+with`
+ * Each `bind` call executes its computation sequentially — use `kap+with`
  * when branches are independent and can run in parallel.
  */
 inline fun <A> computation(crossinline block: suspend KapScope.() -> A): Kap<A> =

@@ -6,6 +6,15 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
+      # Library sources and the Dokka wiring: the generated API reference
+      # (docs/api) must track the code it documents.
+      - 'kap-core/src/**'
+      - 'kap-resilience/src/**'
+      - 'kap-stream/src/**'
+      - 'kap-arrow/src/**'
+      - 'kap-ktor/src/**'
+      - 'build.gradle.kts'
+      - 'gradle/libs.versions.toml'
   workflow_dispatch:
 
 permissions:
@@ -26,6 +35,8 @@ jobs:
           java-version: 25
       - uses: gradle/actions/setup-gradle@v6
 
+      # Aggregated Dokka publication (kap-core, kap-resilience, kap-stream,
+      # kap-arrow) into docs/api/, which mkdocs ships under /api/.
       - name: Generate Dokka API docs
         run: ./gradlew dokkaGenerate
 
@@ -36,12 +47,13 @@ jobs:
       - name: Install MkDocs Material
         run: pip install "mkdocs-material>=9.7,<10" "pygments>=2.17,<2.20"
 
-      - name: Preserve benchmark data from gh-pages
+      - name: Preserve benchmark data and API reference from gh-pages
         run: |
           git fetch origin gh-pages:gh-pages || true
-          mkdir -p /tmp/benchmarks-backup
+          mkdir -p /tmp/benchmarks-backup /tmp/api-backup
           git show gh-pages:benchmarks/data.js > /tmp/benchmarks-backup/data.js 2>/dev/null || true
           git show gh-pages:benchmarks/index.html > /tmp/benchmarks-backup/index.html 2>/dev/null || true
+          git archive gh-pages api 2>/dev/null | tar -x -C /tmp/api-backup || true
 
       - name: Build & deploy docs
         run: mkdocs gh-deploy --force --clean --verbose
@@ -54,5 +66,24 @@ jobs:
             cp /tmp/benchmarks-backup/* benchmarks/
             git add benchmarks/
             git commit -m "restore benchmark data after docs deploy" || true
+            git push origin gh-pages
+          fi
+
+      # Safety net: this deploy should have shipped the freshly generated
+      # docs/api; only if it didn't (e.g. generation was skipped or failed
+      # without failing the job) restore the previous API reference so the
+      # nav link never 404s.
+      - name: Restore API reference if the deploy produced none
+        run: |
+          git fetch origin gh-pages:gh-pages || true
+          if git cat-file -e gh-pages:api/index.html 2>/dev/null; then
+            echo "fresh API reference deployed"
+            exit 0
+          fi
+          if [ -d /tmp/api-backup/api ]; then
+            git checkout gh-pages
+            cp -R /tmp/api-backup/api .
+            git add api/
+            git commit -m "restore API reference after docs deploy (fresh generation missing)" || true
             git push origin gh-pages
           fi

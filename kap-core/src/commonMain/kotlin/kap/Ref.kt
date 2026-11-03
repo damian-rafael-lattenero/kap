@@ -9,7 +9,7 @@ import kotlinx.coroutines.sync.withLock
  *
  * Every operation runs atomically under a [Mutex], so concurrent updates never
  * lose writes. The mutating functions ([update], [modify]) compute the new
- * value inside the lock: [f] must be pure and fast, and must not call back
+ * value inside the lock: `f` must be pure and fast, and must not call back
  * into the same `Ref` (that would deadlock).
  *
  * A `Ref` is created by executing [Ref.of]:
@@ -59,7 +59,7 @@ class Ref<A> private constructor(initial: A) {
     }
 
     /**
-     * Atomically transforms the value with [f], stores the first component of
+     * Atomically transforms the value with `f`, stores the first component of
      * the returned pair and yields the second. This is the general
      * read-modify-write: [update] and [set] are special cases of it.
      */
