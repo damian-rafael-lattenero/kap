@@ -258,3 +258,46 @@ public final class kap/Schedule$Decision$Done : kap/Schedule$Decision {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class kap/SupervisionStrategy : java/lang/Enum {
+	public static final field AllForOne Lkap/SupervisionStrategy;
+	public static final field OneForOne Lkap/SupervisionStrategy;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lkap/SupervisionStrategy;
+	public static fun values ()[Lkap/SupervisionStrategy;
+}
+
+public final class kap/Supervisor {
+	public static final field Companion Lkap/Supervisor$Companion;
+	public fun <init> (Ljava/util/List;Lkap/SupervisionStrategy;Lkap/RestartPolicy;)V
+	public final fun getChildren ()Ljava/util/List;
+	public final fun getRestartPolicy ()Lkap/RestartPolicy;
+	public final fun getStrategy ()Lkap/SupervisionStrategy;
+	public final fun startIn (Lkotlinx/coroutines/CoroutineScope;)Lkap/SupervisorHandle;
+}
+
+public final class kap/Supervisor$Companion {
+	public final fun child (Ljava/lang/String;Lkap/Kap;)Lkap/SupervisorChild;
+	public final fun child (Ljava/lang/String;Lkotlin/jvm/functions/Function2;)Lkap/SupervisorChild;
+}
+
+public final class kap/SupervisorChild {
+	public final fun getName ()Ljava/lang/String;
+}
+
+public final class kap/SupervisorExhaustedException : java/lang/RuntimeException {
+	public fun <init> (Ljava/lang/String;ILjava/lang/Throwable;)V
+	public final fun getChild ()Ljava/lang/String;
+	public final fun getRestarts ()I
+}
+
+public abstract interface class kap/SupervisorHandle {
+	public abstract fun await (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getRestarts ()Ljava/util/Map;
+	public abstract fun isAlive ()Z
+	public abstract fun stop ()V
+}
+
+public final class kap/SupervisorStoppedException : java/lang/RuntimeException {
+	public fun <init> ()V
+}
+

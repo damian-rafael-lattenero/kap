@@ -84,6 +84,20 @@ A `Process` (kap-resilience, 4.2.0) is a supervised loop: the body completing no
 
 Enforced by [`ProcessLawsTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/ProcessLawsTest.kt) (convergence, bounded restarts; property-checked) and [`ProcessTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/ProcessTest.kt) (lifecycle, virtual time).
 
+## Supervisor laws
+
+A `Supervisor` (kap-resilience, 5.0.0) is a group of named [Process]-style children with a `SupervisionStrategy` and one `RestartPolicy`.
+
+1. **Isolation (`OneForOne`).** A failure restarts only the failed child. Every sibling's restart counter stays at zero and its body never re-runs: siblings keep running untouched.
+2. **Totality (`AllForOne`).** A failure restarts every child of the group that has not completed normally — running siblings are cancelled and relaunched together with the failed child. Simultaneous failures coalesce into a single group restart cycle; they never multiply the counters.
+3. **Terminal success.** A child completing normally finishes for good (it is never resurrected, even by an `AllForOne` restart); the group completes normally when every child has completed normally.
+4. **Stop and cancellation are never failures.** `stop()` (idempotent) and the death of the owning scope end the group without a restart or exhaustion; `await` reports `SupervisorStoppedException` / the cancellation respectively. Neither depends on the strategy or the restart budget.
+5. **Honest exhaustion.** A child gets exactly `maxRestarts` restarts; the next failure fails the group with `SupervisorExhaustedException` whose `cause` is that child's last failure, and whose `child`/`restarts` name the truth.
+6. **Honest liveness.** `isAlive` is true exactly while the group exists — including while it waits out a backoff — and false after any terminal outcome. Restart counters advance when a restart actually runs, never when it is merely scheduled.
+7. **Convergence.** Inherited from `RestartPolicy`: each restart waits a strictly positive delay and the per-child restart count is bounded, so an instantly-failing child cannot hot-loop. Restart delays are serialized by the supervision loop (one restart cycle at a time).
+
+Enforced by [`SupervisorLawsTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/SupervisorLawsTest.kt) (all seven laws; property-checked under virtual time) and [`SupervisorTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/SupervisorTest.kt) (lifecycle and coalescing, virtual time).
+
 ## Arrow Integration
 
 Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplementation. All validated operations produce standard `Either<NonEmptyList<E>, A>` values.
