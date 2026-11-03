@@ -519,4 +519,56 @@ class ScheduleTest {
         assertEquals(3, attempts, "times(2) caps the retries before the delay list runs out")
         assertEquals(30L, currentTime, "10 + 20 ms; the remaining delays are never reached")
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // delayBy — each delay is a function of the input
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `delayBy replaces Continue delays and preserves attempts and Done`() {
+        val schedule = Schedule.times<Int>(2).delayBy { (it * 10).milliseconds }
+
+        assertEquals(Schedule.Decision.Continue(10.milliseconds), schedule.decide(0, 1))
+        assertEquals(Schedule.Decision.Continue(20.milliseconds), schedule.decide(1, 2))
+        assertEquals(Schedule.Decision.Done, schedule.decide(2, 3), "Done and the attempt count are untouched")
+    }
+
+    @Test
+    fun `delayBy derives each retry delay from the failure in virtual time`() = runTest {
+        val seen = mutableListOf<String>()
+        var attempts = 0
+        val policy = Schedule.forever<Throwable>().delayBy { error ->
+            seen += error.message.orEmpty()
+            if (error.message == "slow") 200.milliseconds else 50.milliseconds
+        }
+
+        val result = Kap {
+            attempts++
+            if (attempts < 3) throw RuntimeException(if (attempts == 1) "slow" else "fast")
+            "ok"
+        }.retry(policy).evalGraph()
+
+        assertEquals("ok", result)
+        assertEquals(listOf("slow", "fast"), seen, "f receives every failure that drives a Continue")
+        assertEquals(250L, currentTime, "200 + 50 ms")
+    }
+
+    @Test
+    fun `delayBy never invokes f for Done`() {
+        var calls = 0
+        val schedule = Schedule.doWhile<Int> { it > 0 }.delayBy {
+            calls++
+            1.seconds
+        }
+
+        assertEquals(Schedule.Decision.Done, schedule.decide(0, 0))
+        assertEquals(0, calls)
+    }
+
+    @Test
+    fun `delayBy fails fast on a negative delay`() {
+        val schedule = Schedule.forever<Int>().delayBy { (-1).milliseconds }
+
+        assertFailsWith<IllegalArgumentException> { schedule.decide(0, 0) }
+    }
 }

@@ -474,4 +474,13 @@ class ScheduleTest {
         assertEquals(1, attempts)
         assertEquals(0L, currentTime)
     }
+
+    @Test
+    fun `delayBy replaces Continue delays and preserves attempts and Done`() {
+        val schedule = Schedule.times<Int>(2).delayBy { (it * 10).milliseconds }
+
+        assertEquals(Schedule.Decision.Continue(10.milliseconds), schedule.decide(0, 1))
+        assertEquals(Schedule.Decision.Continue(20.milliseconds), schedule.decide(1, 2))
+        assertEquals(Schedule.Decision.Done, schedule.decide(2, 3))
+    }
 }

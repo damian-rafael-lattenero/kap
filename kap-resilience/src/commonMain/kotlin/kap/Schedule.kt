@@ -208,6 +208,36 @@ class Schedule<A>(
     }
 
     /**
+     * Derives each Continue delay from the schedule's input: the Continue/Done
+     * decision and the attempt count are unchanged, but every Continue delay is
+     * replaced by `f(input)`.
+     *
+     * The delay becomes a function of the failure (or value) driving the
+     * decision — e.g. longer waits for a rate-limit error than for a transient
+     * timeout — without touching the stop condition:
+     *
+     * ```
+     * Schedule.forever<Throwable>()
+     *     .delayBy { error -> if (error is RateLimited) 30.seconds else 500.milliseconds }
+     * ```
+     *
+     * [f] is only called when the original schedule says
+     * [Decision.Continue]; a [Decision.Done] result is passed through untouched.
+     * **A negative result is a programming error and fails fast** with
+     * [IllegalArgumentException] instead of being silently coerced to zero.
+     */
+    fun delayBy(f: (A) -> Duration): Schedule<A> = Schedule { attempt, a ->
+        when (val d = this@Schedule.decide(attempt, a)) {
+            is Decision.Continue -> {
+                val delay = f(a)
+                require(delay >= ZERO) { "delayBy produced a negative delay: $delay" }
+                Decision.Continue(delay)
+            }
+            is Decision.Done -> Decision.Done
+        }
+    }
+
+    /**
      * Limits the total time across all retries. Once the elapsed time since
      * the first [decide] call exceeds [maxDuration], the schedule stops.
      *
