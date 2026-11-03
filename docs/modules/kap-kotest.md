@@ -105,6 +105,22 @@ tracker.shouldHaveTransitioned(CircuitBreaker.State.Closed to CircuitBreaker.Sta
 tracker.shouldHaveTransitionCount(1)
 ```
 
+## Schedule Matchers
+
+Assert a `Schedule.Decision` — the same call the retry drivers make:
+
+```kotlin
+val policy = Schedule.times<String>(3)
+
+policy.decideAt(2, "input").shouldContinue()                  // any delay
+policy.decideAt(2, "input").shouldContinue(ZERO)              // exact delay
+policy.decideAt(3, "input").shouldStop()                      // Decision.Done
+```
+
+`shouldContinue(expectedDelay)` compares delays exactly (`Duration` equality);
+`shouldStop()` is strict — a `Continue(Duration.INFINITE)` is observationally a
+stop (LAWS.md) but still fails the matcher.
+
 ## Lifecycle Matchers
 
 Track and assert resource lifecycle events:
