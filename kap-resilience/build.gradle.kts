@@ -83,7 +83,8 @@ tasks.register("generateResourceZip") {
             val closesBraces = " }".repeat(n)
             val combineArgs = (1..n).joinToString(", ") { "v$it" }
 
-            return """fun <$typeParams> Resource.Companion.zip(
+            return """/** Zips $n resources: all acquired before [combine] runs, all released in reverse order. */
+fun <$typeParams> Resource.Companion.zip(
 $params,
     combine: ($combineTypes) -> R,
 ): Resource<R> = Resource { use ->

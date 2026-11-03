@@ -34,6 +34,11 @@ import kotlinx.coroutines.supervisorScope
  * @param required number of successes needed (must be in `1..computations.size`)
  * @param computations the competing computations
  * @return list of exactly [required] successful results (in completion order)
+ * @throws IllegalArgumentException when [computations] is empty or [required]
+ *   is outside `1..computations.size`
+ * @throws Throwable the last failure, with the prior failures suppressed, when
+ *   too many racers fail for the quorum to be reachable (a
+ *   [kotlinx.coroutines.CancellationException] propagates un-suppressed)
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 fun <A> raceQuorum(required: Int, vararg computations: Kap<A>): Kap<List<A>> {
@@ -90,6 +95,8 @@ fun <A> raceQuorum(required: Int, vararg computations: Kap<A>): Kap<List<A>> {
  * Quorum race from a collection — runs all computations concurrently and
  * succeeds when [required] of them succeed.
  *
+ * @param required number of successes needed (must be in `1..size`).
+ * @return list of exactly [required] successful results (in completion order).
  * @see raceQuorum
  */
 fun <A> Iterable<Kap<A>>.raceQuorum(required: Int): Kap<List<A>> =

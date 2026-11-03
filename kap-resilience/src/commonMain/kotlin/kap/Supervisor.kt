@@ -105,6 +105,9 @@ class SupervisorChild internal constructor(
  *     handle.stop()
  * }
  * ```
+ *
+ * @param children at least one supervised child with unique names; build them
+ *   with [Supervisor.child].
  */
 class Supervisor(
     children: List<SupervisorChild>,
@@ -123,7 +126,14 @@ class Supervisor(
     }
 
     companion object {
-        /** Names a [Kap] body for a [Supervisor]. */
+        /**
+         * Names a [Kap] body for a [Supervisor].
+         *
+         * @param name unique name within the group; surfaces in
+         *   [SupervisorHandle.restarts] and terminal exceptions.
+         * @param body the supervised computation.
+         * @return the named child, ready to be listed in [Supervisor.children].
+         */
         fun <A> child(name: String, body: Kap<A>): SupervisorChild = SupervisorChild.of(name, body)
 
         /**
@@ -131,6 +141,11 @@ class Supervisor(
          * ```
          * Supervisor.child("poller") { pollOnce() }
          * ```
+         *
+         * @param name unique name within the group; surfaces in
+         *   [SupervisorHandle.restarts] and terminal exceptions.
+         * @param block the supervised computation, run in its own coroutine.
+         * @return the named child, ready to be listed in [Supervisor.children].
          */
         fun <A> child(name: String, block: suspend CoroutineScope.() -> A): SupervisorChild =
             SupervisorChild.of(name, Kap(block))
@@ -141,6 +156,9 @@ class Supervisor(
      * [SupervisorHandle] immediately. The group lives exactly as long as the
      * scope allows — cancelling the scope ends it, structured-concurrency
      * style; no child escapes its scope.
+     *
+     * @param scope the scope the group lives in; cancelling it ends every child.
+     * @return the live handle: per-child restart counters, stop, await.
      */
     fun startIn(scope: CoroutineScope): SupervisorHandle {
         val outcome = CompletableDeferred<Result<Unit>>()

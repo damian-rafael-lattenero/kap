@@ -80,7 +80,19 @@ class CircuitBreaker(
         require(successThreshold >= 1) { "successThreshold must be >= 1, was $successThreshold" }
     }
 
-    enum class State { Closed, Open, HalfOpen }
+    /**
+     * The three states of the circuit lifecycle.
+     */
+    enum class State {
+        /** Calls proceed normally; consecutive failures count towards [CircuitBreaker.maxFailures]. */
+        Closed,
+
+        /** Calls are rejected with [CircuitBreakerOpenException] until [CircuitBreaker.retryAfter] elapses. */
+        Open,
+
+        /** A single probe call is admitted; its outcome decides between [Closed] and [Open]. */
+        HalfOpen,
+    }
 
     internal val mutex = Mutex()
 
@@ -102,7 +114,14 @@ class CircuitBreaker(
     // ── Public, mutex-taking API (4.1.0): guard code that is not a Kap ──
 
     // Mutex.withLock is inline-suspend: detekt's RedundantSuspendModifier cannot see the suspension.
-    /** True when a call may proceed (Closed, or HalfOpen probing). */
+    /**
+     * True when a call may proceed (Closed, or HalfOpen probing).
+     *
+     * @return `false` when the circuit is Open and [retryAfter] has not
+     *   elapsed yet, or when a HalfOpen probe is already in flight; `true`
+     *   otherwise (and the call is expected to report the outcome via
+     *   [onSuccess] / [onFailure]).
+     */
     @Suppress("RedundantSuspendModifier")
     suspend fun tryAcquire(): Boolean = mutex.withLock { shouldAttempt() }
 
@@ -121,6 +140,12 @@ class CircuitBreaker(
     /**
      * Runs [block] under the breaker: throws [CircuitBreakerOpenException]
      * when open, records the outcome otherwise. Cancellation is never counted.
+     *
+     * @param block the guarded computation; a normal return counts as a
+     *   success, any non-cancellation failure as a failure.
+     * @return the value [block] produced.
+     * @throws CircuitBreakerOpenException when the circuit is Open (or a
+     *   HalfOpen probe is already in flight) and rejects the call.
      */
     // The breaker must count EVERY failure, exactly like withCircuitBreaker does.
     @Suppress("TooGenericExceptionCaught", "ThrowsCount")
@@ -218,6 +243,10 @@ class CircuitBreakerOpenException(
  *     .with { fetchCart() }
  *     .evalGraph()
  * ```
+ *
+ * @param breaker the breaker guarding this computation; the same instance can
+ *   guard several computations (they share its counters).
+ * @throws CircuitBreakerOpenException when the breaker is Open and rejects the call.
  */
 fun <A> Kap<A>.withCircuitBreaker(breaker: CircuitBreaker): Kap<A> {
     val self = this

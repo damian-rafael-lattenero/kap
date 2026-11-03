@@ -58,12 +58,23 @@ class Schedule<A>(
     // overloads (array + list) push it past the default object threshold.
     @Suppress("TooManyFunctions")
     companion object {
-        /** Retry up to [n] times (total attempts = n + 1 including the first). */
+        /**
+         * Retry up to [n] times (total attempts = n + 1 including the first).
+         *
+         * @param n number of retries allowed after the first attempt.
+         * @return a schedule that continues for attempts `0..n-1` and is
+         *   [Decision.Done] from attempt `n` on.
+         */
         fun <A> times(n: Int): Schedule<A> = Schedule { attempt, _ ->
             if (attempt < n) Decision.Continue(ZERO) else Decision.Done
         }
 
-        /** Retry with a fixed delay between attempts, unlimited count. */
+        /**
+         * Retry with a fixed delay between attempts, unlimited count.
+         *
+         * @param duration the wait between consecutive attempts.
+         * @return a schedule that always continues with [duration].
+         */
         fun <A> spaced(duration: Duration): Schedule<A> = Schedule { _, _ ->
             Decision.Continue(duration)
         }
@@ -85,10 +96,15 @@ class Schedule<A>(
          * ```
          *
          * @param delays non-negative delays, consumed in order.
+         * @throws IllegalArgumentException when any delay is negative.
          */
         fun <A> delays(delays: Array<Duration>): Schedule<A> = fromDelays(delays.asList())
 
-        /** List overload of [delays] — same semantics, for a dynamic sequence of delays. */
+        /**
+         * List overload of [delays] — same semantics, for a dynamic sequence of delays.
+         *
+         * @throws IllegalArgumentException when any delay is negative.
+         */
         fun <A> delays(delays: List<Duration>): Schedule<A> = fromDelays(delays)
 
         private fun <A> fromDelays(delays: List<Duration>): Schedule<A> {
@@ -100,7 +116,17 @@ class Schedule<A>(
             }
         }
 
-        /** Exponential backoff starting from [base], multiplied by [factor] each retry, capped at [max]. */
+        /**
+         * Exponential backoff starting from [base], multiplied by [factor] each retry, capped at [max].
+         *
+         * @param base the delay before the first retry (must be positive to keep
+         *   the schedule meaningful; `ZERO` retries immediately).
+         * @param factor the multiplier applied per retry; `2.0` doubles each wait.
+         * @param max the cap; a computed delay beyond it is clamped. Defaults to
+         *   no cap.
+         * @return a schedule producing `base, base*factor, base*factor^2, ...`
+         *   capped at [max].
+         */
         fun <A> exponential(
             base: Duration,
             factor: Double = 2.0,
@@ -111,20 +137,42 @@ class Schedule<A>(
             Decision.Continue(delay)
         }
 
-        /** Continue while the predicate holds. */
+        /**
+         * Continue while the predicate holds.
+         *
+         * @param predicate applied to the current input (the failure in a
+         *   `retry`); continue when it returns `true`.
+         * @return a schedule that retries immediately while [predicate] holds.
+         */
         fun <A> doWhile(predicate: (A) -> Boolean): Schedule<A> = Schedule { _, a ->
             if (predicate(a)) Decision.Continue(ZERO) else Decision.Done
         }
 
-        /** Continue until the predicate holds. Complement of [doWhile]. */
+        /**
+         * Continue until the predicate holds. Complement of [doWhile].
+         *
+         * @param predicate applied to the current input; stop as soon as it
+         *   returns `true`.
+         * @return a schedule that retries immediately until [predicate] holds.
+         */
         fun <A> doUntil(predicate: (A) -> Boolean): Schedule<A> = Schedule { _, a ->
             if (predicate(a)) Decision.Done else Decision.Continue(ZERO)
         }
 
-        /** Synonym for [doWhile] — Arrow naming compatibility. */
+        /**
+         * Synonym for [doWhile] — Arrow naming compatibility.
+         *
+         * @param predicate applied to the current input.
+         * @return the same schedule [doWhile] builds.
+         */
         fun <A> whileInput(predicate: (A) -> Boolean): Schedule<A> = doWhile(predicate)
 
-        /** Synonym for [doUntil] — Arrow naming compatibility. */
+        /**
+         * Synonym for [doUntil] — Arrow naming compatibility.
+         *
+         * @param predicate applied to the current input.
+         * @return the same schedule [doUntil] builds.
+         */
         fun <A> untilInput(predicate: (A) -> Boolean): Schedule<A> = doUntil(predicate)
 
         /**
@@ -179,6 +227,11 @@ class Schedule<A>(
          *
          * Linear backoff grows steadily, making it a good middle ground
          * between fixed spacing and exponential growth.
+         *
+         * @param base the delay before the first retry; each subsequent wait
+         *   grows by one more [base].
+         * @param max the cap; a computed delay beyond it is clamped.
+         * @return a schedule producing `base * (attempt + 1)`, capped at [max].
          */
         fun <A> linear(
             base: Duration,
@@ -195,6 +248,10 @@ class Schedule<A>(
          *
          * Fibonacci backoff ramps up more gently than exponential, making it
          * suitable for services that recover gradually.
+         *
+         * @param base the delay before the first two retries.
+         * @param max the cap; a computed delay beyond it is clamped.
+         * @return a schedule producing Fibonacci multiples of [base], capped at [max].
          */
         fun <A> fibonacci(
             base: Duration,
@@ -224,15 +281,33 @@ class Schedule<A>(
      * policy.decideAt(2, error)   // Continue(ZERO)
      * policy.decideAt(3, error)   // Done
      * ```
+     *
+     * @param attempt 0-based retry attempt number (the first call after the
+     *   initial run is attempt `0`).
+     * @param value the current input (the failure in a `retry`).
+     * @return [Decision.Continue] with the wait before the next attempt, or
+     *   [Decision.Done] when the schedule is exhausted.
      */
     fun decideAt(attempt: Int, value: A): Decision = decide(attempt, value)
 
     /**
-     * Accumulates all retry inputs into a list. Specialization of [fold]. */
+     * Accumulates all retry inputs into a list. Specialization of [fold].
+     *
+     * @return a schedule that behaves exactly like this one, but remembers
+     *   every input it has seen (inspectable with a second [fold] or a
+     *   [decideAt]-driven test).
+     */
     fun collect(): Schedule<A> = fold<List<A>>(emptyList()) { acc, a -> acc + a }
 
 
-    /** Combines two schedules with a custom delay merge. Both must agree to continue. */
+    /**
+     * Combines two schedules with a custom delay merge. Both must agree to continue.
+     *
+     * @param other the schedule composed with this one.
+     * @param f merges the two Continue delays into the combined delay.
+     * @return a schedule that continues only when both operands continue at the
+     *   same attempt, carrying `f(delay1, delay2)`.
+     */
     fun zipWith(other: Schedule<A>, f: (Duration, Duration) -> Duration): Schedule<A> = Schedule { attempt, a ->
         val d1 = this@Schedule.decide(attempt, a)
         val d2 = other.decide(attempt, a)
@@ -257,6 +332,10 @@ class Schedule<A>(
      * // At most 5 retries, each waiting at least 100 ms, growing ×2
      * Schedule.times<Throwable>(5) and Schedule.exponential(100.milliseconds)
      * ```
+     *
+     * @param other the schedule composed with this one.
+     * @return a schedule that continues only while both operands continue,
+     *   waiting `max(delay1, delay2)`.
      */
     infix fun and(other: Schedule<A>): Schedule<A> = Schedule { attempt, a ->
         val d1 = this@Schedule.decide(attempt, a)
@@ -280,6 +359,8 @@ class Schedule<A>(
      *
      * @param factor jitter spread factor in `[0.0, 1.0]`. Default `0.5`.
      * @param random random source, injectable for testing.
+     * @return a schedule whose Continue delays are `original * (1 ± factor)`.
+     * @throws IllegalArgumentException when [factor] is outside `[0.0, 1.0]`.
      */
     fun jittered(factor: Double = 0.5, random: Random = Random): Schedule<A> {
         require(factor in 0.0..1.0) { "jitter factor must be in [0.0, 1.0], was $factor" }
@@ -312,6 +393,10 @@ class Schedule<A>(
      * [Decision.Continue]; a [Decision.Done] result is passed through untouched.
      * **A negative result is a programming error and fails fast** with
      * [IllegalArgumentException] instead of being silently coerced to zero.
+     *
+     * @param f computes the wait for the current input.
+     * @return a schedule with the same Continue/Done decisions and `f`-derived delays.
+     * @throws IllegalArgumentException when [f] produces a negative delay.
      */
     fun delayBy(f: (A) -> Duration): Schedule<A> = Schedule { attempt, a ->
         when (this@Schedule.decide(attempt, a)) {
@@ -344,6 +429,10 @@ class Schedule<A>(
      *     .withMaxDuration(5.seconds)
      * // Stops retrying after 5 seconds total, regardless of attempt count.
      * ```
+     *
+     * @param maxDuration total wall time budget from the first decide call.
+     * @param timeSource injectable time source for testing.
+     * @return a schedule that is [Decision.Done] once the budget is spent.
      */
     fun withMaxDuration(
         maxDuration: Duration,
@@ -379,6 +468,7 @@ class Schedule<A>(
      *
      * @param initial starting accumulator value
      * @param combine function to merge each input into the accumulator
+     * @return a schedule that behaves exactly like this one while accumulating.
      */
     fun <B> fold(initial: B, combine: (B, A) -> B): Schedule<A> {
         var acc = initial
@@ -403,6 +493,10 @@ class Schedule<A>(
      * // Retry 5 times *or* while the error is an IOException, whichever lasts longer
      * Schedule.times<Throwable>(5) or Schedule.doWhile { it is IOException }
      * ```
+     *
+     * @param other the schedule composed with this one.
+     * @return a schedule that continues while either operand continues,
+     *   waiting `min(delay1, delay2)`.
      */
     infix fun or(other: Schedule<A>): Schedule<A> = Schedule { attempt, a ->
         val d1 = this@Schedule.decide(attempt, a)

@@ -4,6 +4,7 @@
 // └──────────────────────────────────────────────────────────────────────┘
 package kap
 
+/** Zips 2 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -14,6 +15,7 @@ fun <A, B, R> Resource.Companion.zip(
      } }
 }
 
+/** Zips 3 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -25,6 +27,7 @@ fun <A, B, C, R> Resource.Companion.zip(
      } } }
 }
 
+/** Zips 4 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -37,6 +40,7 @@ fun <A, B, C, D, R> Resource.Companion.zip(
      } } } }
 }
 
+/** Zips 5 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -50,6 +54,7 @@ fun <A, B, C, D, E, R> Resource.Companion.zip(
      } } } } }
 }
 
+/** Zips 6 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -64,6 +69,7 @@ fun <A, B, C, D, E, F, R> Resource.Companion.zip(
      } } } } } }
 }
 
+/** Zips 7 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -79,6 +85,7 @@ fun <A, B, C, D, E, F, G, R> Resource.Companion.zip(
      } } } } } } }
 }
 
+/** Zips 8 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -95,6 +102,7 @@ fun <A, B, C, D, E, F, G, H, R> Resource.Companion.zip(
      } } } } } } } }
 }
 
+/** Zips 9 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -112,6 +120,7 @@ fun <A, B, C, D, E, F, G, H, I, R> Resource.Companion.zip(
      } } } } } } } } }
 }
 
+/** Zips 10 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -130,6 +139,7 @@ fun <A, B, C, D, E, F, G, H, I, J, R> Resource.Companion.zip(
      } } } } } } } } } }
 }
 
+/** Zips 11 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -149,6 +159,7 @@ fun <A, B, C, D, E, F, G, H, I, J, K, R> Resource.Companion.zip(
      } } } } } } } } } } }
 }
 
+/** Zips 12 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -169,6 +180,7 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, R> Resource.Companion.zip(
      } } } } } } } } } } } }
 }
 
+/** Zips 13 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -190,6 +202,7 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, R> Resource.Companion.zip(
      } } } } } } } } } } } } }
 }
 
+/** Zips 14 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -212,6 +225,7 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, R> Resource.Companion.zip(
      } } } } } } } } } } } } } }
 }
 
+/** Zips 15 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -235,6 +249,7 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, R> Resource.Companion.zip(
      } } } } } } } } } } } } } } }
 }
 
+/** Zips 16 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -259,6 +274,7 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R> Resource.Companion.zip(
      } } } } } } } } } } } } } } } }
 }
 
+/** Zips 17 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -284,6 +300,7 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> Resource.Companion.zi
      } } } } } } } } } } } } } } } } }
 }
 
+/** Zips 18 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -310,6 +327,7 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> Resource.Companion
      } } } } } } } } } } } } } } } } } }
 }
 
+/** Zips 19 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -337,6 +355,7 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> Resource.Compan
      } } } } } } } } } } } } } } } } } } }
 }
 
+/** Zips 20 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -365,6 +384,7 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, R> Resource.Com
      } } } } } } } } } } } } } } } } } } } }
 }
 
+/** Zips 21 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,
@@ -394,6 +414,7 @@ fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, R> Resource.
      } } } } } } } } } } } } } } } } } } } } }
 }
 
+/** Zips 22 resources: all acquired before [combine] runs, all released in reverse order. */
 fun <A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V, W, R> Resource.Companion.zip(
     r1: Resource<A>,
     r2: Resource<B>,

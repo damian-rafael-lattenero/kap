@@ -47,7 +47,13 @@ class RestartPolicy private constructor(
         /** Default cap: eight restarts under exponential backoff is minutes of trying. */
         const val DEFAULT_MAX_RESTARTS: Int = 8
 
-        /** Restarts with a fixed [delay] between attempts. [delay] must be positive. */
+        /**
+         * Restarts with a fixed [delay] between attempts. [delay] must be positive.
+         *
+         * @param delay the wait before each restart; strictly positive (convergence law).
+         * @param maxRestarts the cap on restarts before exhaustion.
+         * @return a policy restarting after exactly [delay] every time.
+         */
         fun constant(
             delay: Duration,
             maxRestarts: Int = DEFAULT_MAX_RESTARTS,
@@ -61,6 +67,12 @@ class RestartPolicy private constructor(
         /**
          * Restarts with exponential backoff starting from [base], multiplied by
          * [factor] each restart, capped at [max]. [base] must be positive.
+         *
+         * @param base the wait before the first restart; strictly positive (convergence law).
+         * @param factor the multiplier applied per restart; `2.0` doubles each wait.
+         * @param max the cap on a single wait; defaults to no cap.
+         * @param maxRestarts the cap on restarts before exhaustion.
+         * @return a policy restarting under exponential backoff.
          */
         fun exponential(
             base: Duration = 100.milliseconds,
@@ -140,6 +152,9 @@ class Process<A> internal constructor(
      * body's execution and during restart delays. `heartbeatEvery == ZERO`
      * disables it and [ProcessHandle.heartbeatAge] reports
      * [Duration.INFINITE].
+     *
+     * @param scope the scope the process lives in; cancelling it ends the process.
+     * @return the live handle: stop, await, restart counters, heartbeat age.
      */
     fun startIn(scope: CoroutineScope): ProcessHandle<A> {
         val outcome = CompletableDeferred<Result<A>>()
