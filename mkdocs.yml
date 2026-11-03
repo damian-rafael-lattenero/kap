@@ -47,6 +47,7 @@ nav:
   - KDocs:
     - kap-core: modules/kap-core.md
     - kap-resilience: modules/kap-resilience.md
+    - kap-stream: modules/kap-stream.md
     - kap-arrow: modules/kap-arrow.md
     - kap-ktor: modules/kap-ktor.md
     - kap-kotest: modules/kap-kotest.md

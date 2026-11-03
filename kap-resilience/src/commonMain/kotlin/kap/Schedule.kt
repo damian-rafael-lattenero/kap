@@ -213,8 +213,24 @@ class Schedule<A>(
         }
     }
 
-    /** Accumulates all retry inputs into a list. Specialization of [fold]. */
+    /**
+     * Evaluates this schedule: the decision a driver ([Kap.retry],
+     * `KapStream.emitted(...).every(...)`) takes for the 0-based [attempt]
+     * with the current input [value]. A schedule is a value, so inspecting it
+     * is lawful — this is exactly the call the drivers make.
+     *
+     * ```
+     * val policy = Schedule.times<Throwable>(3)
+     * policy.decideAt(2, error)   // Continue(ZERO)
+     * policy.decideAt(3, error)   // Done
+     * ```
+     */
+    fun decideAt(attempt: Int, value: A): Decision = decide(attempt, value)
+
+    /**
+     * Accumulates all retry inputs into a list. Specialization of [fold]. */
     fun collect(): Schedule<A> = fold<List<A>>(emptyList()) { acc, a -> acc + a }
+
 
     /** Combines two schedules with a custom delay merge. Both must agree to continue. */
     fun zipWith(other: Schedule<A>, f: (Duration, Duration) -> Duration): Schedule<A> = Schedule { attempt, a ->

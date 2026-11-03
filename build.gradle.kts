@@ -30,6 +30,7 @@ allprojects {
 dependencies {
     dokka(project(":kap-core"))
     dokka(project(":kap-resilience"))
+    dokka(project(":kap-stream"))
     dokka(project(":kap-arrow"))
 }
 
@@ -77,7 +78,7 @@ subprojects {
 // and creates type-resolved tasks per compilation by default, so the old
 // custom commonMain TR task is gone.
 val detektModules = listOf(
-    "kap-core", "kap-resilience", "kap-arrow", "kap-ktor", "kap-kotest",
+    "kap-core", "kap-resilience", "kap-stream", "kap-arrow", "kap-ktor", "kap-kotest",
     "kap-ksp", "kap-ksp-annotations", "benchmarks",
 )
 

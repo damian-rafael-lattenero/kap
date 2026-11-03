@@ -206,6 +206,7 @@ public final class kap/Schedule {
 	public fun <init> (Lkotlin/jvm/functions/Function2;)V
 	public final fun and (Lkap/Schedule;)Lkap/Schedule;
 	public final fun collect ()Lkap/Schedule;
+	public final fun decideAt (ILjava/lang/Object;)Lkap/Schedule$Decision;
 	public final fun delayBy (Lkotlin/jvm/functions/Function1;)Lkap/Schedule;
 	public final fun fold (Ljava/lang/Object;Lkotlin/jvm/functions/Function2;)Lkap/Schedule;
 	public final fun getDecide ()Lkotlin/jvm/functions/Function2;

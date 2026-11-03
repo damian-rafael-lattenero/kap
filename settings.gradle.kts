@@ -11,6 +11,7 @@ pluginManagement {
 rootProject.name = "kap"
 include(":kap-core")
 include(":kap-resilience")
+include(":kap-stream")
 include(":kap-arrow")
 include(":kap-kotest")
 include(":kap-ktor")
