@@ -443,4 +443,80 @@ class ScheduleTest {
         assertTrue(result.isFailure)
         assertIs<RuntimeException>(result.exceptionOrNull())
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Schedule.delays — an explicit sequence of delays
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `delays uses the listed delays in order and then stops`() = runTest {
+        var attempts = 0
+        val policy = Schedule.delays<Throwable>(
+            arrayOf(100.milliseconds, 200.milliseconds, 300.milliseconds),
+        )
+
+        val result = runCatching {
+            Kap<String> { attempts++; throw RuntimeException("fail") }.retry(policy).evalGraph()
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals(4, attempts, "1 initial attempt + 3 scheduled retries")
+        assertEquals(600L, currentTime, "100 + 200 + 300 = 600 ms")
+    }
+
+    @Test
+    fun `delays list overload preserves order and stops when the caller succeeds`() = runTest {
+        var attempts = 0
+        val policy = Schedule.delays<Throwable>(
+            listOf(50.milliseconds, 150.milliseconds, 500.milliseconds),
+        )
+
+        val result = Kap {
+            attempts++
+            if (attempts < 3) throw RuntimeException("fail")
+            "ok"
+        }.retry(policy).evalGraph()
+
+        assertEquals("ok", result)
+        assertEquals(3, attempts)
+        assertEquals(200L, currentTime, "50 + 150 = 200 ms; the third delay is never used")
+    }
+
+    @Test
+    fun `delays with an empty list is done immediately`() = runTest {
+        var attempts = 0
+        val result = runCatching {
+            Kap<String> { attempts++; throw RuntimeException("fail") }
+                .retry(Schedule.delays<Throwable>(emptyList()))
+                .evalGraph()
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals(1, attempts, "no retry is scheduled")
+        assertEquals(0L, currentTime)
+    }
+
+    @Test
+    fun `delays rejects negative delays`() {
+        assertFailsWith<IllegalArgumentException> {
+            Schedule.delays<Throwable>(arrayOf((-1).milliseconds))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            Schedule.delays<Throwable>(listOf(0.milliseconds, (-5).milliseconds))
+        }
+    }
+
+    @Test
+    fun `delays composes with times — the shorter schedule stops the retries`() = runTest {
+        var attempts = 0
+        val policy = Schedule.times<Throwable>(2) and
+            Schedule.delays(arrayOf(10.milliseconds, 20.milliseconds, 30.milliseconds, 40.milliseconds))
+
+        runCatching {
+            Kap<String> { attempts++; throw RuntimeException("fail") }.retry(policy).evalGraph()
+        }
+
+        assertEquals(3, attempts, "times(2) caps the retries before the delay list runs out")
+        assertEquals(30L, currentTime, "10 + 20 ms; the remaining delays are never reached")
+    }
 }

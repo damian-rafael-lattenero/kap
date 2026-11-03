@@ -444,4 +444,34 @@ class ScheduleTest {
         assertTrue(result.isFailure)
         assertIs<RuntimeException>(result.exceptionOrNull())
     }
+
+    @Test
+    fun `delays uses the listed delays in order and then stops`() = runTest {
+        var attempts = 0
+        val policy = Schedule.delays<Throwable>(
+            arrayOf(100.milliseconds, 200.milliseconds, 300.milliseconds),
+        )
+
+        val result = runCatching {
+            Kap<String> { attempts++; throw RuntimeException("fail") }.retry(policy).evalGraph()
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals(4, attempts)
+        assertEquals(600L, currentTime)
+    }
+
+    @Test
+    fun `delays with an empty list is done immediately`() = runTest {
+        var attempts = 0
+        val result = runCatching {
+            Kap<String> { attempts++; throw RuntimeException("fail") }
+                .retry(Schedule.delays<Throwable>(emptyList()))
+                .evalGraph()
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals(1, attempts)
+        assertEquals(0L, currentTime)
+    }
 }

@@ -40,6 +40,38 @@ class Schedule<A>(
             Decision.Continue(duration)
         }
 
+        /**
+         * A schedule that waits exactly [delays] in order: the first retry waits
+         * `delays[0]`, the second `delays[1]`, and so on. Once the sequence is
+         * exhausted the schedule is [Decision.Done]; an empty sequence is done
+         * immediately (no retries).
+         *
+         * Kotlin forbids `vararg` parameters of value-class types, and
+         * [Duration] is a value class, so the "literal" form takes an array —
+         * pass `arrayOf(...)` or spread an existing one:
+         * ```
+         * Kap { fetch() }.retry(Schedule.delays(arrayOf(100.milliseconds, 2.seconds)))
+         * val delays = arrayOf(100.milliseconds, 500.milliseconds)
+         * Kap { fetch() }.retry(Schedule.delays(*delays))
+         * // retries after 100 ms and 500 ms; the third failure is final.
+         * ```
+         *
+         * @param delays non-negative delays, consumed in order.
+         */
+        fun <A> delays(delays: Array<Duration>): Schedule<A> = fromDelays(delays.asList())
+
+        /** List overload of [delays] — same semantics, for a dynamic sequence of delays. */
+        fun <A> delays(delays: List<Duration>): Schedule<A> = fromDelays(delays)
+
+        private fun <A> fromDelays(delays: List<Duration>): Schedule<A> {
+            require(delays.all { it >= ZERO }) { "delays must be non-negative, was $delays" }
+            val snapshot = delays.toList()
+            return Schedule { attempt, _ ->
+                if (attempt >= snapshot.size) Decision.Done
+                else Decision.Continue(snapshot[attempt])
+            }
+        }
+
         /** Exponential backoff starting from [base], multiplied by [factor] each retry, capped at [max]. */
         fun <A> exponential(
             base: Duration,
