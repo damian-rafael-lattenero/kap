@@ -8,6 +8,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 
+- **`KapStream.pollUntilQuiet` + `Progress`** (kap-stream): the drain source —
+  the lawful home of agent-brain's `drainUntilQuiet` (D3). It polls a
+  `suspend () -> Progress` (`total` = what this poll handed over, `quiet` =
+  the source has nothing left) on the schedule's cadence, emits **every report
+  that found work** and completes when the schedule says `Done`; the quiet
+  window is a policy value, not a counter in the loop:
+  `Schedule.spaced<Progress>(50.milliseconds) and Schedule.debounce<Progress>(3) { it.quiet }`.
+  Backpressure is an explicit parameter at the source stage (default
+  `Suspend`, exact). Laws pinned in `KapStreamPollUntilQuietTest` under virtual
+  time: work-only emission, quiet-driven termination (a transient empty poll
+  does not end the drain; a budget is an explicit early stop), exact cadence,
+  failure propagation, and the named-strategy drop behaviour.
+- **`Schedule.debounce`** (kap-resilience): the quiet-window stop condition —
+  the lawful home of the "drain until quiet" loop that agent-brain's
+  `drainUntilQuiet` hand-rolled as an interim. `Schedule.debounce(n, isQuiet)`
+  continues while fewer than `n` consecutive inputs report quiet and is `Done`
+  once the window fills; `Schedule.debounce(n)` is the count shorthand (a poll
+  that hands over nothing is quiet). Every `Continue` carries `ZERO`, so
+  `cadence and debounce(n)` keeps the cadence's delays exactly
+  (`max(d, 0) == d`) and stops with the window:
+  `Kap { poll() }.repeat(Schedule.spaced<Int>(50.milliseconds) and Schedule.debounce(3))`.
+  Laws pinned in `ScheduleDebounceLawsTest` (property-checked against an
+  independent oracle): stop at the filled window, reset on work, delay
+  neutrality, `debounce(0) ≡ never()`, `debounce(1) ≡ doUntil(isQuiet)`, plus
+  the documented statefulness (one fresh instance per run).
+- **`SyncCell` / `Ref.sync`** (kap-core): a non-suspending, thread-safe cell
+  with the `Ref` value semantics — `get`, `set`, `update` (returns the new
+  value), `getAndUpdate` (returns the previous one) and `modify` (general
+  read-modify-write) — implemented as a lock-free atomic register
+  (`AtomicReference` + compare-and-set: no coroutines, no lock). It exists for
+  the SPIs that **cannot suspend** (`KapTracer.onEvent`, a listener, a shutdown
+  hook), where `Ref`'s `Mutex` is unusable. Laws pinned in `SyncCellTest`
+  (real threads, latches instead of sleeps): concurrent updates never lose a
+  write, every previous value is handed out exactly once, a compare-and-set
+  idiom claims its value exactly once, reads observe whole values, and a
+  throwing transform leaves the cell untouched.
 - **`Schedule.Decision` matchers** (kap-kotest): `shouldContinue(expectedDelay:
   Duration? = null)` (exact delay check, `null` accepts any) and `shouldStop()`
   (strict `Done`), with tests covering factories, semiring composition and the

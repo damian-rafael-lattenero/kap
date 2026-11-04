@@ -34,6 +34,30 @@ CONVERT and RETRY operators (`settled`, `traverseSettled`, `recover`, `recoverWi
 
 Enforced by [`IsolationLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/IsolationLawsTest.kt) (kap-core) and [`IsolationResilienceTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/IsolationResilienceTest.kt) (kap-resilience).
 
+## `SyncCell` laws
+
+A `SyncCell` (kap-core, `Ref.sync(initial)` / `SyncCell.of(initial)`) is the
+non-suspending twin of `Ref`: the same mutable state and the same value
+semantics, implemented as a lock-free atomic register for the SPIs that cannot
+suspend (`KapTracer.onEvent`, listeners, shutdown hooks).
+
+1. **Atomicity.** Every operation is one atomic step: concurrent updates never
+   lose a write (`N` threads × `M` increments leave exactly `N * M`), and every
+   read observes a value the cell actually held.
+2. **Read-modify-write.** `update`, `getAndUpdate` and `modify` land on the
+   value they observed (compare-and-set, retried under contention): every
+   previous value `getAndUpdate` hands out is returned exactly once, and a
+   compare-and-set idiom claims its value exactly once.
+3. **No suspension.** No operation suspends or takes a lock — callable from any
+   thread, from a non-suspending callback and from inside coroutines alike.
+4. **Same semantics as `Ref`.** `get`/`set` read and replace, `update` returns
+   the new value, `getAndUpdate` the previous one, `modify` stores the first
+   component of the pair and yields the second; a throwing transform leaves the
+   cell untouched.
+
+Enforced by [`SyncCellTest.kt`](kap-core/src/jvmTest/kotlin/kap/SyncCellTest.kt)
+(real threads, latches instead of sleeps).
+
 ## `Schedule` is a semiring (`and` = multiplication, `or` = addition)
 
 `Schedule` composition is an algebra over the extended non-negative reals:
@@ -71,6 +95,33 @@ cap is passed.
 Enforced by [`ScheduleLawsTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/ScheduleLawsTest.kt)
 (kotest-property over a generated family of composed schedules; identities and
 distributivity included, no sleeping — decisions are pure).
+
+### `Schedule.debounce` — the quiet-window stop condition
+
+`Schedule.debounce(n, isQuiet)` is the lawful home of "drain until quiet": a
+**stateful** stop condition that continues while fewer than `n` consecutive
+inputs have reported quiet and is `Done` once the window fills. Every
+`Continue` carries `ZERO`, so `cadence and debounce(n)` keeps the cadence's
+delays exactly (`max(d, 0) == d`) and stops with the window: the window is a
+stop condition, not a clock. `Schedule.debounce(n)` is the count shorthand
+(a poll that hands over nothing is quiet).
+
+| Law | Property |
+|---|---|
+| Stop at the filled window | `Done` exactly when the trailing run of quiet inputs is `>= n` |
+| Reset | a non-quiet input resets the run to zero |
+| Delay neutrality | every `Continue` carries `ZERO` |
+| Empty window | `debounce(0, isQuiet)` decides exactly like `Schedule.never()` |
+| Singleton window | `debounce(1, isQuiet)` decides exactly like `Schedule.doUntil(isQuiet)` |
+
+Unlike the pointwise factories the semiring laws range over, `debounce`
+remembers its run (like `withMaxDuration`'s clock): build one fresh instance
+per run and never share one between drivers. The semiring laws themselves are
+unaffected — they range over pointwise schedules.
+
+Enforced by [`ScheduleDebounceLawsTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/ScheduleDebounceLawsTest.kt)
+(property-checked against an independent oracle, plus the end-to-end proof that
+the window ends a `repeat` loop exactly like the hand-rolled drain).
 
 ## Process laws
 
@@ -114,6 +165,34 @@ A `KapStream` (kap-stream, 5.0.0) is a backpressured pipeline whose stages are `
 
 Enforced by [`KapStreamLawsTest.kt`](kap-stream/src/jvmTest/kotlin/kap/KapStreamLawsTest.kt) (strategy drops, ordering, multiset; property-checked under virtual time) and [`KapStreamTest.kt`](kap-stream/src/jvmTest/kotlin/kap/KapStreamTest.kt) (sources, stages, sinks, cancellation; virtual time).
 
+### The drain source: `KapStream.pollUntilQuiet`
+
+`KapStream.pollUntilQuiet(progress, schedule)` is the lawful home of the
+"drain until quiet" loop: it polls a `suspend () -> Progress` (what this poll
+handed over, and whether the source is quiet) on the schedule's cadence, emits
+every report that found work, and completes when the schedule says `Done` —
+never on an internal count.
+
+1. **Work-only emission.** Exactly the reports with `quiet = false` are emitted,
+   in poll order, one element per poll; a quiet report carries nothing and is
+   never emitted.
+2. **Quiet-driven termination.** With the canonical policy
+   (`cadence and Schedule.debounce(n) { it.quiet }`) the stream completes
+   exactly on the `n`-th consecutive quiet poll, and nothing is polled or
+   emitted after it — a transient empty poll does not end the drain. A budget
+   (`Schedule.times(n)`, `withMaxDuration(...)`) is an explicit early stop and
+   the caller's named choice.
+3. **Cadence.** The wait between two polls is exactly the schedule's `Continue`
+   delay (virtual time: exact); `Done` waits nothing.
+4. **Failure propagates.** A failing poll fails the stream — each poll is an
+   isolated run (the Isolation law), never a silent retry.
+5. **Backpressure is named.** The source stage applies the strategy it is given;
+   the default `Suspend` is exact, so the consumer's pace throttles the polling.
+
+Enforced by [`KapStreamPollUntilQuietTest.kt`](kap-stream/src/jvmTest/kotlin/kap/KapStreamPollUntilQuietTest.kt)
+(work-only emission, the filled window vs. a transient empty poll, exact virtual
+cadence, failure propagation, and the named-strategy drop behaviour).
+
 ## Arrow Integration
 
 Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplementation. All validated operations produce standard `Either<NonEmptyList<E>, A>` values.
@@ -122,4 +201,4 @@ Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplement
 
 All laws are verified in [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/ApplicativeLawsTest.kt) using Kotest property-based testing with random inputs.
 
-**1202 tests across 89 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
+**1234 tests across 92 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*

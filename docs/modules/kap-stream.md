@@ -8,7 +8,7 @@ implementation("io.github.damian-rafael-lattenero:kap-stream:5.0.0")
 
 **Depends on:** `kap-core`, `kap-resilience` (for `Schedule`).
 **Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
-**Tests:** 28 tests across 2 test classes, all virtual time (no sleeps).
+**Tests:** 39 tests across 3 test classes, all virtual time (no sleeps).
 **Laws:** strategy drops, ordering and cancellation are property-tested in `KapStreamLawsTest`.
 
 ---
@@ -34,6 +34,29 @@ val readings = KapStream.emitted(Kap { sensor.read() })
 ```
 
 `emitted(kap).every(schedule)` runs the `Kap` immediately, emits the value, then asks the schedule (with that value as input) whether to continue and how long to wait. `Schedule.times(n)` gives `n + 1` emissions; `Schedule.spaced(d)` polls forever; `doUntil { }` stops on the data.
+
+## Drain sources — `pollUntilQuiet`
+
+A drain asks a source for work until the source has none left. `pollUntilQuiet` polls a `suspend () -> Progress` (what this poll handed over, and whether the source is quiet) on the schedule's cadence, emits **every report that found work**, and completes when the schedule says `Done` — never on an internal count.
+
+```kotlin
+KapStream.pollUntilQuiet(
+    progress = {
+        val count = consumer.pollOnce()
+        Progress(total = count, quiet = count == 0)
+    },
+    schedule = Schedule.spaced<Progress>(50.milliseconds) and
+        Schedule.debounce<Progress>(3) { it.quiet },   // the quiet window: 3 empty polls in a row
+).drainTo(sink)
+```
+
+The quiet window is a policy value (`Schedule.debounce`, see the kap-resilience page), not a counter in the loop. The laws (virtual time, `KapStreamPollUntilQuietTest`):
+
+1. **Work-only emission.** Exactly the reports with `quiet = false` are emitted, in poll order; a quiet report carries nothing and is never emitted.
+2. **Quiet-driven termination.** With the canonical policy the stream completes exactly on the `n`-th consecutive quiet poll and nothing is polled or emitted after it — a transient empty poll does not end the drain. A budget (`Schedule.times(n)`, `withMaxDuration(...)`) is an explicit early stop.
+3. **Cadence.** The wait between polls is exactly the schedule's `Continue` delay; `Done` waits nothing.
+4. **Failure propagates.** A failing poll fails the stream (each poll is an isolated run).
+5. **Backpressure is named.** The source stage takes a `backpressure` parameter (default `Suspend`, exact): a drain never runs away from its sink.
 
 ## Stages
 

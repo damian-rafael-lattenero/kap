@@ -25,6 +25,10 @@ import kotlinx.coroutines.sync.withLock
  *
  * Cancellation while waiting for the lock leaves the value untouched; the lock
  * is always released, so a cancelled caller cannot stall the reference.
+ *
+ * For an SPI that **cannot suspend** (`KapTracer.onEvent`, a listener, a shutdown
+ * hook) use [SyncCell] — the same state and the same laws as a lock-free atomic
+ * register, obtained from [Ref.sync].
  */
 class Ref<A> private constructor(initial: A) {
 
@@ -39,6 +43,22 @@ class Ref<A> private constructor(initial: A) {
          * is a value.
          */
         fun <A> of(initial: A): Kap<Ref<A>> = Kap { Ref(initial) }
+
+        /**
+         * A [SyncCell] holding [initial] — the same semantics as [Ref] (get, set,
+         * update, read-modify-write) with **no suspension**: every operation is a
+         * single atomic step, callable from any thread and from non-suspending
+         * code.
+         *
+         * ```
+         * val counter = Ref.sync(0)
+         * counter.update { it + 1 }        // direct call, no Kap, no suspend
+         * ```
+         *
+         * Prefer [of] in graph code (the mutex yields to the dispatcher under
+         * contention) and this factory where a `suspend` call is impossible.
+         */
+        fun <A> sync(initial: A): SyncCell<A> = SyncCell.of(initial)
     }
 
     /** Reads the current value. */

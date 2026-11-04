@@ -219,6 +219,8 @@ public final class kap/Schedule {
 }
 
 public final class kap/Schedule$Companion {
+	public final fun debounce (I)Lkap/Schedule;
+	public final fun debounce (ILkotlin/jvm/functions/Function1;)Lkap/Schedule;
 	public final fun delays (Ljava/util/List;)Lkap/Schedule;
 	public final fun delays ([Lkotlin/time/Duration;)Lkap/Schedule;
 	public final fun doUntil (Lkotlin/jvm/functions/Function1;)Lkap/Schedule;

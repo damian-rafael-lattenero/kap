@@ -8,7 +8,7 @@ implementation("io.github.damian-rafael-lattenero:kap-core:4.1.0")
 
 **Depends on:** `kotlinx-coroutines-core` only.
 **Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
-**Tests:** 464 tests across 38 test classes, including property-based algebraic law verification.
+**Tests:** 477 tests across 40 test classes, including property-based algebraic law verification.
 
 ---
 
@@ -1001,6 +1001,30 @@ graph.evalGraph()
 | `modify { a -> next to result }: Kap<B>` | general read-modify-write with a separate result |
 
 The function passed to `update`/`modify` must be pure, fast and must not call back into the same `Ref` (that would deadlock — the mutex is not reentrant).
+
+#### Non-suspending state — `SyncCell` / `Ref.sync`
+
+`Ref` operations are `Kap`s over a `Mutex`, so every read and write is a suspension point. An SPI that **cannot suspend** — `KapTracer.onEvent`, a listener, a shutdown hook — gets the same state as a `SyncCell`: a lock-free atomic register (compare-and-set, no coroutines, no lock) with the `Ref` value semantics.
+
+```kotlin
+class Metrics : KapTracer {
+    private val events = Ref.sync(0)              // or SyncCell.of(0)
+    override fun onEvent(event: TraceEvent) {
+        val previous = events.getAndUpdate { it + 1 }   // atomic; returns the previous count
+        if (previous == 0) log.firstEvent(event)
+    }
+}
+```
+
+| Operation | Effect |
+|---|---|
+| `get(): A` | reads the current value |
+| `set(a: A)` | replaces it |
+| `update { a -> a' }: A` | atomic transform, returns the **new** value |
+| `getAndUpdate { a -> a' }: A` | atomic transform, returns the **previous** value |
+| `modify { a -> next to result }: B` | general read-modify-write with a separate result |
+
+Laws (`SyncCellTest`, real threads and latches, no sleeps): concurrent updates never lose a write (`N` threads × `M` increments leave `N * M`), every previous value is handed out exactly once, a compare-and-set idiom claims its value exactly once, reads observe whole values, and a throwing transform leaves the cell untouched. The transform may be re-invoked under contention, so it must be pure and must not call back into the same cell.
 
 ### Interop
 
