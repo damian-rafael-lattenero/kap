@@ -41,7 +41,10 @@ A drain asks a source for work until the source has none left. `pollUntilQuiet` 
 
 ```kotlin
 KapStream.pollUntilQuiet(
-    progress = { Progress(total = consumer.pollOnce(), quiet = count == 0) },
+    progress = {
+        val count = consumer.pollOnce()
+        Progress(total = count, quiet = count == 0)
+    },
     schedule = Schedule.spaced<Progress>(50.milliseconds) and
         Schedule.debounce<Progress>(3) { it.quiet },   // the quiet window: 3 empty polls in a row
 ).drainTo(sink)

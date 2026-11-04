@@ -204,7 +204,10 @@ class KapStream<out A> internal constructor(
          * ```
          * // Ingest until three consecutive polls find nothing, 50 ms apart
          * KapStream.pollUntilQuiet(
-         *     progress = { Progress(total = consumer.pollOnce(), quiet = count == 0) },
+         *     progress = {
+         *         val count = consumer.pollOnce()
+         *         Progress(total = count, quiet = count == 0)
+         *     },
          *     schedule = Schedule.spaced<Progress>(50.milliseconds) and
          *         Schedule.debounce<Progress>(3) { it.quiet },
          * ).drainTo(sink)
