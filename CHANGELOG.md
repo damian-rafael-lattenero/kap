@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 
+- **`SyncCell` / `Ref.sync`** (kap-core): a non-suspending, thread-safe cell
+  with the `Ref` value semantics — `get`, `set`, `update` (returns the new
+  value), `getAndUpdate` (returns the previous one) and `modify` (general
+  read-modify-write) — implemented as a lock-free atomic register
+  (`AtomicReference` + compare-and-set: no coroutines, no lock). It exists for
+  the SPIs that **cannot suspend** (`KapTracer.onEvent`, a listener, a shutdown
+  hook), where `Ref`'s `Mutex` is unusable. Laws pinned in `SyncCellTest`
+  (real threads, latches instead of sleeps): concurrent updates never lose a
+  write, every previous value is handed out exactly once, a compare-and-set
+  idiom claims its value exactly once, reads observe whole values, and a
+  throwing transform leaves the cell untouched.
 - **`Schedule.Decision` matchers** (kap-kotest): `shouldContinue(expectedDelay:
   Duration? = null)` (exact delay check, `null` accepts any) and `shouldStop()`
   (strict `Done`), with tests covering factories, semiring composition and the

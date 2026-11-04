@@ -34,6 +34,30 @@ CONVERT and RETRY operators (`settled`, `traverseSettled`, `recover`, `recoverWi
 
 Enforced by [`IsolationLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/IsolationLawsTest.kt) (kap-core) and [`IsolationResilienceTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/IsolationResilienceTest.kt) (kap-resilience).
 
+## `SyncCell` laws
+
+A `SyncCell` (kap-core, `Ref.sync(initial)` / `SyncCell.of(initial)`) is the
+non-suspending twin of `Ref`: the same mutable state and the same value
+semantics, implemented as a lock-free atomic register for the SPIs that cannot
+suspend (`KapTracer.onEvent`, listeners, shutdown hooks).
+
+1. **Atomicity.** Every operation is one atomic step: concurrent updates never
+   lose a write (`N` threads × `M` increments leave exactly `N * M`), and every
+   read observes a value the cell actually held.
+2. **Read-modify-write.** `update`, `getAndUpdate` and `modify` land on the
+   value they observed (compare-and-set, retried under contention): every
+   previous value `getAndUpdate` hands out is returned exactly once, and a
+   compare-and-set idiom claims its value exactly once.
+3. **No suspension.** No operation suspends or takes a lock — callable from any
+   thread, from a non-suspending callback and from inside coroutines alike.
+4. **Same semantics as `Ref`.** `get`/`set` read and replace, `update` returns
+   the new value, `getAndUpdate` the previous one, `modify` stores the first
+   component of the pair and yields the second; a throwing transform leaves the
+   cell untouched.
+
+Enforced by [`SyncCellTest.kt`](kap-core/src/jvmTest/kotlin/kap/SyncCellTest.kt)
+(real threads, latches instead of sleeps).
+
 ## `Schedule` is a semiring (`and` = multiplication, `or` = addition)
 
 `Schedule` composition is an algebra over the extended non-negative reals:
@@ -122,4 +146,4 @@ Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplement
 
 All laws are verified in [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/ApplicativeLawsTest.kt) using Kotest property-based testing with random inputs.
 
-**1202 tests across 89 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
+**1211 tests across 90 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
