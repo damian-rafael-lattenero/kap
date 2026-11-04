@@ -125,6 +125,19 @@ class ScheduleDebounceLawsTest {
     // ── 4. Boundaries ───────────────────────────────────────────────────
 
     @Test
+    fun `a budget and a window stop at whichever comes first`() = runTest {
+        val schedule = Schedule.times<Int>(2) and Schedule.debounce(5)
+
+        assertEquals(Schedule.Decision.Continue(ZERO), schedule.decide(0, 1))
+        assertEquals(Schedule.Decision.Continue(ZERO), schedule.decide(1, 1))
+        assertEquals(
+            Schedule.Decision.Done,
+            schedule.decide(2, 1),
+            "the budget is an explicit early stop; the window is still empty",
+        )
+    }
+
+    @Test
     fun `a window of zero decides exactly like never`() = runTest {
         checkAll(Arb.list(Arb.int(0..3), 0..10)) { counts ->
             assertEquals(

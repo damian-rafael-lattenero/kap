@@ -188,10 +188,25 @@ public final class kap/Ref {
 
 public final class kap/Ref$Companion {
 	public final fun of (Ljava/lang/Object;)Lkap/Kap;
+	public final fun sync (Ljava/lang/Object;)Lkap/SyncCell;
 }
 
 public final class kap/RepeatKt {
 	public static final fun awaiting (Lkap/Kap$Companion;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
+}
+
+public final class kap/SyncCell {
+	public static final field Companion Lkap/SyncCell$Companion;
+	public synthetic fun <init> (Ljava/lang/Object;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun get ()Ljava/lang/Object;
+	public final fun getAndUpdate (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public final fun modify (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public final fun set (Ljava/lang/Object;)V
+	public final fun update (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+}
+
+public final class kap/SyncCell$Companion {
+	public final fun of (Ljava/lang/Object;)Lkap/SyncCell;
 }
 
 public final class kap/TimedResult {

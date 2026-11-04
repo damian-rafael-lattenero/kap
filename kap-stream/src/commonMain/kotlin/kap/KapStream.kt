@@ -189,6 +189,80 @@ class KapStream<out A> internal constructor(
          * ```
          */
         fun <A> emitted(kap: Kap<A>): EmittedSource<A> = EmittedSource(kap)
+
+        /**
+         * A **drain source**: polls [progress] on [schedule]'s cadence, emits
+         * every report that handed work over, and completes when the schedule
+         * says [Schedule.Decision.Done] — never on an internal count.
+         *
+         * This is the lawful home of the "drain until quiet" loop (agent-brain's
+         * `drainUntilQuiet`, D3). The quiet window is a policy value, not a
+         * counter in the loop: `Schedule.spaced(d) and Schedule.debounce(n) {
+         * it.quiet }` polls every `d` until `n` consecutive polls come back
+         * quiet, and the drain then completes exactly there.
+         *
+         * ```
+         * // Ingest until three consecutive polls find nothing, 50 ms apart
+         * KapStream.pollUntilQuiet(
+         *     progress = { Progress(total = consumer.pollOnce(), quiet = count == 0) },
+         *     schedule = Schedule.spaced<Progress>(50.milliseconds) and
+         *         Schedule.debounce<Progress>(3) { it.quiet },
+         * ).drainTo(sink)
+         * ```
+         *
+         * ## Laws
+         *
+         * 1. **Work-only emission.** The stream emits exactly the reports with
+         *    `quiet = false`, in poll order, one element per poll: a quiet
+         *    report carries nothing and is never emitted.
+         * 2. **Quiet-driven termination.** The schedule is the only stop: the
+         *    stream completes when it is `Done`, and nothing is polled or
+         *    emitted after that. With the canonical policy above, `Done` lands
+         *    exactly on the `n`-th consecutive quiet report — the drain's
+         *    quietness — so no element is emitted after the drain went quiet.
+         *    A budget (`Schedule.times(n)`, `withMaxDuration(...)`) is an
+         *    explicit early stop, and it is the caller's named choice.
+         * 3. **Cadence is the schedule's.** The wait between two polls is
+         *    exactly the `Continue` delay the schedule asks for (virtual time:
+         *    exact); a `Done` waits nothing.
+         * 4. **Failure propagates.** A failing poll fails the stream; each poll
+         *    is an isolated run (the Isolation law), so the failure is an
+         *    ordinary stream failure, never a silent retry or a cancelled
+         *    collector.
+         * 5. **Backpressure is named.** The source stage applies [backpressure];
+         *    the default [Backpressure.Suspend] is exact — the consumer's pace
+         *    throttles the polling, so a drain never runs away from its sink.
+         *
+         * @param progress the polling function: one call is one poll, returning
+         *   what it handed over and whether the source is quiet.
+         * @param schedule the cadence and the stop condition (see
+         *   [Schedule.debounce] for the quiet window).
+         * @param backpressure the strategy at this stage's output.
+         * @return a cold stream of the polls that found work.
+         */
+        fun pollUntilQuiet(
+            progress: suspend () -> Progress,
+            schedule: Schedule<Progress>,
+            backpressure: Backpressure = Backpressure.Suspend,
+        ): KapStream<Progress> = KapStream(
+            flow {
+                var attempt = 0
+                var polling = true
+                while (polling) {
+                    // One isolated run per poll (the Isolation law): a failure
+                    // is this stream's failure, not a cancellation of the scope.
+                    val report = coroutineScope { with(Kap { progress() }) { execute() } }
+                    if (!report.quiet) emit(report)
+                    when (val decision = schedule.decideAt(attempt, report)) {
+                        is Schedule.Decision.Done -> polling = false
+                        is Schedule.Decision.Continue -> {
+                            if (decision.delay > ZERO) delay(decision.delay)
+                            attempt += 1
+                        }
+                    }
+                }
+            }.withBackpressure(backpressure),
+        )
     }
 }
 

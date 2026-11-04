@@ -165,6 +165,34 @@ A `KapStream` (kap-stream, 5.0.0) is a backpressured pipeline whose stages are `
 
 Enforced by [`KapStreamLawsTest.kt`](kap-stream/src/jvmTest/kotlin/kap/KapStreamLawsTest.kt) (strategy drops, ordering, multiset; property-checked under virtual time) and [`KapStreamTest.kt`](kap-stream/src/jvmTest/kotlin/kap/KapStreamTest.kt) (sources, stages, sinks, cancellation; virtual time).
 
+### The drain source: `KapStream.pollUntilQuiet`
+
+`KapStream.pollUntilQuiet(progress, schedule)` is the lawful home of the
+"drain until quiet" loop: it polls a `suspend () -> Progress` (what this poll
+handed over, and whether the source is quiet) on the schedule's cadence, emits
+every report that found work, and completes when the schedule says `Done` —
+never on an internal count.
+
+1. **Work-only emission.** Exactly the reports with `quiet = false` are emitted,
+   in poll order, one element per poll; a quiet report carries nothing and is
+   never emitted.
+2. **Quiet-driven termination.** With the canonical policy
+   (`cadence and Schedule.debounce(n) { it.quiet }`) the stream completes
+   exactly on the `n`-th consecutive quiet poll, and nothing is polled or
+   emitted after it — a transient empty poll does not end the drain. A budget
+   (`Schedule.times(n)`, `withMaxDuration(...)`) is an explicit early stop and
+   the caller's named choice.
+3. **Cadence.** The wait between two polls is exactly the schedule's `Continue`
+   delay (virtual time: exact); `Done` waits nothing.
+4. **Failure propagates.** A failing poll fails the stream — each poll is an
+   isolated run (the Isolation law), never a silent retry.
+5. **Backpressure is named.** The source stage applies the strategy it is given;
+   the default `Suspend` is exact, so the consumer's pace throttles the polling.
+
+Enforced by [`KapStreamPollUntilQuietTest.kt`](kap-stream/src/jvmTest/kotlin/kap/KapStreamPollUntilQuietTest.kt)
+(work-only emission, the filled window vs. a transient empty poll, exact virtual
+cadence, failure propagation, and the named-strategy drop behaviour).
+
 ## Arrow Integration
 
 Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplementation. All validated operations produce standard `Either<NonEmptyList<E>, A>` values.
@@ -173,4 +201,4 @@ Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplement
 
 All laws are verified in [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/ApplicativeLawsTest.kt) using Kotest property-based testing with random inputs.
 
-**1222 tests across 91 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
+**1234 tests across 92 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*

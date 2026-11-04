@@ -8,7 +8,7 @@ implementation("io.github.damian-rafael-lattenero:kap-resilience:4.2.0")
 
 **Depends on:** `kap-core`.
 **Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
-**Tests:** 288 tests across 22 test classes (JVM + native), including Schedule semiring laws, Process and Supervisor laws and CircuitBreaker concurrency tests.
+**Tests:** 300 tests across 23 test classes (JVM + native), including Schedule semiring laws, Process and Supervisor laws and CircuitBreaker concurrency tests.
 
 ---
 
@@ -139,6 +139,28 @@ val lenient = Schedule.times<Throwable>(3) or Schedule.spaced(1.seconds)
 ```
 
 **The schedule semiring (5.0).** `and` is multiplication (both must continue, delays merge with `max`), `or` is addition (either may continue, delays merge with `min`), and `Done` behaves as the delay `+∞`. The laws — associativity and commutativity of both, `never()` as the additive identity, `immediate()` as the multiplicative identity, `never()` as the multiplicative annihilator, distributivity and idempotence — are property-tested in `ScheduleLawsTest` and documented in `LAWS.md`. `Schedule.decideAt(attempt, value)` exposes the decision a driver would take (a schedule is a value, so inspecting it is lawful).
+
+### The quiet window — `Schedule.debounce`
+
+`Schedule.debounce(n, isQuiet)` is the stop condition of a drain: keep going while the work keeps coming, and stop once `n` consecutive inputs have reported quiet. `Schedule.debounce(n)` is the count shorthand — a poll that hands over `0` is quiet.
+
+```kotlin
+// Poll every 50 ms until three consecutive polls come back empty
+Kap { poll() }
+    .repeat(Schedule.spaced<Int>(50.milliseconds) and Schedule.debounce(3))
+```
+
+Every `Continue` carries `ZERO`, so the window never touches the cadence: `and` keeps the cadence's delays exactly (`max(d, 0) == d`) and stops when either operand does. The window is a **stop condition, not a clock**.
+
+| Law | Property |
+|---|---|
+| Stop at the filled window | `Done` exactly when the trailing run of quiet inputs is `>= n` |
+| Reset | a non-quiet input resets the run to zero |
+| Delay neutrality | every `Continue` carries `ZERO` |
+| Empty window | `debounce(0, isQuiet)` ≡ `Schedule.never()` |
+| Singleton window | `debounce(1, isQuiet)` ≡ `Schedule.doUntil(isQuiet)` |
+
+Unlike the pointwise factories above, `debounce` is **stateful** (like `withMaxDuration`): the run belongs to the instance, so build a fresh one per run and never share one between drivers. Laws property-tested in `ScheduleDebounceLawsTest`.
 
 ### Retry Variants
 

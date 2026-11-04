@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 
+- **`KapStream.pollUntilQuiet` + `Progress`** (kap-stream): the drain source —
+  the lawful home of agent-brain's `drainUntilQuiet` (D3). It polls a
+  `suspend () -> Progress` (`total` = what this poll handed over, `quiet` =
+  the source has nothing left) on the schedule's cadence, emits **every report
+  that found work** and completes when the schedule says `Done`; the quiet
+  window is a policy value, not a counter in the loop:
+  `Schedule.spaced<Progress>(50.milliseconds) and Schedule.debounce<Progress>(3) { it.quiet }`.
+  Backpressure is an explicit parameter at the source stage (default
+  `Suspend`, exact). Laws pinned in `KapStreamPollUntilQuietTest` under virtual
+  time: work-only emission, quiet-driven termination (a transient empty poll
+  does not end the drain; a budget is an explicit early stop), exact cadence,
+  failure propagation, and the named-strategy drop behaviour.
 - **`Schedule.debounce`** (kap-resilience): the quiet-window stop condition —
   the lawful home of the "drain until quiet" loop that agent-brain's
   `drainUntilQuiet` hand-rolled as an interim. `Schedule.debounce(n, isQuiet)`
