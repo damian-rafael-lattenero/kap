@@ -3,7 +3,7 @@
 Backpressured streams whose stages are `Kap`s. The backpressure policy is a **named value at every stage**; the default is exact (nothing is ever dropped).
 
 ```kotlin
-implementation("io.github.damian-rafael-lattenero:kap-stream:5.0.0")
+implementation("io.github.damian-rafael-lattenero:kap-stream:5.1.0")
 ```
 
 **Depends on:** `kap-core`, `kap-resilience` (for `Schedule`).
