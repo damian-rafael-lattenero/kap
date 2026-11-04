@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 
+- **`Schedule.debounce`** (kap-resilience): the quiet-window stop condition —
+  the lawful home of the "drain until quiet" loop that agent-brain's
+  `drainUntilQuiet` hand-rolled as an interim. `Schedule.debounce(n, isQuiet)`
+  continues while fewer than `n` consecutive inputs report quiet and is `Done`
+  once the window fills; `Schedule.debounce(n)` is the count shorthand (a poll
+  that hands over nothing is quiet). Every `Continue` carries `ZERO`, so
+  `cadence and debounce(n)` keeps the cadence's delays exactly
+  (`max(d, 0) == d`) and stops with the window:
+  `Kap { poll() }.repeat(Schedule.spaced<Int>(50.milliseconds) and Schedule.debounce(3))`.
+  Laws pinned in `ScheduleDebounceLawsTest` (property-checked against an
+  independent oracle): stop at the filled window, reset on work, delay
+  neutrality, `debounce(0) ≡ never()`, `debounce(1) ≡ doUntil(isQuiet)`, plus
+  the documented statefulness (one fresh instance per run).
 - **`SyncCell` / `Ref.sync`** (kap-core): a non-suspending, thread-safe cell
   with the `Ref` value semantics — `get`, `set`, `update` (returns the new
   value), `getAndUpdate` (returns the previous one) and `modify` (general

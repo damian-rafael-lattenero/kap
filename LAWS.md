@@ -96,6 +96,33 @@ Enforced by [`ScheduleLawsTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/Schedu
 (kotest-property over a generated family of composed schedules; identities and
 distributivity included, no sleeping — decisions are pure).
 
+### `Schedule.debounce` — the quiet-window stop condition
+
+`Schedule.debounce(n, isQuiet)` is the lawful home of "drain until quiet": a
+**stateful** stop condition that continues while fewer than `n` consecutive
+inputs have reported quiet and is `Done` once the window fills. Every
+`Continue` carries `ZERO`, so `cadence and debounce(n)` keeps the cadence's
+delays exactly (`max(d, 0) == d`) and stops with the window: the window is a
+stop condition, not a clock. `Schedule.debounce(n)` is the count shorthand
+(a poll that hands over nothing is quiet).
+
+| Law | Property |
+|---|---|
+| Stop at the filled window | `Done` exactly when the trailing run of quiet inputs is `>= n` |
+| Reset | a non-quiet input resets the run to zero |
+| Delay neutrality | every `Continue` carries `ZERO` |
+| Empty window | `debounce(0, isQuiet)` decides exactly like `Schedule.never()` |
+| Singleton window | `debounce(1, isQuiet)` decides exactly like `Schedule.doUntil(isQuiet)` |
+
+Unlike the pointwise factories the semiring laws range over, `debounce`
+remembers its run (like `withMaxDuration`'s clock): build one fresh instance
+per run and never share one between drivers. The semiring laws themselves are
+unaffected — they range over pointwise schedules.
+
+Enforced by [`ScheduleDebounceLawsTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/ScheduleDebounceLawsTest.kt)
+(property-checked against an independent oracle, plus the end-to-end proof that
+the window ends a `repeat` loop exactly like the hand-rolled drain).
+
 ## Process laws
 
 A `Process` (kap-resilience, 4.2.0) is a supervised loop: the body completing normally finishes it, a failure restarts it under a `RestartPolicy`, and a handle exposes `stop()`, `await()` and the heartbeat.
@@ -146,4 +173,4 @@ Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplement
 
 All laws are verified in [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/ApplicativeLawsTest.kt) using Kotest property-based testing with random inputs.
 
-**1211 tests across 90 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
+**1222 tests across 91 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*

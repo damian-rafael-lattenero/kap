@@ -176,6 +176,77 @@ class Schedule<A>(
         fun <A> untilInput(predicate: (A) -> Boolean): Schedule<A> = doUntil(predicate)
 
         /**
+         * The **quiet-window stop condition**: keep going while the work keeps
+         * coming, and stop once [n] consecutive inputs have reported quiet.
+         *
+         * This is the lawful home of the "drain until quiet" loop. A polling
+         * body returns what it found (a count, a `Progress`, anything [isQuiet]
+         * can read); the schedule ends the loop exactly when the quiet window
+         * fills. Compose it with a cadence by [and] — the cadence supplies the
+         * delays, the window supplies the stop:
+         *
+         * ```
+         * // Poll every 50 ms until three consecutive polls come back empty
+         * Kap { poll() }
+         *     .repeat(Schedule.spaced<Int>(50.milliseconds) and Schedule.debounce(3))
+         * ```
+         *
+         * ## Laws
+         *
+         * For a fresh instance and the input sequence `a0, a1, ...`:
+         *
+         * | Law | Property |
+         * |---|---|
+         * | Stop at the filled window | [Decision.Done] exactly when the run of quiet inputs ending at `ai` is `>= n` |
+         * | Reset | a non-quiet input resets the run to zero |
+         * | Delay neutrality | every [Decision.Continue] carries [ZERO] |
+         * | Empty window | `debounce(0, isQuiet)` decides exactly like [never] (Done at attempt 0) |
+         * | Singleton window | `debounce(1, isQuiet)` decides exactly like [doUntil]`(isQuiet)` |
+         *
+         * Because every Continue delay is [ZERO], `cadence and debounce(n)`
+         * keeps the cadence's delays exactly (`max(d, 0) == d`) and is Done
+         * when either operand is: the window is a stop condition, not a clock.
+         * Property-tested in `ScheduleDebounceLawsTest`.
+         *
+         * **Statefulness.** Unlike the pointwise factories the semiring laws
+         * range over, `debounce` remembers its quiet run: the decision depends
+         * on the inputs this instance has already seen, exactly like
+         * [withMaxDuration]'s clock. Build one fresh instance per run and never
+         * share an instance between concurrent drivers.
+         *
+         * @param n the window: how many consecutive quiet inputs end the loop.
+         *   `0` stops immediately — the first decision is [Decision.Done].
+         * @param isQuiet reads one input as "this attempt found no work".
+         * @return a schedule that continues with no delay until the window fills.
+         * @throws IllegalArgumentException when [n] is negative.
+         */
+        fun <A> debounce(n: Int, isQuiet: (A) -> Boolean): Schedule<A> {
+            require(n >= 0) { "debounce needs n >= 0, was $n" }
+            var quietRun = 0
+            return Schedule { _, value ->
+                quietRun = if (isQuiet(value)) quietRun + 1 else 0
+                if (quietRun >= n) Decision.Done else Decision.Continue(ZERO)
+            }
+        }
+
+        /**
+         * The count shorthand of [debounce]: a poll that returns how many items
+         * it handed over is quiet when it handed over nothing (`0`).
+         *
+         * ```
+         * // Drain until three consecutive polls find nothing, then stop
+         * Kap { poll() }.repeat(Schedule.spaced<Int>(50.milliseconds) and Schedule.debounce(3))
+         * ```
+         *
+         * Same laws as [debounce]; the result is a `Schedule<Int>`, so it
+         * composes with a polling body that returns an `Int` count.
+         *
+         * @param n the window: how many consecutive empty polls end the loop.
+         * @throws IllegalArgumentException when [n] is negative.
+         */
+        fun debounce(n: Int): Schedule<Int> = debounce(n) { it == 0 }
+
+        /**
          * Retry forever with no delay. Combine with other schedules for
          * backoff or time limits:
          *
