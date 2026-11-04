@@ -1,0 +1,220 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>SyncCell</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    KAP
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">5.0.0
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":kap-core/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":kap-core/commonMain" data-filter=":kap-core/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    KAP
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="kap-core::kap/SyncCell///PointingToDeclaration//606109949">
+  <div class="breadcrumbs"><a href="../../index.html">kap-core</a><span class="delimiter">/</span><a href="../index.html">kap</a><span class="delimiter">/</span><span class="current">SyncCell</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Sync</span><wbr><span><span>Cell</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">SyncCell</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span></div><p class="paragraph">A typed, <strong>non-suspending</strong> thread-safe cell: the <a href="../-ref/index.html">Ref</a> semantics without the coroutine machinery, for the SPIs that cannot suspend.</p><p class="paragraph">A <a href="../-ref/index.html">Ref</a> operation is a <a href="../-kap/index.html">Kap</a> that takes a <span data-unresolved-link="kotlinx.coroutines.sync/Mutex///PointingToDeclaration/">Mutex</span>, so every read and write is a suspension point. That is the right default for graph code, and the wrong one for a callback: <code class="lang-kotlin">KapTracer.onEvent</code>, a listener, a shutdown hook or an SDK's <code class="lang-kotlin">onClose</code> are plain functions and cannot wait for a lock. <code class="lang-kotlin">SyncCell</code> is the same piece of state with the same laws, implemented as a lock-free atomic register (<a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.concurrent.atomics/-atomic-reference/index.html">AtomicReference</a> + compare-and-set), so it can be read and written from any thread, from inside any coroutine, and from code that has no coroutine at all.</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">class Metrics : KapTracer {<br>    private val events = Ref.sync(0)          // no suspend, no Kap<br>    override fun onEvent(event: TraceEvent) {<br>        val seen = events.getAndUpdate { it + 1 }   // atomic, returns the previous count<br>        if (seen == 0) log.firstEvent(event)<br>    }<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><h2 class="">Laws</h2><ol><li><p class="paragraph"><strong>Atomicity.</strong> Every operation is one atomic step: concurrent updates never     lose a write (<code class="lang-kotlin">N</code> threads incrementing <code class="lang-kotlin">M</code> times leave exactly <code class="lang-kotlin">N * M</code>), and     every read observes a value the cell actually held (linearizable register).</p></li><li><p class="paragraph"><strong>Read-modify-write.</strong> <a href="update.html">update</a>, <a href="get-and-update.html">getAndUpdate</a> and <a href="modify.html">modify</a> transform the     value they observed: the transform is retried until it lands on a value that     is still current, so a concurrent writer forces a recomputation, never a     lost update.</p></li><li><p class="paragraph"><strong>No suspension.</strong> No operation suspends, allocates a coroutine, or takes a     lock: it is safe inside <code class="lang-kotlin">KapTracer.onEvent</code>, a signal handler or a plain     <code class="lang-kotlin">Thread</code>. (On single-threaded targets — JS, Wasm — the atomics are trivially     atomic; the contract is identical.)</p></li><li><p class="paragraph"><strong>Same value semantics as </strong><a href="../-ref/index.html"><strong>Ref</strong></a><strong>.</strong> <a href="get.html">get</a>/<a href="set.html">set</a> read and replace; <a href="update.html">update</a>     returns the <strong>new</strong> value; <a href="get-and-update.html">getAndUpdate</a> returns the <strong>previous</strong> one;     <a href="modify.html">modify</a> stores the first component of the pair and yields the second.</p></li></ol><h2 class="">Contract on the transform</h2><p class="paragraph">The transform passed to <a href="update.html">update</a>, <a href="get-and-update.html">getAndUpdate</a> and <a href="modify.html">modify</a> <strong>must be pure and fast</strong>: under contention it is called again with the newly observed value (the compare-and-set failed because someone else wrote first), so it must not depend on side effects or on being called exactly once, and it must not call back into the same cell.</p><h4 class="tableheader">Type Parameters</h4><div class="table"><div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span><span>A</span></span></u></div></span></div><div><div class="title"><p class="paragraph">the type of the state. Immutable values are the honest choice: the cell stores and returns references, so mutating a returned object is outside the atomicity guarantee.</p></div></div></div></div></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-486807327%2FClasslikes%2F606109949" anchor-label="Companion" id="-486807327%2FClasslikes%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-486807327%2FClasslikes%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-768229692%2FFunctions%2F606109949" anchor-label="get" id="-768229692%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get.html"><span><span>get</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-768229692%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="get.html"><span class="token function">get</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">A</a></div><div class="brief "><p class="paragraph">Reads the current value. Never suspends.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1728195644%2FFunctions%2F606109949" anchor-label="getAndUpdate" id="1728195644%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-and-update.html"><span>get</span><wbr><span>And</span><wbr><span><span>Update</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1728195644%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="get-and-update.html"><span class="token function">getAndUpdate</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">f<span class="token operator">: </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="index.html">A</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">A</a></div><div class="brief "><p class="paragraph">Atomically transforms the value with <a href="get-and-update.html">f</a> and returns the <strong>previous</strong> value — the read-then-write pair in one step (<code class="lang-kotlin">AtomicReference.getAndUpdate</code>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="489260789%2FFunctions%2F606109949" anchor-label="modify" id="489260789%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="modify.html"><span><span>modify</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="489260789%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="modify.html">B</a><span class="token operator">&gt; </span><a href="modify.html"><span class="token function">modify</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">f<span class="token operator">: </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token punctuation">, </span><a href="modify.html">B</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="modify.html">B</a></div><div class="brief "><p class="paragraph">Atomically transforms the value with <a href="modify.html">f</a>, stores the first component of the returned pair and yields the second — the general read-modify-write of which <a href="set.html">set</a>, <a href="update.html">update</a> and <a href="get-and-update.html">getAndUpdate</a> are special cases (the <a href="../-ref/modify.html">Ref.modify</a> contract).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="194650054%2FFunctions%2F606109949" anchor-label="set" id="194650054%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set.html"><span><span>set</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="194650054%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set.html"><span class="token function">set</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">a<span class="token operator">: </span><a href="index.html">A</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Replaces the current value. Never suspends.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-540412613%2FFunctions%2F606109949" anchor-label="update" id="-540412613%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="update.html"><span><span>update</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-540412613%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="update.html"><span class="token function">update</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">f<span class="token operator">: </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="index.html">A</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">A</a></div><div class="brief "><p class="paragraph">Atomically transforms the value with <a href="update.html">f</a> and returns the <strong>new</strong> value (the <a href="../-ref/update.html">Ref.update</a> contract). A throwing <a href="update.html">f</a> leaves the cell untouched and the exception propagates.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
