@@ -1,5 +1,6 @@
 package kap
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
@@ -131,7 +132,7 @@ fun Iterable<Kap<Unit>>.sequenceDiscard(concurrency: Int): Kap<Unit> =
  */
 fun <A, B> Iterable<A>.traverseSettled(f: (A) -> Kap<B>): Kap<List<Result<B>>> = Kap {
     kotlinx.coroutines.supervisorScope {
-        map { a -> async { runCatching { f(a).executeIsolated() } } }.awaitAll()
+        map { a -> async { settledBody { f(a).executeIsolated() } } }.awaitAll()
     }
 }
 
@@ -143,7 +144,7 @@ fun <A, B> Iterable<A>.traverseSettled(f: (A) -> Kap<B>): Kap<List<Result<B>>> =
 fun <A, B> Iterable<A>.traverseSettled(concurrency: Int, f: (A) -> Kap<B>): Kap<List<Result<B>>> = Kap {
     val semaphore = Semaphore(concurrency)
     kotlinx.coroutines.supervisorScope {
-        map { a -> async { semaphore.withPermit { runCatching { f(a).executeIsolated() } } } }.awaitAll()
+        map { a -> async { semaphore.withPermit { settledBody { f(a).executeIsolated() } } } }.awaitAll()
     }
 }
 
@@ -161,6 +162,21 @@ fun <A> Iterable<Kap<A>>.sequenceSettled(): Kap<List<Result<A>>> =
  */
 fun <A> Iterable<Kap<A>>.sequenceSettled(concurrency: Int): Kap<List<Result<A>>> =
     traverseSettled(concurrency) { it }
+
+/**
+ * The settled body shared by [traverseSettled]/[sequenceSettled] — the same
+ * law [Kap.settled] carries: a failure becomes `Result.failure`, but a
+ * CancellationException (a child's own `timeout()`, or the caller cancelling
+ * the whole graph) is NEVER captured into a result value; it rethrows, per
+ * error-semantics Law 1. Pinned by the timeout-fuzz property test in
+ * `CancellationPropertyTest`.
+ */
+private inline fun <A> settledBody(body: () -> A): Result<A> = try {
+    Result.success(body())
+} catch (e: Throwable) {
+    if (e is CancellationException) throw e
+    Result.failure(e)
+}
 
 // ── Why no parMap? ──────────────────────────────────────────────────────
 // parMap is intentionally not provided. This library uses `traverse` and

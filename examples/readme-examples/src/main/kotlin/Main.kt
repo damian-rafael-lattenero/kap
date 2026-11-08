@@ -1776,6 +1776,11 @@ data class ResilientCheckout(
     val payment: String,
 )
 
+// ⚠️ DO NOT COPY THIS FUNCTION INTO PRODUCTION CODE. This is the deliberate
+// "raw problem" exhibit: a hand-rolled `while (true)` retry racing a circuit
+// breaker, kept side-by-side with the kap expression it exists to contrast
+// against (see `readmeResilienceKap`). It is the picture on the cigarette
+// pack, not a recipe. `kap-detekt-rules` flags this shape as ManualWaitLoop.
 suspend fun readmeRawProblem() {
     println("=== README: Raw problem (retry + CB) ===\n")
 

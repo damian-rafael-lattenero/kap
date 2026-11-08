@@ -11,7 +11,7 @@
 const REPO: string = '/Users/lattenero/Projects/kap'
 
 def scan-one [label: string, pattern: string]: nothing -> table<category: string, file: string, line: int, text: string> {
-  let res: record = (do { rg -n --no-heading -e $pattern $REPO -g 'kap-*/src/main/**' -g 'kap-*/src/commonMain/**' -g 'kap-*/src/jvmMain/**' -g 'kap-*/src/nativeMain/**' -g 'kap-*/src/jsMain/**' -g 'benchmarks/src/**' } | complete)
+  let res: record = (do { rg -n --no-heading -e $pattern $REPO -g 'kap-*/src/main/**' -g 'kap-*/src/commonMain/**' -g 'kap-*/src/jvmMain/**' -g 'kap-*/src/nativeMain/**' -g 'kap-*/src/jsMain/**' -g 'benchmarks/src/jmh/**' } | complete)
   if $res.exit_code != 0 { return [] } # rg exit 1 = zero matches: honest empty
   $res.stdout | lines | each {|l|
     let parts: list<string> = ($l | split row ':')

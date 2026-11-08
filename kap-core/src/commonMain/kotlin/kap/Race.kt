@@ -66,6 +66,13 @@ fun <A> race(fa: Kap<A>, fb: Kap<A>): Kap<A> = Kap {
  *
  * Each `select` round explicitly tracks which deferred completed, avoiding
  * race conditions between completion detection and list mutation.
+ *
+ * Cancellation edge: a racer's cancellation is **terminal for the whole race**
+ * (never collected into the losers' errors) — this includes a
+ * `TimeoutCancellationException` raised by a `withTimeout` INSIDE that racer.
+ * To time out one racer without ending the race, put the timeout around the
+ * race itself, or `.settled()` that racer so its timeout becomes a failure
+ * value the race can discard.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 fun <A> raceN(vararg computations: Kap<A>): Kap<A> {

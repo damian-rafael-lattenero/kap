@@ -242,19 +242,25 @@ class Process<A> internal constructor(
         }
 
     // Transparency law: observability hooks never change the lifecycle.
-    @Suppress("SwallowedException")
+    // The only exception to the swallow: a CancellationException — it is the
+    // scope's own cancellation speaking through the hook, and error-semantics
+    // Law 1 says CE is never caught by ANY operator. The hook's own failure
+    // is still swallowed; the caller's cancellation always propagates.
     private fun tryBeat() {
         try {
             onHeartbeat()
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: RuntimeException) {
             // the beat never kills anything
         }
     }
 
-    @Suppress("SwallowedException")
     private fun notifyRestart(attempt: Int, error: Throwable, nextDelay: Duration) {
         try {
             onRestart(attempt, error, nextDelay)
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: RuntimeException) {
             // observability only: the restart proceeds
         }

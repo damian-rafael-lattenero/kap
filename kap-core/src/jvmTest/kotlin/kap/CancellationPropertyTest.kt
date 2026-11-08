@@ -63,6 +63,30 @@ class CancellationPropertyTest {
     }
 
     @Test
+    fun `traverseSettled never captures CancellationException as a result value, for arbitrary timeouts`() = runTest {
+        checkAll(Arb.int(10..50), Arb.int(100..500)) { timeout, work ->
+            // the SLOW child's own timeout must ride out as cancellation, never
+            // land in the results list as Result.failure(CE) (error-semantics Law 1)
+            val comp = listOf(
+                Kap<String> {
+                    delay(500.milliseconds)
+                    "slow-but-fine"
+                }.settled(),
+                Kap<String> {
+                    delay(work.milliseconds)
+                    "victim"
+                }.settled(),
+            ).sequenceSettled()
+
+            assertFailsWith<CancellationException> {
+                withTimeout(timeout.milliseconds) {
+                    comp.evalGraph()
+                }
+            }
+        }
+    }
+
+    @Test
     fun `retry never retries on CancellationException, for arbitrary attempt limits`() = runTest {
         checkAll(Arb.int(2..10), Arb.int(10..50), Arb.int(100..500)) { maxAttempts, retryDelay, work ->
             val attemptCount = AtomicInteger(0)
