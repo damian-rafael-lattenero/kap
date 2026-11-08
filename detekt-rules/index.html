@@ -1292,8 +1292,9 @@
 
 <h1 id="detekt-rules">Detekt rules<a class="headerlink" href="#detekt-rules" title="Permanent link">&para;</a></h1>
 <p><code>kap-detekt-rules</code> is a JVM-only tooling module: it packages Detekt rule sets
-that enforce KAP's concurrency doctrine. It is not a runtime dependency and it
-is not part of the published library artifacts.</p>
+that enforce KAP's concurrency doctrine. It is not a runtime dependency.
+<strong>Published since 5.2.0</strong> — add it as <code>detektPlugins</code> and the ruleset registers
+itself (see the module README).</p>
 <h2 id="manualwaitloop">ManualWaitLoop<a class="headerlink" href="#manualwaitloop" title="Permanent link">&para;</a></h2>
 <p>Flags a hand-rolled wait loop: a <code>while (true)</code> / <code>while(true)</code> whose body
 waits with <code>kotlinx.coroutines.delay(...)</code> or <code>Thread.sleep(...)</code>.</p>
