@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [5.2.1] - 2026-11-08
+
+### Fixed
+
+- **`traverseSettled`/`sequenceSettled` now honor error-semantics Law 1**: a
+  child's CancellationException (its own `timeout()`) rethrows instead of being
+  captured into `Result.failure(CE)` — matching `Kap.settled()` exactly. The
+  settled family now shares one `settledBody` implementation, and the
+  timeout-fuzz property test that was missing from `CancellationPropertyTest`
+  pins it. Found by the 2026-11-08 library self-audit.
+
+### Changed
+
+- `Process` heartbeat/restart observer hooks rethrow `CancellationException`
+  before the `RuntimeException` swallow — the transparency law keeps swallowing
+  hook failures; it never swallows the caller's cancellation (CE extends
+  `RuntimeException` on the JVM).
+- `raceN`/`race` KDoc states the cancellation edge: a racer's internal
+  `withTimeout` is terminal for the whole race; `.settled()` that racer or
+  time out the race itself.
+- The readme-examples "raw problem" exhibit carries an explicit DO-NOT-COPY
+  signpost (and is flagged by `kap-detekt-rules` — the module that audits its
+  own repository's example).
+
 ## [5.2.0] - 2026-11-08
 
 ### Added
