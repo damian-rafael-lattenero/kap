@@ -171,6 +171,8 @@ fun <A> Iterable<Kap<A>>.sequenceSettled(concurrency: Int): Kap<List<Result<A>>>
  * error-semantics Law 1. Pinned by the timeout-fuzz property test in
  * `CancellationPropertyTest`.
  */
+// settled semantics ARE the generic catch: everything except cancellation becomes a value
+@Suppress("TooGenericExceptionCaught")
 private inline fun <A> settledBody(body: () -> A): Result<A> = try {
     Result.success(body())
 } catch (e: Throwable) {
