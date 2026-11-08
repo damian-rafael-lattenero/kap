@@ -1,8 +1,9 @@
 # Detekt rules
 
 `kap-detekt-rules` is a JVM-only tooling module: it packages Detekt rule sets
-that enforce KAP's concurrency doctrine. It is not a runtime dependency and it
-is not part of the published library artifacts.
+that enforce KAP's concurrency doctrine. It is not a runtime dependency.
+**Published since 5.2.0** — add it as `detektPlugins` and the ruleset registers
+itself (see the module README).
 
 ## ManualWaitLoop
 

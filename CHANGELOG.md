@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [5.2.0] - 2026-11-08
+
+### Added
+
+- **`kap-detekt-rules` PUBLISHED to Maven Central** — the kap doctrine as a
+  mechanical gate. The module ships `KapRuleSetProvider` (rule set id `kap`)
+  with the `ManualWaitLoop` rule: it flags busy-wait loops (`while(true)` with
+  an internal `delay`, `do { } while(true)`, bare `Thread.sleep`-style waits)
+  in kap-using code, pointing the author at the declarative replacements
+  (`Schedule`, `Kap.repeat`, `KapStream`). Discovered via
+  `META-INF/services/dev.detekt.api.RuleSetProvider`; the detekt API rides
+  `compileOnly` — the jar never bundles the API it implements.
+
+  ```kotlin
+  dependencies {
+      detektPlugins("io.github.damian-rafael-lattenero:kap-detekt-rules:5.2.0")
+  }
+  ```
+
+  Born from the 2026-11-08 FP/concurrency audits of the three consumer repos
+  (zcode-bot-kotlin, agent-brain, whatsdigest-kt): the audit's recurring
+  finding was that the "no hand-rolled concurrency" law lived in review
+  checklists and CI greps — this module is the definitive gate.
+- Consumer README for the module (`kap-detekt-rules/README.md`) with the
+  registration and config snippet.
+
+### Notes
+
+- All other modules are unchanged from 5.1.0 (re-published at 5.2.0 so the
+  release carries one consistent version).
+
 ## [5.1.0] - 2026-11-04
 
 ### Added
