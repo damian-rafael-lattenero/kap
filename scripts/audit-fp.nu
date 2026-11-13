@@ -1,4 +1,4 @@
-#!/usr/bin/env nu
+#!/opt/homebrew/bin/nu
 # U0 of the FP/concurrency audit for kap itself (2026-11-08) — the same
 # machinery the three consumer repos ran, adapted to kap's KMP layout:
 # scope = all library modules' main sources (commonMain/jvmMain/...) +
