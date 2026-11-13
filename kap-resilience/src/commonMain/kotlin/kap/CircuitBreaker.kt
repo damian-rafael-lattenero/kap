@@ -278,17 +278,19 @@ class CircuitBreakerOpenException(
     val name: String? = null,
     val state: CircuitBreaker.State? = null,
     val remaining: Duration? = null,
-) : RuntimeException(buildMessage(name, state, remaining)) {
+    message: String? = null,
+) : RuntimeException(message ?: buildMessage(name, state, remaining)) {
 
     /**
      * Source-compatible constructor kept for the pre-5.3 message form: the
-     * caller-supplied string is replaced by the structured fields' message.
+     * string rides through as the literal message; the structured fields
+     * stay null.
      */
     @Deprecated(
         message = "Construct with the structured fields: name, state, remaining.",
         replaceWith = ReplaceWith("CircuitBreakerOpenException()"),
     )
-    constructor(message: String) : this()
+    constructor(legacyMessage: String) : this(message = legacyMessage)
 
     private companion object {
         fun buildMessage(name: String?, state: CircuitBreaker.State?, remaining: Duration?): String = when {
