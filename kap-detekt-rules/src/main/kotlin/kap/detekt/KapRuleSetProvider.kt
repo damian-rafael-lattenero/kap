@@ -15,5 +15,5 @@ class KapRuleSetProvider : RuleSetProvider {
     override val ruleSetId: RuleSetId = RuleSetId("kap")
 
     override fun instance(): RuleSet =
-        RuleSet(ruleSetId, listOf(::ManualWaitLoop))
+        RuleSet(ruleSetId, listOf(::ManualWaitLoop, ::CancellationArmBeforeCatchAll))
 }

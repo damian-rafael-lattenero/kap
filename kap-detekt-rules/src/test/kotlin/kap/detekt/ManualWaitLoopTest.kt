@@ -186,7 +186,7 @@ class ManualWaitLoopTest {
 
         assertEquals("kap", provider.ruleSetId.value)
         assertEquals(
-            setOf("ManualWaitLoop"),
+            setOf("ManualWaitLoop", "CancellationArmBeforeCatchAll"),
             provider.instance().rules.keys.map { it.value }.toSet(),
         )
     }

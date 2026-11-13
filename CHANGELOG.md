@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added
+
+- **`kap-detekt-rules`: the CE-arm rule — `CancellationArmBeforeCatchAll`.**
+  The audit's dominant systemic finding becomes a mechanical gate: a broad
+  catch (`Exception` / `RuntimeException` / `Throwable`) that swallows
+  cancellation — no earlier `catch (e: CancellationException) { throw e }`
+  sibling, no inline `is CancellationException` rethrow (if or when/is-pattern
+  arm), no unconditional rethrow — is flagged, pointing at the sibling-arm
+  idiom. The consumers' audits fixed 35+ such sites by hand (14 bot, 15
+  whatsdigest, 6 brain); the rule keeps them from coming back.
+
 ## [5.2.1] - 2026-11-08
 
 ### Fixed
