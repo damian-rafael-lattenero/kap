@@ -16,6 +16,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
   arm), no unconditional rethrow — is flagged, pointing at the sibling-arm
   idiom. The consumers' audits fixed 35+ such sites by hand (14 bot, 15
   whatsdigest, 6 brain); the rule keeps them from coming back.
+- **`kap-detekt-rules`: the RMW rule — `VolatileReadModifyWrite`.** A
+  `@Volatile` property used as a read-modify-write accumulator (`x++`,
+  `x += n`, `x = x + 1`, `x = f(x)`) races and loses writes — the audit law
+  "@Volatile shared RMW cell is kap `Ref`, never `@Volatile`" as a gate.
+  Single-writer flags and plain stores/reads are never flagged.
+- **`CircuitBreaker` observability** (kap-resilience): `name` identity
+  (default `"circuit"`), `observedState` — a read-only snapshot that reports
+  HalfOpen once the window elapsed without admitting a probe, firing no
+  `onStateChange` — and a rejection exception that carries its fields:
+  `CircuitBreakerOpenException(name, state, remaining)` ("retry allowed in
+  12.5s"). Both rejection paths (`protect` and `withCircuitBreaker`) build it
+  under the breaker's mutex. Born from the bot's `TgBreaker` facade, which
+  kept its own `openedMark` and house exception because kap's rejection said
+  neither who nor for how long.
 
 ## [5.2.1] - 2026-11-08
 
