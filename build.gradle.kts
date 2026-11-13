@@ -14,7 +14,7 @@ plugins {
 }
 
 group = "io.github.damian-rafael-lattenero"
-version = "5.2.1"
+version = "5.3.0"
 
 subprojects {
     group = rootProject.group
