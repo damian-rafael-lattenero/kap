@@ -29,6 +29,8 @@ kap:
     active: true
   CancellationArmBeforeCatchAll:
     active: true
+  VolatileReadModifyWrite:
+    active: true
 ```
 
 ## Rules
@@ -37,6 +39,7 @@ kap:
 |---|---|---|
 | `ManualWaitLoop` | `while (true)` / `do { } while (true)` whose body waits with `delay(...)` or a blocking sleep | `Kap.repeat(schedule)`, `KapStream`, `Schedule` — the declarative replacements |
 | `CancellationArmBeforeCatchAll` | a broad catch (`Exception` / `RuntimeException` / `Throwable`) with no earlier `CancellationException` clause, no inline `is CancellationException` rethrow, and no unconditional rethrow — a CE-eating catch-all | the sibling `catch (e: CancellationException) { throw e }` arm — cancellation must always propagate |
+| `VolatileReadModifyWrite` | a `@Volatile` property used as a read-modify-write accumulator (`x++`, `x += n`, `x = x + 1`, `x = f(x)`) — a shared cell that races and loses writes | `kap.Ref` (suspend) or `Ref.sync` / `SyncCell` (lock-free atomic) — never a `@Volatile` RMW cell |
 
 ## Verify locally
 
