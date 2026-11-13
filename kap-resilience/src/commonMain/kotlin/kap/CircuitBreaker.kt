@@ -36,6 +36,8 @@ import kotlin.time.TimeSource
  *   first success keeps the circuit HalfOpen and leaves the failure count
  *   untouched; a failure in between resets the probe count.
  * @param onStateChange optional callback for observability (logging, metrics).
+ * @param name identity for observability: the [observedState] snapshot and the
+ *   [CircuitBreakerOpenException] carry it, so logs and metrics name the breaker.
  * @param timeSource injectable time source for testing.
  */
 class CircuitBreaker(
@@ -43,6 +45,7 @@ class CircuitBreaker(
     val retryAfter: Duration,
     val successThreshold: Int = 1,
     val onStateChange: (State, State) -> Unit = { _, _ -> },
+    val name: String = "circuit",
     private val timeSource: TimeSource = TimeSource.Monotonic,
 ) {
     /**
@@ -111,6 +114,24 @@ class CircuitBreaker(
     /** Current state of the circuit breaker (snapshot — may change immediately after reading). */
     val currentState: State get() = state
 
+    /**
+     * The state as it would be on the next call, read-only: once [retryAfter]
+     * has elapsed while Open, this reports [State.HalfOpen] even though the
+     * real transition happens lazily inside the next [tryAcquire] — the
+     * observation carries no side effect: it never admits a probe, mutates
+     * counters, or fires [onStateChange]. Snapshot semantics — may change
+     * immediately after reading.
+     */
+    val observedState: State
+        get() {
+            val current = state
+            if (current != State.Open) return current
+            val mark = openedAt ?: return current
+            return if (mark.elapsedNow() >= retryAfter) State.HalfOpen else State.Open
+        }
+
+    override fun toString(): String = "CircuitBreaker(name=$name, state=$currentState)"
+
     // ── Public, mutex-taking API (4.1.0): guard code that is not a Kap ──
 
     // Mutex.withLock is inline-suspend: detekt's RedundantSuspendModifier cannot see the suspension.
@@ -150,7 +171,7 @@ class CircuitBreaker(
     // The breaker must count EVERY failure, exactly like withCircuitBreaker does.
     @Suppress("TooGenericExceptionCaught", "ThrowsCount")
     suspend fun <A> protect(block: suspend () -> A): A {
-        if (!tryAcquire()) throw CircuitBreakerOpenException()
+        mutex.withLock { if (!shouldAttempt()) throw openException() }
         return try {
             block().also { onSuccess() }
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -167,6 +188,23 @@ class CircuitBreaker(
             state = newState
             onStateChange(old, newState)
         }
+    }
+
+    /**
+     * Builds the rejection exception under the caller's lock: the breaker's
+     * [name], the state the caller was rejected in, and — while the open
+     * window is still running — the [CircuitBreakerOpenException.remaining]
+     * time until a probe is allowed.
+     */
+    internal fun openException(): CircuitBreakerOpenException {
+        val mark = openedAt
+        val remaining = if (state == State.Open && mark != null) {
+            val left = retryAfter - mark.elapsedNow()
+            if (left > Duration.ZERO) left else Duration.ZERO
+        } else {
+            null
+        }
+        return CircuitBreakerOpenException(name = name, state = state, remaining = remaining)
     }
 
     internal fun recordSuccess() {
@@ -217,11 +255,52 @@ class CircuitBreaker(
 }
 
 /**
- * Exception thrown when the circuit breaker is open and rejecting calls.
+ * Exception thrown when a circuit breaker rejects a call.
+ *
+ * The breaker supplies its identity and its state as structured fields — a
+ * rejection names the breaker it came from and, while the open window is
+ * still running, how long until a probe is allowed:
+ *
+ * ```
+ * catch (e: CircuitBreakerOpenException) {
+ *     log.warn("breaker ${e.name} rejected the call (state=${e.state}, retry in ${e.remaining})")
+ * }
+ * ```
+ *
+ * @param name the breaker's [CircuitBreaker.name]; `null` for a hand-built
+ *   rejection that is not tied to a breaker.
+ * @param state the [CircuitBreaker.State] the call was rejected in.
+ * @param remaining how long until the breaker admits its HalfOpen probe —
+ *   zero when the window has already elapsed; `null` outside the Open state
+ *   (a HalfOpen rejection means a probe is in flight, not a window).
  */
 class CircuitBreakerOpenException(
-    message: String = "Circuit breaker is open",
-) : RuntimeException(message)
+    val name: String? = null,
+    val state: CircuitBreaker.State? = null,
+    val remaining: Duration? = null,
+) : RuntimeException(buildMessage(name, state, remaining)) {
+
+    /**
+     * Source-compatible constructor kept for the pre-5.3 message form: the
+     * caller-supplied string is replaced by the structured fields' message.
+     */
+    @Deprecated(
+        message = "Construct with the structured fields: name, state, remaining.",
+        replaceWith = ReplaceWith("CircuitBreakerOpenException()"),
+    )
+    constructor(message: String) : this()
+
+    private companion object {
+        fun buildMessage(name: String?, state: CircuitBreaker.State?, remaining: Duration?): String = when {
+            name == null -> "Circuit breaker is open"
+            state == CircuitBreaker.State.HalfOpen ->
+                "Circuit breaker '$name' is half-open — a probe is already in flight"
+            remaining != null && remaining > Duration.ZERO ->
+                "Circuit breaker '$name' is open — retry allowed in $remaining"
+            else -> "Circuit breaker '$name' is open"
+        }
+    }
+}
 
 /**
  * Protects this computation with a [CircuitBreaker].
@@ -253,7 +332,7 @@ fun <A> Kap<A>.withCircuitBreaker(breaker: CircuitBreaker): Kap<A> {
     return Kap {
         breaker.mutex.withLock {
             if (!breaker.shouldAttempt()) {
-                throw CircuitBreakerOpenException()
+                throw breaker.openException()
             }
         }
         try {
