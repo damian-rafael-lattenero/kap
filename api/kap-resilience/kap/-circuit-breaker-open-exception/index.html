@@ -93,24 +93,24 @@
   <div class="breadcrumbs"><a href="../../index.html">kap-resilience</a><span class="delimiter">/</span><a href="../index.html">kap</a><span class="delimiter">/</span><span class="current">CircuitBreakerOpenException</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Circuit</span><wbr><span>Breaker</span><wbr><span>Open</span><wbr><span><span>Exception</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">CircuitBreakerOpenException</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">message<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Circuit breaker is open"</span></span></span><span class="token punctuation">)</span> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-runtime-exception/index.html">RuntimeException</a></div><p class="paragraph">Exception thrown when the circuit breaker is open and rejecting calls.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">CircuitBreakerOpenException</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>state<span class="token operator">: </span><a href="../-circuit-breaker/-state/index.html">CircuitBreaker.State</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>remaining<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-runtime-exception/index.html">RuntimeException</a></div><p class="paragraph">Exception thrown when a circuit breaker rejects a call.</p><p class="paragraph">The breaker supplies its identity and its state as structured fields — a rejection names the breaker it came from and, while the open window is still running, how long until a probe is allowed:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">catch (e: CircuitBreakerOpenException) {<br>    log.warn("breaker ${e.name} rejected the call (state=${e.state}, retry in ${e.remaining})")<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><h4 class="tableheader">Parameters</h4><div class="table"><div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span><span>name</span></span></u></div></span></div><div><div class="title"><p class="paragraph">the breaker's <a href="../-circuit-breaker/name.html">CircuitBreaker.name</a>; <code class="lang-kotlin">null</code> for a hand-built rejection that is not tied to a breaker.</p></div></div></div></div><div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span><span>state</span></span></u></div></span></div><div><div class="title"><p class="paragraph">the <a href="../-circuit-breaker/-state/index.html">CircuitBreaker.State</a> the call was rejected in.</p></div></div></div></div><div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span><span>remaining</span></span></u></div></span></div><div><div class="title"><p class="paragraph">how long until the breaker admits its HalfOpen probe — zero when the window has already elapsed; <code class="lang-kotlin">null</code> outside the Open state (a HalfOpen rejection means a probe is in flight, not a window).</p></div></div></div></div></div></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
     <div class="tabs-section-body">
       <div data-togglable="CONSTRUCTOR">
         <h2 class="tableheader">Constructors</h2>
-        <div class="table"><a data-name="174770855%2FConstructors%2F-865208273" anchor-label="CircuitBreakerOpenException" id="174770855%2FConstructors%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+        <div class="table"><a data-name="-2164351%2FConstructors%2F-865208273" anchor-label="CircuitBreakerOpenException" id="-2164351%2FConstructors%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
           <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="-circuit-breaker-open-exception.html"><span>Circuit</span><wbr><span>Breaker</span><wbr><span>Open</span><wbr><span><span>Exception</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="174770855%2FConstructors%2F-865208273"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2164351%2FConstructors%2F-865208273"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">message<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"Circuit breaker is open"</span></span></span><span class="token punctuation">)</span></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">state<span class="token operator">: </span><a href="../-circuit-breaker/-state/index.html">CircuitBreaker.State</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">remaining<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span></div><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">message<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Source-compatible constructor kept for the pre-5.3 message form: the caller-supplied string is replaced by the structured fields' message.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -145,6 +145,51 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">expect </span><span class="token keyword">open </span><span class="token keyword">val </span><a href="../-supervisor-stopped-exception/index.html#1824300659%2FProperties%2F-865208273">message</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="265645648%2FProperties%2F-865208273" anchor-label="name" id="265645648%2FProperties%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="name.html"><span><span>name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="265645648%2FProperties%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="name.html">name</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1545837193%2FProperties%2F-865208273" anchor-label="remaining" id="1545837193%2FProperties%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="remaining.html"><span><span>remaining</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1545837193%2FProperties%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="remaining.html">remaining</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1418848590%2FProperties%2F-865208273" anchor-label="state" id="1418848590%2FProperties%2F-865208273" data-filterable-set=":kap-resilience/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-resilience/commonMain" data-filterable-set=":kap-resilience/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="state.html"><span><span>state</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1418848590%2FProperties%2F-865208273"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-resilience/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="state.html">state</a><span class="token operator">: </span><a href="../-circuit-breaker/-state/index.html">CircuitBreaker.State</a><span class="token operator">?</span></div></div></div>
                 </div>
               </div>
             </div>
