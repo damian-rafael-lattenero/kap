@@ -16,6 +16,10 @@
 #
 # Every phase prints one honest line; a refused repo is named, never skipped
 # silently. Re-running is safe: finished stages pass through.
+#
+# Externals resolve through a PATH prepend in main: the tab this runs in does
+# not inherit the interactive PATH (measured 13/11 — `gh` vanished in a bare
+# nu-nightly).
 
 const DEFAULT_FROM: string = "5.2.1"
 const DEFAULT_TO: string = "5.3.0"
@@ -48,7 +52,7 @@ def latest-ci-run []: nothing -> record {
 }
 
 def ensure-release [tag: string]: nothing -> nothing {
-    let existing = (gh release view $tag --json tagName --jq '.tagName' | complete)
+    let existing: record = (gh release view $tag --json tagName --jq '.tagName' | complete)
     if ($existing.exit_code == 0) {
         log 'release' $"already published — the publish workflow was triggered before"
         return
@@ -69,12 +73,12 @@ def latest-publish-run [tag: string]: nothing -> record {
 }
 
 def bump-repo [repo: string, from_v: string, to_v: string]: nothing -> string {
-    let dir = $"($REPO_ROOT)/($repo)"
-    let cat = $"($dir)/gradle/libs.versions.toml"
+    let dir: string = $"($REPO_ROOT)/($repo)"
+    let cat: string = $"($dir)/gradle/libs.versions.toml"
     if not ($cat | path exists) {
         return $"($repo) :: REFUSED — no version catalog at ($cat)"
     }
-    let dirty = (git -C $dir status --porcelain -- gradle/libs.versions.toml | complete | get stdout | str trim)
+    let dirty: string = (git -C $dir status --porcelain -- gradle/libs.versions.toml | complete | get stdout | str trim)
     if ($dirty | is-not-empty) {
         return $"($repo) :: REFUSED — the catalog has uncommitted changes"
     }
@@ -85,11 +89,11 @@ def bump-repo [repo: string, from_v: string, to_v: string]: nothing -> string {
     if ($pin | first | str contains $"\"($to_v)\"") {
         return $"($repo) :: ALREADY at ($to_v)"
     }
-    let branch = (git -C $dir branch --show-current | complete | get stdout | str trim)
+    let branch: string = (git -C $dir branch --show-current | complete | get stdout | str trim)
     if $branch != 'master' {
         return $"($repo) :: REFUSED — on branch '($branch)', not master"
     }
-    let pulled = (git -C $dir pull --ff-only origin master | complete)
+    let pulled: record = (git -C $dir pull --ff-only origin master | complete)
     if $pulled.exit_code != 0 {
         return $"($repo) :: REFUSED — pull --ff-only failed: ($pulled.stderr | str trim)"
     }
@@ -100,11 +104,11 @@ def bump-repo [repo: string, from_v: string, to_v: string]: nothing -> string {
         return $"($repo) :: FAILED — the pin did not land: ($after)"
     }
     git -C $dir add gradle/libs.versions.toml
-    let committed = (git -C $dir commit -m $"build(deps): kap ($from_v) → ($to_v)" | complete)
+    let committed: record = (git -C $dir commit -m $"build(deps): kap ($from_v) → ($to_v)" | complete)
     if $committed.exit_code != 0 {
         return $"($repo) :: FAILED — commit: ($committed.stderr | str trim)"
     }
-    let pushed = (git -C $dir push | complete)
+    let pushed: record = (git -C $dir push | complete)
     if $pushed.exit_code != 0 {
         return $"($repo) :: FAILED — push: ($pushed.stderr | str trim)"
     }
@@ -116,6 +120,9 @@ def main [
     --from: string = $DEFAULT_FROM      # the pin the consumers currently carry
     --repos: string = $DEFAULT_REPOS    # comma-separated consumer repos
 ]: nothing -> nothing {
+    # The Ghostty tab runs a bare nu-nightly: no interactive PATH. The brew
+    # bin carries gh and git; sed and curl are system-wide either way.
+    $env.PATH = ($env.PATH | prepend '/opt/homebrew/bin')
     let repo_list: list<string> = ($repos | split row ',' | str trim)
 
     # ── Phase 1: kap CI on master ────────────────────────────────────────
@@ -150,7 +157,7 @@ def main [
 
     # ── Phase 4: Central metadata — a report, not a gate. The publish
     #    step already validated the upload; repo1 sync can lag behind it.
-    let meta = (curl -s $"https://repo1.maven.org/maven2/io/github/damian-rafael-lattenero/kap-core/maven-metadata.xml" | complete)
+    let meta: record = (curl -s $"https://repo1.maven.org/maven2/io/github/damian-rafael-lattenero/kap-core/maven-metadata.xml" | complete)
     let visible = ($meta.exit_code == 0 and ($meta.stdout | str contains $to))
     if $visible {
         log 'central' $"metadata already shows ($to)"
