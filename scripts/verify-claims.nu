@@ -54,10 +54,10 @@ def expect-not-contains [file: string, substring: string, desc: string]: nothing
 }
 
 def main []: nothing -> nothing {
-    let repo = ($env.FILE_PWD | path dirname)
+    let repo: path = ($env.FILE_PWD | path dirname)
     cd $repo
 
-    let kotlin_files = ($LIB_MODULES | each {|m| glob $"($m)/**/*.kt" } | flatten)
+    let kotlin_files: list<string> = ($LIB_MODULES | each {|m| glob $"($m)/**/*.kt" } | flatten)
     let test_files = ($LIB_MODULES | each {|m| glob $"($m)/**/*Test.kt" } | flatten)
     let bench_files = (glob "benchmarks/**/*.kt")
 
