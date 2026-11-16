@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 
+- **`KapProcess` — the typed mailbox actor** (kap-stream). A bounded mailbox
+  of an application ADT whose capacity/strategy is a named `Backpressure`
+  value (`Suspend`, `Buffer(n)`, `Conflate`, `DropOldest(n)`, `DropLatest(n)`,
+  `Latest(n)`), with a non-throwing `offer` that suspends exactly where the
+  strategy says, lossy strategies that drop **and count** (`dropped:
+  StateFlow<Long>`), a single sequential consumer (`consume`) with per-item
+  failure isolation (`MailboxEvent.Failed`), a per-item time budget
+  (`MailboxEvent.TimedOut`, cancellation never swallowed) and a full
+  `Process` lifecycle (`asProcess`: normal completion on `close`, stop/scope
+  cancellation never failures, restart on a fatal drain error, heartbeat
+  while the drain runs). Ships with its six laws in `LAWS.md` and
+  `KapProcessLawsTest`/`KapProcessTest` (property-checked, virtual time).
 - **`Signal`/`Beat` — the hot wake-up primitive** (kap-resilience). One
   conflated pending wake with a non-suspending `send()` and a suspending
   `awaitOr(schedule: Schedule<Unit>)` that returns `Beat.Signalled` or

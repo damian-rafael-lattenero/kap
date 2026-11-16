@@ -8,8 +8,8 @@ implementation("io.github.damian-rafael-lattenero:kap-stream:5.1.0")
 
 **Depends on:** `kap-core`, `kap-resilience` (for `Schedule`).
 **Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
-**Tests:** 39 tests across 3 test classes, all virtual time (no sleeps).
-**Laws:** strategy drops, ordering and cancellation are property-tested in `KapStreamLawsTest`.
+**Tests:** 57 tests across 5 test classes, all virtual time (no sleeps).
+**Laws:** strategy drops, ordering and cancellation are property-tested in `KapStreamLawsTest`; the mailbox laws in `KapProcessLawsTest`.
 
 ---
 
@@ -118,6 +118,43 @@ with(stream.drainTo(outbox)) { execute() }
 ```
 
 `drainTo` suspends on the channel's own capacity and owns no lifecycle: the caller closes the channel. `asFlow()` is the escape hatch to plain flows.
+
+## Mailbox process — `KapProcess`
+
+`KapProcess` is the typed mailbox actor (SPEC-5.0: "actors yes, Akka no"): a bounded mailbox of an application ADT, a **named** `Backpressure` policy, one sequential consumer with per-item failure isolation and a time budget, and a `Process` lifecycle. It is the library form of the hand-rolled bounded-queue-plus-drain the bot runs for its stream effects.
+
+```kotlin
+sealed interface Command
+data class EnforceMode(val taskId: String) : Command
+data class RefreshMenu(val taskId: String, val options: List<Option>) : Command
+
+val mailbox = KapProcess<Command>(
+    name = "stream-effects",
+    backpressure = Backpressure.Buffer(256),   // exact: the producer waits when full
+    itemBudget = 45.seconds,                    // a stuck effect is abandoned, never the loop
+    observe = { event -> log(event) },          // drops, failures, timeouts as a typed ADT
+)
+
+coroutineScope {
+    val worker = mailbox.asProcess(handler = { command -> runEffect(command) }).startIn(this)
+    mailbox.offer(EnforceMode(taskId))          // suspends only when the buffer is full
+    awaitShutdownSignal()
+    worker.stop()                               // idempotent, not a failure
+}
+```
+
+| Concern | Behavior |
+|---|---|
+| Capacity | `Backpressure.Suspend` (rendezvous), `Buffer(n)`, `Conflate`, `DropOldest(n)`, `DropLatest(n)`, `Latest(n)` — the same values as every stream stage. |
+| `offer` | Non-throwing; suspends exactly where the strategy says; lossy strategies drop and increment `dropped` (`StateFlow<Long>`). |
+| Consumer | One sequential `consume` (a second is rejected): at most one handler at a time, FIFO. |
+| Failure | `Exception` from the handler → `MailboxEvent.Failed`, the loop continues, no process restart. `CancellationException` propagates. |
+| Budget | An item over `itemBudget` is cancelled and reported as `MailboxEvent.TimedOut`; its `finally` runs. |
+| Lifecycle | `close()` drains and completes the process normally; `stop()`/scope cancellation are never failures; a fatal drain error restarts under the `RestartPolicy`; the heartbeat beats while the drain runs. |
+
+The laws (`LAWS.md` — KapProcess laws): exact strategies never drop, lossy strategies drop only what they advertise and count every loss, at-most-one handler, failure isolation, budget honesty, and the Process lifecycle. Proven in `KapProcessLawsTest` (property-checked, virtual time) and `KapProcessTest`.
+
+**Why kap-stream?** The mailbox's policy is `Backpressure` (owned here) and its lifecycle is `Process` (kap-resilience, already a dependency); a dedicated `kap-actors` module would add a Gradle module, a publication coordinate and a dependency edge for ~250 lines that reuse exactly these two algebras.
 
 ## Cancellation
 

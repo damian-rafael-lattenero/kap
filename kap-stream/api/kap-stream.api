@@ -71,6 +71,20 @@ public final class kap/EmittedSource {
 	public final fun every (Lkap/Schedule;)Lkap/KapStream;
 }
 
+public final class kap/KapProcess {
+	public synthetic fun <init> (Ljava/lang/String;Lkap/Backpressure;JLkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Lkap/Backpressure;JLkotlin/jvm/functions/Function1;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun asProcess-WPi__2c (Lkotlin/jvm/functions/Function2;Lkap/RestartPolicy;JLkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function0;Lkotlin/time/TimeSource;)Lkap/Process;
+	public static synthetic fun asProcess-WPi__2c$default (Lkap/KapProcess;Lkotlin/jvm/functions/Function2;Lkap/RestartPolicy;JLkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function0;Lkotlin/time/TimeSource;ILjava/lang/Object;)Lkap/Process;
+	public final fun close ()V
+	public final fun consume (Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getBackpressure ()Lkap/Backpressure;
+	public final fun getDropped ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getItemBudget-UwyO8pc ()J
+	public final fun getName ()Ljava/lang/String;
+	public final fun offer (Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class kap/KapStream {
 	public static final field Companion Lkap/KapStream$Companion;
 	public final fun asFlow ()Lkotlinx/coroutines/flow/Flow;
@@ -101,6 +115,48 @@ public final class kap/KapStream$Companion {
 	public final fun from (Lkotlinx/coroutines/flow/Flow;)Lkap/KapStream;
 	public final fun pollUntilQuiet (Lkotlin/jvm/functions/Function1;Lkap/Schedule;Lkap/Backpressure;)Lkap/KapStream;
 	public static synthetic fun pollUntilQuiet$default (Lkap/KapStream$Companion;Lkotlin/jvm/functions/Function1;Lkap/Schedule;Lkap/Backpressure;ILjava/lang/Object;)Lkap/KapStream;
+}
+
+public abstract interface class kap/MailboxEvent {
+}
+
+public final class kap/MailboxEvent$Dropped : kap/MailboxEvent {
+	public fun <init> (Ljava/lang/Object;J)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()J
+	public final fun copy (Ljava/lang/Object;J)Lkap/MailboxEvent$Dropped;
+	public static synthetic fun copy$default (Lkap/MailboxEvent$Dropped;Ljava/lang/Object;JILjava/lang/Object;)Lkap/MailboxEvent$Dropped;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDrops ()J
+	public final fun getItem ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kap/MailboxEvent$Failed : kap/MailboxEvent {
+	public fun <init> (Ljava/lang/Object;Ljava/lang/Throwable;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()Ljava/lang/Throwable;
+	public final fun copy (Ljava/lang/Object;Ljava/lang/Throwable;)Lkap/MailboxEvent$Failed;
+	public static synthetic fun copy$default (Lkap/MailboxEvent$Failed;Ljava/lang/Object;Ljava/lang/Throwable;ILjava/lang/Object;)Lkap/MailboxEvent$Failed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Ljava/lang/Throwable;
+	public final fun getItem ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kap/MailboxEvent$TimedOut : kap/MailboxEvent {
+	public synthetic fun <init> (Ljava/lang/Object;JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2-UwyO8pc ()J
+	public final fun copy-HG0u8IE (Ljava/lang/Object;J)Lkap/MailboxEvent$TimedOut;
+	public static synthetic fun copy-HG0u8IE$default (Lkap/MailboxEvent$TimedOut;Ljava/lang/Object;JILjava/lang/Object;)Lkap/MailboxEvent$TimedOut;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBudget-UwyO8pc ()J
+	public final fun getItem ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class kap/Progress {

@@ -223,6 +223,42 @@ Enforced by [`KapStreamPollUntilQuietTest.kt`](kap-stream/src/jvmTest/kotlin/kap
 (work-only emission, the filled window vs. a transient empty poll, exact virtual
 cadence, failure propagation, and the named-strategy drop behaviour).
 
+## KapProcess laws
+
+A `KapProcess` (kap-stream, unreleased) is the typed mailbox actor: a bounded
+mailbox of an application ADT whose capacity/strategy is a named
+[`Backpressure`](kap-stream/src/commonMain/kotlin/kap/Backpressure.kt) value, a
+single-consumer drain with per-item isolation and a time budget, and a
+[Process](#process-laws) lifecycle.
+
+1. **Exact strategies never drop.** `Backpressure.Suspend` and
+   `Backpressure.Buffer` deliver every item, in offer order, and the dropped
+   counter stays zero; the producer suspends exactly where the strategy says
+   (always for `Suspend`, only when full for `Buffer`).
+2. **Lossy strategies drop only what they say — and count it.** `Conflate`,
+   `Latest(n)` and `DropOldest(n)` keep the newest `n`; `DropLatest(n)` keeps
+   the oldest `n` and the incoming item is the victim. Survivors preserve offer
+   order, are never duplicated, and `delivered + dropped == offered` once a
+   closed mailbox has drained (offers after `close` drop and count).
+3. **At most one handler at a time.** The drain is a single sequential loop; a
+   second `consume` is rejected — two handlers can never overlap.
+4. **Failure isolation.** A handler throwing an `Exception` is reported as
+   `MailboxEvent.Failed` and the drain continues; the process does not restart.
+   A `CancellationException` is never an item failure: it propagates.
+5. **Budget honesty.** An item whose handler exceeds `itemBudget` is cancelled
+   and reported as `MailboxEvent.TimedOut` at exactly the budget; the next item
+   starts immediately and the handler's `finally` blocks run.
+6. **Process lifecycle.** `close` followed by a drained mailbox is normal
+   completion; `stop()` and scope cancellation are never failures; a fatal
+   drain failure (an `Error`, or an error in the observer) restarts under the
+   `RestartPolicy`. The heartbeat beats while the drain runs, independent of
+   handler progress.
+
+Enforced by [`KapProcessLawsTest.kt`](kap-stream/src/jvmTest/kotlin/kap/KapProcessLawsTest.kt)
+(strategy survival and counting, order, at-most-one handler; property-checked
+under virtual time) and [`KapProcessTest.kt`](kap-stream/src/jvmTest/kotlin/kap/KapProcessTest.kt)
+(suspension, isolation, budget, heartbeat, lifecycle).
+
 ## Arrow Integration
 
 Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplementation. All validated operations produce standard `Either<NonEmptyList<E>, A>` values.
@@ -231,4 +267,4 @@ Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplement
 
 All laws are verified in [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/ApplicativeLawsTest.kt) using Kotest property-based testing with random inputs.
 
-**1253 tests across 95 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
+**1271 tests across 97 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
