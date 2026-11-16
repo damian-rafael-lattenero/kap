@@ -1,0 +1,235 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Meter</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    KAP
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">5.4.0
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":kap-core/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":kap-core/commonMain" data-filter=":kap-core/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    KAP
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="kap-core::kap/Meter///PointingToDeclaration//606109949">
+  <div class="breadcrumbs"><a href="../../index.html">kap-core</a><span class="delimiter">/</span><a href="../index.html">kap</a><span class="delimiter">/</span><span class="current">Meter</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Meter</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">interface </span><a href="index.html">Meter</a></div><p class="paragraph">A tiny <strong>multiplatform metrics SPI</strong>: counters, timers and gauges addressed by name and tags. It is the seam an integration module (for example <code class="lang-kotlin">kap-micrometer</code>) implements once, so an application never hand-rolls the same counters around every pump, worker or effect.</p><h2 class="">The contract</h2><ol><li><p class="paragraph"><strong>Timed operations take the CALL, not a finished duration.</strong> <a href="time.html">time</a> and     <a href="time-suspending.html">timeSuspending</a> run the block and measure it; callers never read a clock     just to feed a meter. <a href="record.html">record</a> exists for durations measured elsewhere     (a frame the integration already timed).</p></li><li><p class="paragraph"><strong>The names are identities; tags are dimensions.</strong> <a href="increment.html">increment</a>,     <a href="record.html">record</a> and <a href="gauge.html">gauge</a> receive the metric name verbatim. No implementation     may fold tags into the name: the same name is the same metric for every     tag combination.</p></li><li><p class="paragraph"><strong>Instrumentation never breaks the measured code.</strong> A <a href="index.html">Meter</a>     implementation must not throw. A foreign implementation that can throw is     wrapped once with <a href="-companion/guarded.html">guarded</a>: the failure is caught and handed to the     failure reporter — swallowed silently is not allowed — while the block's     value and exception pass through untouched.</p></li><li><p class="paragraph"><strong>Timers record exactly once</strong>, on success, failure and cancellation     alike; a <code class="lang-kotlin">CancellationException</code> is recorded and then rethrown.</p></li><li><p class="paragraph"><strong>Gauges are read at scrape time.</strong> <a href="gauge.html">gauge</a> registers a supplier; the     backing registry reads it whenever a scrape happens, never at     registration.</p></li></ol><p class="paragraph"><a href="-noop/index.html">Noop</a> is the strict OFF: no registry, no clock read on the timed paths, no allocation (the block runs bare), exception-transparent.</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">val meter: Meter = if (metricsEnabled) MicrometerMeter(registry) else Meter.Noop<br><br>meter.increment("poller.cycles")<br>meter.time("brain.request") { brain.ask(prompt) }<br>meter.gauge("outbox.depth", Tags.of("lane" to "main")) { outbox.depth().toDouble() }</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><h4 class="tableheader">Inheritors</h4><div class="table"><div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-noop/index.html">Noop</a></div></span></div><div></div></div></div></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="1352225279%2FClasslikes%2F606109949" anchor-label="Companion" id="1352225279%2FClasslikes%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1352225279%2FClasslikes%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-317730955%2FClasslikes%2F606109949" anchor-label="Noop" id="-317730955%2FClasslikes%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-noop/index.html"><span><span>Noop</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-317730955%2FClasslikes%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-noop/index.html">Noop</a> : <a href="index.html">Meter</a></div><div class="brief "><p class="paragraph">The strict OFF implementation: every tap is a no-op, <a href="-noop/time.html">time</a> and <a href="-noop/time-suspending.html">timeSuspending</a> run the block bare (not one clock read), gauges are never registered. A component wired with <a href="-noop/index.html">Noop</a> is byte-for-byte the uninstrumented one.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-1129971487%2FFunctions%2F606109949" anchor-label="gauge" id="-1129971487%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="gauge.html"><span><span>gauge</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1129971487%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="gauge.html"><span class="token function">gauge</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">tags<span class="token operator">: </span><a href="../-tags/index.html">Tags</a><span class="token operator"> = </span>Tags.Empty<span class="token punctuation">, </span></span><span class="parameter ">supplier<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Registers a gauge <a href="gauge.html">name</a> whose value is read from <a href="gauge.html">supplier</a> at scrape time. Registration happens once; the supplier is called by the registry on every scrape and must return the current value (never a cached one).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2046749449%2FFunctions%2F606109949" anchor-label="increment" id="-2046749449%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="increment.html"><span><span>increment</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2046749449%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="increment.html"><span class="token function">increment</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">tags<span class="token operator">: </span><a href="../-tags/index.html">Tags</a><span class="token operator"> = </span>Tags.Empty</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Counts one occurrence of the event <a href="increment.html">name</a>. <a href="increment.html">tags</a> are dimensions of the same metric, never part of its identity.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2086679064%2FFunctions%2F606109949" anchor-label="record" id="2086679064%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="record.html"><span><span>record</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2086679064%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="record.html"><span class="token function">record</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">tags<span class="token operator">: </span><a href="../-tags/index.html">Tags</a><span class="token operator"> = </span>Tags.Empty<span class="token punctuation">, </span></span><span class="parameter ">duration<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Records one <a href="record.html">duration</a> for the timer <a href="record.html">name</a>. Use this overload for a duration already measured elsewhere; for fresh work use <a href="time.html">time</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="958692797%2FFunctions%2F606109949" anchor-label="time" id="958692797%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="time.html"><span><span>time</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="958692797%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="time.html">T</a><span class="token operator">&gt; </span><a href="time.html"><span class="token function">time</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">tags<span class="token operator">: </span><a href="../-tags/index.html">Tags</a><span class="token operator"> = </span>Tags.Empty<span class="token punctuation">, </span></span><span class="parameter ">block<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="time.html">T</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="time.html">T</a></div><div class="brief "><p class="paragraph">Times <a href="time.html">block</a> and records exactly one sample under <a href="time.html">name</a>, on success, failure and cancellation alike. The block's value — or its exception — is returned/rethrown untouched.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-490334962%2FFunctions%2F606109949" anchor-label="timeSuspending" id="-490334962%2FFunctions%2F606109949" data-filterable-set=":kap-core/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-core/commonMain" data-filterable-set=":kap-core/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="time-suspending.html"><span>time</span><wbr><span><span>Suspending</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-490334962%2FFunctions%2F606109949"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-core/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">suspend </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="time-suspending.html">T</a><span class="token operator">&gt; </span><a href="time-suspending.html"><span class="token function">timeSuspending</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">tags<span class="token operator">: </span><a href="../-tags/index.html">Tags</a><span class="token operator"> = </span>Tags.Empty<span class="token punctuation">, </span></span><span class="parameter ">block<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="time-suspending.html">T</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="time-suspending.html">T</a></div><div class="brief "><p class="paragraph">The suspending twin of <a href="time.html">time</a>: the sample is recorded in <code class="lang-kotlin">finally</code>, so a cancelled block still records exactly once and the cancellation keeps propagating.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

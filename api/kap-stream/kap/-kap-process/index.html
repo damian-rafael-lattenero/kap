@@ -1,0 +1,269 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>KapProcess</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    KAP
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">5.4.0
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":kap-stream/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":kap-stream/commonMain" data-filter=":kap-stream/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    KAP
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="kap-stream::kap/KapProcess///PointingToDeclaration//-1339099042">
+  <div class="breadcrumbs"><a href="../../index.html">kap-stream</a><span class="delimiter">/</span><a href="../index.html">kap</a><span class="delimiter">/</span><span class="current">KapProcess</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Kap</span><wbr><span><span>Process</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">KapProcess</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>backpressure<span class="token operator">: </span><a href="../-backpressure/index.html">Backpressure</a><span class="token operator"> = </span>Backpressure.Suspend<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>itemBudget<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>Duration.INFINITE<span class="token punctuation">, </span></span><span class="parameter ">observe<span class="token operator">: </span><span class="token punctuation">(</span><a href="../-mailbox-event/index.html">MailboxEvent</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{}</span></span><span class="token punctuation">)</span></div><p class="paragraph">A typed mailbox process — "actors yes, Akka no" (SPEC-5.0): a bounded queue of a user ADT <a href="index.html">A</a>, a <strong>named</strong> backpressure policy (<a href="../-backpressure/index.html">Backpressure</a>, the same algebra <a href="../-kap-stream/index.html">KapStream</a> uses), a single-consumer drain with per-item failure isolation and a per-item time budget, and a lifecycle that is a <a href="../../../kap-resilience/kap/-process/index.html">Process</a> (kap-resilience) with all of its laws: normal completion, stop and scope cancellation are never failures, a failure restarts under the policy, and the heartbeat beats while the drain runs.</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">sealed interface Command<br>data class EnforceMode(val taskId: String) : Command<br>data class RefreshMenu(val taskId: String, val options: List&lt;Option&gt;) : Command<br><br>val mailbox = KapProcess&lt;Command&gt;(<br>    name = "stream-effects",<br>    backpressure = Backpressure.Buffer(256),   // exact: the producer waits, nothing is lost<br>    itemBudget = 45.seconds,                    // one stuck effect can never stall the loop<br>    observe = { event -&gt; log(event) },          // drops, failures and timeouts as data<br>)<br><br>coroutineScope {<br>    val worker = mailbox.asProcess(handler = { command -&gt; runEffect(command) }).startIn(this)<br>    mailbox.offer(EnforceMode(taskId))          // from the pump: suspends only if the buffer is full<br>    awaitShutdownSignal()<br>    worker.stop()                               // idempotent, not a failure<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><h2 class="">Module placement</h2><p class="paragraph"><code class="lang-kotlin">KapProcess</code> lives in <strong>kap-stream</strong> on purpose. The minimal-code law asks for the smallest home that already owns the required pieces: kap-stream owns <a href="../-backpressure/index.html">Backpressure</a> (the mailbox's policy value) and already depends on kap-resilience (the <a href="../../../kap-resilience/kap/-process/index.html">Process</a> lifecycle). A dedicated <code class="lang-kotlin">kap-actors</code> module would add a Gradle module, a publication coordinate and a new dependency edge for ~250 lines that reuse exactly these two algebras. The mailbox is the same backpressure algebra with one consumer instead of a stream of stages; it belongs next to it.</p><h2 class="">Laws</h2><ol><li><p class="paragraph"><strong>Exact strategies never drop.</strong> <a href="../-backpressure/-suspend/index.html">Backpressure.Suspend</a> and     <a href="../-backpressure/-buffer/index.html">Backpressure.Buffer</a> hand every offered item to the handler, in offer     order, and <a href="dropped.html">dropped</a> stays <code class="lang-kotlin">0</code>. The producer suspends exactly where the     strategy says (always for <code class="lang-kotlin">Suspend</code>, only when full for <code class="lang-kotlin">Buffer</code>).</p></li><li><p class="paragraph"><strong>Lossy strategies drop only what they say — and count it.</strong> <code class="lang-kotlin">Conflate</code>,     <code class="lang-kotlin">Latest(n)</code> and <code class="lang-kotlin">DropOldest(n)</code> keep the newest <code class="lang-kotlin">n</code> (<code class="lang-kotlin">Conflate</code> = one),     <code class="lang-kotlin">DropLatest(n)</code> keeps the oldest <code class="lang-kotlin">n</code> and drops the incoming element.     Survivors keep offer order and are never duplicated, and every lost item     increments <a href="dropped.html">dropped</a> exactly once (offers after <a href="close.html">close</a> included).     <code class="lang-kotlin">delivered + dropped == offered</code> once a closed mailbox has drained.</p></li><li><p class="paragraph"><strong>At most one handler at a time.</strong> The drain is a single sequential loop;     starting a second <a href="consume.html">consume</a> on the same mailbox is rejected, so two     handlers can never overlap.</p></li><li><p class="paragraph"><strong>Failure isolation.</strong> A handler throwing an <code class="lang-kotlin">Exception</code> is reported as     <a href="../-mailbox-event/-failed/index.html">MailboxEvent.Failed</a> and the drain continues with the next item; the     surrounding <a href="../../../kap-resilience/kap/-process/index.html">Process</a> does not restart. <code class="lang-kotlin">CancellationException</code> is never     an item failure: it propagates (cancellation is sacred).</p></li><li><p class="paragraph"><strong>Budget, not abandonment by silence.</strong> An item whose handler exceeds     <span data-unresolved-link="kap/KapProcess//#kotlin.String#kap.Backpressure#kotlin.time.Duration#kotlin.Function1[kap.MailboxEvent[TypeParam(bounds=[kotlin.Any?])],kotlin.Unit]/PointingToCallableParameters(2)/">itemBudget</span> is cancelled and reported as <a href="../-mailbox-event/-timed-out/index.html">MailboxEvent.TimedOut</a>; the     next item starts immediately. The handler's <code class="lang-kotlin">finally</code> blocks still run.</p></li><li><p class="paragraph"><strong>Process lifecycle.</strong> Normal completion is <a href="close.html">close</a> followed by a drained     mailbox; <code class="lang-kotlin">stop()</code> and scope cancellation are never failures; a fatal     failure of the drain (an <code class="lang-kotlin">Error</code>, or an error in the observer) restarts     it under the <a href="../../../kap-resilience/kap/-restart-policy/index.html">RestartPolicy</a>. The heartbeat beats while the drain runs,     independent of handler progress.</p></li></ol></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="851140143%2FConstructors%2F-1339099042" anchor-label="KapProcess" id="851140143%2FConstructors%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-kap-process.html"><span>Kap</span><wbr><span><span>Process</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="851140143%2FConstructors%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">backpressure<span class="token operator">: </span><a href="../-backpressure/index.html">Backpressure</a><span class="token operator"> = </span>Backpressure.Suspend<span class="token punctuation">, </span></span><span class="parameter ">itemBudget<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>Duration.INFINITE<span class="token punctuation">, </span></span><span class="parameter ">observe<span class="token operator">: </span><span class="token punctuation">(</span><a href="../-mailbox-event/index.html">MailboxEvent</a><span class="token operator">&lt;</span><a href="index.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{}</span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-1935602324%2FProperties%2F-1339099042" anchor-label="backpressure" id="-1935602324%2FProperties%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="backpressure.html"><span><span>backpressure</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1935602324%2FProperties%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="backpressure.html">backpressure</a><span class="token operator">: </span><a href="../-backpressure/index.html">Backpressure</a></div><div class="brief "><p class="paragraph">The named strategy deciding what happens when the consumer cannot take an item yet.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1776288450%2FProperties%2F-1339099042" anchor-label="dropped" id="1776288450%2FProperties%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="dropped.html"><span><span>dropped</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1776288450%2FProperties%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="dropped.html">dropped</a><span class="token operator">: </span><span data-unresolved-link="kotlinx.coroutines.flow/StateFlow///PointingToDeclaration/">StateFlow</span><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Items the mailbox never handed to the handler — the readable drop counter.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1039903328%2FProperties%2F-1339099042" anchor-label="itemBudget" id="-1039903328%2FProperties%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="item-budget.html"><span>item</span><wbr><span><span>Budget</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1039903328%2FProperties%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="item-budget.html">itemBudget</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a></div><div class="brief "><p class="paragraph">The per-item time budget: a handler running longer is cancelled and reported as <a href="../-mailbox-event/-timed-out/index.html">MailboxEvent.TimedOut</a>. <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/-companion/-i-n-f-i-n-i-t-e.html">Duration.INFINITE</a> (the default) disables the budget.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1491076371%2FProperties%2F-1339099042" anchor-label="name" id="-1491076371%2FProperties%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="name.html"><span><span>name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1491076371%2FProperties%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="name.html">name</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div><div class="brief "><p class="paragraph">The mailbox name, surfaced by the <a href="../../../kap-resilience/kap/-process/index.html">Process</a> handle and its terminal exceptions.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="852494881%2FFunctions%2F-1339099042" anchor-label="asProcess" id="852494881%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="as-process.html"><span>as</span><wbr><span><span>Process</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="852494881%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="as-process.html"><span class="token function">asProcess</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">handler<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token punctuation">, </span></span><span class="parameter ">restart<span class="token operator">: </span><a href="../../../kap-resilience/kap/-restart-policy/index.html">RestartPolicy</a><span class="token operator"> = </span>RestartPolicy.exponential()<span class="token punctuation">, </span></span><span class="parameter ">heartbeatEvery<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>1.seconds<span class="token punctuation">, </span></span><span class="parameter ">onRestart<span class="token operator">: </span><span class="token punctuation">(</span>attempt<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span>error<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a><span class="token punctuation">, </span>nextDelay<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{ _, _, _ -&gt; }<span class="token punctuation">, </span></span><span class="parameter ">onHeartbeat<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{}<span class="token punctuation">, </span></span><span class="parameter ">timeSource<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-time-source/index.html">TimeSource</a><span class="token operator"> = </span>TimeSource.Monotonic</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../kap-resilience/kap/-process/index.html">Process</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">The mailbox as a supervised <a href="../../../kap-resilience/kap/-process/index.html">Process</a> — the SPEC-5.0 actor with the Process laws. The body is <a href="consume.html">consume</a>; a normally closed mailbox finishes the process, <code class="lang-kotlin">stop()</code>/scope cancellation end it without a restart, and a fatal drain failure restarts it under <a href="as-process.html">restart</a>. The heartbeat comes from <a href="../../../kap-arrow/kap/index.html">Kap.process</a> and beats while the drain runs, including mid-handler.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1131178186%2FFunctions%2F-1339099042" anchor-label="close" id="1131178186%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="close.html"><span><span>close</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1131178186%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="close.html"><span class="token function">close</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Closes the mailbox: no further item is accepted (offers are dropped and counted) and the drain completes normally after the buffered items are handled. Idempotent.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="660442736%2FFunctions%2F-1339099042" anchor-label="consume" id="660442736%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="consume.html"><span><span>consume</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="660442736%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="consume.html"><span class="token function">consume</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">handler<span class="token operator">: </span><span class="token keyword">suspend </span><span class="token punctuation">(</span><a href="index.html">A</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Runs the drain: every item, in order, through <a href="consume.html">handler</a> — at most one handler at a time. Per-item failures are reported and isolated (<a href="../-mailbox-event/-failed/index.html">MailboxEvent.Failed</a>); an item exceeding <span data-unresolved-link="kap/KapProcess//#kotlin.String#kap.Backpressure#kotlin.time.Duration#kotlin.Function1[kap.MailboxEvent[TypeParam(bounds=[kotlin.Any?])],kotlin.Unit]/PointingToCallableParameters(2)/">itemBudget</span> is cancelled and reported (<a href="../-mailbox-event/-timed-out/index.html">MailboxEvent.TimedOut</a>); cancellation of the caller is never swallowed. Completes normally when the mailbox is <a href="close.html">close</a>d and drained.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1656759208%2FFunctions%2F-1339099042" anchor-label="offer" id="-1656759208%2FFunctions%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="offer.html"><span><span>offer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1656759208%2FFunctions%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="offer.html"><span class="token function">offer</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">item<span class="token operator">: </span><a href="index.html">A</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Offers <a href="offer.html">item</a> to the mailbox. Never throws a failure: under the exact strategies it suspends exactly as the strategy prescribes (always for <a href="../-backpressure/-suspend/index.html">Backpressure.Suspend</a>, only when full for <a href="../-backpressure/-buffer/index.html">Backpressure.Buffer</a>); under the lossy strategies it never suspends, drops per policy and increments <a href="dropped.html">dropped</a>. An offer after <a href="close.html">close</a> is dropped and counted too, so no caller ever observes a closed-mailbox exception.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

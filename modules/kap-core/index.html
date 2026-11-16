@@ -1191,6 +1191,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Observability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metrics-the-meter-spi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics — the Meter SPI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1400,6 +1417,34 @@
     
   
     kap-ktor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kap-micrometer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    kap-micrometer
   
 
     
@@ -2393,6 +2438,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Observability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metrics-the-meter-spi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics — the Meter SPI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -3507,77 +3569,105 @@
 </span><span id="__span-80-14"><a id="__codelineno-80-14" name="__codelineno-80-14" href="#__codelineno-80-14"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="p">(</span><span class="n">DashboardKap</span><span class="p">.</span><span class="na">config</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchConfig</span><span class="p">()</span><span class="w"> </span><span class="p">}.</span><span class="na">traced</span><span class="p">(</span><span class="s">&quot;fetch-config&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">tracer</span><span class="p">))</span>
 </span><span id="__span-80-15"><a id="__codelineno-80-15" name="__codelineno-80-15" href="#__codelineno-80-15"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span></code></pre></div>
+<h4 id="metrics-the-meter-spi">Metrics — the <code>Meter</code> SPI<a class="headerlink" href="#metrics-the-meter-spi" title="Permanent link">&para;</a></h4>
+<p><code>Meter</code> is the small multiplatform seam between KAP code and any metrics
+registry: counters by name+tags, timers that take the call, gauges read at
+scrape time. <code>Meter.Noop</code> is the strict OFF value: the block runs bare, with
+no clock read and zero allocation.</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-81-1"><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">meter</span><span class="p">:</span><span class="w"> </span><span class="n">Meter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">metricsEnabled</span><span class="p">)</span><span class="w"> </span><span class="n">MicrometerMeter</span><span class="p">(</span><span class="n">registry</span><span class="p">)</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="n">Meter</span><span class="p">.</span><span class="na">Noop</span>
+</span><span id="__span-81-2"><a id="__codelineno-81-2" name="__codelineno-81-2" href="#__codelineno-81-2"></a>
+</span><span id="__span-81-3"><a id="__codelineno-81-3" name="__codelineno-81-3" href="#__codelineno-81-3"></a><span class="n">meter</span><span class="p">.</span><span class="na">increment</span><span class="p">(</span><span class="s">&quot;poller.cycles&quot;</span><span class="p">)</span>
+</span><span id="__span-81-4"><a id="__codelineno-81-4" name="__codelineno-81-4" href="#__codelineno-81-4"></a><span class="n">meter</span><span class="p">.</span><span class="na">increment</span><span class="p">(</span><span class="s">&quot;turns.sealed&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Tags</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">&quot;outcome&quot;</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="s">&quot;failed&quot;</span><span class="p">))</span>
+</span><span id="__span-81-5"><a id="__codelineno-81-5" name="__codelineno-81-5" href="#__codelineno-81-5"></a>
+</span><span id="__span-81-6"><a id="__codelineno-81-6" name="__codelineno-81-6" href="#__codelineno-81-6"></a><span class="c1">// timed operations take the call — the OFF meter just runs it</span>
+</span><span id="__span-81-7"><a id="__codelineno-81-7" name="__codelineno-81-7" href="#__codelineno-81-7"></a><span class="kd">val</span><span class="w"> </span><span class="nv">answer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">meter</span><span class="p">.</span><span class="na">time</span><span class="p">(</span><span class="s">&quot;brain.request&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">brain</span><span class="p">.</span><span class="na">ask</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-81-8"><a id="__codelineno-81-8" name="__codelineno-81-8" href="#__codelineno-81-8"></a>
+</span><span id="__span-81-9"><a id="__codelineno-81-9" name="__codelineno-81-9" href="#__codelineno-81-9"></a><span class="c1">// gauges are read at scrape time, never cached</span>
+</span><span id="__span-81-10"><a id="__codelineno-81-10" name="__codelineno-81-10" href="#__codelineno-81-10"></a><span class="n">meter</span><span class="p">.</span><span class="na">gauge</span><span class="p">(</span><span class="s">&quot;outbox.depth&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Tags</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">&quot;lane&quot;</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="s">&quot;main&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">outbox</span><span class="p">.</span><span class="na">depth</span><span class="p">().</span><span class="na">toDouble</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<p>Instrumentation must never break the measured code. Wrap a foreign
+implementation once so a throwing meter is reported (never silently swallowed)
+while the measured block's value and exception pass through untouched:</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-82-1"><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">meter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Meter</span><span class="p">.</span><span class="na">guarded</span><span class="p">(</span><span class="n">MicrometerMeter</span><span class="p">(</span><span class="n">registry</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">failure</span><span class="w"> </span><span class="o">-&gt;</span>
+</span><span id="__span-82-2"><a id="__codelineno-82-2" name="__codelineno-82-2" href="#__codelineno-82-2"></a><span class="w">    </span><span class="n">log</span><span class="p">.</span><span class="na">warn</span><span class="p">(</span><span class="s">&quot;metrics failure in </span><span class="si">${</span><span class="n">failure</span><span class="p">.</span><span class="na">operation</span><span class="si">}</span><span class="s"> </span><span class="si">${</span><span class="n">failure</span><span class="p">.</span><span class="na">name</span><span class="si">}</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">failure</span><span class="p">.</span><span class="na">error</span><span class="p">)</span>
+</span><span id="__span-82-3"><a id="__codelineno-82-3" name="__codelineno-82-3" href="#__codelineno-82-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Build <code>Tags</code> values once at wiring time and reuse them on the hot path. The
+SPI ships with its laws (<code>MeterLawsTest</code>): the no-op is inert, tags never
+rewrite the metric name, a throwing meter cannot affect the block, and a timed
+suspend block records exactly once under cancellation. The optional
+<code>kap-micrometer</code> module implements the SPI over a Micrometer <code>MeterRegistry</code>.</p>
 <h3 id="utilities">Utilities<a class="headerlink" href="#utilities" title="Permanent link">&para;</a></h3>
 <h4 id="keepfirst-keepsecond"><code>.keepFirst</code> / <code>.keepSecond</code><a class="headerlink" href="#keepfirst-keepsecond" title="Permanent link">&para;</a></h4>
 <p>Run both in parallel, keep only one result:</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="25:3"><input checked="checked" id="__tabbed_25_1" name="__tabbed_25" type="radio" /><input id="__tabbed_25_2" name="__tabbed_25" type="radio" /><input id="__tabbed_25_3" name="__tabbed_25" type="radio" /><div class="tabbed-labels"><label for="__tabbed_25_1">Raw Coroutines</label><label for="__tabbed_25_2">Arrow</label><label for="__tabbed_25_3">KAP</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-81-1"><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">coroutineScope</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-81-2"><a id="__codelineno-81-2" name="__codelineno-81-2" href="#__codelineno-81-2"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">dUser</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">async</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-81-3"><a id="__codelineno-81-3" name="__codelineno-81-3" href="#__codelineno-81-3"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">dLog</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">async</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logAccess</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-81-4"><a id="__codelineno-81-4" name="__codelineno-81-4" href="#__codelineno-81-4"></a><span class="w">    </span><span class="n">dLog</span><span class="p">.</span><span class="na">await</span><span class="p">()</span><span class="w">    </span><span class="c1">// must explicitly await to ensure it completes</span>
-</span><span id="__span-81-5"><a id="__codelineno-81-5" name="__codelineno-81-5" href="#__codelineno-81-5"></a><span class="w">    </span><span class="n">dUser</span><span class="p">.</span><span class="na">await</span><span class="p">()</span><span class="w">   </span><span class="c1">// easy to forget awaiting the side-effect</span>
-</span><span id="__span-81-6"><a id="__codelineno-81-6" name="__codelineno-81-6" href="#__codelineno-81-6"></a><span class="p">}</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-83-1"><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">coroutineScope</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-83-2"><a id="__codelineno-83-2" name="__codelineno-83-2" href="#__codelineno-83-2"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">dUser</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">async</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-83-3"><a id="__codelineno-83-3" name="__codelineno-83-3" href="#__codelineno-83-3"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">dLog</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">async</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logAccess</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-83-4"><a id="__codelineno-83-4" name="__codelineno-83-4" href="#__codelineno-83-4"></a><span class="w">    </span><span class="n">dLog</span><span class="p">.</span><span class="na">await</span><span class="p">()</span><span class="w">    </span><span class="c1">// must explicitly await to ensure it completes</span>
+</span><span id="__span-83-5"><a id="__codelineno-83-5" name="__codelineno-83-5" href="#__codelineno-83-5"></a><span class="w">    </span><span class="n">dUser</span><span class="p">.</span><span class="na">await</span><span class="p">()</span><span class="w">   </span><span class="c1">// easy to forget awaiting the side-effect</span>
+</span><span id="__span-83-6"><a id="__codelineno-83-6" name="__codelineno-83-6" href="#__codelineno-83-6"></a><span class="p">}</span>
 </span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-82-1"><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">parZip</span><span class="p">(</span>
-</span><span id="__span-82-2"><a id="__codelineno-82-2" name="__codelineno-82-2" href="#__codelineno-82-2"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-82-3"><a id="__codelineno-82-3" name="__codelineno-82-3" href="#__codelineno-82-3"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">logAccess</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-82-4"><a id="__codelineno-82-4" name="__codelineno-82-4" href="#__codelineno-82-4"></a><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">user</span><span class="p">,</span><span class="w"> </span><span class="n">_</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">user</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// both run, manually discard second</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-84-1"><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">parZip</span><span class="p">(</span>
+</span><span id="__span-84-2"><a id="__codelineno-84-2" name="__codelineno-84-2" href="#__codelineno-84-2"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-84-3"><a id="__codelineno-84-3" name="__codelineno-84-3" href="#__codelineno-84-3"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">logAccess</span><span class="p">()</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-84-4"><a id="__codelineno-84-4" name="__codelineno-84-4" href="#__codelineno-84-4"></a><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">user</span><span class="p">,</span><span class="w"> </span><span class="n">_</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">user</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// both run, manually discard second</span>
 </span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-83-1"><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-83-2"><a id="__codelineno-83-2" name="__codelineno-83-2" href="#__codelineno-83-2"></a><span class="w">    </span><span class="p">.</span><span class="na">keepFirst</span><span class="p">(</span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logAccess</span><span class="p">()</span><span class="w"> </span><span class="p">})</span><span class="w">  </span><span class="c1">// both run, only user returned</span>
-</span><span id="__span-83-3"><a id="__codelineno-83-3" name="__codelineno-83-3" href="#__codelineno-83-3"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-85-1"><a id="__codelineno-85-1" name="__codelineno-85-1" href="#__codelineno-85-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-85-2"><a id="__codelineno-85-2" name="__codelineno-85-2" href="#__codelineno-85-2"></a><span class="w">    </span><span class="p">.</span><span class="na">keepFirst</span><span class="p">(</span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logAccess</span><span class="p">()</span><span class="w"> </span><span class="p">})</span><span class="w">  </span><span class="c1">// both run, only user returned</span>
+</span><span id="__span-85-3"><a id="__codelineno-85-3" name="__codelineno-85-3" href="#__codelineno-85-3"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span></code></pre></div>
 </div>
 </div>
 </div>
 <h4 id="discard-peek"><code>.discard()</code> / <code>.peek { }</code><a class="headerlink" href="#discard-peek" title="Permanent link">&para;</a></h4>
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-84-1"><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">unit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}.</span><span class="na">discard</span><span class="p">().</span><span class="na">evalGraph</span><span class="p">()</span><span class="w">  </span><span class="c1">// runs but returns Unit</span>
-</span><span id="__span-84-2"><a id="__codelineno-84-2" name="__codelineno-84-2" href="#__codelineno-84-2"></a>
-</span><span id="__span-84-3"><a id="__codelineno-84-3" name="__codelineno-84-3" href="#__codelineno-84-3"></a><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-84-4"><a id="__codelineno-84-4" name="__codelineno-84-4" href="#__codelineno-84-4"></a><span class="w">    </span><span class="p">.</span><span class="na">peek</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">println</span><span class="p">(</span><span class="s">&quot;Fetched: </span><span class="si">$</span><span class="n">it</span><span class="s">&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">  </span><span class="c1">// side-effect, returns original value</span>
-</span><span id="__span-84-5"><a id="__codelineno-84-5" name="__codelineno-84-5" href="#__codelineno-84-5"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-86-1"><a id="__codelineno-86-1" name="__codelineno-86-1" href="#__codelineno-86-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">unit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}.</span><span class="na">discard</span><span class="p">().</span><span class="na">evalGraph</span><span class="p">()</span><span class="w">  </span><span class="c1">// runs but returns Unit</span>
+</span><span id="__span-86-2"><a id="__codelineno-86-2" name="__codelineno-86-2" href="#__codelineno-86-2"></a>
+</span><span id="__span-86-3"><a id="__codelineno-86-3" name="__codelineno-86-3" href="#__codelineno-86-3"></a><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-86-4"><a id="__codelineno-86-4" name="__codelineno-86-4" href="#__codelineno-86-4"></a><span class="w">    </span><span class="p">.</span><span class="na">peek</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">println</span><span class="p">(</span><span class="s">&quot;Fetched: </span><span class="si">$</span><span class="n">it</span><span class="s">&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">  </span><span class="c1">// side-effect, returns original value</span>
+</span><span id="__span-86-5"><a id="__codelineno-86-5" name="__codelineno-86-5" href="#__codelineno-86-5"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span></code></pre></div>
 <h4 id="oncontext-namedname"><code>.on(context)</code> / <code>.named(name)</code><a class="headerlink" href="#oncontext-namedname" title="Permanent link">&para;</a></h4>
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-85-1"><a id="__codelineno-85-1" name="__codelineno-85-1" href="#__codelineno-85-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">readFile</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-85-2"><a id="__codelineno-85-2" name="__codelineno-85-2" href="#__codelineno-85-2"></a><span class="w">    </span><span class="p">.</span><span class="na">on</span><span class="p">(</span><span class="n">Dispatchers</span><span class="p">.</span><span class="na">IO</span><span class="p">)</span><span class="w">          </span><span class="c1">// switch dispatcher</span>
-</span><span id="__span-85-3"><a id="__codelineno-85-3" name="__codelineno-85-3" href="#__codelineno-85-3"></a><span class="w">    </span><span class="p">.</span><span class="na">named</span><span class="p">(</span><span class="s">&quot;file-read&quot;</span><span class="p">)</span><span class="w">          </span><span class="c1">// coroutine name for debugging</span>
-</span><span id="__span-85-4"><a id="__codelineno-85-4" name="__codelineno-85-4" href="#__codelineno-85-4"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-87-1"><a id="__codelineno-87-1" name="__codelineno-87-1" href="#__codelineno-87-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">readFile</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-87-2"><a id="__codelineno-87-2" name="__codelineno-87-2" href="#__codelineno-87-2"></a><span class="w">    </span><span class="p">.</span><span class="na">on</span><span class="p">(</span><span class="n">Dispatchers</span><span class="p">.</span><span class="na">IO</span><span class="p">)</span><span class="w">          </span><span class="c1">// switch dispatcher</span>
+</span><span id="__span-87-3"><a id="__codelineno-87-3" name="__codelineno-87-3" href="#__codelineno-87-3"></a><span class="w">    </span><span class="p">.</span><span class="na">named</span><span class="p">(</span><span class="s">&quot;file-read&quot;</span><span class="p">)</span><span class="w">          </span><span class="c1">// coroutine name for debugging</span>
+</span><span id="__span-87-4"><a id="__codelineno-87-4" name="__codelineno-87-4" href="#__codelineno-87-4"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span></code></pre></div>
 <h4 id="evalgraph-execute-from-any-suspend-context"><code>.evalGraph()</code> — Execute from any suspend context<a class="headerlink" href="#evalgraph-execute-from-any-suspend-context" title="Permanent link">&para;</a></h4>
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-86-1"><a id="__codelineno-86-1" name="__codelineno-86-1" href="#__codelineno-86-1"></a><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">myFunction</span><span class="p">():</span><span class="w"> </span><span class="kt">String</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-86-2"><a id="__codelineno-86-2" name="__codelineno-86-2" href="#__codelineno-86-2"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}.</span><span class="na">evalGraph</span><span class="p">()</span>
-</span><span id="__span-86-3"><a id="__codelineno-86-3" name="__codelineno-86-3" href="#__codelineno-86-3"></a><span class="p">}</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-88-1"><a id="__codelineno-88-1" name="__codelineno-88-1" href="#__codelineno-88-1"></a><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">myFunction</span><span class="p">():</span><span class="w"> </span><span class="kt">String</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-88-2"><a id="__codelineno-88-2" name="__codelineno-88-2" href="#__codelineno-88-2"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fetchUser</span><span class="p">()</span><span class="w"> </span><span class="p">}.</span><span class="na">evalGraph</span><span class="p">()</span>
+</span><span id="__span-88-3"><a id="__codelineno-88-3" name="__codelineno-88-3" href="#__codelineno-88-3"></a><span class="p">}</span>
 </span></code></pre></div>
 <h4 id="delayedduration-value-withornullfa"><code>delayed(duration, value)</code> / <code>.withOrNull(fa)</code><a class="headerlink" href="#delayedduration-value-withornullfa" title="Permanent link">&para;</a></h4>
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-87-1"><a id="__codelineno-87-1" name="__codelineno-87-1" href="#__codelineno-87-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">delayed</span><span class="p">(</span><span class="m">100.</span><span class="n">milliseconds</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;delayed-value&quot;</span><span class="p">).</span><span class="na">evalGraph</span><span class="p">()</span>
-</span><span id="__span-87-2"><a id="__codelineno-87-2" name="__codelineno-87-2" href="#__codelineno-87-2"></a>
-</span><span id="__span-87-3"><a id="__codelineno-87-3" name="__codelineno-87-3" href="#__codelineno-87-3"></a><span class="c1">// withOrNull fills a NULLABLE slot of a curried function — passes null when the Kap is null</span>
-</span><span id="__span-87-4"><a id="__codelineno-87-4" name="__codelineno-87-4" href="#__codelineno-87-4"></a><span class="kd">val</span><span class="w"> </span><span class="nv">insurance</span><span class="p">:</span><span class="w"> </span><span class="n">Kap</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;?</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span>
-</span><span id="__span-87-5"><a id="__codelineno-87-5" name="__codelineno-87-5" href="#__codelineno-87-5"></a><span class="kd">val</span><span class="w"> </span><span class="nv">booking</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kap</span><span class="p">(</span><span class="o">::</span><span class="n">Booking</span><span class="p">)</span><span class="w">                       </span><span class="c1">// Booking(flight: String, insurance: String?)</span>
-</span><span id="__span-87-6"><a id="__codelineno-87-6" name="__codelineno-87-6" href="#__codelineno-87-6"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">flight</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">fetchFlight</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-87-7"><a id="__codelineno-87-7" name="__codelineno-87-7" href="#__codelineno-87-7"></a><span class="w">    </span><span class="p">.</span><span class="na">withOrNull</span><span class="p">(</span><span class="n">insurance</span><span class="p">)</span><span class="w">                          </span><span class="c1">// insurance slot gets null, no launch</span>
-</span><span id="__span-87-8"><a id="__codelineno-87-8" name="__codelineno-87-8" href="#__codelineno-87-8"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-89-1"><a id="__codelineno-89-1" name="__codelineno-89-1" href="#__codelineno-89-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">delayed</span><span class="p">(</span><span class="m">100.</span><span class="n">milliseconds</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;delayed-value&quot;</span><span class="p">).</span><span class="na">evalGraph</span><span class="p">()</span>
+</span><span id="__span-89-2"><a id="__codelineno-89-2" name="__codelineno-89-2" href="#__codelineno-89-2"></a>
+</span><span id="__span-89-3"><a id="__codelineno-89-3" name="__codelineno-89-3" href="#__codelineno-89-3"></a><span class="c1">// withOrNull fills a NULLABLE slot of a curried function — passes null when the Kap is null</span>
+</span><span id="__span-89-4"><a id="__codelineno-89-4" name="__codelineno-89-4" href="#__codelineno-89-4"></a><span class="kd">val</span><span class="w"> </span><span class="nv">insurance</span><span class="p">:</span><span class="w"> </span><span class="n">Kap</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;?</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-89-5"><a id="__codelineno-89-5" name="__codelineno-89-5" href="#__codelineno-89-5"></a><span class="kd">val</span><span class="w"> </span><span class="nv">booking</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kap</span><span class="p">(</span><span class="o">::</span><span class="n">Booking</span><span class="p">)</span><span class="w">                       </span><span class="c1">// Booking(flight: String, insurance: String?)</span>
+</span><span id="__span-89-6"><a id="__codelineno-89-6" name="__codelineno-89-6" href="#__codelineno-89-6"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">flight</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">fetchFlight</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-89-7"><a id="__codelineno-89-7" name="__codelineno-89-7" href="#__codelineno-89-7"></a><span class="w">    </span><span class="p">.</span><span class="na">withOrNull</span><span class="p">(</span><span class="n">insurance</span><span class="p">)</span><span class="w">                          </span><span class="c1">// insurance slot gets null, no launch</span>
+</span><span id="__span-89-8"><a id="__codelineno-89-8" name="__codelineno-89-8" href="#__codelineno-89-8"></a><span class="w">    </span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span>
 </span></code></pre></div>
 <h3 id="execution-model">Execution model<a class="headerlink" href="#execution-model" title="Permanent link">&para;</a></h3>
 <p><code>Kap&lt;A&gt;</code> is <strong>lazy</strong> — nothing runs until <code>.evalGraph()</code>:</p>
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-88-1"><a id="__codelineno-88-1" name="__codelineno-88-1" href="#__codelineno-88-1"></a><span class="nd">@KapTypeSafe</span>
-</span><span id="__span-88-2"><a id="__codelineno-88-2" name="__codelineno-88-2" href="#__codelineno-88-2"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">Dashboard</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">cart</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">promos</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span>
-</span><span id="__span-88-3"><a id="__codelineno-88-3" name="__codelineno-88-3" href="#__codelineno-88-3"></a>
-</span><span id="__span-88-4"><a id="__codelineno-88-4" name="__codelineno-88-4" href="#__codelineno-88-4"></a><span class="kd">val</span><span class="w"> </span><span class="nv">plan</span><span class="p">:</span><span class="w"> </span><span class="n">Kap</span><span class="o">&lt;</span><span class="n">Dashboard</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kap</span><span class="p">(</span><span class="o">::</span><span class="n">Dashboard</span><span class="p">)</span>
-</span><span id="__span-88-5"><a id="__codelineno-88-5" name="__codelineno-88-5" href="#__codelineno-88-5"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">user</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">fetchDashUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-88-6"><a id="__codelineno-88-6" name="__codelineno-88-6" href="#__codelineno-88-6"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">cart</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">fetchDashCart</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-88-7"><a id="__codelineno-88-7" name="__codelineno-88-7" href="#__codelineno-88-7"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">promos</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">fetchDashPromos</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-88-8"><a id="__codelineno-88-8" name="__codelineno-88-8" href="#__codelineno-88-8"></a>
-</span><span id="__span-88-9"><a id="__codelineno-88-9" name="__codelineno-88-9" href="#__codelineno-88-9"></a><span class="n">println</span><span class="p">(</span><span class="s">&quot;Plan built. Nothing has executed yet.&quot;</span><span class="p">)</span>
-</span><span id="__span-88-10"><a id="__codelineno-88-10" name="__codelineno-88-10" href="#__codelineno-88-10"></a><span class="n">println</span><span class="p">(</span><span class="s">&quot;plan is: </span><span class="si">${</span><span class="n">plan</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">simpleName</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
-</span><span id="__span-88-11"><a id="__codelineno-88-11" name="__codelineno-88-11" href="#__codelineno-88-11"></a>
-</span><span id="__span-88-12"><a id="__codelineno-88-12" name="__codelineno-88-12" href="#__codelineno-88-12"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="p">:</span><span class="w"> </span><span class="n">Dashboard</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">plan</span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span><span class="w">  </span><span class="c1">// NOW it runs</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-90-1"><a id="__codelineno-90-1" name="__codelineno-90-1" href="#__codelineno-90-1"></a><span class="nd">@KapTypeSafe</span>
+</span><span id="__span-90-2"><a id="__codelineno-90-2" name="__codelineno-90-2" href="#__codelineno-90-2"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">Dashboard</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">user</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">cart</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">promos</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span>
+</span><span id="__span-90-3"><a id="__codelineno-90-3" name="__codelineno-90-3" href="#__codelineno-90-3"></a>
+</span><span id="__span-90-4"><a id="__codelineno-90-4" name="__codelineno-90-4" href="#__codelineno-90-4"></a><span class="kd">val</span><span class="w"> </span><span class="nv">plan</span><span class="p">:</span><span class="w"> </span><span class="n">Kap</span><span class="o">&lt;</span><span class="n">Dashboard</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kap</span><span class="p">(</span><span class="o">::</span><span class="n">Dashboard</span><span class="p">)</span>
+</span><span id="__span-90-5"><a id="__codelineno-90-5" name="__codelineno-90-5" href="#__codelineno-90-5"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">user</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">fetchDashUser</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-90-6"><a id="__codelineno-90-6" name="__codelineno-90-6" href="#__codelineno-90-6"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">cart</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">fetchDashCart</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-90-7"><a id="__codelineno-90-7" name="__codelineno-90-7" href="#__codelineno-90-7"></a><span class="w">    </span><span class="p">.</span><span class="na">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">promos</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">fetchDashPromos</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-90-8"><a id="__codelineno-90-8" name="__codelineno-90-8" href="#__codelineno-90-8"></a>
+</span><span id="__span-90-9"><a id="__codelineno-90-9" name="__codelineno-90-9" href="#__codelineno-90-9"></a><span class="n">println</span><span class="p">(</span><span class="s">&quot;Plan built. Nothing has executed yet.&quot;</span><span class="p">)</span>
+</span><span id="__span-90-10"><a id="__codelineno-90-10" name="__codelineno-90-10" href="#__codelineno-90-10"></a><span class="n">println</span><span class="p">(</span><span class="s">&quot;plan is: </span><span class="si">${</span><span class="n">plan</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">simpleName</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span id="__span-90-11"><a id="__codelineno-90-11" name="__codelineno-90-11" href="#__codelineno-90-11"></a>
+</span><span id="__span-90-12"><a id="__codelineno-90-12" name="__codelineno-90-12" href="#__codelineno-90-12"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="p">:</span><span class="w"> </span><span class="n">Dashboard</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">plan</span><span class="p">.</span><span class="na">evalGraph</span><span class="p">()</span><span class="w">  </span><span class="c1">// NOW it runs</span>
 </span></code></pre></div>
 <p><strong>Key guarantees:</strong></p>
 <ul>

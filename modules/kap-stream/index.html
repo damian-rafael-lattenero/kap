@@ -765,6 +765,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#mailbox-process-kapprocess" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mailbox process — KapProcess
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#cancellation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -838,6 +849,34 @@
     
   
     kap-ktor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kap-micrometer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    kap-micrometer
   
 
     
@@ -1350,6 +1389,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#mailbox-process-kapprocess" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mailbox process — KapProcess
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#cancellation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1397,8 +1447,8 @@
 </span></code></pre></div>
 <p><strong>Depends on:</strong> <code>kap-core</code>, <code>kap-resilience</code> (for <code>Schedule</code>).
 <strong>Platforms:</strong> JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
-<strong>Tests:</strong> 39 tests across 3 test classes, all virtual time (no sleeps).
-<strong>Laws:</strong> strategy drops, ordering and cancellation are property-tested in <code>KapStreamLawsTest</code>.</p>
+<strong>Tests:</strong> 57 tests across 5 test classes, all virtual time (no sleeps).
+<strong>Laws:</strong> strategy drops, ordering and cancellation are property-tested in <code>KapStreamLawsTest</code>; the mailbox laws in <code>KapProcessLawsTest</code>.</p>
 <hr />
 <h2 id="why-a-stream-layer-over-flow">Why a stream layer over Flow?<a class="headerlink" href="#why-a-stream-layer-over-flow" title="Permanent link">&para;</a></h2>
 <p>Kotlin flows already give you suspension, cancellation and backpressure. <code>KapStream</code> adds the two things flows leave implicit:</p>
@@ -1538,12 +1588,68 @@
 </span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">with</span><span class="p">(</span><span class="n">stream</span><span class="p">.</span><span class="na">drainTo</span><span class="p">(</span><span class="n">outbox</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">execute</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 </span></code></pre></div>
 <p><code>drainTo</code> suspends on the channel's own capacity and owns no lifecycle: the caller closes the channel. <code>asFlow()</code> is the escape hatch to plain flows.</p>
+<h2 id="mailbox-process-kapprocess">Mailbox process — <code>KapProcess</code><a class="headerlink" href="#mailbox-process-kapprocess" title="Permanent link">&para;</a></h2>
+<p><code>KapProcess</code> is the typed mailbox actor (SPEC-5.0: "actors yes, Akka no"): a bounded mailbox of an application ADT, a <strong>named</strong> <code>Backpressure</code> policy, one sequential consumer with per-item failure isolation and a time budget, and a <code>Process</code> lifecycle. It is the library form of the hand-rolled bounded-queue-plus-drain the bot runs for its stream effects.</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">sealed</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nc">Command</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">EnforceMode</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">taskId</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">Command</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">RefreshMenu</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">taskId</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">options</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">Option</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">Command</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="kd">val</span><span class="w"> </span><span class="nv">mailbox</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KapProcess</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="p">(</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;stream-effects&quot;</span><span class="p">,</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="n">backpressure</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Backpressure</span><span class="p">.</span><span class="na">Buffer</span><span class="p">(</span><span class="m">256</span><span class="p">),</span><span class="w">   </span><span class="c1">// exact: the producer waits when full</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="n">itemBudget</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">45.</span><span class="n">seconds</span><span class="p">,</span><span class="w">                    </span><span class="c1">// a stuck effect is abandoned, never the loop</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">    </span><span class="n">observe</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">event</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">log</span><span class="p">(</span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="p">},</span><span class="w">          </span><span class="c1">// drops, failures, timeouts as a typed ADT</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="p">)</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="n">coroutineScope</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">worker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mailbox</span><span class="p">.</span><span class="na">asProcess</span><span class="p">(</span><span class="n">handler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">command</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">runEffect</span><span class="p">(</span><span class="n">command</span><span class="p">)</span><span class="w"> </span><span class="p">}).</span><span class="na">startIn</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">    </span><span class="n">mailbox</span><span class="p">.</span><span class="na">offer</span><span class="p">(</span><span class="n">EnforceMode</span><span class="p">(</span><span class="n">taskId</span><span class="p">))</span><span class="w">          </span><span class="c1">// suspends only when the buffer is full</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">    </span><span class="n">awaitShutdownSignal</span><span class="p">()</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">    </span><span class="n">worker</span><span class="p">.</span><span class="na">stop</span><span class="p">()</span><span class="w">                               </span><span class="c1">// idempotent, not a failure</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="p">}</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Capacity</td>
+<td><code>Backpressure.Suspend</code> (rendezvous), <code>Buffer(n)</code>, <code>Conflate</code>, <code>DropOldest(n)</code>, <code>DropLatest(n)</code>, <code>Latest(n)</code> — the same values as every stream stage.</td>
+</tr>
+<tr>
+<td><code>offer</code></td>
+<td>Non-throwing; suspends exactly where the strategy says; lossy strategies drop and increment <code>dropped</code> (<code>StateFlow&lt;Long&gt;</code>).</td>
+</tr>
+<tr>
+<td>Consumer</td>
+<td>One sequential <code>consume</code> (a second is rejected): at most one handler at a time, FIFO.</td>
+</tr>
+<tr>
+<td>Failure</td>
+<td><code>Exception</code> from the handler → <code>MailboxEvent.Failed</code>, the loop continues, no process restart. <code>CancellationException</code> propagates.</td>
+</tr>
+<tr>
+<td>Budget</td>
+<td>An item over <code>itemBudget</code> is cancelled and reported as <code>MailboxEvent.TimedOut</code>; its <code>finally</code> runs.</td>
+</tr>
+<tr>
+<td>Lifecycle</td>
+<td><code>close()</code> drains and completes the process normally; <code>stop()</code>/scope cancellation are never failures; a fatal drain error restarts under the <code>RestartPolicy</code>; the heartbeat beats while the drain runs.</td>
+</tr>
+</tbody>
+</table>
+<p>The laws (<code>LAWS.md</code> — KapProcess laws): exact strategies never drop, lossy strategies drop only what they advertise and count every loss, at-most-one handler, failure isolation, budget honesty, and the Process lifecycle. Proven in <code>KapProcessLawsTest</code> (property-checked, virtual time) and <code>KapProcessTest</code>.</p>
+<p><strong>Why kap-stream?</strong> The mailbox's policy is <code>Backpressure</code> (owned here) and its lifecycle is <code>Process</code> (kap-resilience, already a dependency); a dedicated <code>kap-actors</code> module would add a Gradle module, a publication coordinate and a dependency edge for ~250 lines that reuse exactly these two algebras.</p>
 <h2 id="cancellation">Cancellation<a class="headerlink" href="#cancellation" title="Permanent link">&para;</a></h2>
 <p>Streams are cold and structured. <code>collectAsKap()</code>/<code>drainTo()</code> live in the caller's scope, and cancelling that scope cancels the collection through every channel boundary back to the source — proven in <code>KapStreamTest</code> under virtual time.</p>
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">withTimeout</span><span class="p">(</span><span class="m">5.</span><span class="n">seconds</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="n">with</span><span class="p">(</span><span class="n">KapStream</span><span class="p">.</span><span class="na">emitted</span><span class="p">(</span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">poll</span><span class="p">()</span><span class="w"> </span><span class="p">}).</span><span class="na">every</span><span class="p">(</span><span class="n">Schedule</span><span class="p">.</span><span class="na">spaced</span><span class="p">(</span><span class="m">500.</span><span class="n">milliseconds</span><span class="p">)).</span><span class="na">drainTo</span><span class="p">(</span><span class="n">sink</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">execute</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="p">}</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1">// the timeout cancels the poll loop; the source&#39;s finally blocks run</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">withTimeout</span><span class="p">(</span><span class="m">5.</span><span class="n">seconds</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="n">with</span><span class="p">(</span><span class="n">KapStream</span><span class="p">.</span><span class="na">emitted</span><span class="p">(</span><span class="n">Kap</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">poll</span><span class="p">()</span><span class="w"> </span><span class="p">}).</span><span class="na">every</span><span class="p">(</span><span class="n">Schedule</span><span class="p">.</span><span class="na">spaced</span><span class="p">(</span><span class="m">500.</span><span class="n">milliseconds</span><span class="p">)).</span><span class="na">drainTo</span><span class="p">(</span><span class="n">sink</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">execute</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="p">}</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1">// the timeout cancels the poll loop; the source&#39;s finally blocks run</span>
 </span></code></pre></div>
 <h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
 <p>JMH, n = 1,000,000 elements, Apple M1 / Corretto 25 (see

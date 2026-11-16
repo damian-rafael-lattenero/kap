@@ -38,7 +38,7 @@
             </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
-        <div class="library-version" id="library-version">5.3.0
+        <div class="library-version" id="library-version">5.4.0
         </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
@@ -129,6 +129,21 @@
               </div>
             </div>
           </div>
+<a data-name="429283015%2FClasslikes%2F-1339099042" anchor-label="KapProcess" id="429283015%2FClasslikes%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-kap-process/index.html"><span>Kap</span><wbr><span><span>Process</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="429283015%2FClasslikes%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-kap-process/index.html">KapProcess</a><span class="token operator">&lt;</span><a href="-kap-process/index.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>backpressure<span class="token operator">: </span><a href="-backpressure/index.html">Backpressure</a><span class="token operator"> = </span>Backpressure.Suspend<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>itemBudget<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.time/-duration/index.html">Duration</a><span class="token operator"> = </span>Duration.INFINITE<span class="token punctuation">, </span></span><span class="parameter ">observe<span class="token operator">: </span><span class="token punctuation">(</span><a href="-mailbox-event/index.html">MailboxEvent</a><span class="token operator">&lt;</span><a href="-kap-process/index.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{}</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">A typed mailbox process — "actors yes, Akka no" (SPEC-5.0): a bounded queue of a user ADT <a href="-kap-process/index.html">A</a>, a <strong>named</strong> backpressure policy (<a href="-backpressure/index.html">Backpressure</a>, the same algebra <a href="-kap-stream/index.html">KapStream</a> uses), a single-consumer drain with per-item failure isolation and a per-item time budget, and a lifecycle that is a <a href="../../kap-resilience/kap/-process/index.html">Process</a> (kap-resilience) with all of its laws: normal completion, stop and scope cancellation are never failures, a failure restarts under the policy, and the heartbeat beats while the drain runs.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="984058348%2FClasslikes%2F-1339099042" anchor-label="KapStream" id="984058348%2FClasslikes%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
             <div class="main-subrow keyValue ">
@@ -140,6 +155,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-kap-stream/index.html">KapStream</a><span class="token operator">&lt;</span><span class="token keyword">out </span><a href="-kap-stream/index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">A backpressured stream of values whose stages are <a href="../../kap-core/kap/-kap/index.html">Kap</a>s (SPEC-5.0 milestone 5.0). <code class="lang-kotlin">KapStream</code> is a thin, lawful layer over Kotlin flows — it wraps the runtime, never reimplements it — adding the two things flows leave implicit: <strong>the backpressure policy is a named value at every stage</strong>, and every transformation is a <a href="../../kap-core/kap/-kap/index.html">Kap</a> with the error and cancellation semantics of the rest of KAP.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1900790294%2FClasslikes%2F-1339099042" anchor-label="MailboxEvent" id="1900790294%2FClasslikes%2F-1339099042" data-filterable-set=":kap-stream/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-stream/commonMain" data-filterable-set=":kap-stream/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-mailbox-event/index.html"><span>Mailbox</span><wbr><span><span>Event</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1900790294%2FClasslikes%2F-1339099042"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-stream/commonMain"><div class="symbol monospace"><span class="token keyword">sealed </span><span class="token keyword">interface </span><a href="-mailbox-event/index.html">MailboxEvent</a><span class="token operator">&lt;</span><span class="token keyword">out </span><a href="-mailbox-event/index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">One thing that happened to an item the mailbox did not hand to the consumer as a plain call: it was dropped by the named strategy (or by the closed mailbox), it failed inside the handler, or it exceeded its budget. Reported through the injected <code class="lang-kotlin">observe</code> callback — a typed event, not a log line, so the caller decides what to record.</p></div></div></div>
                 </div>
               </div>
             </div>

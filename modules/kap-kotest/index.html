@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://damian-rafael-lattenero.github.io/kap/modules/kap-kotest/">
       
       
-        <link rel="prev" href="../kap-ktor/">
+        <link rel="prev" href="../kap-micrometer/">
       
       
         <link rel="next" href="../kap-ksp/">
@@ -720,6 +720,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../kap-micrometer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    kap-micrometer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -845,6 +873,45 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#law-suites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Law suites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Law suites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backpressurelaws-any-producer-with-a-named-backpressure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        backpressureLaws — any producer with a named Backpressure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consumerlaws-a-bounded-mailbox-with-one-consumer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        consumerLaws — a bounded mailbox with one consumer
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1339,6 +1406,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#law-suites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Law suites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Law suites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backpressurelaws-any-producer-with-a-named-backpressure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        backpressureLaws — any producer with a named Backpressure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consumerlaws-a-bounded-mailbox-with-one-consumer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        consumerLaws — a bounded mailbox with one consumer
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#arrow-matchers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1377,7 +1483,8 @@
 </div>
 <div class="language-kotlin highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">testImplementation</span><span class="p">(</span><span class="s">&quot;io.github.damian-rafael-lattenero:kap-kotest:4.1.0&quot;</span><span class="p">)</span>
 </span></code></pre></div>
-<p><strong>Depends on:</strong> <code>kap-core</code>, <code>kap-resilience</code>, <code>kotlinx-coroutines-test</code>, <code>kotlin-test</code>.</p>
+<p><strong>Depends on:</strong> <code>kap-core</code>, <code>kap-resilience</code>, <code>kap-stream</code> (the backpressure law
+suite), <code>kotlinx-coroutines-test</code>, <code>kotlin-test</code>.</p>
 <hr />
 <h2 id="kap-matchers">Kap Matchers<a class="headerlink" href="#kap-matchers" title="Permanent link">&para;</a></h2>
 <p>Assert success or failure of KAP computations:</p>
@@ -1477,19 +1584,85 @@ stop (LAWS.md) but still fails the matcher.</p>
 </span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="n">lifecycle</span><span class="p">.</span><span class="na">shouldHaveReleasedAfterUse</span><span class="p">(</span><span class="s">&quot;use&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;release&quot;</span><span class="p">)</span>
 </span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="n">lifecycle</span><span class="p">.</span><span class="na">shouldHaveEventCount</span><span class="p">(</span><span class="m">3</span><span class="p">)</span>
 </span></code></pre></div>
+<h2 id="law-suites">Law suites<a class="headerlink" href="#law-suites" title="Permanent link">&para;</a></h2>
+<p>The same laws that guard KAP's own combinators are reusable against <strong>your</strong>
+implementation of a named <code>Backpressure</code> or a bounded mailbox. Both suites are
+virtual-time only (no sleeps) and are invoked inside <code>runTest</code>.</p>
+<h3 id="backpressurelaws-any-producer-with-a-named-backpressure"><code>backpressureLaws</code> — any producer with a named <code>Backpressure</code><a class="headerlink" href="#backpressurelaws-any-producer-with-a-named-backpressure" title="Permanent link">&para;</a></h3>
+<p>Implement the one-method harness so it produces <code>items</code> through your
+implementation's strategy boundary and hands every survivor to <code>emit</code>:</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">class</span><span class="w"> </span><span class="nc">MyProducer</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">BackpressuredProducer</span><span class="o">&lt;</span><span class="kt">Int</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">produce</span><span class="p">(</span><span class="n">strategy</span><span class="p">:</span><span class="w"> </span><span class="n">Backpressure</span><span class="p">,</span><span class="w"> </span><span class="n">items</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="kt">Int</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">emit</span><span class="p">:</span><span class="w"> </span><span class="n">suspend</span><span class="w"> </span><span class="p">(</span><span class="kt">Int</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">Unit</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">        </span><span class="c1">// your pipeline, e.g. a Flow/Channel boundary applying `strategy`</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">        </span><span class="p">...</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="p">}</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="nd">@Test</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="kd">fun</span><span class="w"> </span><span class="nf">`my producer obeys the named backpressure laws`</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">runTest</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span><span class="n">backpressureLaws</span><span class="p">(</span><span class="n">MyProducer</span><span class="p">(),</span><span class="w"> </span><span class="n">items</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="m">1.</span><span class="p">.</span><span class="m">100</span><span class="p">).</span><span class="na">toList</span><span class="p">()).</span><span class="na">verify</span><span class="p">()</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Laws: exact strategies (<code>Suspend</code>, <code>Buffer(n)</code>) never drop; lossy strategies
+drop only what they name (<code>Conflate</code>/<code>Latest(n)</code> keep the newest,
+<code>DropOldest(n)</code> the newest <code>n</code>, <code>DropLatest(n)</code> the already-buffered prefix);
+survivors keep upstream order; nothing is duplicated. You can run one law at a
+time (<code>exactStrategiesNeverDrop()</code>, <code>lossyStrategiesDropOnlyWhatTheyName()</code>,
+<code>orderingIsPreserved()</code>, <code>noDuplication()</code>) or pass a subset of <code>strategies</code>.</p>
+<h3 id="consumerlaws-a-bounded-mailbox-with-one-consumer"><code>consumerLaws</code> — a bounded mailbox with one consumer<a class="headerlink" href="#consumerlaws-a-bounded-mailbox-with-one-consumer" title="Permanent link">&para;</a></h3>
+<p>Implement <code>MailboxUnderTest&lt;A&gt;</code> over your mailbox. <code>start</code> must launch the
+single consumer in the <strong>provided</strong> scope (the test's virtual-time scope) and
+invoke the handler one item at a time; a failing handler must not stop the
+consumer, and an optional per-item <code>budget</code> must abandon a slow item without
+swallowing cancellation. <code>dropped</code> counts every discarded element (superseded
+ones included).</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">class</span><span class="w"> </span><span class="nc">MyMailbox</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span><span class="p">(</span><span class="kd">override</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">backpressure</span><span class="p">:</span><span class="w"> </span><span class="n">Backpressure</span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">MailboxUnderTest</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">var</span><span class="w"> </span><span class="nv">dropped</span><span class="p">:</span><span class="w"> </span><span class="kt">Long</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="n">item</span><span class="p">:</span><span class="w"> </span><span class="n">A</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">        </span><span class="n">scope</span><span class="p">:</span><span class="w"> </span><span class="n">CoroutineScope</span><span class="p">,</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">        </span><span class="n">handler</span><span class="p">:</span><span class="w"> </span><span class="n">suspend</span><span class="w"> </span><span class="p">(</span><span class="n">A</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">Unit</span><span class="p">,</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">        </span><span class="n">budget</span><span class="p">:</span><span class="w"> </span><span class="n">Duration?,</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">    </span><span class="p">):</span><span class="w"> </span><span class="n">MailboxConsumer</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">job</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">scope</span><span class="p">.</span><span class="na">launch</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* the one consumer loop */</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="k">object</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nc">MailboxConsumer</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="w">            </span><span class="kd">override</span><span class="w"> </span><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">stop</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">job</span><span class="p">.</span><span class="na">cancelAndJoin</span><span class="p">()</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="p">}</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="nd">@Test</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="kd">fun</span><span class="w"> </span><span class="nf">`my mailbox obeys the consumer laws`</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">runTest</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="w">    </span><span class="n">consumerLaws</span><span class="p">({</span><span class="w"> </span><span class="n">MyMailbox</span><span class="o">&lt;</span><span class="kt">Int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Backpressure</span><span class="p">.</span><span class="na">Buffer</span><span class="p">(</span><span class="m">4</span><span class="p">))</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="n">items</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="m">1.</span><span class="p">.</span><span class="m">20</span><span class="p">).</span><span class="na">toList</span><span class="p">()).</span><span class="na">verify</span><span class="p">()</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Laws: at most one handler in flight; FIFO for exact strategies; a failing item
+never stops the next; a per-item budget abandons and continues; stopping the
+consumer cancels the in-flight handler (cancellation is never swallowed); and
+drop accounting is honest (<code>delivered + dropped == sent</code> for lossy strategies,
+zero drops for exact ones). The individual laws are public too
+(<code>atMostOneHandlerInFlight()</code>, <code>fifoForExactStrategies()</code>,
+<code>aFailingItemNeverStopsTheNext()</code>, <code>perItemBudgetAbandonsAndContinues()</code>,
+<code>cancellationIsNeverSwallowed()</code>, <code>dropAccountingIsHonest()</code>).</p>
+<div class="admonition note">
+<p class="admonition-title">Dogfooding</p>
+<p><code>KapStreamLawsTest</code> runs <code>backpressureLaws</code> over the real <code>KapStream</code>
+stages, so the suite is exercised by the library that motivated it.</p>
+</div>
 <h2 id="arrow-matchers">Arrow Matchers<a class="headerlink" href="#arrow-matchers" title="Permanent link">&para;</a></h2>
 <p>Available when <code>kap-arrow</code> is on the test classpath:</p>
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">right</span><span class="p">:</span><span class="w"> </span><span class="n">Either</span><span class="o">&lt;</span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kt">Int</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Either</span><span class="p">.</span><span class="na">Right</span><span class="p">(</span><span class="m">42</span><span class="p">)</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">right</span><span class="p">.</span><span class="na">shouldBeRight</span><span class="p">(</span><span class="m">42</span><span class="p">)</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">right</span><span class="p">.</span><span class="na">shouldBeRight</span><span class="p">()</span><span class="w">  </span><span class="c1">// returns 42</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="kd">val</span><span class="w"> </span><span class="nv">left</span><span class="p">:</span><span class="w"> </span><span class="n">Either</span><span class="o">&lt;</span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kt">Int</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Either</span><span class="p">.</span><span class="na">Left</span><span class="p">(</span><span class="s">&quot;error&quot;</span><span class="p">)</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">left</span><span class="p">.</span><span class="na">shouldBeLeft</span><span class="p">(</span><span class="s">&quot;error&quot;</span><span class="p">)</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1">// Validation error accumulation</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="p">:</span><span class="w"> </span><span class="n">Either</span><span class="o">&lt;</span><span class="n">NonEmptyList</span><span class="o">&lt;</span><span class="n">RegError</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">User</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">zipV</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}.</span><span class="na">evalGraph</span><span class="p">()</span>
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="n">result</span><span class="p">.</span><span class="na">shouldHaveErrors</span><span class="p">(</span><span class="m">3</span><span class="p">)</span>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="n">result</span><span class="p">.</span><span class="na">shouldContainError</span><span class="p">(</span><span class="n">RegError</span><span class="p">.</span><span class="na">NameTooShort</span><span class="p">(</span><span class="m">2</span><span class="p">))</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">val</span><span class="w"> </span><span class="nv">right</span><span class="p">:</span><span class="w"> </span><span class="n">Either</span><span class="o">&lt;</span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kt">Int</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Either</span><span class="p">.</span><span class="na">Right</span><span class="p">(</span><span class="m">42</span><span class="p">)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">right</span><span class="p">.</span><span class="na">shouldBeRight</span><span class="p">(</span><span class="m">42</span><span class="p">)</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">right</span><span class="p">.</span><span class="na">shouldBeRight</span><span class="p">()</span><span class="w">  </span><span class="c1">// returns 42</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="kd">val</span><span class="w"> </span><span class="nv">left</span><span class="p">:</span><span class="w"> </span><span class="n">Either</span><span class="o">&lt;</span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kt">Int</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Either</span><span class="p">.</span><span class="na">Left</span><span class="p">(</span><span class="s">&quot;error&quot;</span><span class="p">)</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">left</span><span class="p">.</span><span class="na">shouldBeLeft</span><span class="p">(</span><span class="s">&quot;error&quot;</span><span class="p">)</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="c1">// Validation error accumulation</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="p">:</span><span class="w"> </span><span class="n">Either</span><span class="o">&lt;</span><span class="n">NonEmptyList</span><span class="o">&lt;</span><span class="n">RegError</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">User</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">zipV</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}.</span><span class="na">evalGraph</span><span class="p">()</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="n">result</span><span class="p">.</span><span class="na">shouldHaveErrors</span><span class="p">(</span><span class="m">3</span><span class="p">)</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="n">result</span><span class="p">.</span><span class="na">shouldContainError</span><span class="p">(</span><span class="n">RegError</span><span class="p">.</span><span class="na">NameTooShort</span><span class="p">(</span><span class="m">2</span><span class="p">))</span>
 </span></code></pre></div>
 
 
