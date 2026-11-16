@@ -14,6 +14,7 @@ const LIB_MODULES: list<string> = [
     "kap-stream"
     "kap-ktor"
     "kap-kotest"
+    "kap-micrometer"
     "kap-ksp"
     "benchmarks"
 ]

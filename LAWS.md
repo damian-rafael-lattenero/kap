@@ -227,6 +227,52 @@ Enforced by [`KapStreamPollUntilQuietTest.kt`](kap-stream/src/jvmTest/kotlin/kap
 (work-only emission, the filled window vs. a transient empty poll, exact virtual
 cadence, failure propagation, and the named-strategy drop behaviour).
 
+## Reusable law suites (`kap-kotest`)
+
+The generic laws above are not prose: `kap-kotest` ships them as executable
+suites a downstream project invokes in one line, parameterised over its own
+implementation — no dependency on KAP-internal types. Both run inside `runTest`
+and are virtual-time only (no sleeps).
+
+### `backpressureLaws` — any producer with a named `Backpressure`
+
+A project implements `BackpressuredProducer<A>` (produce `items` through its
+strategy boundary, hand survivors to `emit`) and calls
+`backpressureLaws(producer, items).verify()`.
+
+1. **Exact strategies never drop.** `Suspend` and `Buffer(n)` deliver every
+   element, in upstream order.
+2. **Lossy strategies drop only what they name.** `Conflate`/`Latest(n)` keep
+   the newest, `DropOldest(n)` the newest `n`, `DropLatest(n)` the
+   already-buffered (oldest) prefix.
+3. **Order is preserved.** Survivors form an ordered subsequence of the input.
+4. **No duplication.** No element is delivered twice.
+
+### `consumerLaws` — a bounded mailbox with one consumer
+
+A project implements `MailboxUnderTest<A>` (named strategy, honest `dropped`
+count, `send`, and `start(scope, handler, budget)` launching the single
+consumer in the test's scope) and calls
+`consumerLaws({ MyMailbox(...) }, items).verify()`.
+
+1. **At most one handler in flight.** Items never run concurrently.
+2. **FIFO for exact strategies.** `Suspend`/`Buffer(n)` deliver every item in
+   send order.
+3. **A failing item never stops the next.** Handler exceptions are isolated.
+4. **A per-item budget abandons and continues.** A slow item is abandoned and
+   the next item runs.
+5. **Cancellation is never swallowed.** `stop()` cancels the in-flight handler,
+   returns, and nothing is handled afterwards.
+6. **Drop accounting is honest.** With a stalled consumer,
+   `delivered + dropped == sent` for lossy strategies; exact strategies drop
+   nothing.
+
+Enforced by [`BackpressureLawsTest.kt`](kap-kotest/src/test/kotlin/kap/kotest/BackpressureLawsTest.kt)
+and [`ConsumerLawsTest.kt`](kap-kotest/src/test/kotlin/kap/kotest/ConsumerLawsTest.kt)
+(reference channel/queue implementations, including deliberately unlawful
+producers/mailboxes that prove the laws bite). `KapStreamLawsTest` dogfoods
+`backpressureLaws` over the real `KapStream` stages.
+
 ## Arrow Integration
 
 Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplementation. All validated operations produce standard `Either<NonEmptyList<E>, A>` values.
@@ -235,4 +281,4 @@ Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplement
 
 All laws are verified in [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/ApplicativeLawsTest.kt) using Kotest property-based testing with random inputs.
 
-**1242 tests across 93 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
+**1270 tests across 97 suites in 8 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*

@@ -3,16 +3,18 @@ package kap
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.int
 import io.kotest.property.checkAll
+import kap.kotest.BackpressuredProducer
+import kap.kotest.backpressureLaws
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -25,17 +27,19 @@ import kotlin.time.Duration.Companion.seconds
  * 2. **Lossy strategies drop only what they say.** Conflate/Latest keep the
  *    newest elements, DropOldest keeps the newest `n`, DropLatest keeps the
  *    oldest `n`; every strategy preserves upstream order among the elements
- *    it keeps, never duplicates, and never drops the element buffered at
- *    completion (except DropLatest, whose drop victim is the incoming one).
+ *    it keeps and never duplicates one.
  * 3. **Order.** `mapKapOrdered` preserves upstream order for every
  *    concurrency; `mapKap(concurrency = 1)` and `filterKap` preserve it; the
  *    concurrent `mapKap` preserves the multiset.
  * 4. **Cancellation propagates** through every channel boundary to the source
  *    (proven in [KapStreamTest]).
  *
+ * Laws 1-2 are the **reusable** suite from `kap-kotest`
+ * ([kap.kotest.backpressureLaws]): this file only injects the `KapStream`
+ * producer, so every downstream implementation is held to the same statements.
  * The slow-consumer scenario is deterministic: the consumer takes one element,
  * stalls for virtual time, and only then drains — the producer has the whole
- * stall to fill and drop per policy, so the observed lists are exact.
+ * stall to fill and drop per policy.
  */
 class KapStreamLawsTest {
 
@@ -47,60 +51,11 @@ class KapStreamLawsTest {
         },
     )
 
-    // ── 1. Exact strategies ─────────────────────────────────────────────
+    // ── 1-2. Named backpressure strategies (the reusable suite) ─────────
 
     @Test
-    fun `suspend and buffer never drop and preserve order`() = runTest {
-        val expected = (0 until size).toList()
-        assertEquals(expected, collectWithStall(source(), 1.seconds))
-        assertEquals(expected, collectWithStall(source().buffer(1), 1.seconds))
-        assertEquals(expected, collectWithStall(source().buffer(8), 1.seconds))
-        assertEquals(expected, collectWithStall(source().withBackpressure(Backpressure.Buffer(3)), 1.seconds))
-    }
-
-    // ── 2. Lossy strategies ─────────────────────────────────────────────
-
-    @Test
-    fun `conflate keeps the latest element and drops the superseded ones`() = runTest {
-        val received = collectWithStall(source().conflate(), 1.seconds)
-
-        assertEquals(0, received.first(), "the first element was already consumed")
-        assertEquals(size - 1, received.last(), "the element buffered at completion is never dropped")
-        assertEquals(received.sorted(), received, "survivors keep upstream order")
-        assertTrue(received.size < size, "superseded elements are gone: $received")
-    }
-
-    @Test
-    fun `latest(n) keeps exactly the last n elements`() = runTest {
-        checkAll(Arb.int(1..10)) { n ->
-            val received = collectWithStall(source().latest(n), 1.seconds)
-
-            assertEquals(0, received.first())
-            assertEquals((size - n until size).toList(), received.takeLast(n), "latest($n) keeps the last $n")
-            assertEquals(received.sorted(), received)
-            assertEquals(received.distinct(), received, "no duplicates")
-        }
-    }
-
-    @Test
-    fun `dropOldest(n) keeps the newest n elements`() = runTest {
-        checkAll(Arb.int(1..8)) { capacity ->
-            val received = collectWithStall(source().dropOldest(capacity), 1.seconds)
-
-            assertEquals(0, received.first())
-            assertEquals((size - capacity until size).toList(), received.takeLast(capacity))
-            assertTrue(received.size < size, "the producer never waited, so some elements were dropped")
-        }
-    }
-
-    @Test
-    fun `dropLatest(n) keeps a contiguous oldest prefix and drops the incoming elements`() = runTest {
-        checkAll(Arb.int(1..8)) { capacity ->
-            val received = collectWithStall(source().dropLatest(capacity), 1.seconds)
-
-            assertEquals((0 until received.size).toList(), received, "a contiguous prefix: the newest are the victims")
-            assertTrue(received.size < size, "the producer never waited, so the tail was dropped")
-        }
+    fun `backpressure laws hold for every named strategy`() = runTest {
+        backpressureLaws(KapStreamProducer(), (0 until size).toList()).verify()
     }
 
     @Test
@@ -109,26 +64,6 @@ class KapStreamLawsTest {
             collectWithStall(source().conflate(), 1.seconds),
             collectWithStall(source().latest(1), 1.seconds),
         )
-    }
-
-    @Test
-    fun `every strategy preserves order and never duplicates`() = runTest {
-        val strategies = listOf(
-            Backpressure.Suspend,
-            Backpressure.Buffer(3),
-            Backpressure.Conflate,
-            Backpressure.DropOldest(3),
-            Backpressure.DropLatest(3),
-            Backpressure.Latest(3),
-        )
-        checkAll(Arb.int(1..30)) { count ->
-            strategies.forEach { strategy ->
-                val received = collectWithStall(source(count).withBackpressure(strategy), 1.seconds)
-                assertEquals(received.sorted(), received, "$strategy reordered elements")
-                assertEquals(received.distinct(), received, "$strategy duplicated elements")
-                assertTrue(received.isNotEmpty(), "$strategy delivered nothing")
-            }
-        }
     }
 
     // ── 3. Ordering of stages ───────────────────────────────────────────
@@ -196,5 +131,15 @@ class KapStreamLawsTest {
             production.join()
         }
         return received
+    }
+}
+
+/** The `KapStream` producer the reusable backpressure suite drives. */
+private class KapStreamProducer : BackpressuredProducer<Int> {
+    override suspend fun produce(strategy: Backpressure, items: List<Int>, emit: suspend (Int) -> Unit) {
+        KapStream.from(items.asFlow())
+            .withBackpressure(strategy)
+            .asFlow()
+            .collect { element -> emit(element) }
     }
 }
