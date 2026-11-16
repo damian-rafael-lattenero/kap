@@ -1,3 +1,20 @@
+public abstract interface class kap/Beat {
+}
+
+public final class kap/Beat$Signalled : kap/Beat {
+	public static final field INSTANCE Lkap/Beat$Signalled;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class kap/Beat$TimedOut : kap/Beat {
+	public static final field INSTANCE Lkap/Beat$TimedOut;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class kap/BracketKt {
 	public static final fun bracket (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;)Lkap/Kap;
 	public static final fun bracketCase (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;)Lkap/Kap;
@@ -266,6 +283,12 @@ public final class kap/Schedule$Decision$Done : kap/Schedule$Decision {
 	public fun equals (Ljava/lang/Object;)Z
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class kap/Signal {
+	public fun <init> ()V
+	public final fun awaitOr (Lkap/Schedule;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun send ()V
 }
 
 public final class kap/SupervisionStrategy : java/lang/Enum {

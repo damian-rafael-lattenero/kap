@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **`Signal`/`Beat` — the hot wake-up primitive** (kap-resilience). One
+  conflated pending wake with a non-suspending `send()` and a suspending
+  `awaitOr(schedule: Schedule<Unit>)` that returns `Beat.Signalled` or
+  `Beat.TimedOut` (no exception on the timeout path). Laws: a pending wake
+  wakes immediately, silence waits exactly the schedule's delay, `N` sends
+  collapse to one pending wake, cancellation propagates without losing a
+  wake, one wake per await. Proven in `SignalLawsTest`/`SignalTest` under
+  virtual time. It is the library form of the bot's `LiveHub.requestTick` /
+  `awaitBeat` idiom.
+
 ## [5.3.0] - 2026-11-13
 
 ### Added

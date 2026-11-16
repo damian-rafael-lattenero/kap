@@ -570,7 +570,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
 |---|---|---|
 | **kap-core** | `.with`, `.then`, `.andThen`, `race`, `traverse`, `memoize`, `settled` | Always |
 | **kap-ksp** | `@KapTypeSafe`, `@KapBridge` — compile-time named builders with IDE autocomplete | When you want swap-proof, guided orchestration |
-| **kap-resilience** | `retry`, `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `raceQuorum`, `timeoutRace`, `process`, `Supervisor` | When you call external services or run supervised loops |
+| **kap-resilience** | `retry`, `Schedule`, `CircuitBreaker`, `Resource`, `bracket`, `raceQuorum`, `timeoutRace`, `process`, `Supervisor`, `Signal` | When you call external services, run supervised loops, or need a hot wake-up signal |
 | **kap-stream** | `KapStream`, named backpressure (`buffer`/`conflate`/`dropOldest`/`dropLatest`/`latest`), `mapKap`/`filterKap`/`flatMapKap` | When you need backpressured pipelines whose stages are Kaps |
 | **kap-arrow** | `.withV`, `kapV`, error accumulation with `Either<NonEmptyList<E>, A>` | When you need parallel validation |
 | **kap-ktor** | `respondAsync`, `KapTracer`, circuit breaker plugin | When you use Ktor |

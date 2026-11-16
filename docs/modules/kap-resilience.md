@@ -8,7 +8,7 @@ implementation("io.github.damian-rafael-lattenero:kap-resilience:4.2.0")
 
 **Depends on:** `kap-core`.
 **Platforms:** JVM, JS (IR), WASM (JS), Linux X64, macOS (x64/ARM64), iOS (x64/ARM64/Simulator).
-**Tests:** 300 tests across 23 test classes (JVM + native), including Schedule semiring laws, Process and Supervisor laws and CircuitBreaker concurrency tests.
+**Tests:** 318 tests across 26 test classes (JVM + native), including Schedule semiring laws, Process, Supervisor and Signal laws and CircuitBreaker concurrency tests.
 
 ---
 
@@ -440,6 +440,38 @@ The laws (`LAWS.md` — Supervisor laws):
 | **Honest liveness** | `isAlive` is true exactly while the group exists (including backoff); counters advance when a restart runs. |
 
 `handle.restarts` is a `Map<String, StateFlow<Int>>` keyed by child name — the honest, live record of what the supervisor did.
+
+---
+
+## `Signal` — Hot Wake-Up
+
+A `Signal` is the hot counterpart of a cold `KapStream`: **one conflated pending wake** that any thread, callback or coroutine raises with a non-suspending `send()`, and that a publisher waits on with `awaitOr(schedule)` — returning a typed `Beat` (`Signalled` / `TimedOut`), never throwing on the timeout path. It is the lawful home of the bot's `LiveHub.requestTick` / `awaitBeat` idiom.
+
+```kotlin
+val beat = Signal()
+
+fun onCardMoved() = beat.send()             // a tap, a frame, a shutdown hook: any thread
+
+while (true) {
+    redraw()
+    when (beat.awaitOr(Schedule.spaced(3.seconds))) {
+        Beat.Signalled -> Unit              // a tap asked for the draw NOW
+        Beat.TimedOut -> Unit               // the cadence elapsed: draw again
+    }
+}
+```
+
+`awaitOr` decides the schedule once at attempt `0`: `Continue(d)` is a `d`-long window, `Done` waits nothing. A pending wake is checked **before** the schedule, so a send that happens before the await is never lost.
+
+The laws (`LAWS.md` — Signal laws):
+
+| Law | Guarantee |
+|---|---|
+| **Pending wake** | A send before the await returns `Signalled` immediately (zero virtual time), even under a `Done` schedule. |
+| **Exact window** | With nothing pending, `TimedOut` lands after exactly the schedule's delay; no early poll. |
+| **Conflation** | `N` sends collapse to one pending wake — never `N` wake-ups and never a ghost wake for the next window. |
+| **Cancellation** | Cancelling an await propagates and leaves the pending state untouched: no wake is lost. |
+| **One wake per await** | Each `Signalled` consumes exactly one wake. |
 
 ---
 

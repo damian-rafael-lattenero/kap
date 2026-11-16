@@ -149,6 +149,36 @@ A `Supervisor` (kap-resilience, 5.0.0) is a group of named [Process]-style child
 
 Enforced by [`SupervisorLawsTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/SupervisorLawsTest.kt) (all seven laws; property-checked under virtual time) and [`SupervisorTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/SupervisorTest.kt) (lifecycle and coalescing, virtual time).
 
+## Signal laws
+
+A `Signal` (kap-resilience, unreleased) is the hot, conflated wake-up primitive:
+`send()` is non-suspending and callable from any thread or callback, and
+`awaitOr(schedule)` waits for a wake or for the schedule's window, returning a
+typed `Beat` — no exception on the timeout path.
+
+1. **A pending wake wakes immediately.** A `send` that happens before the await
+   is never lost: `awaitOr` returns `Beat.Signalled` at zero elapsed time,
+   whatever the schedule says (`Done` included).
+2. **No wake waits exactly the schedule's delay.** With nothing pending, the
+   schedule is decided once at attempt `0` with `Unit`: `Continue(d)` returns
+   `Beat.TimedOut` after exactly `d` (virtual time); `Done` — and a zero delay —
+   waits nothing.
+3. **Conflation.** `N` sends with no await between them collapse to one pending
+   wake: the first await returns `Signalled` immediately and the next window
+   waits its full delay — never `N` wake-ups, never a ghost wake. A burst that
+   lands while a waiter is suspended wakes it once and leaves at most one
+   pending wake.
+4. **Cancellation propagates and loses nothing.** Cancelling an awaiting
+   coroutine cancels the wait; the pending state is untouched, so a wake sent
+   before or during the cancelled await still wakes the next one.
+5. **One wake per await.** Each `Signalled` consumes exactly one pending wake;
+   two wakes can never be reported by one call.
+
+Enforced by [`SignalLawsTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/SignalLawsTest.kt)
+(all five laws, property-checked under virtual time) and
+[`SignalTest.kt`](kap-resilience/src/jvmTest/kotlin/kap/SignalTest.kt) (the hot
+loop, `Done` and zero-delay windows).
+
 ## KapStream laws
 
 A `KapStream` (kap-stream, 5.0.0) is a backpressured pipeline whose stages are `Kap`s and whose backpressure policy is a named value ([`Backpressure`](kap-stream/src/commonMain/kotlin/kap/Backpressure.kt)) at every stage. The default is `Suspend` — exact.
@@ -201,4 +231,4 @@ Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplement
 
 All laws are verified in [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/ApplicativeLawsTest.kt) using Kotest property-based testing with random inputs.
 
-**1242 tests across 93 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
+**1253 tests across 95 suites in 7 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
