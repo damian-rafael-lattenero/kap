@@ -58,6 +58,40 @@ suspend (`KapTracer.onEvent`, listeners, shutdown hooks).
 Enforced by [`SyncCellTest.kt`](kap-core/src/jvmTest/kotlin/kap/SyncCellTest.kt)
 (real threads, latches instead of sleeps).
 
+## `Meter` laws
+
+A `Meter` (kap-core, commonMain) is the multiplatform metrics SPI: counters by
+name+tags, timers that take the call (or a duration measured elsewhere), and
+gauges whose supplier is read at scrape time. [`Meter.Noop`](kap-core/src/commonMain/kotlin/kap/Meter.kt)
+is the strict OFF value that makes instrumentation a no-op instead of a cost.
+
+1. **The no-op is byte-for-byte inert.** `Meter.Noop.time` and
+   `timeSuspending` run the block bare — no clock read — the block runs
+   exactly once, its exception instance propagates untouched, and every path
+   (counter, timer, gauge, timed call) allocates zero bytes.
+2. **Tags never mutate the metric name identity.** The name reaches the
+   implementation verbatim; tag combinations are dimensions of the same
+   metric, never folded into the name. `Tags` is immutable and rejects
+   duplicate keys.
+3. **Instrumentation never breaks the measured code — and never vanishes
+   silently.** A `Meter` implementation must not throw; a foreign
+   implementation is wrapped once with `Meter.guarded(reporter)`, which catches
+   every instrumentation failure, reports it as a `MeterFailure` (operation,
+   name, tags, error) and leaves the block's value and exception untouched. A
+   throwing gauge supplier reads as `NaN` at scrape time, never a fabricated
+   zero. The reporter is the last stop: its own failure is ignored because
+   there is nowhere left to report it.
+4. **Timers record exactly once.** A timed block records one sample on
+   success, on failure and on cancellation; the block's exception (or
+   `CancellationException`) is what the caller observes.
+5. **Gauges are read at scrape time.** The supplier is registered once and
+   consulted on every scrape; it returns the current value, never a cached
+   one.
+
+Enforced by [`MeterLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/MeterLawsTest.kt)
+(real `ThreadMXBean` allocation measurement for the no-op law, deterministic
+tests for the rest).
+
 ## `Schedule` is a semiring (`and` = multiplication, `or` = addition)
 
 `Schedule` composition is an algebra over the extended non-negative reals:

@@ -1098,6 +1098,42 @@ val result = kap(::Dashboard)
     .evalGraph()
 ```
 
+#### Metrics — the `Meter` SPI
+
+`Meter` is the small multiplatform seam between KAP code and any metrics
+registry: counters by name+tags, timers that take the call, gauges read at
+scrape time. `Meter.Noop` is the strict OFF value: the block runs bare, with
+no clock read and zero allocation.
+
+```kotlin
+val meter: Meter = if (metricsEnabled) MicrometerMeter(registry) else Meter.Noop
+
+meter.increment("poller.cycles")
+meter.increment("turns.sealed", Tags.of("outcome" to "failed"))
+
+// timed operations take the call — the OFF meter just runs it
+val answer = meter.time("brain.request") { brain.ask(prompt) }
+
+// gauges are read at scrape time, never cached
+meter.gauge("outbox.depth", Tags.of("lane" to "main")) { outbox.depth().toDouble() }
+```
+
+Instrumentation must never break the measured code. Wrap a foreign
+implementation once so a throwing meter is reported (never silently swallowed)
+while the measured block's value and exception pass through untouched:
+
+```kotlin
+val meter = Meter.guarded(MicrometerMeter(registry)) { failure ->
+    log.warn("metrics failure in ${failure.operation} ${failure.name}", failure.error)
+}
+```
+
+Build `Tags` values once at wiring time and reuse them on the hot path. The
+SPI ships with its laws (`MeterLawsTest`): the no-op is inert, tags never
+rewrite the metric name, a throwing meter cannot affect the block, and a timed
+suspend block records exactly once under cancellation. The optional
+`kap-micrometer` module implements the SPI over a Micrometer `MeterRegistry`.
+
 ### Utilities
 
 #### `.keepFirst` / `.keepSecond`
