@@ -574,6 +574,7 @@ suspend fun placeOrder(input: OrderInput): Either<Nel<OrderError>, OrderResult> 
 | **kap-stream** | `KapStream`, named backpressure (`buffer`/`conflate`/`dropOldest`/`dropLatest`/`latest`), `mapKap`/`filterKap`/`flatMapKap` | When you need backpressured pipelines whose stages are Kaps |
 | **kap-arrow** | `.withV`, `kapV`, error accumulation with `Either<NonEmptyList<E>, A>` | When you need parallel validation |
 | **kap-ktor** | `respondAsync`, `KapTracer`, circuit breaker plugin | When you use Ktor |
+| **kap-micrometer** | `Meter` over a Micrometer `MeterRegistry` — counters, timers, scrape-time gauges | When you export metrics to Prometheus/OTLP |
 | **kap-kotest** | `shouldSucceedWith`, `shouldFailWith`, timing & lifecycle matchers | When you test Kap graphs |
 
 ---
