@@ -22,7 +22,9 @@ durations, scrape-time gauges, Prometheus rendering).
 
 ## Wiring
 
-Decide once at boot, exactly like any other dependency of the `Meter` SPI:
+The adapter lives in `kap.micrometer` (`import kap.micrometer.MicrometerMeter`);
+the SPI stays in `kap` (`import kap.Meter`, `kap.Tags`). Decide once at boot,
+exactly like any other dependency of the `Meter` SPI:
 
 ```kotlin
 val registry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
