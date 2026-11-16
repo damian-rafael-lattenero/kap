@@ -14,7 +14,7 @@ plugins {
 }
 
 group = "io.github.damian-rafael-lattenero"
-version = "5.3.0"
+version = "5.4.0"
 
 subprojects {
     group = rootProject.group
@@ -79,7 +79,7 @@ subprojects {
 // custom commonMain TR task is gone.
 val detektModules = listOf(
     "kap-core", "kap-resilience", "kap-stream", "kap-arrow", "kap-ktor", "kap-kotest",
-    "kap-ksp", "kap-ksp-annotations", "benchmarks",
+    "kap-micrometer", "kap-ksp", "kap-ksp-annotations", "benchmarks",
 )
 
 subprojects {
@@ -121,7 +121,7 @@ val detektAll = tasks.register("detektAll") {
 apiValidation {
     ignoredProjects.addAll(listOf("benchmarks", "ecommerce-checkout", "dashboard-aggregator",
         "validated-registration", "resilient-fetcher", "full-stack-order", "ktor-integration", "readme-examples",
-        "kap-kotest", "kap-ktor", "kap-ksp-annotations", "kap-ksp", "ksp-demo",
+        "kap-kotest", "kap-ktor", "kap-micrometer", "kap-ksp-annotations", "kap-ksp", "ksp-demo",
         // JVM-only tooling, not published: its API is the detekt ServiceLoader contract.
         "kap-detekt-rules"))
 }

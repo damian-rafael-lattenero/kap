@@ -9,7 +9,8 @@ Test matchers and utilities for testing KAP computations.
 testImplementation("io.github.damian-rafael-lattenero:kap-kotest:4.1.0")
 ```
 
-**Depends on:** `kap-core`, `kap-resilience`, `kotlinx-coroutines-test`, `kotlin-test`.
+**Depends on:** `kap-core`, `kap-resilience`, `kap-stream` (the backpressure law
+suite), `kotlinx-coroutines-test`, `kotlin-test`.
 
 ---
 
@@ -138,6 +139,83 @@ lifecycle.shouldHaveEvents("acquire", "use", "release")
 lifecycle.shouldHaveReleasedAfterUse("use", "release")
 lifecycle.shouldHaveEventCount(3)
 ```
+
+## Law suites
+
+The same laws that guard KAP's own combinators are reusable against **your**
+implementation of a named `Backpressure` or a bounded mailbox. Both suites are
+virtual-time only (no sleeps) and are invoked inside `runTest`.
+
+### `backpressureLaws` — any producer with a named `Backpressure`
+
+Implement the one-method harness so it produces `items` through your
+implementation's strategy boundary and hands every survivor to `emit`:
+
+```kotlin
+class MyProducer : BackpressuredProducer<Int> {
+    override suspend fun produce(strategy: Backpressure, items: List<Int>, emit: suspend (Int) -> Unit) {
+        // your pipeline, e.g. a Flow/Channel boundary applying `strategy`
+        ...
+    }
+}
+
+@Test
+fun `my producer obeys the named backpressure laws`() = runTest {
+    backpressureLaws(MyProducer(), items = (1..100).toList()).verify()
+}
+```
+
+Laws: exact strategies (`Suspend`, `Buffer(n)`) never drop; lossy strategies
+drop only what they name (`Conflate`/`Latest(n)` keep the newest,
+`DropOldest(n)` the newest `n`, `DropLatest(n)` the already-buffered prefix);
+survivors keep upstream order; nothing is duplicated. You can run one law at a
+time (`exactStrategiesNeverDrop()`, `lossyStrategiesDropOnlyWhatTheyName()`,
+`orderingIsPreserved()`, `noDuplication()`) or pass a subset of `strategies`.
+
+### `consumerLaws` — a bounded mailbox with one consumer
+
+Implement `MailboxUnderTest<A>` over your mailbox. `start` must launch the
+single consumer in the **provided** scope (the test's virtual-time scope) and
+invoke the handler one item at a time; a failing handler must not stop the
+consumer, and an optional per-item `budget` must abandon a slow item without
+swallowing cancellation. `dropped` counts every discarded element (superseded
+ones included).
+
+```kotlin
+class MyMailbox<A>(override val backpressure: Backpressure) : MailboxUnderTest<A> {
+    override var dropped: Long = 0
+    override suspend fun send(item: A) { ... }
+
+    override fun start(
+        scope: CoroutineScope,
+        handler: suspend (A) -> Unit,
+        budget: Duration?,
+    ): MailboxConsumer {
+        val job = scope.launch { /* the one consumer loop */ }
+        return object : MailboxConsumer {
+            override suspend fun stop() = job.cancelAndJoin()
+        }
+    }
+}
+
+@Test
+fun `my mailbox obeys the consumer laws`() = runTest {
+    consumerLaws({ MyMailbox<Int>(Backpressure.Buffer(4)) }, items = (1..20).toList()).verify()
+}
+```
+
+Laws: at most one handler in flight; FIFO for exact strategies; a failing item
+never stops the next; a per-item budget abandons and continues; stopping the
+consumer cancels the in-flight handler (cancellation is never swallowed); and
+drop accounting is honest (`delivered + dropped == sent` for lossy strategies,
+zero drops for exact ones). The individual laws are public too
+(`atMostOneHandlerInFlight()`, `fifoForExactStrategies()`,
+`aFailingItemNeverStopsTheNext()`, `perItemBudgetAbandonsAndContinues()`,
+`cancellationIsNeverSwallowed()`, `dropAccountingIsHonest()`).
+
+!!! note "Dogfooding"
+    `KapStreamLawsTest` runs `backpressureLaws` over the real `KapStream`
+    stages, so the suite is exercised by the library that motivated it.
 
 ## Arrow Matchers
 

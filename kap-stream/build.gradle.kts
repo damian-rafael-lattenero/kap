@@ -55,6 +55,8 @@ kotlin {
             implementation(kotlin("test"))
             implementation(libs.coroutines.test)
             implementation(libs.kotest.property)
+            // The generic named-backpressure law suite (extracted from this module's tests).
+            implementation(project(":kap-kotest"))
         }
     }
 }

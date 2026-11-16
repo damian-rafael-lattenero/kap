@@ -14,6 +14,8 @@ kotlin {
 dependencies {
     api(project(":kap-core"))
     api(project(":kap-resilience"))
+    // The backpressure law suite ranges over kap.Backpressure (kap-stream).
+    api(project(":kap-stream"))
     compileOnly(project(":kap-arrow"))
     compileOnly(libs.arrow.core)
 

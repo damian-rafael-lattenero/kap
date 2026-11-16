@@ -50,6 +50,9 @@ jobs:
           - module: kap-ktor
             task: ":kap-ktor:test"
             report-path: "kap-ktor/build/reports/tests/test"
+          - module: kap-micrometer
+            task: ":kap-micrometer:test"
+            report-path: "kap-micrometer/build/reports/tests/test"
           - module: benchmarks
             task: ":benchmarks:test"
             report-path: "benchmarks/build/reports/tests/test"

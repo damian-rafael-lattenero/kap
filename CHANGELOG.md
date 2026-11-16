@@ -4,10 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [5.4.0] - 2026-11-16
 
 ### Added
 
+- **`Meter` — the observability SPI** (kap-core, commonMain). Four surfaces
+  (`increment`, `record`, `gauge` read at scrape time, and call-shaped
+  `time`/`timeSuspending` so the no-op runs the block bare with zero clock
+  reads and zero allocations) plus an immutable ordered `Tags` value.
+  `Meter.Noop` is the strict OFF; foreign implementations are wrapped once by
+  `Meter.guarded` so a throwing meter can never break the measured code —
+  failures are reported, the block's value and exception pass through
+  untouched, a throwing gauge reads `NaN` instead of a fake zero, and
+  `timeSuspending` records exactly once in `finally` while cancellation
+  propagates. Laws in `MeterLawsTest`.
+- **`kap-micrometer` — the Micrometer adapter** (new JVM module). A thin
+  `MeterRegistry` implementation (Prometheus-friendly dot names, tags as
+  dimensions); Micrometer never enters kap-core's dependencies. Docs at
+  `docs/modules/kap-micrometer.md`.
+- **Reusable law suites** (kap-kotest): `backpressureLaws` (a producer with a
+  named `Backpressure`: exact strategies never drop, lossy drop only what
+  they name, order preserved, no duplication) and `consumerLaws` (a bounded
+  mailbox with one consumer: at-most-one handler, FIFO for exact strategies,
+  failure isolation, per-item budget abandonment, cancellation never
+  swallowed, honest drop accounting). A downstream project implements a tiny
+  test harness and calls `.verify()` inside `runTest` — virtual time only.
+  `KapStreamLawsTest` dogfoods `backpressureLaws` over the real stages.
 - **`KapProcess` — the typed mailbox actor** (kap-stream). A bounded mailbox
   of an application ADT whose capacity/strategy is a named `Backpressure`
   value (`Suspend`, `Buffer(n)`, `Conflate`, `DropOldest(n)`, `DropLatest(n)`,
