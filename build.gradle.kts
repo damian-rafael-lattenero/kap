@@ -1,3 +1,4 @@
+import dev.detekt.gradle.Detekt
 import dev.detekt.gradle.extensions.DetektExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
@@ -85,10 +86,22 @@ val detektModules = listOf(
 subprojects {
     if (name in detektModules) {
         apply(plugin = "dev.detekt")
+        dependencies {
+            // the doctrine's own rules (CE-arm, ManualWaitLoop, VolatileRMW) run on
+            // kap's own code — the audit 17/11 finding: built+published, never
+            // self-applied (fleet audit wave kap-2)
+            "detektPlugins"(project(":kap-detekt-rules"))
+        }
+        val baselineFile = file("detekt-baseline.xml")
         configure<DetektExtension> {
             buildUponDefaultConfig = true
-            val baselineFile = file("detekt-baseline.xml")
+            config.setFrom(files("$rootDir/config/detekt/kap-rules.yml"))
             if (baselineFile.exists()) baseline.set(baselineFile)
+            // The compile-plugin type-resolved tasks (detektMain/detektMainJvm)
+            // cannot carry a baseline in detekt 2.0-alpha (measured 17/11) and
+            // kap's doctrine rules are SYNTACTIC (no type resolution needed, see
+            // their KDoc) — the plain + per-SourceSet tasks below are the gate.
+            enableCompilerPlugin.set(false)
             // KMP: analyze common + platform main sources; JVM-only: src/main (+jmh for benchmarks).
             val kotlinDirs = listOf(
                 "src/commonMain/kotlin", "src/jsMain/kotlin", "src/wasmJsMain/kotlin",
@@ -98,22 +111,36 @@ subprojects {
             source.setFrom(kotlinDirs)
             // Tests are out of scope for now (Fase 1 decides).
         }
+        // The extension configures only the plain `detekt` task; the
+        // type-resolved per-compilation tasks (detektMain/detektMainJvm) get
+        // plugin defaults — without this, the baseline would not reach them
+        // (measured 17/11: detektMainJvm failed on the SAME findings the
+        // plain pass baselined).
+        tasks.withType<Detekt>().configureEach {
+            baseline.convention(layout.projectDirectory.file("detekt-baseline.xml"))
+            config.convention(files("$rootDir/config/detekt/kap-rules.yml"))
+        }
     }
 }
 
 // Aggregates every detekt flavour: the plain `detekt` pass (extension sources)
-// plus the type-resolved per-compilation tasks detekt 2.0 generates —
-// detektMain for JVM modules, detektMainJvm for KMP ones (the jvm compilation
-// includes the common sources, superseding the old custom commonMain TR task).
-// CI gate entry point.
+// plus the per-SourceSet tasks detekt 2.0 generates for KMP modules (each
+// source set analyzed separately; the doctrine rules are syntactic, so this
+// covers everything the type-resolved tasks did). CI gate entry point.
 val detektAll = tasks.register("detektAll") {
     group = "verification"
-    description = "All detekt checks: plain + per-compilation type-resolved."
-    val detektTaskNames = listOf("detekt", "detektMain", "detektMainJvm")
+    description = "All detekt checks: plain + per-SourceSet."
     detektModules.forEach { moduleName ->
         val sp = subprojects.find { it.name == moduleName } ?: return@forEach
-        detektTaskNames.forEach { taskName ->
-            if (taskName in sp.tasks.names) dependsOn("${sp.path}:$taskName")
+        sp.tasks.names.forEach { taskName ->
+            val isDetekt = taskName == "detekt"
+            // Tests stay out of scope for now (Fase 1 decides), as the plain
+            // pass always did.
+            val isSourceSet = taskName.startsWith("detekt") &&
+                taskName.endsWith("SourceSet") &&
+                !taskName.contains("Baseline") &&
+                !taskName.contains("Test")
+            if (isDetekt || isSourceSet) dependsOn("${sp.path}:$taskName")
         }
     }
 }

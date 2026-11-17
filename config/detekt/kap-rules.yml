@@ -1,0 +1,11 @@
+# Activates the KAP doctrine ruleset (kap-detekt-rules) on top of detekt's
+# defaults. Custom rulesets are inactive unless listed here. Merged with
+# buildUponDefaultConfig, so nothing else is overridden.
+kap:
+  active: true
+  CancellationArmBeforeCatchAll:
+    active: true
+  ManualWaitLoop:
+    active: true
+  VolatileReadModifyWrite:
+    active: true

@@ -27,10 +27,10 @@
     <ID>FunctionNaming:ArrowBenchmark.kt:ArrowBenchmark$@Benchmark fun kap_withV_latency_all_fail: String</ID>
     <ID>FunctionNaming:ArrowBenchmark.kt:ArrowBenchmark$@Benchmark fun kap_withV_latency_all_pass: String</ID>
     <ID>FunctionNaming:ArrowBenchmark.kt:ArrowBenchmark$@Benchmark fun kap_zipV_mixed: String</ID>
-    <ID>FunctionNaming:ArrowBenchmark.kt:ArrowBenchmark$@Benchmark fun raw_attempt_failure: String</ID>
-    <ID>FunctionNaming:ArrowBenchmark.kt:ArrowBenchmark$@Benchmark fun raw_attempt_success: String</ID>
     <ID>FunctionNaming:ArrowBenchmark.kt:ArrowBenchmark$@Benchmark fun raw_raceEither: String</ID>
     <ID>FunctionNaming:ArrowBenchmark.kt:ArrowBenchmark$@Benchmark fun sequential_validation_all_pass: String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt:ArrowBenchmark$@Suppress("CancellationArmBeforeCatchAll") @Benchmark fun raw_attempt_failure: String</ID>
+    <ID>FunctionNaming:ArrowBenchmark.kt:ArrowBenchmark$@Suppress("CancellationArmBeforeCatchAll") @Benchmark fun raw_attempt_success: String</ID>
     <ID>FunctionNaming:CoreBenchmark.kt:CoreBenchmark$@Benchmark fun arrow_combine3_overhead: String</ID>
     <ID>FunctionNaming:CoreBenchmark.kt:CoreBenchmark$@Benchmark fun arrow_latency_arity5: String</ID>
     <ID>FunctionNaming:CoreBenchmark.kt:CoreBenchmark$@Benchmark fun arrow_latency_multiPhase: String</ID>
@@ -119,9 +119,9 @@
     <ID>FunctionNaming:ResilienceBenchmark.kt:ResilienceBenchmark$@Benchmark fun raw_guarantee_overhead: String</ID>
     <ID>FunctionNaming:ResilienceBenchmark.kt:ResilienceBenchmark$@Benchmark fun raw_raceQuorum_2of5: List&lt;String></ID>
     <ID>FunctionNaming:ResilienceBenchmark.kt:ResilienceBenchmark$@Benchmark fun raw_resource_zip_overhead: String</ID>
-    <ID>FunctionNaming:ResilienceBenchmark.kt:ResilienceBenchmark$@Benchmark fun raw_retry_manual_3: String</ID>
-    <ID>FunctionNaming:ResilienceBenchmark.kt:ResilienceBenchmark$@Benchmark fun raw_timeoutRace_fallback_wins: String</ID>
     <ID>FunctionNaming:ResilienceBenchmark.kt:ResilienceBenchmark$@Benchmark fun raw_timeoutRace_primary_wins: String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt:ResilienceBenchmark$@Suppress("CancellationArmBeforeCatchAll") @Benchmark fun raw_retry_manual_3: String</ID>
+    <ID>FunctionNaming:ResilienceBenchmark.kt:ResilienceBenchmark$@Suppress("CancellationArmBeforeCatchAll") @Benchmark fun raw_timeoutRace_fallback_wins: String</ID>
     <ID>MagicNumber:ArrowBenchmark.kt:ArrowBenchmark$100</ID>
     <ID>MagicNumber:ArrowBenchmark.kt:ArrowBenchmark$30</ID>
     <ID>MagicNumber:CoreBenchmark.kt:CoreBenchmark$10</ID>

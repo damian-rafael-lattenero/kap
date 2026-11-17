@@ -47,6 +47,10 @@ fun <A> Kap<A>.retry(
 ): Kap<A> = Kap {
     var attempt = 0
     lateinit var lastError: Throwable
+    // This loop IS the Schedule retry engine: the cadence lives in
+    // schedule.decide() and the exit is Schedule-bounded (Done -> break) — it
+    // implements the law, not a manual wait.
+    @Suppress("ManualWaitLoop")
     while (true) {
         try {
             return@Kap with(this@retry.isolated()) { execute() }
@@ -107,6 +111,9 @@ fun <A> Kap<A>.retryOrElse(
 ): Kap<A> = Kap {
     var attempt = 0
     lateinit var lastError: Throwable
+    // Same law as [retry]: the cadence lives in schedule.decide(), the exit is
+    // Schedule-bounded.
+    @Suppress("ManualWaitLoop")
     while (true) {
         try {
             return@Kap with(this@retryOrElse.isolated()) { execute() }
@@ -159,6 +166,9 @@ fun <A> Kap<A>.retryWithResult(
     var attempt = 0
     var totalDelay = Duration.ZERO
     lateinit var lastError: Throwable
+    // Same law as [retry]: the cadence lives in schedule.decide(), the exit is
+    // Schedule-bounded.
+    @Suppress("ManualWaitLoop")
     while (true) {
         try {
             val value = with(this@retryWithResult.isolated()) { execute() }

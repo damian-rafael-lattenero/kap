@@ -280,6 +280,10 @@ open class ArrowBenchmark {
     // 7. ATTEMPT — bridge exceptions into Either<Throwable, A>
     // ════════════════════════════════════════════════════════════════════════
 
+    // The RAW hand-rolled pattern IS the benchmark subject (baseline the kap
+    // operators are measured against); a CancellationException never reaches
+    // these bodies — compute() cannot suspend-cancel.
+    @Suppress("CancellationArmBeforeCatchAll")
     @Benchmark fun raw_attempt_success(): String = runBlocking {
         val result: Either<Throwable, String> = try {
             Either.Right(compute(1))
@@ -292,6 +296,7 @@ open class ArrowBenchmark {
         }
     }
 
+    @Suppress("CancellationArmBeforeCatchAll")
     @Benchmark fun raw_attempt_failure(): String = runBlocking {
         val result: Either<Throwable, String> = try {
             Either.Right(error("boom") as String)

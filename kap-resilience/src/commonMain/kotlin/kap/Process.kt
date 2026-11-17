@@ -210,6 +210,11 @@ class Process<A> internal constructor(
         restarts: MutableStateFlow<Int>,
     ) {
         var attempt = 0
+        // This loop IS the restart engine: the cadence lives in restart.schedule
+        // (decide() below) — the exit is Schedule-bounded, and delay() runs only
+        // after a Continue decision. The shape is the implementation of the law,
+        // not a manual wait.
+        @Suppress("ManualWaitLoop")
         while (true) {
             try {
                 val value = with(body.isolated()) { execute() }

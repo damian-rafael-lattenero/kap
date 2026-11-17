@@ -41,6 +41,9 @@ open class ResilienceBenchmark {
     // 1. RETRY WITH SCHEDULE — composable retry policies
     // ════════════════════════════════════════════════════════════════════════
 
+    // The RAW manual-retry loop IS the benchmark subject (the baseline the
+    // Schedule-based kap_retry_* runs against); no cancellation can reach it.
+    @Suppress("CancellationArmBeforeCatchAll")
     @Benchmark fun raw_retry_manual_3(): String = runBlocking {
         var attempts = 0
         var result: String? = null
@@ -293,6 +296,9 @@ open class ResilienceBenchmark {
             .timeoutRace(kotlin.time.Duration.parse("100ms"), Kap { networkCall("fallback", 80) }).evalGraph()
     }
 
+    // The RAW select+withTimeout race IS the benchmark subject (the baseline
+    // kap_timeoutRace_* runs against); no cancellation can reach this catch.
+    @Suppress("CancellationArmBeforeCatchAll")
     @Benchmark fun raw_timeoutRace_fallback_wins(): String = runBlocking {
         coroutineScope {
             select {

@@ -2,6 +2,10 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>CancellationArmBeforeCatchAll:FlowIntegration.kt:catch (e: Throwable) { deferred.completeExceptionally(e) }</ID>
+    <ID>CancellationArmBeforeCatchAll:Meter.kt:GuardedMeter$catch (_: Throwable) { // nowhere left to report it }</ID>
+    <ID>CancellationArmBeforeCatchAll:Meter.kt:GuardedMeter$catch (t: Throwable) { report(MeterFailure(MeterOperation.GAUGE_READ, name, tags, t)) Double.NaN }</ID>
+    <ID>CancellationArmBeforeCatchAll:Meter.kt:GuardedMeter$catch (t: Throwable) { report(MeterFailure(operation, name, tags, t)) }</ID>
     <ID>CyclomaticComplexMethod:ZipCombineOverloads.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R> zip: Kap&lt;R></ID>
     <ID>CyclomaticComplexMethod:ZipCombineOverloads.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, R> zip: Kap&lt;R></ID>
     <ID>CyclomaticComplexMethod:ZipCombineOverloads.kt:fun &lt;A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, R> zip: Kap&lt;R></ID>
