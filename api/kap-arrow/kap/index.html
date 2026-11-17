@@ -99,7 +99,22 @@
     <div class="tabs-section-body">
       <div data-togglable="TYPE">
         <h2 class="tableheader">Types</h2>
-        <div class="table"><a data-name="-1344676239%2FClasslikes%2F-993249084" anchor-label="Nel" id="-1344676239%2FClasslikes%2F-993249084" data-filterable-set=":kap-arrow/main"></a>
+        <div class="table"><a data-name="1011342110%2FClasslikes%2F-993249084" anchor-label="BuilderInference" id="1011342110%2FClasslikes%2F-993249084" data-filterable-set=":kap-arrow/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-arrow/main" data-filterable-set=":kap-arrow/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-builder-inference/index.html"><span>Builder</span><wbr><span><span>Inference</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1011342110%2FClasslikes%2F-993249084"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-arrow/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.annotation/-target/index.html"><span class="token annotation builtin">Target</span></a><span class="token punctuation">(</span><span>allowedTargets<span class="token operator"> = </span><span class="token punctuation">[</span><span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.annotation/-annotation-target/-v-a-l-u-e_-p-a-r-a-m-e-t-e-r/index.html">AnnotationTarget.VALUE_PARAMETER</a><span class="token punctuation">, </span></span><wbr><span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.annotation/-annotation-target/-f-u-n-c-t-i-o-n/index.html">AnnotationTarget.FUNCTION</a></span><wbr><span class="token punctuation">]</span></span><wbr><span class="token punctuation">)</span></div><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.experimental/-experimental-type-inference/index.html"><span class="token annotation builtin">ExperimentalTypeInference</span></a></div></div><span class="token keyword">annotation class </span><a href="-builder-inference/index.html">BuilderInference</a></div><div class="brief "><p class="paragraph">Builder-inference marker (the <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/index.html">buildList</a> recipe): a user-declared annotation meta-annotated with <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.experimental/-experimental-type-inference/index.html">ExperimentalTypeInference</a> upgrades lambda inference so the builders below infer E/A from the BLOCK BODY (<code class="lang-kotlin">either { user.bind() }</code> infers E from bind's receiver without explicit type arguments).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1344676239%2FClasslikes%2F-993249084" anchor-label="Nel" id="-1344676239%2FClasslikes%2F-993249084" data-filterable-set=":kap-arrow/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":kap-arrow/main" data-filterable-set=":kap-arrow/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
@@ -110,6 +125,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-arrow/main"><div class="symbol monospace"><span class="token keyword">typealias </span><a href="-nel/index.html">Nel</a><span class="token operator">&lt;</span><a href="-nel/index.html">A</a><span class="token operator">&gt;</span><span class="token operator"> = </span><span data-unresolved-link="arrow.core/NonEmptyList///PointingToDeclaration/">NonEmptyList</span><span class="token operator">&lt;</span><a href="-nel/index.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Shorthand typealias for Arrow's NonEmptyList.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-146725190%2FClasslikes%2F-993249084" anchor-label="Raise" id="-146725190%2FClasslikes%2F-993249084" data-filterable-set=":kap-arrow/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-arrow/main" data-filterable-set=":kap-arrow/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-raise/index.html"><span><span>Raise</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-146725190%2FClasslikes%2F-993249084"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-arrow/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-raise/index.html">Raise</a><span class="token operator">&lt;</span><span class="token keyword">in </span><a href="-raise/index.html">E</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Companion to <a href="validated.html">validated</a> (the Kap world, NonEmptyList channel): <code class="lang-kotlin">Raise</code> is the PLAIN world with a SINGLE error channel — the Arrow Raise shape, expressed with kap's own control-flow machinery. No coroutine is required; <a href="either.html">either</a> is a pure value function, and <a href="either-suspend.html">eitherSuspend</a> is its suspend boundary for workflows that call suspend steps.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -219,6 +249,36 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-arrow/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="catching.html">E</a><span class="token punctuation">, </span><a href="catching.html">A</a><span class="token operator">&gt; </span><a href="../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><a href="catching.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="catching.html"><span class="token function">catching</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">toError<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-throwable/index.html">Throwable</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="catching.html">E</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../kap-core/kap/-kap/index.html">Kap</a><span class="token operator">&lt;</span><span data-unresolved-link="arrow.core/Either///PointingToDeclaration/">Either</span><span class="token operator">&lt;</span><span data-unresolved-link="arrow.core/NonEmptyList///PointingToDeclaration/">NonEmptyList</span><span class="token operator">&lt;</span><a href="catching.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">, </span><a href="catching.html">A</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Converts a <a href="../../kap-core/kap/-kap/index.html">Kap</a> into a validated computation by catching non-cancellation exceptions and mapping them to errors via <a href="catching.html">toError</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-24696060%2FFunctions%2F-993249084" anchor-label="either" id="-24696060%2FFunctions%2F-993249084" data-filterable-set=":kap-arrow/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-arrow/main" data-filterable-set=":kap-arrow/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="either.html"><span><span>either</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-24696060%2FFunctions%2F-993249084"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-arrow/main"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="either.html">E</a><span class="token punctuation">, </span><a href="either.html">A</a><span class="token operator">&gt; </span><a href="either.html"><span class="token function">either</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">block<span class="token operator">: </span><a href="-raise/index.html">Raise</a><span class="token operator">&lt;</span><a href="either.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="either.html">A</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="arrow.core/Either///PointingToDeclaration/">Either</span><span class="token operator">&lt;</span><a href="either.html">E</a><span class="token punctuation">, </span><a href="either.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Runs <a href="either.html">block</a> in the raise world: <span data-unresolved-link="arrow.core/Either.Right///PointingToDeclaration/">Either.Right</span> with the block's value, or <span data-unresolved-link="arrow.core/Either.Left///PointingToDeclaration/">Either.Left</span> with the first raised error.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1310186289%2FFunctions%2F-993249084" anchor-label="eitherSuspend" id="-1310186289%2FFunctions%2F-993249084" data-filterable-set=":kap-arrow/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":kap-arrow/main" data-filterable-set=":kap-arrow/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="either-suspend.html"><span>either</span><wbr><span><span>Suspend</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1310186289%2FFunctions%2F-993249084"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":kap-arrow/main"><div class="symbol monospace"><span class="token keyword">inline suspend </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="either-suspend.html">E</a><span class="token punctuation">, </span><a href="either-suspend.html">A</a><span class="token operator">&gt; </span><a href="either-suspend.html"><span class="token function">eitherSuspend</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">block<span class="token operator">: </span><span class="token keyword">suspend </span><a href="-raise/index.html">Raise</a><span class="token operator">&lt;</span><a href="either-suspend.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="either-suspend.html">A</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="arrow.core/Either///PointingToDeclaration/">Either</span><span class="token operator">&lt;</span><a href="either-suspend.html">E</a><span class="token punctuation">, </span><a href="either-suspend.html">A</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Suspend variant of <a href="either.html">either</a> — same short-circuit semantics, for workflows that call suspend steps. Suspend calls in the block behave exactly as in any suspend lambda, and cancellation still propagates untouched.</p></div></div></div>
                 </div>
               </div>
             </div>
