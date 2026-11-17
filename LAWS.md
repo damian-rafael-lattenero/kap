@@ -339,6 +339,21 @@ and [`ConsumerLawsTest.kt`](kap-kotest/src/test/kotlin/kap/kotest/ConsumerLawsTe
 producers/mailboxes that prove the laws bite). `KapStreamLawsTest` dogfoods
 `backpressureLaws` over the real `KapStream` stages.
 
+## Raise laws (the raise world, `kap-arrow`)
+
+`Raise<E>` + `either { }` are direct-style sugar over `Either<E, A>` — the
+block semantics are the `flatMap` chain, nothing new:
+
+1. **Bind right returns the value** — `either { Either.Right(a).bind() } == Either.Right(a)`.
+2. **Bind left yields the error** — `either { Either.Left(e).bind() } == Either.Left(e)`, and every step after it is NOT executed (failure path, side-effect tested).
+3. **Composition** — `either { g(f(x).bind()).bind() } == f(x).flatMap(g)` for all `f`, `g` (the property that makes the direct style interchangeable with the combinator style).
+4. **Cancellation is sacred, structurally** — the builder only intercepts its own `Raised` control-flow exception; a `CancellationException` and any bug thrown in the block propagate untouched. `eitherSuspend` is the suspend boundary with the same law.
+5. **No scope state** — the raised error rides the control-flow exception (a `ControlFlowException`, no stack trace), so nested blocks and re-entrancy cannot cross-talk.
+
+Enforced by [`RaiseTest.kt`](kap-arrow/src/test/kotlin/kap/RaiseTest.kt).
+The `validated { }` builder from 5.3 (Kap world, NonEmptyList channel) is the
+accumulation counterpart; `Raise` is the single-error value-world shape.
+
 ## Arrow Integration
 
 Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplementation. All validated operations produce standard `Either<NonEmptyList<E>, A>` values.
@@ -347,4 +362,4 @@ Arrow's `NonEmptyList` is used natively in `kap-arrow` — no custom reimplement
 
 All laws are verified in [`ApplicativeLawsTest.kt`](kap-core/src/jvmTest/kotlin/kap/ApplicativeLawsTest.kt) using Kotest property-based testing with random inputs.
 
-**1299 tests across 101 suites in 8 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
+**1314 tests across 102 suites in 8 modules + benchmarks. All passing.** *(Numbers verified on every push by `scripts/verify-claims.nu`.)*
