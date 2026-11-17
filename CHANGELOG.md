@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.5.0] - 2026-11-17
+
+### Added
+
+- **The raise world — `Raise<E>` + `either { }` / `eitherSuspend { }`**
+  (kap-arrow). Direct-style typed errors over Arrow's `Either<E, A>` with a
+  single error channel: `bind`, `ensure`, `ensureNotNull` as members of
+  `Raise`, the short-circuit riding a `ControlFlowException` (no stack trace,
+  the error rides the exception — no mutable scope state). The CE law is
+  structural: the builders only intercept their own control-flow exception, so
+  `CancellationException` and bugs propagate untouched (the `runCatching` trap
+  the fleet audit measured at seven sites is simply impossible in this DSL).
+  Builder inference follows the `buildList` recipe (custom `@BuilderInference`
+  meta-annotated with `ExperimentalTypeInference` + `callsInPlace` contracts).
+  Laws in `RaiseTest.kt`; LAWS.md gains the Raise section. Companion to
+  `validated { }` (the Kap world, NonEmptyList channel).
+- **`kap-detekt-rules` wired into kap itself**: `detektPlugins` +
+  `config/detekt/kap-rules.yml` + per-module baselines with written reasons —
+  the doctrine gate self-applies (it caught 8 real sites on its first run).
+
+### Changed
+
+- **`CancellationArmBeforeCatchAll` scope narrowed**: it flags broad catches
+  ONLY inside `suspend` functions. A non-suspend function cannot call suspend
+  code, so a `CancellationException` cannot legally reach its catch arms — the
+  audit measured six of seven flagged sites as synchronous file-IO borders
+  (false positives). Mechanical catch-all detection stays for the suspend
+  world, where the laundering trap lives. 14 rule tests.
+- **Daemon headroom**: `org.gradle.jvmargs` in `gradle.properties`
+  (`-Xmx3g -XX:MaxMetaspaceSize=1536m`) — Gradle's default 384 MB metaspace
+  cap killed the daemon mid cold 12-module KMP build (measured 17/11).
+
 ## [5.4.0] - 2026-11-16
 
 ### Added
