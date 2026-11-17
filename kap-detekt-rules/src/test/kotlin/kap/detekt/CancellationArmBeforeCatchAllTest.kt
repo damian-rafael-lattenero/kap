@@ -15,7 +15,7 @@ class CancellationArmBeforeCatchAllTest {
             """
             import kotlinx.coroutines.CancellationException
 
-            fun run() {
+            suspend fun run() {
                 try {
                     work()
                 } catch (e: Exception) {
@@ -32,7 +32,7 @@ class CancellationArmBeforeCatchAllTest {
     fun `flags catch Throwable and catch RuntimeException`() {
         val findings = rule.lint(
             """
-            fun run() {
+            suspend fun run() {
                 try {
                     work()
                 } catch (e: Throwable) {
@@ -54,7 +54,7 @@ class CancellationArmBeforeCatchAllTest {
     fun `flags a fully qualified broad catch`() {
         val findings = rule.lint(
             """
-            fun run() {
+            suspend fun run() {
                 try {
                     work()
                 } catch (e: java.lang.Exception) {
@@ -73,7 +73,7 @@ class CancellationArmBeforeCatchAllTest {
             """
             import kotlinx.coroutines.CancellationException
 
-            fun run() {
+            suspend fun run() {
                 try {
                     work()
                 } catch (e: CancellationException) {
@@ -94,7 +94,7 @@ class CancellationArmBeforeCatchAllTest {
             """
             import kotlinx.coroutines.CancellationException
 
-            fun run() {
+            suspend fun run() {
                 try {
                     work()
                 } catch (e: Exception) {
@@ -114,7 +114,7 @@ class CancellationArmBeforeCatchAllTest {
             """
             import kotlinx.coroutines.CancellationException
 
-            fun run() {
+            suspend fun run() {
                 try {
                     work()
                 } catch (e: Exception) {
@@ -134,7 +134,7 @@ class CancellationArmBeforeCatchAllTest {
     fun `compliant with an unconditional rethrow`() {
         val findings = rule.lint(
             """
-            fun run() {
+            suspend fun run() {
                 try {
                     work()
                 } catch (e: Exception) {
@@ -153,7 +153,7 @@ class CancellationArmBeforeCatchAllTest {
             """
             import kotlinx.coroutines.CancellationException
 
-            fun run() {
+            suspend fun run() {
                 try {
                     work()
                 } catch (e: Exception) {
@@ -171,7 +171,7 @@ class CancellationArmBeforeCatchAllTest {
     fun `narrow catches never flag`() {
         val findings = rule.lint(
             """
-            fun run() {
+            suspend fun run() {
                 try {
                     work()
                 } catch (e: IllegalStateException) {
@@ -188,7 +188,7 @@ class CancellationArmBeforeCatchAllTest {
     fun `reports every offender in the file`() {
         val findings = rule.lint(
             """
-            fun run() {
+            suspend fun run() {
                 try {
                     work()
                 } catch (e: Exception) {
@@ -212,7 +212,7 @@ class CancellationArmBeforeCatchAllTest {
             """
             import kotlinx.coroutines.CancellationException
 
-            fun run() {
+            suspend fun run() {
                 try {
                     try {
                         work()
@@ -227,5 +227,39 @@ class CancellationArmBeforeCatchAllTest {
         )
 
         assertEquals(1, findings.size)
+    }
+
+    @Test
+    fun `non-suspend code never flags - a broad catch there cannot legally receive CE`() {
+        val findings = rule.lint(
+            """
+            fun run() {
+                try {
+                    work()
+                } catch (e: Exception) {
+                    log(e)
+                }
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(0, findings.size)
+    }
+
+    @Test
+    fun `a suspend function without the modifier keyword never flags`() {
+        val findings = rule.lint(
+            """
+            fun plain() {
+                try {
+                    work()
+                } catch (e: Exception) {
+                    log(e)
+                }
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(0, findings.size)
     }
 }

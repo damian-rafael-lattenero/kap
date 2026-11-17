@@ -1,13 +1,16 @@
 package kap.detekt
 
+import com.intellij.psi.util.PsiTreeUtil
 import dev.detekt.api.Config
 import dev.detekt.api.Entity
 import dev.detekt.api.Finding
 import dev.detekt.api.Rule
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtCatchClause
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtIsExpression
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtThrowExpression
 import org.jetbrains.kotlin.psi.KtTryExpression
 import org.jetbrains.kotlin.psi.KtWhenConditionIsPattern
@@ -53,7 +56,12 @@ import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
  * }
  * </compliant>
  *
- * The rule is syntactic — it needs no type resolution. Known limitations: a
+ * The rule is syntactic — it needs no type resolution. SCOPE: only catches
+ * inside SUSPEND functions are flagged — the laundering trap needs a
+ * suspension point for a CancellationException to flow through; a broad catch
+ * in non-suspend code (a file-IO border, a blocking probe) cannot legally
+ * receive one from structured concurrency (measured on the fleet audit wave 2:
+ * six of seven flagged sites were non-suspend file IO). Known limitations: a
  * broad type reached through an import alias is not recognized, and
  * [runCatching] is not inspected (its lawful replacements are [kap.Kap.settled]
  * and an explicit try/catch with the CE arm).
@@ -66,12 +74,25 @@ class CancellationArmBeforeCatchAll(config: Config) : Rule(
 
     override fun visitTryExpression(expression: KtTryExpression) {
         super.visitTryExpression(expression)
+        if (!expression.isInsideSuspendFunction()) return
         expression.catchClauses.forEachIndexed { index, clause ->
             if (clause.isBroadCatch() && !expression.hasCancellationArmBefore(index, clause)) {
                 report(Finding(Entity.from(clause), description))
             }
         }
     }
+
+    /**
+     * True when the nearest enclosing function declaration carries the
+     * suspend modifier. A non-suspend function cannot call suspend code, so a
+     * CancellationException cannot legally reach its catch arms through
+     * structured concurrency. (Suspend lambdas passed to non-suspend helpers
+     * are out of this syntactic scope: their enclosing named function is
+     * non-suspend by the language's own rules.)
+     */
+    private fun KtTryExpression.isInsideSuspendFunction(): Boolean =
+        PsiTreeUtil.getParentOfType(this, KtNamedFunction::class.java)
+            ?.hasModifier(KtTokens.SUSPEND_KEYWORD) == true
 
     private fun KtCatchClause.isBroadCatch(): Boolean =
         catchParameter?.typeReference?.text in BROAD_TYPES
