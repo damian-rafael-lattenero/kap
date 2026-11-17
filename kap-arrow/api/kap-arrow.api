@@ -9,6 +9,40 @@ public final class kap/ArrowExtensionsKt {
 	public static final fun toValidated (Ljava/lang/Object;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
 }
 
+public abstract interface annotation class kap/BuilderInference : java/lang/annotation/Annotation {
+}
+
+public abstract interface class kap/Raise {
+	public fun bind (Larrow/core/Either;)Ljava/lang/Object;
+	public fun ensure (ZLkotlin/jvm/functions/Function0;)V
+	public fun ensureNotNull (Ljava/lang/Object;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public abstract fun raise (Ljava/lang/Object;)Ljava/lang/Void;
+}
+
+public final class kap/Raise$DefaultImpls {
+	public static fun bind (Lkap/Raise;Larrow/core/Either;)Ljava/lang/Object;
+	public static fun ensure (Lkap/Raise;ZLkotlin/jvm/functions/Function0;)V
+	public static fun ensureNotNull (Lkap/Raise;Ljava/lang/Object;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+}
+
+public final class kap/RaiseImpl : kap/Raise {
+	public fun <init> ()V
+	public fun bind (Larrow/core/Either;)Ljava/lang/Object;
+	public fun ensure (ZLkotlin/jvm/functions/Function0;)V
+	public fun ensureNotNull (Ljava/lang/Object;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public fun raise (Ljava/lang/Object;)Ljava/lang/Void;
+}
+
+public final class kap/RaiseKt {
+	public static final fun either (Lkotlin/jvm/functions/Function1;)Larrow/core/Either;
+	public static final fun eitherSuspend (Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class kap/Raised : kap/ControlFlowException {
+	public fun <init> (Ljava/lang/Object;)V
+	public final fun getError ()Ljava/lang/Object;
+}
+
 public final class kap/ValidatedKt {
 	public static final fun accumulate (Lkotlin/jvm/functions/Function2;)Lkap/Kap;
 	public static final fun andThenV (Lkap/Kap;Lkotlin/jvm/functions/Function1;)Lkap/Kap;
