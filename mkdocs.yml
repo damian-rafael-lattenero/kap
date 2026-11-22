@@ -57,6 +57,7 @@ nav:
   - Comparison: comparison.md
   - Detekt rules: detekt-rules.md
   - Design docs:
+    - The Denotational Map: denotational-map.md
     - Error semantics (norm): design/error-semantics.md
   - Cookbook: playground.md
   - Blog: blog/index.md
