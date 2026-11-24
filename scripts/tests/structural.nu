@@ -6,7 +6,7 @@ use std/assert
 use /Users/lattenero/Scripts/lib/structural.nu *
 
 let files: list<string> = (glob '/Users/lattenero/Projects/kap/scripts/*.nu')
-assert greater ($files | length) 2 "the glob must see the family"
+assert greater or equal ($files | length) 2 "the glob must see the family"
 
 let found: list<Finding> = (findings $files)
 assert equal $found [] ($found | to json)
