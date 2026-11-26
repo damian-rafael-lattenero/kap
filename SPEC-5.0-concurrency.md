@@ -6,9 +6,10 @@ and dogfoods in `agent-brain` before release.
 
 ## The vision
 
-> KAP arregla TODOS los problemas de concurrencia, no solo el grafo:
-> backpressure, streaming, procesos de vida larga, supervisión, recursos.
-> Como ZIO, como Cats, casi Akka sin serlo: RxJava pero en DSL de Kotlin.
+> KAP fixes ALL the concurrency problems, not only the graph:
+> backpressure, streaming, long-lived processes, supervision, resources.
+> Like ZIO, like Cats, almost Akka without being it: RxJava but in a Kotlin DSL.
+> [translated from the owner's Spanish vision, 2026-11-26]
 
 One library, five algebras, one law-checked semantic core:
 
